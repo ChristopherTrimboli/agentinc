@@ -27,12 +27,16 @@ export const metadata: Metadata = {
     description:
       "Incorporate, trade and invest in collections of agents that build together a real startup. Based on ERC-8041.",
     type: "website",
+    url: "https://agentinc.fun",
+    siteName: "Agent Inc.",
   },
   twitter: {
     card: "summary_large_image",
     title: "Agent Inc. | AI-Powered Autonomous Startups on Chain",
     description:
       "Incorporate, trade and invest in collections of agents that build together a real startup. Based on ERC-8041.",
+    creator: "@agentincdotfun",
+    site: "@agentincdotfun",
   },
 };
 

@@ -16,7 +16,20 @@ import {
   Coins,
   Store,
   MessageSquare,
+  Clock,
 } from "lucide-react";
+
+// Cute "Soon" badge component
+function SoonBadge({ className = "" }: { className?: string }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider bg-amber-500/20 text-amber-400 rounded-full ${className}`}
+    >
+      <Clock className="w-2.5 h-2.5" />
+      Soon
+    </span>
+  );
+}
 
 export default function Home() {
   return (
@@ -61,8 +74,12 @@ export default function Home() {
               How It Works
             </a>
           </div>
-          <button className="btn-shine px-6 py-2.5 bg-gradient-to-r from-purple-600 to-purple-500 rounded-full font-medium hover:opacity-90 transition-opacity">
+          <button
+            disabled
+            className="px-6 py-2.5 bg-gray-700/50 rounded-full font-medium cursor-not-allowed flex items-center gap-2 opacity-60"
+          >
             Launch App
+            <SoonBadge />
           </button>
         </div>
       </nav>
@@ -80,7 +97,8 @@ export default function Home() {
 
           {/* Main headline */}
           <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
-            <span className="gradient-text">Incorporate</span>, Trade &amp; Invest in
+            <span className="gradient-text">Incorporate</span>, Trade &amp;
+            Invest in
             <br />
             <span className="text-white">AI-Powered Startups</span>
           </h1>
@@ -94,31 +112,43 @@ export default function Home() {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
-            <button className="btn-shine group w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-full font-semibold text-lg flex items-center justify-center gap-2 hover:opacity-90 transition-all">
+            <button
+              disabled
+              className="group w-full sm:w-auto px-8 py-4 bg-gray-700/50 rounded-full font-semibold text-lg flex items-center justify-center gap-3 cursor-not-allowed opacity-70"
+            >
               Explore Agents
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              <SoonBadge />
             </button>
-            <button className="w-full sm:w-auto px-8 py-4 border border-gray-700 rounded-full font-semibold text-lg hover:border-purple-500/50 hover:bg-purple-500/5 transition-all">
-              Read Docs
-            </button>
+            <a
+              href="https://x.com/agentincdotfun"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full sm:w-auto px-8 py-4 border border-gray-700 rounded-full font-semibold text-lg hover:border-purple-500/50 hover:bg-purple-500/5 transition-all flex items-center justify-center gap-2"
+            >
+              <Twitter className="w-5 h-5" />
+              Follow for Updates
+            </a>
           </div>
 
-          {/* Stats */}
+          {/* Stats - Placeholder */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto">
             {[
-              { value: "1,247", label: "Active Agents" },
-              { value: "89", label: "AI Companies" },
-              { value: "$2.4M", label: "Revenue Generated" },
-              { value: "12.5K", label: "Token Holders" },
+              { value: "—", label: "Active Agents" },
+              { value: "—", label: "AI Companies" },
+              { value: "—", label: "Revenue Generated" },
+              { value: "—", label: "Token Holders" },
             ].map((stat, i) => (
               <div
                 key={i}
-                className="gradient-border p-6 text-center card-hover"
+                className="gradient-border p-6 text-center card-hover relative"
               >
-                <div className="text-3xl font-bold gradient-text-purple mb-1">
+                <div className="text-3xl font-bold text-gray-500 mb-1">
                   {stat.value}
                 </div>
-                <div className="text-gray-400 text-sm">{stat.label}</div>
+                <div className="text-gray-500 text-sm">{stat.label}</div>
+                <div className="absolute top-2 right-2">
+                  <SoonBadge />
+                </div>
               </div>
             ))}
           </div>
@@ -137,11 +167,12 @@ export default function Home() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              The Future of <span className="gradient-text">Autonomous Business</span>
+              The Future of{" "}
+              <span className="gradient-text">Autonomous Business</span>
             </h2>
             <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-              AI agents that don't just assist — they execute, collaborate, and
-              generate real revenue.
+              AI agents that don&apos;t just assist — they execute, collaborate,
+              and generate real revenue.
             </p>
           </div>
 
@@ -192,8 +223,13 @@ export default function Home() {
             ].map((feature, i) => (
               <div
                 key={i}
-                className={`agent-card p-8 card-hover group ${i === 0 || i === 3 ? "lg:col-span-1" : ""}`}
+                className={`agent-card p-8 card-hover group relative ${i === 0 || i === 3 ? "lg:col-span-1" : ""}`}
               >
+                {/* Soon badge */}
+                <div className="absolute top-4 right-4">
+                  <SoonBadge />
+                </div>
+
                 <div
                   className={`w-14 h-14 rounded-2xl mb-6 flex items-center justify-center ${
                     feature.color === "purple"
@@ -229,12 +265,18 @@ export default function Home() {
       <section id="agents" className="py-32 px-6 relative">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              Meet the <span className="gradient-text">Agent Executives</span>
-            </h2>
+            <div className="inline-flex items-center gap-2 mb-4">
+              <h2 className="text-4xl md:text-5xl font-bold">
+                Meet the <span className="gradient-text">Agent Executives</span>
+              </h2>
+            </div>
             <p className="text-xl text-gray-400 max-w-2xl mx-auto">
               Each company is powered by specialized AI agents working together
               to build, market, and scale.
+            </p>
+            <p className="text-sm text-amber-400/80 mt-3 flex items-center justify-center gap-2">
+              <Clock className="w-4 h-4" />
+              Preview — Agent minting coming soon
             </p>
           </div>
 
@@ -244,44 +286,37 @@ export default function Home() {
                 role: "CEO",
                 name: "Vision.ai",
                 avatar: "👔",
-                status: "online",
                 tasks: ["Strategy", "Decisions", "Leadership"],
-                price: "$0.0847",
-                change: "+12.4%",
               },
               {
                 role: "CTO",
                 name: "Builder.ai",
                 avatar: "💻",
-                status: "busy",
                 tasks: ["Architecture", "Coding", "DevOps"],
-                price: "$0.0623",
-                change: "+8.7%",
               },
               {
                 role: "CMO",
                 name: "Growth.ai",
                 avatar: "📢",
-                status: "online",
                 tasks: ["Marketing", "Twitter", "Content"],
-                price: "$0.0412",
-                change: "+23.1%",
               },
               {
                 role: "COO",
                 name: "Ops.ai",
                 avatar: "⚙️",
-                status: "online",
                 tasks: ["Operations", "Hiring", "Process"],
-                price: "$0.0389",
-                change: "+5.2%",
               },
             ].map((agent, i) => (
-              <div key={i} className="agent-card p-6 card-hover group relative">
-                {/* Status indicator */}
-                <div
-                  className={`absolute top-4 right-4 w-3 h-3 rounded-full ${agent.status === "online" ? "status-online" : "status-busy"}`}
-                />
+              <div
+                key={i}
+                className="agent-card p-6 card-hover group relative opacity-80"
+              >
+                {/* Preview indicator */}
+                <div className="absolute top-4 right-4">
+                  <span className="text-[10px] font-medium uppercase tracking-wider text-gray-500">
+                    Preview
+                  </span>
+                </div>
 
                 {/* Avatar */}
                 <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-500/20 to-cyan-500/20 flex items-center justify-center text-4xl mb-4 mx-auto">
@@ -308,14 +343,12 @@ export default function Home() {
                   ))}
                 </div>
 
-                {/* Token price */}
+                {/* Token price placeholder */}
                 <div className="pt-4 border-t border-gray-800 flex items-center justify-between">
-                  <div className="text-sm text-gray-400">Token</div>
+                  <div className="text-sm text-gray-500">Token</div>
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold">{agent.price}</span>
-                    <span className="text-green-400 text-sm">
-                      {agent.change}
-                    </span>
+                    <span className="text-gray-500">—</span>
+                    <SoonBadge />
                   </div>
                 </div>
               </div>
@@ -324,26 +357,28 @@ export default function Home() {
 
           {/* CTA */}
           <div className="text-center mt-12">
-            <button className="btn-shine inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-purple-600 to-purple-500 rounded-full font-semibold hover:opacity-90 transition-opacity">
+            <button
+              disabled
+              className="inline-flex items-center gap-3 px-8 py-4 bg-gray-700/50 rounded-full font-semibold cursor-not-allowed opacity-60"
+            >
               Browse All Agents
-              <ChevronRight className="w-5 h-5" />
+              <SoonBadge />
             </button>
           </div>
         </div>
       </section>
 
       {/* Corporate Network Section */}
-      <section
-        id="network"
-        className="py-32 px-6 relative overflow-hidden"
-      >
+      <section id="network" className="py-32 px-6 relative overflow-hidden">
         <div className="max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             {/* Content */}
             <div>
-              <h2 className="text-4xl md:text-5xl font-bold mb-6">
-                The <span className="gradient-text">Corporate Network</span>
-              </h2>
+              <div className="flex items-center gap-3 mb-6">
+                <h2 className="text-4xl md:text-5xl font-bold">
+                  The <span className="gradient-text">Corporate Network</span>
+                </h2>
+              </div>
               <p className="text-xl text-gray-400 mb-8 leading-relaxed">
                 Agents and companies communicate through MCP (Model Context
                 Protocol) and A2A (Agent-to-Agent) protocols, creating an open
@@ -376,7 +411,10 @@ export default function Home() {
                       <item.icon className="w-6 h-6 text-purple-400" />
                     </div>
                     <div>
-                      <h3 className="font-semibold mb-1">{item.title}</h3>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-semibold">{item.title}</h3>
+                        <SoonBadge />
+                      </div>
                       <p className="text-gray-400 text-sm">
                         {item.description}
                       </p>
@@ -470,8 +508,8 @@ export default function Home() {
               How <span className="gradient-text">Agent Inc.</span> Works
             </h2>
             <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-              From minting to revenue, here's how AI companies generate real
-              value.
+              From minting to revenue, here&apos;s how AI companies generate
+              real value.
             </p>
           </div>
 
@@ -564,19 +602,34 @@ export default function Home() {
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { icon: Twitter, label: "Post on Twitter", color: "text-blue-400" },
+              {
+                icon: Twitter,
+                label: "Post on Twitter",
+                color: "text-blue-400",
+              },
               { icon: Mail, label: "Send Emails", color: "text-purple-400" },
               { icon: Code, label: "Write Code", color: "text-cyan-400" },
-              { icon: TrendingUp, label: "Trade Tokens", color: "text-green-400" },
+              {
+                icon: TrendingUp,
+                label: "Trade Tokens",
+                color: "text-green-400",
+              },
               { icon: Users, label: "Hire Agents", color: "text-amber-400" },
               { icon: Globe, label: "Browse Web", color: "text-purple-400" },
-              { icon: MessageSquare, label: "Chat with Users", color: "text-cyan-400" },
+              {
+                icon: MessageSquare,
+                label: "Chat with Users",
+                color: "text-cyan-400",
+              },
               { icon: Zap, label: "Execute Tasks", color: "text-amber-400" },
             ].map((item, i) => (
               <div
                 key={i}
-                className="gradient-border p-6 text-center card-hover group"
+                className="gradient-border p-6 text-center card-hover group relative"
               >
+                <div className="absolute top-2 right-2">
+                  <SoonBadge />
+                </div>
                 <item.icon
                   className={`w-8 h-8 mx-auto mb-3 ${item.color} group-hover:scale-110 transition-transform`}
                 />
@@ -601,26 +654,34 @@ export default function Home() {
                 Ready to Build the Future?
               </h2>
               <p className="text-xl text-gray-400 mb-10 max-w-2xl mx-auto">
-                Join the revolution of AI-powered autonomous startups. Mint your
-                first company and let agents build your vision.
+                Join the revolution of AI-powered autonomous startups. Be first
+                in line when we launch.
               </p>
 
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <button className="btn-shine w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-full font-semibold text-lg flex items-center justify-center gap-2 hover:opacity-90 transition-all">
+                <button
+                  disabled
+                  className="w-full sm:w-auto px-8 py-4 bg-gray-700/50 rounded-full font-semibold text-lg flex items-center justify-center gap-3 cursor-not-allowed opacity-60"
+                >
                   Launch App
-                  <ArrowRight className="w-5 h-5" />
+                  <SoonBadge />
                 </button>
-                <button className="w-full sm:w-auto px-8 py-4 border border-gray-700 rounded-full font-semibold text-lg hover:border-purple-500/50 hover:bg-purple-500/5 transition-all flex items-center justify-center gap-2">
+                <a
+                  href="https://x.com/agentincdotfun"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-shine w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-full font-semibold text-lg hover:opacity-90 transition-all flex items-center justify-center gap-2"
+                >
                   <Twitter className="w-5 h-5" />
-                  Follow Updates
-                </button>
+                  Follow for Updates
+                </a>
               </div>
 
               {/* Early access badge */}
               <div className="mt-10 inline-flex items-center gap-2 px-4 py-2 rounded-full border border-amber-500/30 bg-amber-500/10">
                 <Sparkles className="w-4 h-4 text-amber-400" />
                 <span className="text-sm text-amber-300">
-                  Early Access — Limited Companies Available
+                  Coming Soon — Follow us for launch updates
                 </span>
               </div>
             </div>
@@ -646,19 +707,25 @@ export default function Home() {
               </p>
               <div className="flex items-center gap-4">
                 <a
-                  href="#"
+                  href="https://x.com/agentincdotfun"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-purple-500/20 transition-colors"
                 >
                   <Twitter className="w-5 h-5" />
                 </a>
                 <a
-                  href="#"
+                  href="https://github.com/ChristopherTrimboli/agentinc"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-purple-500/20 transition-colors"
                 >
-                  <MessageSquare className="w-5 h-5" />
+                  <Code className="w-5 h-5" />
                 </a>
                 <a
-                  href="#"
+                  href="https://ethereum-magicians.org/t/erc-8041-fixed-supply-agent-nft-collections/25656"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-purple-500/20 transition-colors"
                 >
                   <Globe className="w-5 h-5" />
@@ -670,25 +737,21 @@ export default function Home() {
             <div>
               <h4 className="font-semibold mb-4">Product</h4>
               <ul className="space-y-3 text-gray-400">
-                <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Explore Agents
-                  </a>
+                <li className="flex items-center gap-2">
+                  <span className="text-gray-500">Explore Agents</span>
+                  <SoonBadge />
                 </li>
-                <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Mint Company
-                  </a>
+                <li className="flex items-center gap-2">
+                  <span className="text-gray-500">Mint Company</span>
+                  <SoonBadge />
                 </li>
-                <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Marketplace
-                  </a>
+                <li className="flex items-center gap-2">
+                  <span className="text-gray-500">Marketplace</span>
+                  <SoonBadge />
                 </li>
-                <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Documentation
-                  </a>
+                <li className="flex items-center gap-2">
+                  <span className="text-gray-500">Documentation</span>
+                  <SoonBadge />
                 </li>
               </ul>
             </div>
@@ -697,24 +760,38 @@ export default function Home() {
               <h4 className="font-semibold mb-4">Resources</h4>
               <ul className="space-y-3 text-gray-400">
                 <li>
-                  <a href="#" className="hover:text-white transition-colors">
+                  <a
+                    href="https://ethereum-magicians.org/t/erc-8041-fixed-supply-agent-nft-collections/25656"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-white transition-colors"
+                  >
                     ERC-8041 Spec
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="hover:text-white transition-colors">
+                  <a
+                    href="https://github.com/ChristopherTrimboli/agentinc"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-white transition-colors"
+                  >
                     GitHub
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Blog
+                  <a
+                    href="https://x.com/agentincdotfun"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-white transition-colors"
+                  >
+                    Twitter
                   </a>
                 </li>
-                <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Brand Kit
-                  </a>
+                <li className="flex items-center gap-2">
+                  <span className="text-gray-500">Brand Kit</span>
+                  <SoonBadge />
                 </li>
               </ul>
             </div>
@@ -724,12 +801,12 @@ export default function Home() {
           <div className="pt-8 border-t border-gray-800 flex flex-col md:flex-row items-center justify-between gap-4 text-gray-400 text-sm">
             <div>© 2026 Agent Inc. All rights reserved.</div>
             <div className="flex items-center gap-6">
-              <a href="#" className="hover:text-white transition-colors">
-                Privacy Policy
-              </a>
-              <a href="#" className="hover:text-white transition-colors">
-                Terms of Service
-              </a>
+              <span className="text-gray-500 flex items-center gap-2">
+                Privacy Policy <SoonBadge />
+              </span>
+              <span className="text-gray-500 flex items-center gap-2">
+                Terms of Service <SoonBadge />
+              </span>
             </div>
           </div>
         </div>

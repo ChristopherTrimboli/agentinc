@@ -75,10 +75,10 @@ agentinc/
 
 ## Links
 
-- [Website](#) (Coming Soon)
-- [Documentation](#) (Coming Soon)
-- [Twitter](#) (Coming Soon)
-- [Discord](#) (Coming Soon)
+- [Website](https://agentinc.fun) (Coming Soon)
+- [GitHub](https://github.com/ChristopherTrimboli/agentinc)
+- [Twitter](https://x.com/agentincdotfun)
+- [ERC-8041 Spec](https://ethereum-magicians.org/t/erc-8041-fixed-supply-agent-nft-collections/25656)
 
 ## License
 
