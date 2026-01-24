@@ -18,6 +18,7 @@ import {
   MessageSquare,
   Clock,
 } from "lucide-react";
+import Navigation from "./components/Navigation";
 
 // Cute "Soon" badge component
 function SoonBadge({ className = "" }: { className?: string }) {
@@ -40,55 +41,7 @@ export default function Home() {
       <div className="fixed bottom-0 right-0 w-[600px] h-[400px] bg-cyan-500/10 rounded-full blur-[100px] pointer-events-none" />
 
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 glass">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center">
-              <Building2 className="w-6 h-6 text-white" />
-            </div>
-            <span className="text-xl font-bold">Agent Inc.</span>
-          </div>
-          <div className="hidden md:flex items-center gap-8">
-            <a
-              href="#features"
-              className="text-gray-400 hover:text-white transition-colors"
-            >
-              Features
-            </a>
-            <a
-              href="#agents"
-              className="text-gray-400 hover:text-white transition-colors"
-            >
-              Agents
-            </a>
-            <a
-              href="#network"
-              className="text-gray-400 hover:text-white transition-colors"
-            >
-              Network
-            </a>
-            <a
-              href="#how-it-works"
-              className="text-gray-400 hover:text-white transition-colors"
-            >
-              How It Works
-            </a>
-            <a
-              href="/tokenomics"
-              className="text-purple-400 hover:text-purple-300 transition-colors font-medium"
-            >
-              Tokenomics
-            </a>
-          </div>
-          <button
-            disabled
-            className="px-6 py-2.5 bg-gray-700/50 rounded-full font-medium cursor-not-allowed flex items-center gap-2 opacity-60"
-          >
-            Launch App
-            <SoonBadge />
-          </button>
-        </div>
-      </nav>
+      <Navigation />
 
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center pt-20 px-6">
