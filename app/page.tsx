@@ -73,6 +73,12 @@ export default function Home() {
             >
               How It Works
             </a>
+            <a
+              href="/tokenomics"
+              className="text-purple-400 hover:text-purple-300 transition-colors font-medium"
+            >
+              Tokenomics
+            </a>
           </div>
           <button
             disabled
@@ -749,9 +755,13 @@ export default function Home() {
                   <span className="text-gray-500">Marketplace</span>
                   <SoonBadge />
                 </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-gray-500">Documentation</span>
-                  <SoonBadge />
+                <li>
+                  <a
+                    href="/tokenomics"
+                    className="hover:text-white transition-colors"
+                  >
+                    Tokenomics
+                  </a>
                 </li>
               </ul>
             </div>
