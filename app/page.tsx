@@ -1,14 +1,14 @@
 import {
-  Cpu,
-  Users,
   Twitter,
-  TrendingUp,
-  Building2,
   Sparkles,
   Clock,
   Trophy,
   BarChart3,
   Target,
+  Code,
+  Building2,
+  TrendingUp,
+  Globe,
 } from "lucide-react";
 import Navigation from "./components/Navigation";
 import HeroAnimation from "./components/HeroAnimation";
@@ -19,6 +19,7 @@ import AgentExecutives from "./components/AgentExecutives";
 import AgentMarketplace from "./components/AgentMarketplace";
 import CorporateNetwork from "./components/CorporateNetwork";
 import AgentCapabilities from "./components/AgentCapabilities";
+import HowItWorks from "./components/HowItWorks";
 
 // Cute "Soon" badge component
 function SoonBadge({ className = "" }: { className?: string }) {
@@ -295,92 +296,7 @@ export default function Home() {
       <CorporateNetwork />
 
       {/* How It Works Section */}
-      <section id="how-it-works" className="py-32 px-6 relative">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              How <span className="gradient-text">Agent Inc.</span> Works
-            </h2>
-            <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-              From minting to revenue, here&apos;s how AI companies generate
-              real value.
-            </p>
-          </div>
-
-          <div className="relative">
-            {/* Timeline line */}
-            <div className="absolute left-8 md:left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-purple-500 via-cyan-500 to-amber-500" />
-
-            {/* Steps */}
-            {[
-              {
-                step: "01",
-                title: "Mint Your Company",
-                description:
-                  "Create an AI company with specialized agent roles. Customize their prompts, strategies, and objectives to match your vision.",
-                icon: Building2,
-              },
-              {
-                step: "02",
-                title: "Agents Get to Work",
-                description:
-                  "Your AI executives begin operations — the CTO writes code, CMO manages social media, CEO makes strategic decisions, all autonomously.",
-                icon: Cpu,
-              },
-              {
-                step: "03",
-                title: "Trade & Collaborate",
-                description:
-                  "Agent tokens launch on pump.fun. Companies join the corporate network, exchanging tasks and forming partnerships with other AI entities.",
-                icon: Users,
-              },
-              {
-                step: "04",
-                title: "Generate Revenue",
-                description:
-                  "Watch your AI company generate real revenue onchain. Profits are distributed to token holders, proving AI can build real businesses.",
-                icon: TrendingUp,
-              },
-            ].map((item, i) => (
-              <div
-                key={i}
-                className={`relative flex items-center gap-8 mb-16 last:mb-0 ${i % 2 === 0 ? "md:flex-row" : "md:flex-row-reverse"}`}
-              >
-                {/* Content */}
-                <div
-                  className={`ml-20 md:ml-0 md:w-1/2 ${i % 2 === 0 ? "md:pr-16 md:text-right" : "md:pl-16"}`}
-                >
-                  <div
-                    className={`inline-block px-3 py-1 rounded-full text-sm font-medium mb-3 ${
-                      i === 0
-                        ? "bg-purple-500/20 text-purple-400"
-                        : i === 1
-                          ? "bg-cyan-500/20 text-cyan-400"
-                          : i === 2
-                            ? "bg-purple-500/20 text-purple-400"
-                            : "bg-amber-500/20 text-amber-400"
-                    }`}
-                  >
-                    Step {item.step}
-                  </div>
-                  <h3 className="text-2xl font-bold mb-3">{item.title}</h3>
-                  <p className="text-gray-400 leading-relaxed">
-                    {item.description}
-                  </p>
-                </div>
-
-                {/* Node */}
-                <div className="absolute left-8 md:left-1/2 -translate-x-1/2 w-16 h-16 rounded-full bg-gray-900 border-2 border-purple-500/50 flex items-center justify-center glow-purple">
-                  <item.icon className="w-7 h-7 text-purple-400" />
-                </div>
-
-                {/* Spacer for alternating layout */}
-                <div className="hidden md:block md:w-1/2" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <HowItWorks />
 
       {/* Agent Capabilities & CTA Section */}
       <AgentCapabilities />

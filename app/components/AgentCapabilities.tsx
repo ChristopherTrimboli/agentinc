@@ -385,7 +385,7 @@ export default function AgentCapabilities() {
       </section>
 
       {/* Enhanced CTA Section */}
-      <section className="py-32 px-6 relative overflow-hidden">
+      <section className="py-20 md:py-32 px-4 md:px-6 relative overflow-hidden">
         {/* Animated background */}
         <div className="absolute inset-0">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-purple-500/10 rounded-full blur-[150px] animate-pulse" style={{ animationDuration: "4s" }} />
@@ -393,28 +393,28 @@ export default function AgentCapabilities() {
         </div>
 
         <div className="max-w-5xl mx-auto relative">
-          <div className="relative rounded-3xl overflow-hidden">
+          <div className="relative rounded-2xl md:rounded-3xl overflow-hidden">
             {/* Gradient border animation */}
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-500 via-cyan-500 to-amber-500 rounded-3xl animate-gradient-shine" style={{ padding: "2px" }}>
-              <div className="absolute inset-[2px] bg-gray-900 rounded-3xl" />
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-500 via-cyan-500 to-amber-500 rounded-2xl md:rounded-3xl animate-gradient-shine" style={{ padding: "2px" }}>
+              <div className="absolute inset-[2px] bg-gray-900 rounded-2xl md:rounded-3xl" />
             </div>
 
-            <div className="relative p-12 md:p-20 text-center">
+            <div className="relative p-6 sm:p-10 md:p-20 text-center">
               {/* Content */}
-              <h2 className="text-4xl md:text-6xl font-bold mb-6">
+              <h2 className="text-3xl sm:text-4xl md:text-6xl font-bold mb-4 md:mb-6">
                 Ready to Build the{" "}
                 <span className="gradient-text-shimmer">Future</span>?
               </h2>
-              <p className="text-xl text-gray-400 mb-10 max-w-2xl mx-auto leading-relaxed">
+              <p className="text-base sm:text-lg md:text-xl text-gray-400 mb-8 md:mb-10 max-w-2xl mx-auto leading-relaxed">
                 Join the revolution of AI-powered autonomous startups. Be first in
-                line when we launch and shape the future of business.
+                line when we launch.
               </p>
 
               {/* Buttons */}
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-8 md:mb-10">
                 <button
                   disabled
-                  className="group w-full sm:w-auto px-8 py-4 bg-gray-800/80 rounded-full font-semibold text-lg flex items-center justify-center gap-3 cursor-not-allowed border border-gray-700"
+                  className="group px-5 sm:px-6 md:px-8 py-2.5 sm:py-3 md:py-4 bg-gray-800/80 rounded-full font-medium text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-3 cursor-not-allowed border border-gray-700"
                 >
                   <span className="text-gray-400">Launch App</span>
                   <SoonBadge />
@@ -423,25 +423,25 @@ export default function AgentCapabilities() {
                   href="https://x.com/agentincdotfun"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-purple-600 via-purple-500 to-cyan-500 rounded-full font-semibold text-lg hover:opacity-90 transition-all flex items-center justify-center gap-2 relative overflow-hidden"
+                  className="group px-5 sm:px-6 md:px-8 py-2.5 sm:py-3 md:py-4 bg-gradient-to-r from-purple-600 via-purple-500 to-cyan-500 rounded-full font-medium text-sm sm:text-base md:text-lg hover:opacity-90 transition-all flex items-center justify-center gap-2 relative overflow-hidden"
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-                  <Twitter className="w-5 h-5" />
-                  Follow for Updates
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  <Twitter className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <span>Follow for Updates</span>
+                  <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover:translate-x-1 transition-transform" />
                 </a>
               </div>
 
               {/* Early access badge */}
-              <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full border border-amber-500/30 bg-amber-500/10">
+              <div className="inline-flex items-center gap-2 sm:gap-3 px-4 sm:px-6 py-2 sm:py-3 rounded-full border border-amber-500/30 bg-amber-500/10">
                 <div className="flex items-center gap-1">
-                  <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
-                  <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" style={{ animationDelay: "0.2s" }} />
-                  <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" style={{ animationDelay: "0.4s" }} />
+                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-amber-400 rounded-full animate-pulse" />
+                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-amber-400 rounded-full animate-pulse" style={{ animationDelay: "0.2s" }} />
+                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-amber-400 rounded-full animate-pulse" style={{ animationDelay: "0.4s" }} />
                 </div>
-                <Sparkles className="w-4 h-4 text-amber-400" />
-                <span className="text-sm text-amber-300 font-medium">
-                  Coming Soon — Follow us for launch updates
+                <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
+                <span className="text-xs sm:text-sm text-amber-300 font-medium">
+                  Coming Soon — Follow for updates
                 </span>
               </div>
             </div>
