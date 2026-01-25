@@ -14,7 +14,7 @@ export interface SwarmStore {
   physics: PhysicsSimulation | null;
 
   // Actions
-  addAgent: (agent: Omit<SwarmAgent, "x" | "y" | "color">) => void;
+  addAgent: (agent: Omit<SwarmAgent, "x" | "y">) => void;
   removeAgent: (id: string) => void;
   updateAgent: (id: string, updates: Partial<SwarmAgent>) => void;
   
