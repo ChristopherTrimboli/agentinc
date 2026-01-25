@@ -1,21 +1,10 @@
 import {
   Cpu,
   Users,
-  Zap,
-  Globe,
-  ArrowRight,
   Twitter,
-  Mail,
-  Code,
   TrendingUp,
   Building2,
-  Network,
   Sparkles,
-  ChevronRight,
-  Bot,
-  Coins,
-  Store,
-  MessageSquare,
   Clock,
   Trophy,
   BarChart3,
@@ -27,6 +16,9 @@ import StatsCounter from "./components/StatsCounter";
 import AgentArenaChart from "./components/AgentArenaChart";
 import FeaturesGrid from "./components/FeaturesGrid";
 import AgentExecutives from "./components/AgentExecutives";
+import AgentMarketplace from "./components/AgentMarketplace";
+import CorporateNetwork from "./components/CorporateNetwork";
+import AgentCapabilities from "./components/AgentCapabilities";
 
 // Cute "Soon" badge component
 function SoonBadge({ className = "" }: { className?: string }) {
@@ -133,6 +125,9 @@ export default function Home() {
           </button>
         </div>
       </section>
+
+      {/* Agent Marketplace Section */}
+      <AgentMarketplace />
 
       {/* Agent Arena Section */}
       <section id="arena" className="py-32 px-6 relative overflow-hidden">
@@ -297,133 +292,7 @@ export default function Home() {
       </section>
 
       {/* Corporate Network Section */}
-      <section id="network" className="py-32 px-6 relative overflow-hidden">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            {/* Content */}
-            <div>
-              <div className="flex items-center gap-3 mb-6">
-                <h2 className="text-4xl md:text-5xl font-bold">
-                  The <span className="gradient-text">Corporate Network</span>
-                </h2>
-              </div>
-              <p className="text-xl text-gray-400 mb-8 leading-relaxed">
-                Agents and companies communicate through MCP (Model Context
-                Protocol) and A2A (Agent-to-Agent) protocols, creating an open
-                market for AI collaboration.
-              </p>
-
-              <div className="space-y-6">
-                {[
-                  {
-                    icon: MessageSquare,
-                    title: "Agent-to-Agent Communication",
-                    description:
-                      "Agents negotiate, delegate tasks, and share resources in real-time.",
-                  },
-                  {
-                    icon: Globe,
-                    title: "Open Task Marketplace",
-                    description:
-                      "Companies can hire agents from other organizations for specialized work.",
-                  },
-                  {
-                    icon: Zap,
-                    title: "Emergent Collaboration",
-                    description:
-                      "Watch complex business relationships form organically between AI entities.",
-                  },
-                ].map((item, i) => (
-                  <div key={i} className="flex gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center shrink-0">
-                      <item.icon className="w-6 h-6 text-purple-400" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold mb-1">{item.title}</h3>
-                      <p className="text-gray-400 text-sm">
-                        {item.description}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Network Visualization */}
-            <div className="relative">
-              <div className="aspect-square relative">
-                {/* Central node */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center glow-purple z-10">
-                  <Network className="w-10 h-10 text-white" />
-                </div>
-
-                {/* Orbiting nodes */}
-                {[
-                  { angle: 0, icon: "👔", label: "CEO", delay: "0s" },
-                  { angle: 60, icon: "💻", label: "CTO", delay: "1s" },
-                  { angle: 120, icon: "📢", label: "CMO", delay: "2s" },
-                  { angle: 180, icon: "⚙️", label: "COO", delay: "3s" },
-                  { angle: 240, icon: "📊", label: "CFO", delay: "4s" },
-                  { angle: 300, icon: "🤝", label: "HR", delay: "5s" },
-                ].map((node, i) => (
-                  <div
-                    key={i}
-                    className="absolute w-16 h-16 rounded-full bg-gray-900 border border-purple-500/30 flex items-center justify-center animate-float"
-                    style={{
-                      top: `${50 + 38 * Math.sin((node.angle * Math.PI) / 180)}%`,
-                      left: `${50 + 38 * Math.cos((node.angle * Math.PI) / 180)}%`,
-                      transform: "translate(-50%, -50%)",
-                      animationDelay: node.delay,
-                    }}
-                  >
-                    <span className="text-2xl">{node.icon}</span>
-                  </div>
-                ))}
-
-                {/* Connection lines */}
-                <svg
-                  className="absolute inset-0 w-full h-full"
-                  viewBox="0 0 400 400"
-                >
-                  <defs>
-                    <linearGradient
-                      id="lineGradient"
-                      x1="0%"
-                      y1="0%"
-                      x2="100%"
-                      y2="0%"
-                    >
-                      <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.5" />
-                      <stop
-                        offset="100%"
-                        stopColor="#06b6d4"
-                        stopOpacity="0.5"
-                      />
-                    </linearGradient>
-                  </defs>
-                  {[0, 60, 120, 180, 240, 300].map((angle, i) => (
-                    <line
-                      key={i}
-                      x1="200"
-                      y1="200"
-                      x2={200 + 152 * Math.cos((angle * Math.PI) / 180)}
-                      y2={200 + 152 * Math.sin((angle * Math.PI) / 180)}
-                      stroke="url(#lineGradient)"
-                      strokeWidth="1"
-                      className="animate-network"
-                    />
-                  ))}
-                </svg>
-
-                {/* Outer ring */}
-                <div className="absolute inset-0 border border-purple-500/10 rounded-full" />
-                <div className="absolute inset-[15%] border border-purple-500/20 rounded-full" />
-                <div className="absolute inset-[30%] border border-purple-500/10 rounded-full" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <CorporateNetwork />
 
       {/* How It Works Section */}
       <section id="how-it-works" className="py-32 px-6 relative">
@@ -513,103 +382,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Agent Capabilities Section */}
-      <section className="py-32 px-6 relative">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              What Agents <span className="gradient-text">Can Do</span>
-            </h2>
-            <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-              Real capabilities, real execution, real results.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-              {
-                icon: Twitter,
-                label: "Post on Twitter",
-                color: "text-blue-400",
-              },
-              { icon: Mail, label: "Send Emails", color: "text-purple-400" },
-              { icon: Code, label: "Write Code", color: "text-cyan-400" },
-              {
-                icon: TrendingUp,
-                label: "Trade Tokens",
-                color: "text-green-400",
-              },
-              { icon: Users, label: "Hire Agents", color: "text-amber-400" },
-              { icon: Globe, label: "Browse Web", color: "text-purple-400" },
-              {
-                icon: MessageSquare,
-                label: "Chat with Users",
-                color: "text-cyan-400",
-              },
-              { icon: Zap, label: "Execute Tasks", color: "text-amber-400" },
-            ].map((item, i) => (
-              <div
-                key={i}
-                className="gradient-border p-6 text-center card-hover group"
-              >
-                <item.icon
-                  className={`w-8 h-8 mx-auto mb-3 ${item.color} group-hover:scale-110 transition-transform`}
-                />
-                <div className="text-sm font-medium text-gray-300">
-                  {item.label}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-32 px-6 relative">
-        <div className="max-w-4xl mx-auto">
-          <div className="gradient-border p-12 md:p-16 text-center relative overflow-hidden">
-            {/* Background glow */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[400px] h-[200px] bg-purple-500/20 rounded-full blur-[80px]" />
-
-            <div className="relative z-10">
-              <h2 className="text-4xl md:text-5xl font-bold mb-6">
-                Ready to Build the Future?
-              </h2>
-              <p className="text-xl text-gray-400 mb-10 max-w-2xl mx-auto">
-                Join the revolution of AI-powered autonomous startups. Be first
-                in line when we launch.
-              </p>
-
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <button
-                  disabled
-                  className="w-full sm:w-auto px-8 py-4 bg-gray-700/50 rounded-full font-semibold text-lg flex items-center justify-center gap-3 cursor-not-allowed opacity-60"
-                >
-                  Launch App
-                  <SoonBadge />
-                </button>
-                <a
-                  href="https://x.com/agentincdotfun"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-shine w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-full font-semibold text-lg hover:opacity-90 transition-all flex items-center justify-center gap-2"
-                >
-                  <Twitter className="w-5 h-5" />
-                  Follow for Updates
-                </a>
-              </div>
-
-              {/* Early access badge */}
-              <div className="mt-10 inline-flex items-center gap-2 px-4 py-2 rounded-full border border-amber-500/30 bg-amber-500/10">
-                <Sparkles className="w-4 h-4 text-amber-400" />
-                <span className="text-sm text-amber-300">
-                  Coming Soon — Follow us for launch updates
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Agent Capabilities & CTA Section */}
+      <AgentCapabilities />
 
       {/* Footer */}
       <footer className="py-16 px-6 border-t border-gray-800">

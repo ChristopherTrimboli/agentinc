@@ -470,3 +470,43 @@ body {
 .animate-card-glow:hover {
   animation: card-glow 2s ease-in-out infinite;
 }
+
+/* Ticker tape animation for marketplace */
+@keyframes ticker {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-33.333%);
+  }
+}
+
+.animate-ticker {
+  animation: ticker 30s linear infinite;
+}
+
+/* Marketplace card 3D hover effect */
+.marketplace-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transform-style: preserve-3d;
+}
+
+.marketplace-card:hover {
+  transform: translateY(-4px) rotateX(2deg);
+}
+
+/* Pulsing dot for live indicator */
+@keyframes live-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 0.5;
+  }
+}
+
+.animate-live-pulse {
+  animation: live-pulse 2s ease-in-out infinite;
+}
