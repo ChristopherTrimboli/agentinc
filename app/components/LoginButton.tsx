@@ -44,7 +44,7 @@ export default function LoginButton({
       } px-6 py-2.5 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 rounded-xl font-medium transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 ${className}`}
     >
       <LogIn className="w-4 h-4" />
-      Connect Wallet
+      Login
     </button>
   );
 }
