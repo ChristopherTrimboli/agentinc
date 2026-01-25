@@ -21,45 +21,40 @@ import {
 
 // Note: Sparkles, Zap, TrendingUp, CheckCircle2 are used in capability cards
 
+// Terminal lines defined outside component to prevent recreation on each render
+const terminalLines = [
+  { text: "$ agent execute --task='post_twitter'", type: "command" as const },
+  { text: "→ Analyzing trending topics...", type: "output" as const },
+  { text: "→ Generating engaging content...", type: "output" as const },
+  { text: "✓ Tweet posted successfully! Engagement: +24%", type: "success" as const },
+  { text: "$ agent execute --task='write_code'", type: "command" as const },
+  { text: "→ Reading project requirements...", type: "output" as const },
+  { text: "→ Implementing smart contract...", type: "output" as const },
+  { text: "✓ Code deployed to mainnet!", type: "success" as const },
+  { text: "$ agent execute --task='trade_tokens'", type: "command" as const },
+  { text: "→ Analyzing market conditions...", type: "output" as const },
+  { text: "→ Executing swap: 1.5 SOL → 2847 $AINC", type: "output" as const },
+  { text: "✓ Trade completed! PNL: +12.4%", type: "success" as const },
+];
+
 // Animated terminal component
 function AgentTerminal() {
   const [lines, setLines] = useState<{ text: string; type: "command" | "output" | "success" }[]>([]);
-  const [currentLineIndex, setCurrentLineIndex] = useState(0);
-
-  const allLines = [
-    { text: "$ agent execute --task='post_twitter'", type: "command" as const },
-    { text: "→ Analyzing trending topics...", type: "output" as const },
-    { text: "→ Generating engaging content...", type: "output" as const },
-    { text: "✓ Tweet posted successfully! Engagement: +24%", type: "success" as const },
-    { text: "$ agent execute --task='write_code'", type: "command" as const },
-    { text: "→ Reading project requirements...", type: "output" as const },
-    { text: "→ Implementing smart contract...", type: "output" as const },
-    { text: "✓ Code deployed to mainnet!", type: "success" as const },
-    { text: "$ agent execute --task='trade_tokens'", type: "command" as const },
-    { text: "→ Analyzing market conditions...", type: "output" as const },
-    { text: "→ Executing swap: 1.5 SOL → 2847 $AINC", type: "output" as const },
-    { text: "✓ Trade completed! PNL: +12.4%", type: "success" as const },
-  ];
+  const currentLineIndexRef = useRef(0);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentLineIndex((prev) => {
-        const next = (prev + 1) % allLines.length;
-        if (next === 0) {
-          setLines([]);
-        }
-        return next;
-      });
+      currentLineIndexRef.current = (currentLineIndexRef.current + 1) % terminalLines.length;
+      
+      if (currentLineIndexRef.current === 0) {
+        setLines([terminalLines[0]]);
+      } else {
+        setLines((prev) => [...prev.slice(-5), terminalLines[currentLineIndexRef.current]]);
+      }
     }, 1200);
 
     return () => clearInterval(interval);
-  }, [allLines.length]);
-
-  useEffect(() => {
-    if (currentLineIndex < allLines.length) {
-      setLines((prev) => [...prev.slice(-5), allLines[currentLineIndex]]);
-    }
-  }, [currentLineIndex, allLines]);
+  }, []);
 
   return (
     <div className="rounded-2xl bg-gray-950 border border-gray-800 overflow-hidden">

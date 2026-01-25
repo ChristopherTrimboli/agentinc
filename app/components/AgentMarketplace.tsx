@@ -278,7 +278,7 @@ function CompanyCard({
           </div>
         </div>
 
-        {/* Mini chart line at bottom */}
+        {/* Mini chart line at bottom - using deterministic values based on company.id */}
         <div className="h-12 relative overflow-hidden">
           <svg className="absolute bottom-0 w-full h-full" preserveAspectRatio="none">
             <defs>
@@ -296,11 +296,11 @@ function CompanyCard({
               </linearGradient>
             </defs>
             <path
-              d={`M0,${30 + Math.random() * 10} Q${50},${20 + Math.random() * 15} ${100},${25 + Math.random() * 10} T${200},${15 + Math.random() * 15} T${300},${company.change >= 0 ? 10 : 35} L300,50 L0,50 Z`}
+              d={`M0,${30 + (company.id * 7) % 10} Q50,${20 + (company.id * 11) % 15} 100,${25 + (company.id * 5) % 10} T200,${15 + (company.id * 13) % 15} T300,${company.change >= 0 ? 10 : 35} L300,50 L0,50 Z`}
               fill={`url(#chartGrad-${company.id})`}
             />
             <path
-              d={`M0,${30 + Math.random() * 10} Q${50},${20 + Math.random() * 15} ${100},${25 + Math.random() * 10} T${200},${15 + Math.random() * 15} T${300},${company.change >= 0 ? 10 : 35}`}
+              d={`M0,${30 + (company.id * 7) % 10} Q50,${20 + (company.id * 11) % 15} 100,${25 + (company.id * 5) % 10} T200,${15 + (company.id * 13) % 15} T300,${company.change >= 0 ? 10 : 35}`}
               stroke={company.change >= 0 ? "#10b981" : "#ef4444"}
               strokeWidth="2"
               fill="none"
@@ -397,6 +397,16 @@ function TradesFeed() {
   );
 }
 
+// Pre-computed positions for orbiting icons (to avoid hydration mismatch from floating-point precision)
+const orbitingIcons = [
+  { icon: "💰", angle: 0, top: 50, left: 90 },      // sin(0)=0, cos(0)=1 -> 50+0=50, 50+40=90
+  { icon: "🤖", angle: 60, top: 84.64, left: 70 },  // sin(60°)≈0.866, cos(60°)=0.5 -> 50+34.64=84.64, 50+20=70
+  { icon: "📈", angle: 120, top: 84.64, left: 30 }, // sin(120°)≈0.866, cos(120°)=-0.5 -> 50+34.64=84.64, 50-20=30
+  { icon: "🏢", angle: 180, top: 50, left: 10 },    // sin(180°)=0, cos(180°)=-1 -> 50+0=50, 50-40=10
+  { icon: "⚡", angle: 240, top: 15.36, left: 30 }, // sin(240°)≈-0.866, cos(240°)=-0.5 -> 50-34.64=15.36, 50-20=30
+  { icon: "🎯", angle: 300, top: 15.36, left: 70 }, // sin(300°)≈-0.866, cos(300°)=0.5 -> 50-34.64=15.36, 50+20=70
+];
+
 // Hexagonal showcase for featured item
 function HexShowcase() {
   return (
@@ -434,20 +444,13 @@ function HexShowcase() {
       </div>
 
       {/* Orbiting icons */}
-      {[
-        { icon: "💰", angle: 0 },
-        { icon: "🤖", angle: 60 },
-        { icon: "📈", angle: 120 },
-        { icon: "🏢", angle: 180 },
-        { icon: "⚡", angle: 240 },
-        { icon: "🎯", angle: 300 },
-      ].map((item, i) => (
+      {orbitingIcons.map((item, i) => (
         <div
           key={i}
           className="absolute w-10 h-10 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center animate-float text-lg"
           style={{
-            top: `${50 + 40 * Math.sin((item.angle * Math.PI) / 180)}%`,
-            left: `${50 + 40 * Math.cos((item.angle * Math.PI) / 180)}%`,
+            top: `${item.top}%`,
+            left: `${item.left}%`,
             transform: "translate(-50%, -50%)",
             animationDelay: `${i * 0.5}s`,
           }}

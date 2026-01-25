@@ -111,17 +111,31 @@ function ProtocolFeed() {
   );
 }
 
+// Pre-computed node positions to avoid hydration mismatch from floating-point precision
+// SVG coordinates: center (200, 200), radius 140
+// CSS percentages: center (50%, 50%), radius 35%
+const networkNodes = [
+  { icon: "👔", label: "CEO", color: "#8b5cf6", svgX: 340, svgY: 200, cssTop: 50, cssLeft: 85 },      // angle 0
+  { icon: "💻", label: "CTO", color: "#06b6d4", svgX: 270, svgY: 321.24, cssTop: 80.31, cssLeft: 67.5 }, // angle 60
+  { icon: "📢", label: "CMO", color: "#f59e0b", svgX: 130, svgY: 321.24, cssTop: 80.31, cssLeft: 32.5 }, // angle 120
+  { icon: "⚙️", label: "COO", color: "#10b981", svgX: 60, svgY: 200, cssTop: 50, cssLeft: 15 },       // angle 180
+  { icon: "📊", label: "CFO", color: "#ec4899", svgX: 130, svgY: 78.76, cssTop: 19.69, cssLeft: 32.5 },  // angle 240
+  { icon: "🤝", label: "HR", color: "#6366f1", svgX: 270, svgY: 78.76, cssTop: 19.69, cssLeft: 67.5 },   // angle 300
+];
+
+// Pre-computed cross connections (indices: [from, to])
+const crossConnections = [
+  { from: 0, to: 2 }, // CEO -> CMO
+  { from: 1, to: 3 }, // CTO -> COO
+  { from: 2, to: 4 }, // CMO -> CFO
+  { from: 3, to: 5 }, // COO -> HR
+  { from: 4, to: 0 }, // CFO -> CEO
+  { from: 5, to: 1 }, // HR -> CTO
+];
+
 // Enhanced network visualization
 function NetworkVisualization() {
   const [activeConnection, setActiveConnection] = useState(0);
-  const nodes = [
-    { angle: 0, icon: "👔", label: "CEO", color: "#8b5cf6" },
-    { angle: 60, icon: "💻", label: "CTO", color: "#06b6d4" },
-    { angle: 120, icon: "📢", label: "CMO", color: "#f59e0b" },
-    { angle: 180, icon: "⚙️", label: "COO", color: "#10b981" },
-    { angle: 240, icon: "📊", label: "CFO", color: "#ec4899" },
-    { angle: 300, icon: "🤝", label: "HR", color: "#6366f1" },
-  ];
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -157,11 +171,11 @@ function NetworkVisualization() {
         </defs>
 
         {/* Connection lines with animated flow */}
-        {nodes.map((node, i) => {
+        {networkNodes.map((node, i) => {
           const x1 = 200;
           const y1 = 200;
-          const x2 = 200 + 140 * Math.cos((node.angle * Math.PI) / 180);
-          const y2 = 200 + 140 * Math.sin((node.angle * Math.PI) / 180);
+          const x2 = node.svgX;
+          const y2 = node.svgY;
           const isActive = i === activeConnection;
 
           return (
@@ -192,26 +206,17 @@ function NetworkVisualization() {
         })}
 
         {/* Cross connections */}
-        {[
-          [0, 2],
-          [1, 3],
-          [2, 4],
-          [3, 5],
-          [4, 0],
-          [5, 1],
-        ].map(([from, to], i) => {
-          const x1 = 200 + 140 * Math.cos((nodes[from].angle * Math.PI) / 180);
-          const y1 = 200 + 140 * Math.sin((nodes[from].angle * Math.PI) / 180);
-          const x2 = 200 + 140 * Math.cos((nodes[to].angle * Math.PI) / 180);
-          const y2 = 200 + 140 * Math.sin((nodes[to].angle * Math.PI) / 180);
+        {crossConnections.map((conn, i) => {
+          const fromNode = networkNodes[conn.from];
+          const toNode = networkNodes[conn.to];
 
           return (
             <line
               key={`cross-${i}`}
-              x1={x1}
-              y1={y1}
-              x2={x2}
-              y2={y2}
+              x1={fromNode.svgX}
+              y1={fromNode.svgY}
+              x2={toNode.svgX}
+              y2={toNode.svgY}
               stroke="rgba(139, 92, 246, 0.1)"
               strokeWidth="1"
               strokeDasharray="4 4"
@@ -234,13 +239,13 @@ function NetworkVisualization() {
       </div>
 
       {/* Orbiting nodes */}
-      {nodes.map((node, i) => (
+      {networkNodes.map((node, i) => (
         <div
           key={i}
           className="absolute z-10 group"
           style={{
-            top: `${50 + 35 * Math.sin((node.angle * Math.PI) / 180)}%`,
-            left: `${50 + 35 * Math.cos((node.angle * Math.PI) / 180)}%`,
+            top: `${node.cssTop}%`,
+            left: `${node.cssLeft}%`,
             transform: "translate(-50%, -50%)",
           }}
         >

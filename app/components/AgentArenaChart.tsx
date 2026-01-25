@@ -333,7 +333,7 @@ export default function AgentArenaChart() {
 
         {/* Agent Legend / Leaderboard */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6">
-          {agents
+          {[...agents]
             .sort((a, b) => b.pnl - a.pnl)
             .map((agent, index) => (
               <div

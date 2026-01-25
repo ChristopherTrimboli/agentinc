@@ -68,52 +68,76 @@ const agents: Agent[] = [
 ];
 
 function TypewriterText({ messages }: { messages: string[] }) {
-  const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
   const [displayText, setDisplayText] = useState(messages[0]);
-  const [phase, setPhase] = useState<"typing" | "waiting" | "erasing">("waiting");
-  const charIndexRef = useRef(messages[0].length);
+  const animationRef = useRef<{
+    messageIndex: number;
+    charIndex: number;
+    phase: "typing" | "waiting" | "erasing";
+    timeoutId: ReturnType<typeof setTimeout> | null;
+    isMounted: boolean;
+  }>({
+    messageIndex: 0,
+    charIndex: messages[0].length,
+    phase: "waiting",
+    timeoutId: null,
+    isMounted: true,
+  });
 
   useEffect(() => {
-    const message = messages[currentMessageIndex];
+    const state = animationRef.current;
+    state.isMounted = true;
 
-    if (phase === "waiting") {
-      // Wait before erasing
-      const waitTimeout = setTimeout(() => {
-        setPhase("erasing");
-      }, 2500);
-      return () => clearTimeout(waitTimeout);
-    }
+    const animate = () => {
+      if (!state.isMounted) return;
 
-    if (phase === "erasing") {
-      if (charIndexRef.current > 0) {
-        const eraseInterval = setInterval(() => {
-          charIndexRef.current--;
-          setDisplayText(message.slice(0, charIndexRef.current));
-          if (charIndexRef.current === 0) {
-            clearInterval(eraseInterval);
-            setCurrentMessageIndex((prev) => (prev + 1) % messages.length);
-            setPhase("typing");
-          }
-        }, 25);
-        return () => clearInterval(eraseInterval);
+      if (state.phase === "waiting") {
+        state.timeoutId = setTimeout(() => {
+          if (!state.isMounted) return;
+          state.phase = "erasing";
+          animate();
+        }, 2500);
+        return;
       }
-    }
 
-    if (phase === "typing") {
-      const newMessage = messages[currentMessageIndex];
-      if (charIndexRef.current < newMessage.length) {
-        const typeInterval = setInterval(() => {
-          charIndexRef.current++;
-          setDisplayText(newMessage.slice(0, charIndexRef.current));
-          if (charIndexRef.current >= newMessage.length) {
-            clearInterval(typeInterval);
-            setPhase("waiting");
-          }
-        }, 40);
-        return () => clearInterval(typeInterval);
+      if (state.phase === "erasing") {
+        const message = messages[state.messageIndex];
+        if (state.charIndex > 0) {
+          state.charIndex--;
+          setDisplayText(message.slice(0, state.charIndex));
+          state.timeoutId = setTimeout(animate, 25);
+        } else {
+          state.messageIndex = (state.messageIndex + 1) % messages.length;
+          state.phase = "typing";
+          // Add a small delay before starting to type to prevent rapid updates
+          state.timeoutId = setTimeout(animate, 50);
+        }
+        return;
       }
-    }
-  }, [currentMessageIndex, phase, messages]);
+
+      if (state.phase === "typing") {
+        const newMessage = messages[state.messageIndex];
+        if (state.charIndex < newMessage.length) {
+          state.charIndex++;
+          setDisplayText(newMessage.slice(0, state.charIndex));
+          state.timeoutId = setTimeout(animate, 40);
+        } else {
+          state.phase = "waiting";
+          // Add a small delay before waiting phase to prevent rapid updates
+          state.timeoutId = setTimeout(animate, 50);
+        }
+        return;
+      }
+    };
+
+    animate();
+
+    return () => {
+      state.isMounted = false;
+      if (state.timeoutId) {
+        clearTimeout(state.timeoutId);
+      }
+    };
+  }, [messages]);
 
   return (
     <span className="text-gray-400">
