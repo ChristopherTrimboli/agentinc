@@ -140,10 +140,6 @@ export default function SwarmCanvas({
   useEffect(() => { agentsRef.current = agents; }, [agents]);
   useEffect(() => { corporationsRef.current = corporations; }, [corporations]);
   useEffect(() => { connectionsRef.current = connections; }, [connections]);
-  useEffect(() => { physicsRef.current = physics || null; }, [physics]);
-  
-  // Store physics ref for rope access
-  const physicsRef = useRef<PhysicsSimulation | null>(physics || null);
   
   // Draw all connection lines - called every frame
   const drawConnections = useCallback((graphics: Graphics) => {
@@ -152,17 +148,47 @@ export default function SwarmCanvas({
     const currentAgents = agentsRef.current;
     const currentCorps = corporationsRef.current;
     const currentConnections = connectionsRef.current;
-    const physics = physicsRef.current;
 
-    // Draw corporation bubbles and rope connections to agents
+    // Draw corporation bubbles and simple lines to agents
+    const agentInc = Array.from(currentCorps.values()).find(c => c.name === "Agent Inc.");
+    
     for (const [corpId, corp] of currentCorps) {
       const corpColor = parseInt(corp.color?.replace("#", "") || "8b5cf6", 16);
+      
+      // Draw line from non-Agent Inc corporations to Agent Inc
+      if (corp.name !== "Agent Inc." && agentInc) {
+        const dx = agentInc.x - corp.x;
+        const dy = agentInc.y - corp.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        
+        // Simple curved line with sag
+        const sag = Math.min(dist * 0.08, 30);
+        const midX = (corp.x + agentInc.x) / 2;
+        const midY = (corp.y + agentInc.y) / 2 + sag;
+        
+        // Draw main line
+        graphics.moveTo(corp.x, corp.y);
+        graphics.quadraticCurveTo(midX, midY, agentInc.x, agentInc.y);
+        graphics.stroke({ width: 3, color: corpColor, alpha: 0.3 });
+        
+        // Animated pulse traveling along the line
+        const pulseCount = 2;
+        for (let i = 0; i < pulseCount; i++) {
+          const t = ((time * 0.2 + i / pulseCount) % 1);
+          const px = (1-t)*(1-t)*corp.x + 2*(1-t)*t*midX + t*t*agentInc.x;
+          const py = (1-t)*(1-t)*corp.y + 2*(1-t)*t*midY + t*t*agentInc.y;
+          const pulseAlpha = Math.sin(t * Math.PI) * 0.5;
+          
+          graphics.circle(px, py, 4);
+          graphics.fill({ color: corpColor, alpha: pulseAlpha });
+        }
+      }
       
       // Get agents belonging to this corporation
       const corpAgents = Array.from(currentAgents.values()).filter(a => a.corporationId === corpId);
       
       if (corpAgents.length > 0) {
-        // Calculate bubble radius based on agent positions
+        // Calculate bubble radius
         let maxDist = 0;
         for (const agent of corpAgents) {
           const dx = agent.x - corp.x;
@@ -171,23 +197,16 @@ export default function SwarmCanvas({
           maxDist = Math.max(maxDist, dist);
         }
         
-        // Smooth bubble radius with breathing effect
         const breathe = Math.sin(time * 0.8) * 8;
         const bubbleRadius = Math.max(maxDist, 180) + breathe;
         
-        // Draw bubble fill (very subtle)
+        // Draw bubble
         graphics.circle(corp.x, corp.y, bubbleRadius);
         graphics.fill({ color: corpColor, alpha: 0.02 });
-        
-        // Draw smooth bubble border
         graphics.circle(corp.x, corp.y, bubbleRadius);
         graphics.stroke({ width: 2, color: corpColor, alpha: 0.15 });
         
-        // Draw inner glow ring
-        graphics.circle(corp.x, corp.y, bubbleRadius - 15);
-        graphics.stroke({ width: 1, color: corpColor, alpha: 0.08 });
-        
-        // Draw rope lines from corporation center to each agent
+        // Draw lines from corporation center to each agent
         for (const agent of corpAgents) {
           const agentColor = parseInt(agent.color?.replace("#", "") || "8b5cf6", 16);
           
@@ -195,21 +214,19 @@ export default function SwarmCanvas({
           const dy = agent.y - corp.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
           
-          // Calculate catenary sag for rope effect
           const sag = Math.min(dist * 0.15, 40);
           const midX = (corp.x + agent.x) / 2;
           const midY = (corp.y + agent.y) / 2 + sag;
           
-          // Draw rope as quadratic bezier curve
+          // Draw simple curved line
           graphics.moveTo(corp.x, corp.y);
           graphics.quadraticCurveTo(midX, midY, agent.x, agent.y);
           graphics.stroke({ width: 2, color: agentColor, alpha: 0.2 });
           
-          // Animated pulse traveling along the rope curve
+          // Animated pulse
           const pulseCount = 2;
           for (let i = 0; i < pulseCount; i++) {
             const t = ((time * 0.3 + i / pulseCount) % 1);
-            // Quadratic bezier interpolation
             const px = (1-t)*(1-t)*corp.x + 2*(1-t)*t*midX + t*t*agent.x;
             const py = (1-t)*(1-t)*corp.y + 2*(1-t)*t*midY + t*t*agent.y;
             const pulseAlpha = Math.sin(t * Math.PI) * 0.6;
@@ -217,15 +234,11 @@ export default function SwarmCanvas({
             graphics.circle(px, py, 3);
             graphics.fill({ color: agentColor, alpha: pulseAlpha });
           }
-          
-          // Small dot at connection point on agent
-          graphics.circle(agent.x, agent.y, 4);
-          graphics.fill({ color: agentColor, alpha: 0.3 });
         }
       }
     }
 
-    // Draw agent-to-agent rope connections
+    // Draw agent-to-agent connections as simple curves
     for (const connection of currentConnections.values()) {
       const fromAgent = currentAgents.get(connection.fromAgentId);
       const toAgent = currentAgents.get(connection.toAgentId);
@@ -243,100 +256,36 @@ export default function SwarmCanvas({
         alpha = 0.6;
       }
 
-      // Get rope segments from physics if available
-      const rope = physics?.ropes.get(connection.id);
+      const progress = connection.progress;
+      const dx = toAgent.x - fromAgent.x;
+      const dy = toAgent.y - fromAgent.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const sag = Math.min(dist * 0.12, 35);
       
-      if (rope && rope.segments.length > 1) {
-        // Draw rope using physics segments
-        const segments = rope.segments;
-        const progress = connection.progress;
-        const visibleSegments = Math.ceil(segments.length * progress);
-        
-        // Draw the rope path through segments
-        graphics.moveTo(segments[0].x, segments[0].y);
-        for (let i = 1; i < visibleSegments && i < segments.length; i++) {
-          // Smooth curve through segment points using catmull-rom-like interpolation
-          const prev = segments[Math.max(0, i - 1)];
-          const curr = segments[i];
-          const next = segments[Math.min(segments.length - 1, i + 1)];
+      const endX = fromAgent.x + dx * progress;
+      const endY = fromAgent.y + dy * progress;
+      const midX = fromAgent.x + dx * progress * 0.5;
+      const midY = fromAgent.y + dy * progress * 0.5 + sag * progress;
+      
+      // Draw curved line
+      graphics.moveTo(fromAgent.x, fromAgent.y);
+      graphics.quadraticCurveTo(midX, midY, endX, endY);
+      graphics.stroke({ width: 2.5, color, alpha });
+      
+      // Animated particles
+      if (connection.status === "active") {
+        for (let i = 0; i < 3; i++) {
+          const t = ((time * 0.5 + i / 3) % 1) * progress;
+          const px = (1-t)*(1-t)*fromAgent.x + 2*(1-t)*t*midX + t*t*endX;
+          const py = (1-t)*(1-t)*fromAgent.y + 2*(1-t)*t*midY + t*t*endY;
           
-          // Control point for smooth curve
-          const cpX = curr.x;
-          const cpY = curr.y;
-          
-          graphics.lineTo(cpX, cpY);
+          graphics.circle(px, py, 4);
+          graphics.fill({ color: 0x06b6d4, alpha: 0.9 });
         }
-        graphics.stroke({ width: 2.5, color, alpha });
-        
-        // Glow effect
-        graphics.moveTo(segments[0].x, segments[0].y);
-        for (let i = 1; i < visibleSegments && i < segments.length; i++) {
-          graphics.lineTo(segments[i].x, segments[i].y);
-        }
-        graphics.stroke({ width: 5, color, alpha: alpha * 0.2 });
-
-        // Animated particles traveling along the rope
-        if (connection.status === "active") {
-          for (let i = 0; i < 3; i++) {
-            const t = ((time * 0.5 + i / 3) % 1) * progress;
-            const segIndex = t * (segments.length - 1);
-            const segFloor = Math.floor(segIndex);
-            const segFrac = segIndex - segFloor;
-            
-            if (segFloor < segments.length - 1) {
-              const s1 = segments[segFloor];
-              const s2 = segments[segFloor + 1];
-              const px = s1.x + (s2.x - s1.x) * segFrac;
-              const py = s1.y + (s2.y - s1.y) * segFrac;
-              
-              graphics.circle(px, py, 4);
-              graphics.fill({ color: 0x06b6d4, alpha: 0.9 });
-            }
-          }
-        }
-
-        // Arrow head at the end
-        if (visibleSegments >= 2) {
-          const lastIdx = Math.min(visibleSegments - 1, segments.length - 1);
-          const prevIdx = Math.max(0, lastIdx - 1);
-          const endX = segments[lastIdx].x;
-          const endY = segments[lastIdx].y;
-          const angle = Math.atan2(
-            segments[lastIdx].y - segments[prevIdx].y,
-            segments[lastIdx].x - segments[prevIdx].x
-          );
-          const arrowSize = 10;
-          
-          graphics.moveTo(endX, endY);
-          graphics.lineTo(
-            endX - arrowSize * Math.cos(angle - Math.PI / 6),
-            endY - arrowSize * Math.sin(angle - Math.PI / 6)
-          );
-          graphics.moveTo(endX, endY);
-          graphics.lineTo(
-            endX - arrowSize * Math.cos(angle + Math.PI / 6),
-            endY - arrowSize * Math.sin(angle + Math.PI / 6)
-          );
-          graphics.stroke({ width: 2, color, alpha });
-        }
-      } else {
-        // Fallback: simple catenary curve if no physics rope yet
-        const progress = connection.progress;
-        const dx = toAgent.x - fromAgent.x;
-        const dy = toAgent.y - fromAgent.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        const sag = Math.min(dist * 0.12, 35);
-        
-        const endX = fromAgent.x + dx * progress;
-        const endY = fromAgent.y + dy * progress;
-        const midX = fromAgent.x + dx * progress * 0.5;
-        const midY = fromAgent.y + dy * progress * 0.5 + sag * progress;
-        
-        graphics.moveTo(fromAgent.x, fromAgent.y);
-        graphics.quadraticCurveTo(midX, midY, endX, endY);
-        graphics.stroke({ width: 2.5, color, alpha });
-        
-        // Arrow head
+      }
+      
+      // Arrow head
+      if (progress > 0.1) {
         const angle = Math.atan2(dy, dx);
         const arrowSize = 10;
         
@@ -514,10 +463,6 @@ export default function SwarmCanvas({
         circle.circle(0, 0, size);
         circle.fill({ color, alpha: 0.9 });
 
-        // Inner highlight
-        circle.circle(-size * 0.15, -size * 0.15, size * 0.25);
-        circle.fill({ color: 0xffffff, alpha: 0.3 });
-
         container.addChild(circle);
 
         // Corporation name
@@ -573,10 +518,6 @@ export default function SwarmCanvas({
         // Main circle
         circle.circle(0, 0, size);
         circle.fill({ color, alpha: 0.9 });
-
-        // Inner highlight
-        circle.circle(-size * 0.15, -size * 0.15, size * 0.25);
-        circle.fill({ color: 0xffffff, alpha: 0.3 });
       }
     }
   }, [corporations]);

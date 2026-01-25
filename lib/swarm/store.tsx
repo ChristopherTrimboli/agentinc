@@ -14,11 +14,11 @@ export interface SwarmStore {
   physics: PhysicsSimulation | null;
 
   // Actions
-  addAgent: (agent: Omit<SwarmAgent, "x" | "y" | "vx" | "vy" | "color">) => void;
+  addAgent: (agent: Omit<SwarmAgent, "x" | "y" | "color">) => void;
   removeAgent: (id: string) => void;
   updateAgent: (id: string, updates: Partial<SwarmAgent>) => void;
   
-  addCorporation: (corp: Omit<Corporation, "x" | "y" | "vx" | "vy">) => void;
+  addCorporation: (corp: Omit<Corporation, "x" | "y">) => void;
   updateCorporation: (id: string, updates: Partial<Corporation>) => void;
   
   addConnection: (fromId: string, toId: string, type?: SwarmConnection["type"]) => string;
@@ -64,13 +64,19 @@ function createSwarmStore(): SwarmStore {
     addCorporation: (corpData) => {
       const corp: Corporation = {
         ...corpData,
-        x: physics ? physics.centerX : 400,
-        y: physics ? physics.centerY : 300,
-        vx: 0,
-        vy: 0,
+        x: physics ? physics.centerX : window.innerWidth / 2,
+        y: physics ? physics.centerY : window.innerHeight / 2,
       };
       corporations = new Map(corporations);
       corporations.set(corp.id, corp);
+      
+      // Reinitialize positions to spread out corporations properly
+      if (physics) {
+        physics.initializePositions(agents, corporations);
+        // Force a new Map reference to trigger React updates
+        corporations = new Map(corporations);
+      }
+      
       notify();
     },
 
@@ -84,20 +90,68 @@ function createSwarmStore(): SwarmStore {
     },
 
     addAgent: (agentData) => {
+      // Calculate proper initial position
+      let x: number;
+      let y: number;
+      
+      if (physics && agentData.corporationId) {
+        // If physics exists and agent has a corporation, position it in orbit
+        const corp = corporations.get(agentData.corporationId);
+        if (corp) {
+          // Count how many agents already belong to this corporation
+          const corpAgents = Array.from(agents.values()).filter(
+            a => a.corporationId === agentData.corporationId
+          );
+          const index = corpAgents.length;
+          const totalAgents = index + 1;
+          
+          // Position in circular orbit around corporation
+          const radius = 220; // Increased from 180 for better spacing
+          const angleIncrement = (Math.PI * 2) / totalAgents;
+          const angleOffset = angleIncrement / 2; // Offset by half to stagger between cardinal directions
+          const angle = index * angleIncrement - Math.PI / 2 + angleOffset;
+          x = corp.x + Math.cos(angle) * radius;
+          y = corp.y + Math.sin(angle) * radius;
+        } else {
+          // Corporation not found, use center
+          x = physics.centerX;
+          y = physics.centerY;
+        }
+      } else if (physics) {
+        // No corporation, position near center
+        x = physics.centerX;
+        y = physics.centerY;
+      } else {
+        // No physics yet, use random position (will be corrected when physics inits)
+        x = Math.random() * 800;
+        y = Math.random() * 600;
+      }
+      
       const agent: SwarmAgent = {
         ...agentData,
-        x: Math.random() * 800,
-        y: Math.random() * 600,
-        vx: 0,
-        vy: 0,
+        x,
+        y,
         color: agentData.color || getAgentColor(agents.size),
       };
       agents = new Map(agents);
       agents.set(agent.id, agent);
       
-      if (physics) {
-        physics.initializePositions(agents, corporations);
-        physics.jiggle(agents);
+      // Recalculate positions for all agents in the same corporation to rebalance
+      if (physics && agentData.corporationId) {
+        const corp = corporations.get(agentData.corporationId);
+        if (corp) {
+          const corpAgents = Array.from(agents.values()).filter(
+            a => a.corporationId === agentData.corporationId
+          );
+          const radius = 220; // Increased from 180 for better spacing
+          const angleIncrement = (Math.PI * 2) / corpAgents.length;
+          const angleOffset = angleIncrement / 2; // Offset by half to stagger between cardinal directions
+          corpAgents.forEach((a, i) => {
+            const angle = i * angleIncrement - Math.PI / 2 + angleOffset;
+            a.x = corp.x + Math.cos(angle) * radius;
+            a.y = corp.y + Math.sin(angle) * radius;
+          });
+        }
       }
       
       swarmEventBus.emit({

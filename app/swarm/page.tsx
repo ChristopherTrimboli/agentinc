@@ -39,7 +39,16 @@ function SwarmVisualization() {
   const physicsInitialized = useRef(false);
   const simulationStarted = useRef(false);
 
-  // Fetch corporations and agents from the API
+  // Initialize physics FIRST, before loading data
+  const NAVBAR_HEIGHT = 72;
+  useEffect(() => {
+    if (!physicsInitialized.current) {
+      actions.initPhysics(window.innerWidth, window.innerHeight - NAVBAR_HEIGHT);
+      physicsInitialized.current = true;
+    }
+  }, [actions]);
+
+  // Fetch corporations and agents from the API AFTER physics is ready
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -85,24 +94,13 @@ function SwarmVisualization() {
       }
     };
 
-    if (store.agents.size === 0 && store.corporations.size === 0) {
+    // Only fetch data once physics is initialized
+    if (physicsInitialized.current && store.agents.size === 0 && store.corporations.size === 0) {
       fetchData();
-    } else {
+    } else if (store.agents.size > 0 || store.corporations.size > 0) {
       setIsLoading(false);
     }
-  }, []);
-
-  // Initialize physics after data is loaded
-  const NAVBAR_HEIGHT = 72;
-  useEffect(() => {
-    if (!physicsInitialized.current && !isLoading && (store.agents.size > 0 || store.corporations.size > 0)) {
-      const timer = setTimeout(() => {
-        actions.initPhysics(window.innerWidth, window.innerHeight - NAVBAR_HEIGHT);
-        physicsInitialized.current = true;
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [actions, isLoading, store.agents.size, store.corporations.size]);
+  }, [physicsInitialized.current, actions, store.agents.size, store.corporations.size]);
 
   // Create simulation and auto-start it
   useEffect(() => {

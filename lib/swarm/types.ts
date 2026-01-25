@@ -7,12 +7,9 @@ export interface Corporation {
   logo?: string;
   color?: string;
   size?: number;
-  // Position in the visualization (managed by physics)
+  // Position in the visualization
   x: number;
   y: number;
-  // Velocity for physics simulation
-  vx: number;
-  vy: number;
 }
 
 export interface SwarmAgent {
@@ -22,12 +19,9 @@ export interface SwarmAgent {
   capabilities: string[];
   status: "idle" | "busy" | "calling";
   corporationId?: string;
-  // Position in the visualization (managed by physics)
+  // Position in the visualization
   x: number;
   y: number;
-  // Velocity for physics simulation
-  vx: number;
-  vy: number;
   // Visual properties
   color?: string;
   size?: number;
@@ -60,31 +54,6 @@ export interface SwarmState {
   connections: Map<string, SwarmConnection>;
   events: SwarmEvent[];
 }
-
-// Physics simulation parameters
-export interface PhysicsConfig {
-  // Repulsion force between nodes
-  repulsionStrength: number;
-  // Attraction force for connected nodes
-  attractionStrength: number;
-  // Center gravity (pulls nodes toward center)
-  centerGravity: number;
-  // Damping factor (friction)
-  damping: number;
-  // Minimum distance between nodes
-  minDistance: number;
-  // Ideal distance for connected nodes
-  idealLinkDistance: number;
-}
-
-export const DEFAULT_PHYSICS_CONFIG: PhysicsConfig = {
-  repulsionStrength: 300,
-  attractionStrength: 0.03,
-  centerGravity: 0.008,
-  damping: 0.95, // Higher = more bounce, lower = more friction
-  minDistance: 80,
-  idealLinkDistance: 140,
-};
 
 // Agent colors palette
 export const AGENT_COLORS = [
