@@ -17,9 +17,10 @@ function SoonBadge({ className = "" }: { className?: string }) {
 const navLinks = [
   { href: "#features", label: "Features" },
   { href: "#agents", label: "Agents" },
+  { href: "#arena", label: "Arena", highlight: true },
   { href: "#network", label: "Network" },
   { href: "#how-it-works", label: "How It Works" },
-  { href: "/tokenomics", label: "Tokenomics", highlight: true },
+  { href: "/tokenomics", label: "Tokenomics" },
 ];
 
 export default function Navigation() {

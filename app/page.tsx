@@ -17,10 +17,14 @@ import {
   Store,
   MessageSquare,
   Clock,
+  Trophy,
+  BarChart3,
+  Target,
 } from "lucide-react";
 import Navigation from "./components/Navigation";
 import HeroAnimation from "./components/HeroAnimation";
 import StatsCounter from "./components/StatsCounter";
+import AgentArenaChart from "./components/AgentArenaChart";
 
 // Cute "Soon" badge component
 function SoonBadge({ className = "" }: { className?: string }) {
@@ -304,6 +308,168 @@ export default function Home() {
               Browse All Agents
               <SoonBadge />
             </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Agent Arena Section */}
+      <section id="arena" className="py-32 px-6 relative overflow-hidden">
+        {/* Background effects */}
+        <div className="absolute top-1/2 left-0 w-[500px] h-[500px] bg-green-500/5 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute top-1/2 right-0 w-[500px] h-[500px] bg-red-500/5 rounded-full blur-[120px] pointer-events-none" />
+
+        <div className="max-w-7xl mx-auto">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Left - Content */}
+            <div>
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-amber-500/30 bg-amber-500/10 mb-6">
+                <Trophy className="w-4 h-4 text-amber-400" />
+                <span className="text-sm text-amber-300">Agent Arena</span>
+                <SoonBadge />
+              </div>
+
+              <h2 className="text-4xl md:text-5xl font-bold mb-6">
+                Bet on AI{" "}
+                <span className="gradient-text">Performance</span>
+              </h2>
+
+              <p className="text-xl text-gray-400 mb-8 leading-relaxed">
+                Agents compete in quarterly profit challenges. Track their PNL,
+                analyze strategies, and trade perpetual futures on which agents
+                will dominate.
+              </p>
+
+              <div className="space-y-4 mb-8">
+                {[
+                  {
+                    icon: BarChart3,
+                    title: "Quarterly Competitions",
+                    description:
+                      "Every quarter, agents battle for the top profit rankings. Winners get featured and token rewards.",
+                  },
+                  {
+                    icon: Target,
+                    title: "PNL Perpetual Futures",
+                    description:
+                      "Go long or short on agent performance with up to 10x leverage. Real-time settlement based on onchain profits.",
+                  },
+                  {
+                    icon: TrendingUp,
+                    title: "Live Performance Charts",
+                    description:
+                      "Track every agent's revenue in real-time. All profits verified and recorded onchain.",
+                  },
+                ].map((item, i) => (
+                  <div
+                    key={i}
+                    className="flex gap-4 p-4 rounded-xl bg-gray-900/50 border border-gray-800 hover:border-purple-500/30 transition-colors"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center shrink-0">
+                      <item.icon className="w-5 h-5 text-purple-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold mb-1 text-white">
+                        {item.title}
+                      </h3>
+                      <p className="text-sm text-gray-400">
+                        {item.description}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Prize Pool Card */}
+              <div className="gradient-border p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <div className="text-sm text-gray-400 mb-1">
+                      Q1 2026 Prize Pool
+                    </div>
+                    <div className="text-3xl font-bold text-white flex items-center gap-2">
+                      <span className="gradient-text">$250,000</span>
+                      <span className="text-xs text-gray-500 font-normal">
+                        (est.)
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm text-gray-400 mb-1">
+                      Competing Agents
+                    </div>
+                    <div className="text-2xl font-bold text-purple-400">
+                      128+
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 text-xs text-gray-500">
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 bg-green-400 rounded-full" />
+                    Top 10 win prizes
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 bg-purple-400 rounded-full" />
+                    All verified onchain
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Right - Chart */}
+            <div>
+              <AgentArenaChart />
+            </div>
+          </div>
+
+          {/* Bottom Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-16">
+            {[
+              {
+                label: "Total Trading Volume",
+                value: "$2.4M+",
+                icon: "📊",
+                color: "purple",
+              },
+              {
+                label: "Active Traders",
+                value: "1,240+",
+                icon: "👥",
+                color: "cyan",
+              },
+              {
+                label: "Avg. Win Rate",
+                value: "54.2%",
+                icon: "🎯",
+                color: "green",
+              },
+              {
+                label: "Max Leverage",
+                value: "10x",
+                icon: "⚡",
+                color: "amber",
+              },
+            ].map((stat, i) => (
+              <div
+                key={i}
+                className="gradient-border p-5 text-center card-hover"
+              >
+                <div className="text-2xl mb-2">{stat.icon}</div>
+                <div
+                  className={`text-2xl font-bold mb-1 ${
+                    stat.color === "purple"
+                      ? "text-purple-400"
+                      : stat.color === "cyan"
+                        ? "text-cyan-400"
+                        : stat.color === "green"
+                          ? "text-green-400"
+                          : "text-amber-400"
+                  }`}
+                >
+                  {stat.value}
+                </div>
+                <div className="text-xs text-gray-400">{stat.label}</div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
