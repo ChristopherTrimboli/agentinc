@@ -1,7 +1,13 @@
 "use client";
 
 import { PrivyProvider } from "@privy-io/react-auth";
+import { toSolanaWalletConnectors } from "@privy-io/react-auth/solana";
 import UserSync from "./components/UserSync";
+
+// Configure Solana connectors (required even if not using external wallets)
+const solanaConnectors = toSolanaWalletConnectors({
+  shouldAutoConnect: false,
+});
 
 export default function ClientLayout({
   children,
@@ -26,6 +32,12 @@ export default function ClientLayout({
           },
           solana: {
             createOnLogin: "all-users",
+          },
+        },
+        // Configure external Solana connectors (suppresses warning)
+        externalWallets: {
+          solana: {
+            connectors: solanaConnectors,
           },
         },
       }}
