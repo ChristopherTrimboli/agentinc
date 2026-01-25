@@ -1,6 +1,7 @@
 "use client";
 
 import { PrivyProvider } from "@privy-io/react-auth";
+import UserSync from "./components/UserSync";
 
 export default function ClientLayout({
   children,
@@ -29,6 +30,7 @@ export default function ClientLayout({
         },
       }}
     >
+      <UserSync />
       {children}
     </PrivyProvider>
   );
