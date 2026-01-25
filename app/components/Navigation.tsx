@@ -5,8 +5,9 @@ import { Building2, Menu, X } from "lucide-react";
 import LoginButton from "./LoginButton";
 
 const navLinks = [
-  { href: "#agents", label: "Agents" },
-  { href: "#marketplace", label: "Marketplace", highlight: true },
+  { href: "/agents", label: "My Agents", highlight: true },
+  { href: "/chat", label: "Chat" },
+  { href: "#marketplace", label: "Marketplace" },
   { href: "#arena", label: "Arena" },
   { href: "#network", label: "Network" },
   { href: "/tokenomics", label: "Tokenomics" },

@@ -2,25 +2,116 @@
 
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { Send, Bot, User, Sparkles } from "lucide-react";
-import { useRef, useEffect, useState } from "react";
+import { Send, Bot, User, Sparkles, ArrowLeft } from "lucide-react";
+import { useRef, useEffect, useState, useMemo, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import { usePrivy, useIdentityToken } from "@privy-io/react-auth";
 import Navigation from "../components/Navigation";
+import Link from "next/link";
 
-export default function ChatPage() {
+interface AgentInfo {
+  id: string;
+  name: string;
+  description: string | null;
+}
+
+function ChatContent() {
+  const searchParams = useSearchParams();
+  const agentId = searchParams.get("agent");
+
+  const { ready, authenticated, login } = usePrivy();
+  const { identityToken } = useIdentityToken();
+
   const [input, setInput] = useState("");
+  const [agentInfo, setAgentInfo] = useState<AgentInfo | null>(null);
+  const [agentLoading, setAgentLoading] = useState(!!agentId);
+
+  // Create transport with agentId and auth headers
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport({
+        api: "/api/chat",
+        body: agentId ? { agentId } : undefined,
+        headers: identityToken
+          ? { "privy-id-token": identityToken }
+          : undefined,
+      }),
+    [agentId, identityToken],
+  );
+
   const { messages, sendMessage, status } = useChat({
-    transport: new DefaultChatTransport({
-      api: "/api/chat",
-    }),
+    transport,
   });
   const isLoading = status === "streaming" || status === "submitted";
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Fetch agent info if agentId is provided
+  useEffect(() => {
+    async function fetchAgentInfo() {
+      if (!agentId) {
+        setAgentLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/agents/${agentId}`, {
+          headers: identityToken
+            ? { "privy-id-token": identityToken }
+            : undefined,
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setAgentInfo(data.agent);
+        }
+      } catch {
+        // Agent not found or error - continue with default
+      } finally {
+        setAgentLoading(false);
+      }
+    }
+
+    fetchAgentInfo();
+  }, [agentId, identityToken]);
+
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Show login prompt if not authenticated
+  if (ready && !authenticated) {
+    return (
+      <div className="min-h-screen bg-[#030712] text-white overflow-x-hidden">
+        <div className="fixed inset-0 bg-grid opacity-50 pointer-events-none" />
+        <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-purple-500/10 rounded-full blur-[120px] pointer-events-none" />
+        <Navigation />
+
+        <main className="relative pt-24 pb-16 px-4 min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-purple-500/20 to-cyan-500/20 flex items-center justify-center border border-purple-500/30">
+              <Bot className="w-10 h-10 text-purple-400" />
+            </div>
+            <h1 className="text-3xl font-bold mb-4">Login Required</h1>
+            <p className="text-gray-400 mb-8 max-w-md">
+              You need to be logged in to chat with AI agents
+            </p>
+            <button
+              onClick={login}
+              className="px-8 py-3 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-xl text-white font-semibold hover:opacity-90 transition-opacity"
+            >
+              Log In to Continue
+            </button>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  const displayName = agentInfo?.name || "Agent Inc.";
+  const displayDescription =
+    agentInfo?.description ||
+    "Ask questions about AI agents, blockchain, and the ERC-8041 standard";
 
   return (
     <div className="min-h-screen bg-[#030712] text-white overflow-x-hidden">
@@ -35,19 +126,33 @@ export default function ChatPage() {
       {/* Main Chat Area */}
       <main className="relative pt-24 pb-32 px-4 min-h-screen">
         <div className="max-w-3xl mx-auto">
+          {/* Back to agents link if viewing custom agent */}
+          {agentId && (
+            <Link
+              href="/agents"
+              className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-4"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Agents
+            </Link>
+          )}
+
           {/* Header */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-purple-500/30 bg-purple-500/10 mb-4 backdrop-blur-sm">
               <Sparkles className="w-4 h-4 text-purple-400 animate-pulse" />
-              <span className="text-sm text-purple-300">AI Assistant</span>
+              <span className="text-sm text-purple-300">
+                {agentInfo ? "Custom Agent" : "AI Assistant"}
+              </span>
             </div>
-            <h1 className="text-3xl md:text-4xl font-bold mb-2">
-              Chat with <span className="gradient-text">Agent Inc.</span>
-            </h1>
-            <p className="text-gray-400">
-              Ask questions about AI agents, blockchain, and the ERC-8041
-              standard
-            </p>
+            {agentLoading ? (
+              <div className="h-10 w-64 mx-auto bg-gray-800/50 rounded-lg animate-pulse mb-2" />
+            ) : (
+              <h1 className="text-3xl md:text-4xl font-bold mb-2">
+                Chat with <span className="gradient-text">{displayName}</span>
+              </h1>
+            )}
+            <p className="text-gray-400">{displayDescription}</p>
           </div>
 
           {/* Messages Container */}
@@ -181,5 +286,19 @@ export default function ChatPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#030712] text-white flex items-center justify-center">
+          <div className="w-8 h-8 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <ChatContent />
+    </Suspense>
   );
 }
