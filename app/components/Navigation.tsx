@@ -1,18 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Building2, Menu, X, Clock } from "lucide-react";
-
-function SoonBadge({ className = "" }: { className?: string }) {
-  return (
-    <span
-      className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider bg-amber-500/20 text-amber-400 rounded-full ${className}`}
-    >
-      <Clock className="w-2.5 h-2.5" />
-      Soon
-    </span>
-  );
-}
+import { Building2, Menu, X } from "lucide-react";
+import LoginButton from "./LoginButton";
 
 const navLinks = [
   { href: "#agents", label: "Agents" },
@@ -79,13 +69,9 @@ export default function Navigation() {
         </div>
 
         {/* Desktop CTA */}
-        <button
-          disabled
-          className="hidden md:flex px-6 py-2.5 bg-gray-700/50 rounded-full font-medium cursor-not-allowed items-center gap-2 opacity-60"
-        >
-          Launch App
-          <SoonBadge />
-        </button>
+        <div className="hidden md:block">
+          <LoginButton />
+        </div>
 
         {/* Mobile Menu Button */}
         <button
@@ -143,13 +129,7 @@ export default function Navigation() {
 
           {/* Mobile CTA */}
           <div className="mt-6 pt-6 border-t border-gray-800">
-            <button
-              disabled
-              className="w-full px-6 py-3 bg-gray-700/50 rounded-full font-medium cursor-not-allowed flex items-center justify-center gap-2 opacity-60"
-            >
-              Launch App
-              <SoonBadge />
-            </button>
+            <LoginButton fullWidth />
           </div>
         </div>
       </div>

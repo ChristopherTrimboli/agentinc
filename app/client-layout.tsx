@@ -11,13 +11,20 @@ export default function ClientLayout({
     <PrivyProvider
       appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID!}
       config={{
-        // Create embedded wallets for users who don't have a wallet
+        // Only allow email login
+        loginMethods: ["email"],
+        // Appearance customization
+        appearance: {
+          theme: "dark",
+          accentColor: "#a855f7", // Purple to match your brand
+        },
+        // Create Solana embedded wallet automatically, disable Ethereum
         embeddedWallets: {
           ethereum: {
-            createOnLogin: "users-without-wallets",
+            createOnLogin: "off",
           },
           solana: {
-            createOnLogin: "users-without-wallets",
+            createOnLogin: "all-users",
           },
         },
       }}
