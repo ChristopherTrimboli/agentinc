@@ -6,6 +6,7 @@ import LoginButton from "./LoginButton";
 
 const navLinks = [
   { href: "/agents", label: "My Agents", highlight: true },
+  { href: "/swarm", label: "Swarm", highlight: true },
   { href: "/chat", label: "Chat" },
   { href: "#marketplace", label: "Marketplace" },
   { href: "#arena", label: "Arena" },

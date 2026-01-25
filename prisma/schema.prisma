@@ -35,3 +35,64 @@ model Agent {
 
   @@index([createdById])
 }
+
+// Swarm visualization models
+
+// Corporation - a company/organization that agents belong to
+model Corporation {
+  id          String   @id @default(cuid())
+  name        String
+  description String?  @db.Text
+  logo        String?  // URL or emoji
+  color       String?  // Brand color
+  size        Int      @default(60) // Visual size in swarm
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  agents SwarmAgent[]
+
+  @@index([name])
+}
+
+model SwarmAgent {
+  id           String   @id @default(cuid())
+  name         String
+  description  String?  @db.Text
+  capabilities String[] // Array of capability strings
+  color        String?
+  size         Int      @default(35)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Corporation relation
+  corporationId String?
+  corporation   Corporation? @relation(fields: [corporationId], references: [id], onDelete: SetNull)
+
+  // Relations
+  outgoingEvents SwarmEvent[] @relation("SourceAgent")
+  incomingEvents SwarmEvent[] @relation("TargetAgent")
+
+  @@index([name])
+  @@index([corporationId])
+}
+
+model SwarmEvent {
+  id            String   @id @default(cuid())
+  type          String   // agent_call, agent_response, agent_error, etc.
+  payload       Json?
+  timestamp     DateTime @default(now())
+
+  // Source agent relation
+  sourceAgentId String
+  sourceAgent   SwarmAgent @relation("SourceAgent", fields: [sourceAgentId], references: [id], onDelete: Cascade)
+
+  // Target agent relation (optional for some event types)
+  targetAgentId String?
+  targetAgent   SwarmAgent? @relation("TargetAgent", fields: [targetAgentId], references: [id], onDelete: Cascade)
+
+  @@index([sourceAgentId])
+  @@index([targetAgentId])
+  @@index([timestamp])
+  @@index([type])
+}
