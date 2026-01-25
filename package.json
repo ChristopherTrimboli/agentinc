@@ -7,9 +7,11 @@
     "build": "next build",
     "postinstall": "prisma generate",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "format": "prettier --write ."
   },
   "dependencies": {
+    "@ai-sdk/react": "^3.0.51",
     "@prisma/client": "^7.3.0",
     "@prisma/extension-accelerate": "^3.0.1",
     "@privy-io/node": "^0.8.0",
@@ -19,24 +21,27 @@
     "@solana-program/token": "^0.9.0",
     "@solana/kit": "^5.4.0",
     "@vercel/analytics": "^1.6.1",
+    "ai": "^6.0.49",
     "dotenv": "^17.2.3",
     "lucide-react": "^0.563.0",
     "next": "16.1.4",
+    "prettier": "^3.8.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "react-slot-counter": "^3.3.2"
+    "react-slot-counter": "^3.3.2",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
+    "@tailwindcss/postcss": "^4.1.18",
+    "@types/node": "^20.19.30",
+    "@types/react": "^19.2.9",
+    "@types/react-dom": "^19.2.3",
+    "eslint": "^9.39.2",
     "eslint-config-next": "16.1.4",
     "prisma": "^7.3.0",
-    "tailwindcss": "^4",
+    "tailwindcss": "^4.1.18",
     "tsx": "^4.21.0",
-    "typescript": "^5"
+    "typescript": "^5.9.3"
   },
   "ignoreScripts": [
     "sharp",

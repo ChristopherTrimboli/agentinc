@@ -31,9 +31,11 @@ export default function WalletProfile({
   // Get the Solana wallet address from linked accounts
   const walletAddress = useMemo(() => {
     const solanaWallet = user?.linkedAccounts?.find(
-      (account) => account.type === "wallet" && account.chainType === "solana"
+      (account) => account.type === "wallet" && account.chainType === "solana",
     );
-    return solanaWallet && "address" in solanaWallet ? solanaWallet.address : null;
+    return solanaWallet && "address" in solanaWallet
+      ? solanaWallet.address
+      : null;
   }, [user?.linkedAccounts]);
 
   // Fetch SOL balance using multiple RPC endpoints as fallbacks
@@ -46,7 +48,7 @@ export default function WalletProfile({
 
     const fetchBalance = async () => {
       setIsLoadingBalance(true);
-      
+
       const rpcEndpoints = [
         "https://api.devnet.solana.com",
         "https://rpc.ankr.com/solana",
@@ -182,7 +184,8 @@ export default function WalletProfile({
 
   // Get user display info
   const email = user?.email?.address;
-  const displayName = email || (walletAddress ? formatAddress(walletAddress) : "Connected");
+  const displayName =
+    email || (walletAddress ? formatAddress(walletAddress) : "Connected");
 
   return (
     <div className={`relative ${fullWidth ? "w-full" : ""}`} ref={dropdownRef}>
@@ -201,13 +204,11 @@ export default function WalletProfile({
         {/* Info */}
         <div className="flex flex-col items-start min-w-0">
           <span className="text-[11px] text-gray-500 leading-tight">
-            {balance !== null ? (
-              `${formatBalance(balance)} SOL`
-            ) : isLoadingBalance ? (
-              "..."
-            ) : (
-              "Wallet"
-            )}
+            {balance !== null
+              ? `${formatBalance(balance)} SOL`
+              : isLoadingBalance
+                ? "..."
+                : "Wallet"}
           </span>
           <span className="text-sm font-medium text-gray-200 truncate max-w-[100px] leading-tight">
             {walletAddress ? formatAddress(walletAddress) : displayName}
@@ -234,7 +235,9 @@ export default function WalletProfile({
               </div>
               <div className="flex-1 min-w-0">
                 {email && (
-                  <p className="text-xs text-gray-500 truncate leading-tight">{email}</p>
+                  <p className="text-xs text-gray-500 truncate leading-tight">
+                    {email}
+                  </p>
                 )}
                 {walletAddress && (
                   <div className="flex items-center gap-1.5 mt-0.5">
@@ -261,7 +264,9 @@ export default function WalletProfile({
             {walletAddress && (
               <div className="bg-gradient-to-br from-gray-800/80 to-gray-800/40 rounded-xl p-3 border border-gray-700/30">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">Balance</span>
+                  <span className="text-[11px] uppercase tracking-wider text-gray-500 font-medium">
+                    Balance
+                  </span>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -307,7 +312,9 @@ export default function WalletProfile({
                 className="flex items-center gap-2.5 px-3 py-2 hover:bg-gray-800/60 rounded-lg transition-all duration-150 group"
               >
                 <ExternalLink className="w-4 h-4 text-gray-500 group-hover:text-gray-300" />
-                <span className="text-sm text-gray-300 group-hover:text-white">View on Solscan</span>
+                <span className="text-sm text-gray-300 group-hover:text-white">
+                  View on Solscan
+                </span>
               </a>
             )}
 
@@ -320,7 +327,9 @@ export default function WalletProfile({
               className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-red-500/10 rounded-lg transition-all duration-150 group"
             >
               <LogOut className="w-4 h-4 text-gray-500 group-hover:text-red-400" />
-              <span className="text-sm text-gray-300 group-hover:text-red-400">Disconnect</span>
+              <span className="text-sm text-gray-300 group-hover:text-red-400">
+                Disconnect
+              </span>
             </button>
           </div>
         </div>

@@ -12,7 +12,10 @@ export async function POST(req: NextRequest) {
     const idToken = req.headers.get("privy-id-token");
 
     if (!idToken) {
-      return NextResponse.json({ error: "Missing identity token" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Missing identity token" },
+        { status: 401 },
+      );
     }
 
     // Verify identity token and get user data (email comes from verified token)
@@ -20,7 +23,7 @@ export async function POST(req: NextRequest) {
 
     // Extract email from linked_accounts
     const emailAccount = privyUser.linked_accounts?.find(
-      (account) => account.type === "email"
+      (account) => account.type === "email",
     ) as { type: "email"; address: string } | undefined;
 
     const user = await prisma.user.upsert({

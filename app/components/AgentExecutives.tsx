@@ -307,9 +307,18 @@ function AgentCard({ agent, index }: { agent: Agent; index: number }) {
 function AgentConnections() {
   return (
     <div className="absolute inset-0 pointer-events-none hidden lg:block">
-      <svg className="w-full h-full" style={{ position: "absolute", top: 0, left: 0 }}>
+      <svg
+        className="w-full h-full"
+        style={{ position: "absolute", top: 0, left: 0 }}
+      >
         <defs>
-          <linearGradient id="connectionGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+          <linearGradient
+            id="connectionGradient"
+            x1="0%"
+            y1="0%"
+            x2="100%"
+            y2="0%"
+          >
             <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.3" />
             <stop offset="50%" stopColor="#06b6d4" stopOpacity="0.5" />
             <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.3" />
@@ -362,7 +371,7 @@ export default function AgentExecutives() {
           setIsVisible(true);
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
     if (sectionRef.current) {

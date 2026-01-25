@@ -122,8 +122,18 @@ function StepCard({
               }`}
             >
               {isPast ? (
-                <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                <svg
+                  className="w-4 h-4 text-white"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={3}
+                    d="M5 13l4 4L19 7"
+                  />
                 </svg>
               ) : (
                 <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
@@ -143,7 +153,9 @@ function StepCard({
 
         {/* Content */}
         <h3 className="text-xl font-bold text-white mb-2">{step.title}</h3>
-        <p className="text-gray-400 text-sm leading-relaxed">{step.description}</p>
+        <p className="text-gray-400 text-sm leading-relaxed">
+          {step.description}
+        </p>
       </div>
     </div>
   );
@@ -161,7 +173,7 @@ export default function HowItWorks() {
           setIsVisible(true);
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
     if (sectionRef.current) {
@@ -183,7 +195,11 @@ export default function HowItWorks() {
   }, [isVisible]);
 
   return (
-    <section ref={sectionRef} id="how-it-works" className="py-32 px-6 relative overflow-hidden">
+    <section
+      ref={sectionRef}
+      id="how-it-works"
+      className="py-32 px-6 relative overflow-hidden"
+    >
       {/* Background effects */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[600px] bg-purple-500/5 rounded-full blur-[150px] pointer-events-none" />
 
@@ -203,7 +219,8 @@ export default function HowItWorks() {
             How <span className="gradient-text">Agent Inc.</span> Works
           </h2>
           <p className="text-xl text-gray-400 max-w-2xl mx-auto">
-            From minting to revenue, here&apos;s how AI companies generate real value.
+            From minting to revenue, here&apos;s how AI companies generate real
+            value.
           </p>
         </div>
 
@@ -221,7 +238,9 @@ export default function HowItWorks() {
             {/* Glowing dot at end */}
             <div
               className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg shadow-purple-500/50 transition-all duration-500 ease-out"
-              style={{ left: `calc(${((activeStep + 1) / steps.length) * 100}% - 8px)` }}
+              style={{
+                left: `calc(${((activeStep + 1) / steps.length) * 100}% - 8px)`,
+              }}
             >
               <div className="absolute inset-0 rounded-full bg-white animate-ping opacity-50" />
             </div>
@@ -236,7 +255,8 @@ export default function HowItWorks() {
                 cyan: "border-cyan-500 bg-cyan-500",
                 amber: "border-amber-500 bg-amber-500",
               };
-              const colors = colorClasses[step.color as keyof typeof colorClasses];
+              const colors =
+                colorClasses[step.color as keyof typeof colorClasses];
 
               return (
                 <button
@@ -261,8 +281,12 @@ export default function HowItWorks() {
                   {/* Pulse ring when active */}
                   {activeStep === index && (
                     <>
-                      <div className={`absolute inset-0 rounded-full ${colors.split(" ")[1]} animate-ping opacity-30`} />
-                      <div className={`absolute -inset-2 rounded-full border-2 ${colors.split(" ")[0]} opacity-50 animate-pulse`} />
+                      <div
+                        className={`absolute inset-0 rounded-full ${colors.split(" ")[1]} animate-ping opacity-30`}
+                      />
+                      <div
+                        className={`absolute -inset-2 rounded-full border-2 ${colors.split(" ")[0]} opacity-50 animate-pulse`}
+                      />
                     </>
                   )}
                 </button>

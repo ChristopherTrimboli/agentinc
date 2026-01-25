@@ -224,7 +224,9 @@ function CompanyCard({
               {company.logo}
             </div>
             <div className="flex-1 min-w-0">
-              <h4 className="font-semibold text-white truncate">{company.name}</h4>
+              <h4 className="font-semibold text-white truncate">
+                {company.name}
+              </h4>
               <div className="flex items-center gap-2 mt-1">
                 <span className="font-mono text-sm text-purple-400">
                   {company.ticker}
@@ -258,11 +260,15 @@ function CompanyCard({
             </div>
             <div className="text-center p-2 rounded-lg bg-gray-800/50">
               <div className="text-xs text-gray-500 mb-1">EMPs</div>
-              <div className="font-semibold text-cyan-400">{company.employees}</div>
+              <div className="font-semibold text-cyan-400">
+                {company.employees}
+              </div>
             </div>
             <div className="text-center p-2 rounded-lg bg-gray-800/50">
               <div className="text-xs text-gray-500 mb-1">Revenue</div>
-              <div className="font-semibold text-green-400">${company.revenue}</div>
+              <div className="font-semibold text-green-400">
+                ${company.revenue}
+              </div>
             </div>
           </div>
 
@@ -280,9 +286,18 @@ function CompanyCard({
 
         {/* Mini chart line at bottom - using deterministic values based on company.id */}
         <div className="h-12 relative overflow-hidden">
-          <svg className="absolute bottom-0 w-full h-full" preserveAspectRatio="none">
+          <svg
+            className="absolute bottom-0 w-full h-full"
+            preserveAspectRatio="none"
+          >
             <defs>
-              <linearGradient id={`chartGrad-${company.id}`} x1="0" y1="0" x2="0" y2="1">
+              <linearGradient
+                id={`chartGrad-${company.id}`}
+                x1="0"
+                y1="0"
+                x2="0"
+                y2="1"
+              >
                 <stop
                   offset="0%"
                   stopColor={company.change >= 0 ? "#10b981" : "#ef4444"}
@@ -296,11 +311,11 @@ function CompanyCard({
               </linearGradient>
             </defs>
             <path
-              d={`M0,${30 + (company.id * 7) % 10} Q50,${20 + (company.id * 11) % 15} 100,${25 + (company.id * 5) % 10} T200,${15 + (company.id * 13) % 15} T300,${company.change >= 0 ? 10 : 35} L300,50 L0,50 Z`}
+              d={`M0,${30 + ((company.id * 7) % 10)} Q50,${20 + ((company.id * 11) % 15)} 100,${25 + ((company.id * 5) % 10)} T200,${15 + ((company.id * 13) % 15)} T300,${company.change >= 0 ? 10 : 35} L300,50 L0,50 Z`}
               fill={`url(#chartGrad-${company.id})`}
             />
             <path
-              d={`M0,${30 + (company.id * 7) % 10} Q50,${20 + (company.id * 11) % 15} 100,${25 + (company.id * 5) % 10} T200,${15 + (company.id * 13) % 15} T300,${company.change >= 0 ? 10 : 35}`}
+              d={`M0,${30 + ((company.id * 7) % 10)} Q50,${20 + ((company.id * 11) % 15)} 100,${25 + ((company.id * 5) % 10)} T200,${15 + ((company.id * 13) % 15)} T300,${company.change >= 0 ? 10 : 35}`}
               stroke={company.change >= 0 ? "#10b981" : "#ef4444"}
               strokeWidth="2"
               fill="none"
@@ -313,7 +328,13 @@ function CompanyCard({
 }
 
 // EMP (Employee) trading card
-function EMPCard({ emp, index }: { emp: (typeof empListings)[0]; index: number }) {
+function EMPCard({
+  emp,
+  index,
+}: {
+  emp: (typeof empListings)[0];
+  index: number;
+}) {
   return (
     <div
       className="group relative flex items-center gap-4 p-4 rounded-xl bg-gray-900/50 border border-gray-800 hover:border-cyan-500/50 transition-all duration-300 hover:bg-gray-900/80"
@@ -355,7 +376,9 @@ function EMPCard({ emp, index }: { emp: (typeof empListings)[0]; index: number }
 
       {/* Price & Action */}
       <div className="text-right">
-        <div className="font-mono font-semibold text-white">{emp.price} SOL</div>
+        <div className="font-mono font-semibold text-white">
+          {emp.price} SOL
+        </div>
         <button className="mt-1 px-3 py-1 bg-cyan-600/20 hover:bg-cyan-600/40 border border-cyan-500/30 rounded-lg text-xs font-medium text-cyan-400 transition-all">
           Trade
         </button>
@@ -399,10 +422,10 @@ function TradesFeed() {
 
 // Pre-computed positions for orbiting icons (to avoid hydration mismatch from floating-point precision)
 const orbitingIcons = [
-  { icon: "💰", angle: 0, top: 50, left: 90 },      // sin(0)=0, cos(0)=1 -> 50+0=50, 50+40=90
-  { icon: "🤖", angle: 60, top: 84.64, left: 70 },  // sin(60°)≈0.866, cos(60°)=0.5 -> 50+34.64=84.64, 50+20=70
+  { icon: "💰", angle: 0, top: 50, left: 90 }, // sin(0)=0, cos(0)=1 -> 50+0=50, 50+40=90
+  { icon: "🤖", angle: 60, top: 84.64, left: 70 }, // sin(60°)≈0.866, cos(60°)=0.5 -> 50+34.64=84.64, 50+20=70
   { icon: "📈", angle: 120, top: 84.64, left: 30 }, // sin(120°)≈0.866, cos(120°)=-0.5 -> 50+34.64=84.64, 50-20=30
-  { icon: "🏢", angle: 180, top: 50, left: 10 },    // sin(180°)=0, cos(180°)=-1 -> 50+0=50, 50-40=10
+  { icon: "🏢", angle: 180, top: 50, left: 10 }, // sin(180°)=0, cos(180°)=-1 -> 50+0=50, 50-40=10
   { icon: "⚡", angle: 240, top: 15.36, left: 30 }, // sin(240°)≈-0.866, cos(240°)=-0.5 -> 50-34.64=15.36, 50-20=30
   { icon: "🎯", angle: 300, top: 15.36, left: 70 }, // sin(300°)≈-0.866, cos(300°)=0.5 -> 50-34.64=15.36, 50+20=70
 ];
@@ -413,9 +436,18 @@ function HexShowcase() {
     <div className="relative w-full aspect-square max-w-[280px] mx-auto">
       {/* Animated rings */}
       <div className="absolute inset-0 flex items-center justify-center">
-        <div className="w-[90%] h-[90%] border border-purple-500/20 rounded-full animate-spin" style={{ animationDuration: "20s" }} />
-        <div className="absolute w-[70%] h-[70%] border border-cyan-500/20 rounded-full animate-spin" style={{ animationDuration: "15s", animationDirection: "reverse" }} />
-        <div className="absolute w-[50%] h-[50%] border border-amber-500/20 rounded-full animate-spin" style={{ animationDuration: "10s" }} />
+        <div
+          className="w-[90%] h-[90%] border border-purple-500/20 rounded-full animate-spin"
+          style={{ animationDuration: "20s" }}
+        />
+        <div
+          className="absolute w-[70%] h-[70%] border border-cyan-500/20 rounded-full animate-spin"
+          style={{ animationDuration: "15s", animationDirection: "reverse" }}
+        />
+        <div
+          className="absolute w-[50%] h-[50%] border border-amber-500/20 rounded-full animate-spin"
+          style={{ animationDuration: "10s" }}
+        />
       </div>
 
       {/* Center hexagon */}
@@ -486,7 +518,7 @@ export default function AgentMarketplace() {
           setIsVisible(true);
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
     if (sectionRef.current) {
@@ -525,9 +557,9 @@ export default function AgentMarketplace() {
             <span className="gradient-text">EMPs</span>
           </h2>
           <p className="text-xl text-gray-400 max-w-3xl mx-auto">
-            The first decentralized marketplace for AI-powered companies and their
-            employee tokens. Buy, sell, and trade entire autonomous businesses or
-            individual agent shares.
+            The first decentralized marketplace for AI-powered companies and
+            their employee tokens. Buy, sell, and trade entire autonomous
+            businesses or individual agent shares.
           </p>
         </div>
 
@@ -545,7 +577,9 @@ export default function AgentMarketplace() {
           {/* Left Column - Featured & Info */}
           <div
             className={`space-y-6 transition-all duration-700 delay-200 ${
-              isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+              isVisible
+                ? "opacity-100 translate-y-0"
+                : "opacity-0 translate-y-8"
             }`}
           >
             {/* Hex Showcase */}
@@ -556,8 +590,8 @@ export default function AgentMarketplace() {
                   Decentralized Trading
                 </h3>
                 <p className="text-sm text-gray-400">
-                  All trades are settled onchain with transparent pricing and instant
-                  ownership transfer.
+                  All trades are settled onchain with transparent pricing and
+                  instant ownership transfer.
                 </p>
               </div>
             </div>
@@ -565,10 +599,30 @@ export default function AgentMarketplace() {
             {/* Stats */}
             <div className="grid grid-cols-2 gap-3">
               {[
-                { label: "Total Volume", value: "$4.2M", icon: DollarSign, color: "purple" },
-                { label: "Listed Items", value: "1,247", icon: Briefcase, color: "cyan" },
-                { label: "Active Traders", value: "3.8K", icon: Users, color: "amber" },
-                { label: "Avg. Trade", value: "2.1 SOL", icon: ArrowRightLeft, color: "green" },
+                {
+                  label: "Total Volume",
+                  value: "$4.2M",
+                  icon: DollarSign,
+                  color: "purple",
+                },
+                {
+                  label: "Listed Items",
+                  value: "1,247",
+                  icon: Briefcase,
+                  color: "cyan",
+                },
+                {
+                  label: "Active Traders",
+                  value: "3.8K",
+                  icon: Users,
+                  color: "amber",
+                },
+                {
+                  label: "Avg. Trade",
+                  value: "2.1 SOL",
+                  icon: ArrowRightLeft,
+                  color: "green",
+                },
               ].map((stat, i) => (
                 <div
                   key={i}
@@ -607,7 +661,9 @@ export default function AgentMarketplace() {
           {/* Right Column - Listings */}
           <div
             className={`lg:col-span-2 space-y-6 transition-all duration-700 delay-300 ${
-              isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+              isVisible
+                ? "opacity-100 translate-y-0"
+                : "opacity-0 translate-y-8"
             }`}
           >
             {/* Tabs & Filters */}
@@ -693,19 +749,22 @@ export default function AgentMarketplace() {
             {
               icon: Zap,
               title: "Instant Settlement",
-              description: "All trades settle in seconds on Solana. No waiting, no middlemen.",
+              description:
+                "All trades settle in seconds on Solana. No waiting, no middlemen.",
               color: "purple",
             },
             {
               icon: TrendingUp,
               title: "Price Discovery",
-              description: "Dynamic pricing based on agent performance, revenue, and market demand.",
+              description:
+                "Dynamic pricing based on agent performance, revenue, and market demand.",
               color: "cyan",
             },
             {
               icon: Users,
               title: "Fractional Ownership",
-              description: "Own pieces of high-performing companies through EMP token fractions.",
+              description:
+                "Own pieces of high-performing companies through EMP token fractions.",
               color: "amber",
             },
           ].map((feature, i) => (

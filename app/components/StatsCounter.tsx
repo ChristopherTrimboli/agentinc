@@ -21,10 +21,20 @@ export default function StatsCounter() {
   useEffect(() => {
     const generateRandomStats = () => {
       return [
-        { value: Math.floor(Math.random() * 900) + 100, label: "Active Agents" },
+        {
+          value: Math.floor(Math.random() * 900) + 100,
+          label: "Active Agents",
+        },
         { value: Math.floor(Math.random() * 90) + 10, label: "AI Companies" },
-        { value: Math.floor(Math.random() * 900000) + 100000, label: "Revenue Generated", prefix: "$" },
-        { value: Math.floor(Math.random() * 9000) + 1000, label: "Token Holders" },
+        {
+          value: Math.floor(Math.random() * 900000) + 100000,
+          label: "Revenue Generated",
+          prefix: "$",
+        },
+        {
+          value: Math.floor(Math.random() * 9000) + 1000,
+          label: "Token Holders",
+        },
       ];
     };
 
@@ -57,7 +67,9 @@ export default function StatsCounter() {
           className="gradient-border p-6 text-center card-hover relative backdrop-blur-sm"
         >
           <div className="text-xl md:text-2xl font-bold mb-1 flex items-center justify-center">
-            {stat.prefix && <span style={{ color: "#a78bfa" }}>{stat.prefix}</span>}
+            {stat.prefix && (
+              <span style={{ color: "#a78bfa" }}>{stat.prefix}</span>
+            )}
             <SlotCounter
               value={formatValue(stat)}
               duration={2}
@@ -66,7 +78,9 @@ export default function StatsCounter() {
               sequentialAnimationMode
               speed={1.4}
             />
-            {stat.suffix && <span style={{ color: "#a78bfa" }}>{stat.suffix}</span>}
+            {stat.suffix && (
+              <span style={{ color: "#a78bfa" }}>{stat.suffix}</span>
+            )}
           </div>
           <div className="text-gray-400 text-sm">{stat.label}</div>
         </div>

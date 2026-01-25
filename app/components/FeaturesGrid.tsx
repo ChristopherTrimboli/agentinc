@@ -71,10 +71,16 @@ function MarketplaceVisual() {
     <div className="absolute top-4 right-4 opacity-20 group-hover:opacity-40 transition-opacity">
       <div className="relative w-24 h-24 flex items-center justify-center">
         {/* Trading arrows */}
-        <div className="absolute animate-bounce" style={{ animationDelay: "0s" }}>
+        <div
+          className="absolute animate-bounce"
+          style={{ animationDelay: "0s" }}
+        >
           <ArrowUpRight className="w-5 h-5 text-green-400 transform -translate-y-4 translate-x-4" />
         </div>
-        <div className="absolute animate-bounce" style={{ animationDelay: "0.5s" }}>
+        <div
+          className="absolute animate-bounce"
+          style={{ animationDelay: "0.5s" }}
+        >
           <ArrowUpRight className="w-5 h-5 text-red-400 transform rotate-180 translate-y-4 -translate-x-4" />
         </div>
         <Store className="w-8 h-8 text-amber-400" />
@@ -107,11 +113,46 @@ function NetworkVisual() {
           </g>
         ))}
         {/* Lines */}
-        <line x1="50" y1="20" x2="20" y2="50" stroke="rgba(139, 92, 246, 0.3)" strokeWidth="1" />
-        <line x1="50" y1="20" x2="80" y2="50" stroke="rgba(139, 92, 246, 0.3)" strokeWidth="1" />
-        <line x1="20" y1="50" x2="35" y2="80" stroke="rgba(139, 92, 246, 0.3)" strokeWidth="1" />
-        <line x1="80" y1="50" x2="65" y2="80" stroke="rgba(139, 92, 246, 0.3)" strokeWidth="1" />
-        <line x1="35" y1="80" x2="65" y2="80" stroke="rgba(139, 92, 246, 0.3)" strokeWidth="1" />
+        <line
+          x1="50"
+          y1="20"
+          x2="20"
+          y2="50"
+          stroke="rgba(139, 92, 246, 0.3)"
+          strokeWidth="1"
+        />
+        <line
+          x1="50"
+          y1="20"
+          x2="80"
+          y2="50"
+          stroke="rgba(139, 92, 246, 0.3)"
+          strokeWidth="1"
+        />
+        <line
+          x1="20"
+          y1="50"
+          x2="35"
+          y2="80"
+          stroke="rgba(139, 92, 246, 0.3)"
+          strokeWidth="1"
+        />
+        <line
+          x1="80"
+          y1="50"
+          x2="65"
+          y2="80"
+          stroke="rgba(139, 92, 246, 0.3)"
+          strokeWidth="1"
+        />
+        <line
+          x1="35"
+          y1="80"
+          x2="65"
+          y2="80"
+          stroke="rgba(139, 92, 246, 0.3)"
+          strokeWidth="1"
+        />
       </svg>
     </div>
   );
@@ -122,9 +163,7 @@ function RevenueVisual() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setBars((prev) =>
-        prev.map(() => Math.floor(Math.random() * 50) + 40)
-      );
+      setBars((prev) => prev.map(() => Math.floor(Math.random() * 50) + 40));
     }, 2000);
     return () => clearInterval(interval);
   }, []);
@@ -188,7 +227,10 @@ function ActivityTicker() {
 
   return (
     <div className="flex items-center gap-2 text-sm overflow-hidden">
-      <div className="flex items-center gap-2 animate-slide-in" key={currentIndex}>
+      <div
+        className="flex items-center gap-2 animate-slide-in"
+        key={currentIndex}
+      >
         <activity.icon className={`w-4 h-4 ${activity.color}`} />
         <span className="text-gray-400">{activity.text}</span>
         <span className="text-xs text-gray-600">just now</span>
@@ -265,7 +307,7 @@ export default function FeaturesGrid() {
           setIsVisible(true);
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
     if (sectionRef.current) {
@@ -314,8 +356,8 @@ export default function FeaturesGrid() {
           <span className="gradient-text">Autonomous Business</span>
         </h2>
         <p className="text-xl text-gray-400 max-w-2xl mx-auto mb-6">
-          AI agents that don&apos;t just assist — they execute, collaborate,
-          and generate real revenue.
+          AI agents that don&apos;t just assist — they execute, collaborate, and
+          generate real revenue.
         </p>
         {/* Live Activity Ticker */}
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-800/50 border border-gray-700">
@@ -376,7 +418,6 @@ export default function FeaturesGrid() {
                 <p className="text-gray-400 leading-relaxed text-sm md:text-base">
                   {feature.description}
                 </p>
-
               </div>
 
               {/* Corner glow effect */}

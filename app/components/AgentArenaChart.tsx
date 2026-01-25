@@ -84,7 +84,7 @@ export default function AgentArenaChart() {
             pnl: newPnl,
             trend: change > 0 ? "up" : "down",
           };
-        })
+        }),
       );
     }, 2000);
 
@@ -187,9 +187,7 @@ export default function AgentArenaChart() {
 
             {/* Grid lines */}
             {[0, 1, 2, 3, 4].map((i) => {
-              const y =
-                padding +
-                (i / 4) * (chartHeight - padding * 2);
+              const y = padding + (i / 4) * (chartHeight - padding * 2);
               return (
                 <g key={`grid-${i}`}>
                   <line
@@ -207,9 +205,7 @@ export default function AgentArenaChart() {
                     fontSize="10"
                     textAnchor="end"
                   >
-                    {Math.round(
-                      maxPrice - (i / 4) * (maxPrice - minPrice)
-                    )}
+                    {Math.round(maxPrice - (i / 4) * (maxPrice - minPrice))}
                   </text>
                 </g>
               );
@@ -236,9 +232,7 @@ export default function AgentArenaChart() {
                 d={createAreaPath(agent.priceHistory)}
                 fill={`url(#area-gradient-${agent.id})`}
                 opacity={
-                  selectedAgent === null || selectedAgent === agent.id
-                    ? 1
-                    : 0.2
+                  selectedAgent === null || selectedAgent === agent.id ? 1 : 0.2
                 }
                 className="transition-opacity duration-300"
               />
@@ -256,9 +250,7 @@ export default function AgentArenaChart() {
                 strokeLinejoin="round"
                 filter={selectedAgent === agent.id ? "url(#glow)" : ""}
                 opacity={
-                  selectedAgent === null || selectedAgent === agent.id
-                    ? 1
-                    : 0.3
+                  selectedAgent === null || selectedAgent === agent.id ? 1 : 0.3
                 }
                 className="transition-all duration-300"
               />

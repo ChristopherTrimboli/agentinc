@@ -45,7 +45,14 @@ export default function HeroAnimation() {
     // Initialize particles (stars)
     const initParticles = () => {
       const particles: Particle[] = [];
-      const colors = ["#8b5cf6", "#06b6d4", "#a78bfa", "#22d3ee", "#f59e0b", "#ffffff"];
+      const colors = [
+        "#8b5cf6",
+        "#06b6d4",
+        "#a78bfa",
+        "#22d3ee",
+        "#f59e0b",
+        "#ffffff",
+      ];
 
       for (let i = 0; i < 100; i++) {
         particles.push({
@@ -99,7 +106,7 @@ export default function HeroAnimation() {
         0,
         centerX,
         centerY,
-        rect.width * 0.5
+        rect.width * 0.5,
       );
       gradient.addColorStop(0, "rgba(139, 92, 246, 0.06)");
       gradient.addColorStop(0.5, "rgba(6, 182, 212, 0.03)");
@@ -139,7 +146,9 @@ export default function HeroAnimation() {
         particle.vy += (Math.random() - 0.5) * 0.01;
 
         // Twinkle effect
-        const twinkle = Math.sin(time * particle.twinkleSpeed + particle.twinklePhase) * 0.3 + 0.7;
+        const twinkle =
+          Math.sin(time * particle.twinkleSpeed + particle.twinklePhase) * 0.3 +
+          0.7;
         const currentOpacity = particle.opacity * twinkle;
 
         // Draw star glow
@@ -150,9 +159,15 @@ export default function HeroAnimation() {
           0,
           particle.x,
           particle.y,
-          glowSize
+          glowSize,
         );
-        glow.addColorStop(0, particle.color + Math.floor(currentOpacity * 100).toString(16).padStart(2, "0"));
+        glow.addColorStop(
+          0,
+          particle.color +
+            Math.floor(currentOpacity * 100)
+              .toString(16)
+              .padStart(2, "0"),
+        );
         glow.addColorStop(1, particle.color + "00");
         ctx.fillStyle = glow;
         ctx.beginPath();
@@ -210,8 +225,14 @@ export default function HeroAnimation() {
       />
       {/* Floating accent elements */}
       <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl animate-pulse" />
-      <div className="absolute bottom-1/4 right-1/4 w-40 h-40 bg-cyan-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: "1s" }} />
-      <div className="absolute top-1/3 right-1/3 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl animate-pulse" style={{ animationDelay: "2s" }} />
+      <div
+        className="absolute bottom-1/4 right-1/4 w-40 h-40 bg-cyan-500/10 rounded-full blur-3xl animate-pulse"
+        style={{ animationDelay: "1s" }}
+      />
+      <div
+        className="absolute top-1/3 right-1/3 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl animate-pulse"
+        style={{ animationDelay: "2s" }}
+      />
     </div>
   );
 }

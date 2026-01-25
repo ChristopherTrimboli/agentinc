@@ -26,7 +26,10 @@ const terminalLines = [
   { text: "$ agent execute --task='post_twitter'", type: "command" as const },
   { text: "→ Analyzing trending topics...", type: "output" as const },
   { text: "→ Generating engaging content...", type: "output" as const },
-  { text: "✓ Tweet posted successfully! Engagement: +24%", type: "success" as const },
+  {
+    text: "✓ Tweet posted successfully! Engagement: +24%",
+    type: "success" as const,
+  },
   { text: "$ agent execute --task='write_code'", type: "command" as const },
   { text: "→ Reading project requirements...", type: "output" as const },
   { text: "→ Implementing smart contract...", type: "output" as const },
@@ -39,17 +42,23 @@ const terminalLines = [
 
 // Animated terminal component
 function AgentTerminal() {
-  const [lines, setLines] = useState<{ text: string; type: "command" | "output" | "success" }[]>([]);
+  const [lines, setLines] = useState<
+    { text: string; type: "command" | "output" | "success" }[]
+  >([]);
   const currentLineIndexRef = useRef(0);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      currentLineIndexRef.current = (currentLineIndexRef.current + 1) % terminalLines.length;
-      
+      currentLineIndexRef.current =
+        (currentLineIndexRef.current + 1) % terminalLines.length;
+
       if (currentLineIndexRef.current === 0) {
         setLines([terminalLines[0]]);
       } else {
-        setLines((prev) => [...prev.slice(-5), terminalLines[currentLineIndexRef.current]]);
+        setLines((prev) => [
+          ...prev.slice(-5),
+          terminalLines[currentLineIndexRef.current],
+        ]);
       }
     }, 1200);
 
@@ -66,7 +75,9 @@ function AgentTerminal() {
           <div className="w-3 h-3 rounded-full bg-green-500" />
         </div>
         <div className="flex-1 text-center">
-          <span className="text-xs text-gray-500 font-mono">agent@agentinc ~ </span>
+          <span className="text-xs text-gray-500 font-mono">
+            agent@agentinc ~{" "}
+          </span>
         </div>
         <Terminal className="w-4 h-4 text-gray-600" />
       </div>
@@ -122,7 +133,9 @@ function CapabilityCard({
       {/* Glow effect */}
       <div
         className={`absolute -inset-0.5 rounded-2xl blur opacity-0 group-hover:opacity-50 transition-opacity duration-500 ${color}`}
-        style={{ background: `linear-gradient(135deg, ${color.includes("blue") ? "#3b82f6" : color.includes("purple") ? "#8b5cf6" : color.includes("cyan") ? "#06b6d4" : color.includes("green") ? "#10b981" : color.includes("amber") ? "#f59e0b" : "#8b5cf6"}40, transparent)` }}
+        style={{
+          background: `linear-gradient(135deg, ${color.includes("blue") ? "#3b82f6" : color.includes("purple") ? "#8b5cf6" : color.includes("cyan") ? "#06b6d4" : color.includes("green") ? "#10b981" : color.includes("amber") ? "#f59e0b" : "#8b5cf6"}40, transparent)`,
+        }}
       />
 
       <div className="relative p-5 rounded-2xl bg-gray-900/80 border border-gray-800 group-hover:border-purple-500/50 transition-all duration-300 overflow-hidden h-full">
@@ -208,9 +221,24 @@ function ExecutionStats() {
   return (
     <div className="grid grid-cols-3 gap-4">
       {[
-        { label: "Tasks Today", value: stats.tasksToday.toLocaleString(), icon: Zap, color: "purple" },
-        { label: "Success Rate", value: `${stats.successRate.toFixed(1)}%`, icon: CheckCircle2, color: "green" },
-        { label: "Avg. Time", value: `${stats.avgTime.toFixed(1)}s`, icon: Clock, color: "cyan" },
+        {
+          label: "Tasks Today",
+          value: stats.tasksToday.toLocaleString(),
+          icon: Zap,
+          color: "purple",
+        },
+        {
+          label: "Success Rate",
+          value: `${stats.successRate.toFixed(1)}%`,
+          icon: CheckCircle2,
+          color: "green",
+        },
+        {
+          label: "Avg. Time",
+          value: `${stats.avgTime.toFixed(1)}s`,
+          icon: Clock,
+          color: "cyan",
+        },
       ].map((stat, i) => (
         <div
           key={i}
@@ -256,7 +284,7 @@ export default function AgentCapabilities() {
           setIsVisible(true);
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
     if (sectionRef.current) {
@@ -270,49 +298,57 @@ export default function AgentCapabilities() {
     {
       icon: Twitter,
       label: "Post on Twitter",
-      description: "Craft viral tweets, engage with followers, and grow social presence autonomously.",
+      description:
+        "Craft viral tweets, engage with followers, and grow social presence autonomously.",
       color: "text-blue-400",
     },
     {
       icon: Mail,
       label: "Send Emails",
-      description: "Draft professional emails, manage newsletters, and handle customer outreach.",
+      description:
+        "Draft professional emails, manage newsletters, and handle customer outreach.",
       color: "text-purple-400",
     },
     {
       icon: Code,
       label: "Write Code",
-      description: "Build apps, deploy smart contracts, and maintain codebases with precision.",
+      description:
+        "Build apps, deploy smart contracts, and maintain codebases with precision.",
       color: "text-cyan-400",
     },
     {
       icon: TrendingUp,
       label: "Trade Tokens",
-      description: "Execute trades, manage portfolios, and optimize DeFi strategies onchain.",
+      description:
+        "Execute trades, manage portfolios, and optimize DeFi strategies onchain.",
       color: "text-green-400",
     },
     {
       icon: Users,
       label: "Hire Agents",
-      description: "Recruit specialized agents from the network for complex tasks.",
+      description:
+        "Recruit specialized agents from the network for complex tasks.",
       color: "text-amber-400",
     },
     {
       icon: Globe,
       label: "Browse Web",
-      description: "Research markets, gather intelligence, and monitor competitors 24/7.",
+      description:
+        "Research markets, gather intelligence, and monitor competitors 24/7.",
       color: "text-purple-400",
     },
     {
       icon: MessageSquare,
       label: "Chat with Users",
-      description: "Provide customer support, answer queries, and close deals in real-time.",
+      description:
+        "Provide customer support, answer queries, and close deals in real-time.",
       color: "text-cyan-400",
     },
     {
       icon: Zap,
       label: "Execute Tasks",
-      description: "Run any operation from simple automation to complex multi-step workflows.",
+      description:
+        "Run any operation from simple automation to complex multi-step workflows.",
       color: "text-amber-400",
     },
   ];
@@ -329,7 +365,9 @@ export default function AgentCapabilities() {
           {/* Header */}
           <div
             className={`text-center mb-16 transition-all duration-700 ${
-              isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+              isVisible
+                ? "opacity-100 translate-y-0"
+                : "opacity-0 translate-y-8"
             }`}
           >
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 mb-6">
@@ -342,8 +380,10 @@ export default function AgentCapabilities() {
             </h2>
             <p className="text-xl text-gray-400 max-w-2xl mx-auto">
               Real capabilities, real execution, real results.{" "}
-              <span className="text-purple-400">24/7 autonomous operations</span> that
-              drive actual business value.
+              <span className="text-purple-400">
+                24/7 autonomous operations
+              </span>{" "}
+              that drive actual business value.
             </p>
           </div>
 
@@ -352,7 +392,9 @@ export default function AgentCapabilities() {
             {/* Left - Terminal */}
             <div
               className={`lg:col-span-1 transition-all duration-700 delay-200 ${
-                isVisible ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-8"
+                isVisible
+                  ? "opacity-100 translate-x-0"
+                  : "opacity-0 -translate-x-8"
               }`}
             >
               <div className="sticky top-32">
@@ -366,7 +408,9 @@ export default function AgentCapabilities() {
             {/* Right - Capability cards */}
             <div
               className={`lg:col-span-2 transition-all duration-700 delay-300 ${
-                isVisible ? "opacity-100 translate-x-0" : "opacity-0 translate-x-8"
+                isVisible
+                  ? "opacity-100 translate-x-0"
+                  : "opacity-0 translate-x-8"
               }`}
             >
               <div className="grid sm:grid-cols-2 gap-4">
@@ -383,14 +427,23 @@ export default function AgentCapabilities() {
       <section className="py-20 md:py-32 px-4 md:px-6 relative overflow-hidden">
         {/* Animated background */}
         <div className="absolute inset-0">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-purple-500/10 rounded-full blur-[150px] animate-pulse" style={{ animationDuration: "4s" }} />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-500/10 rounded-full blur-[120px] animate-pulse" style={{ animationDuration: "6s", animationDelay: "1s" }} />
+          <div
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-purple-500/10 rounded-full blur-[150px] animate-pulse"
+            style={{ animationDuration: "4s" }}
+          />
+          <div
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-cyan-500/10 rounded-full blur-[120px] animate-pulse"
+            style={{ animationDuration: "6s", animationDelay: "1s" }}
+          />
         </div>
 
         <div className="max-w-5xl mx-auto relative">
           <div className="relative rounded-2xl md:rounded-3xl overflow-hidden">
             {/* Gradient border animation */}
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-500 via-cyan-500 to-amber-500 rounded-2xl md:rounded-3xl animate-gradient-shine" style={{ padding: "2px" }}>
+            <div
+              className="absolute inset-0 bg-gradient-to-r from-purple-500 via-cyan-500 to-amber-500 rounded-2xl md:rounded-3xl animate-gradient-shine"
+              style={{ padding: "2px" }}
+            >
               <div className="absolute inset-[2px] bg-gray-900 rounded-2xl md:rounded-3xl" />
             </div>
 
@@ -401,8 +454,8 @@ export default function AgentCapabilities() {
                 <span className="gradient-text-shimmer">Future</span>?
               </h2>
               <p className="text-base sm:text-lg md:text-xl text-gray-400 mb-8 md:mb-10 max-w-2xl mx-auto leading-relaxed">
-                Join the revolution of AI-powered autonomous startups. Be first in
-                line when we launch.
+                Join the revolution of AI-powered autonomous startups. Be first
+                in line when we launch.
               </p>
 
               {/* Buttons */}
@@ -431,8 +484,14 @@ export default function AgentCapabilities() {
               <div className="inline-flex items-center gap-2 sm:gap-3 px-4 sm:px-6 py-2 sm:py-3 rounded-full border border-amber-500/30 bg-amber-500/10">
                 <div className="flex items-center gap-1">
                   <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-amber-400 rounded-full animate-pulse" />
-                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-amber-400 rounded-full animate-pulse" style={{ animationDelay: "0.2s" }} />
-                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-amber-400 rounded-full animate-pulse" style={{ animationDelay: "0.4s" }} />
+                  <span
+                    className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-amber-400 rounded-full animate-pulse"
+                    style={{ animationDelay: "0.2s" }}
+                  />
+                  <span
+                    className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-amber-400 rounded-full animate-pulse"
+                    style={{ animationDelay: "0.4s" }}
+                  />
                 </div>
                 <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
                 <span className="text-xs sm:text-sm text-amber-300 font-medium">

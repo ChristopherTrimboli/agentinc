@@ -39,7 +39,10 @@ function MessageBubble({
   if (!visible) return null;
 
   return (
-    <div className="absolute animate-fade-in-up" style={{ animationDuration: "0.3s" }}>
+    <div
+      className="absolute animate-fade-in-up"
+      style={{ animationDuration: "0.3s" }}
+    >
       <div className="bg-gray-800/90 backdrop-blur-sm border border-purple-500/30 rounded-lg px-3 py-2 text-xs max-w-[180px]">
         <div className="flex items-center gap-1 text-purple-400 mb-1">
           <span className="font-medium">{from}</span>
@@ -55,14 +58,46 @@ function MessageBubble({
 // Live protocol activity feed
 function ProtocolFeed() {
   const activities = [
-    { protocol: "MCP", action: "Task delegated", from: "CEO", to: "CTO", status: "complete" },
-    { protocol: "A2A", action: "Resource shared", from: "CMO", to: "CEO", status: "pending" },
-    { protocol: "MCP", action: "Code review", from: "CTO", to: "COO", status: "complete" },
-    { protocol: "A2A", action: "Budget approved", from: "CFO", to: "CMO", status: "complete" },
-    { protocol: "MCP", action: "Hiring request", from: "HR", to: "CEO", status: "pending" },
+    {
+      protocol: "MCP",
+      action: "Task delegated",
+      from: "CEO",
+      to: "CTO",
+      status: "complete",
+    },
+    {
+      protocol: "A2A",
+      action: "Resource shared",
+      from: "CMO",
+      to: "CEO",
+      status: "pending",
+    },
+    {
+      protocol: "MCP",
+      action: "Code review",
+      from: "CTO",
+      to: "COO",
+      status: "complete",
+    },
+    {
+      protocol: "A2A",
+      action: "Budget approved",
+      from: "CFO",
+      to: "CMO",
+      status: "complete",
+    },
+    {
+      protocol: "MCP",
+      action: "Hiring request",
+      from: "HR",
+      to: "CEO",
+      status: "pending",
+    },
   ];
 
-  const [displayedActivities, setDisplayedActivities] = useState(activities.slice(0, 3));
+  const [displayedActivities, setDisplayedActivities] = useState(
+    activities.slice(0, 3),
+  );
 
   useEffect(() => {
     let index = 0;
@@ -115,12 +150,60 @@ function ProtocolFeed() {
 // SVG coordinates: center (200, 200), radius 140
 // CSS percentages: center (50%, 50%), radius 35%
 const networkNodes = [
-  { icon: "👔", label: "CEO", color: "#8b5cf6", svgX: 340, svgY: 200, cssTop: 50, cssLeft: 85 },      // angle 0
-  { icon: "💻", label: "CTO", color: "#06b6d4", svgX: 270, svgY: 321.24, cssTop: 80.31, cssLeft: 67.5 }, // angle 60
-  { icon: "📢", label: "CMO", color: "#f59e0b", svgX: 130, svgY: 321.24, cssTop: 80.31, cssLeft: 32.5 }, // angle 120
-  { icon: "⚙️", label: "COO", color: "#10b981", svgX: 60, svgY: 200, cssTop: 50, cssLeft: 15 },       // angle 180
-  { icon: "📊", label: "CFO", color: "#ec4899", svgX: 130, svgY: 78.76, cssTop: 19.69, cssLeft: 32.5 },  // angle 240
-  { icon: "🤝", label: "HR", color: "#6366f1", svgX: 270, svgY: 78.76, cssTop: 19.69, cssLeft: 67.5 },   // angle 300
+  {
+    icon: "👔",
+    label: "CEO",
+    color: "#8b5cf6",
+    svgX: 340,
+    svgY: 200,
+    cssTop: 50,
+    cssLeft: 85,
+  }, // angle 0
+  {
+    icon: "💻",
+    label: "CTO",
+    color: "#06b6d4",
+    svgX: 270,
+    svgY: 321.24,
+    cssTop: 80.31,
+    cssLeft: 67.5,
+  }, // angle 60
+  {
+    icon: "📢",
+    label: "CMO",
+    color: "#f59e0b",
+    svgX: 130,
+    svgY: 321.24,
+    cssTop: 80.31,
+    cssLeft: 32.5,
+  }, // angle 120
+  {
+    icon: "⚙️",
+    label: "COO",
+    color: "#10b981",
+    svgX: 60,
+    svgY: 200,
+    cssTop: 50,
+    cssLeft: 15,
+  }, // angle 180
+  {
+    icon: "📊",
+    label: "CFO",
+    color: "#ec4899",
+    svgX: 130,
+    svgY: 78.76,
+    cssTop: 19.69,
+    cssLeft: 32.5,
+  }, // angle 240
+  {
+    icon: "🤝",
+    label: "HR",
+    color: "#6366f1",
+    svgX: 270,
+    svgY: 78.76,
+    cssTop: 19.69,
+    cssLeft: 67.5,
+  }, // angle 300
 ];
 
 // Pre-computed cross connections (indices: [from, to])
@@ -228,13 +311,19 @@ function NetworkVisualization() {
       {/* Central hub */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
         <div className="relative">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-purple-600 via-cyan-500 to-purple-600 p-[2px] animate-spin" style={{ animationDuration: "8s" }}>
+          <div
+            className="w-20 h-20 rounded-full bg-gradient-to-br from-purple-600 via-cyan-500 to-purple-600 p-[2px] animate-spin"
+            style={{ animationDuration: "8s" }}
+          >
             <div className="w-full h-full rounded-full bg-gray-900 flex items-center justify-center">
               <Network className="w-8 h-8 text-white" />
             </div>
           </div>
           {/* Pulse rings */}
-          <div className="absolute inset-0 rounded-full border-2 border-purple-500/50 animate-ping" style={{ animationDuration: "2s" }} />
+          <div
+            className="absolute inset-0 rounded-full border-2 border-purple-500/50 animate-ping"
+            style={{ animationDuration: "2s" }}
+          />
         </div>
       </div>
 
@@ -257,7 +346,9 @@ function NetworkVisualization() {
             }`}
           >
             <span className="text-2xl">{node.icon}</span>
-            <span className="text-[10px] font-medium text-gray-400 mt-0.5">{node.label}</span>
+            <span className="text-[10px] font-medium text-gray-400 mt-0.5">
+              {node.label}
+            </span>
             {/* Active indicator */}
             {i === activeConnection && (
               <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full animate-pulse" />
@@ -312,10 +403,14 @@ function FeatureCard({
       style={{ animationDelay: `${delay}ms` }}
     >
       {/* Background gradient on hover */}
-      <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-br from-${color}-500/5 to-transparent`} />
+      <div
+        className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-br from-${color}-500/5 to-transparent`}
+      />
 
       <div className="relative">
-        <div className={`w-14 h-14 rounded-xl ${classes.bg} border ${classes.border} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+        <div
+          className={`w-14 h-14 rounded-xl ${classes.bg} border ${classes.border} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}
+        >
           <Icon className={`w-7 h-7 ${classes.icon}`} />
         </div>
 
@@ -325,7 +420,9 @@ function FeatureCard({
         <p className="text-gray-400 text-sm leading-relaxed">{description}</p>
 
         {/* Decorative corner */}
-        <div className={`absolute -bottom-8 -right-8 w-24 h-24 rounded-full ${classes.bg} blur-2xl opacity-0 group-hover:opacity-100 transition-opacity`} />
+        <div
+          className={`absolute -bottom-8 -right-8 w-24 h-24 rounded-full ${classes.bg} blur-2xl opacity-0 group-hover:opacity-100 transition-opacity`}
+        />
       </div>
     </div>
   );
@@ -342,7 +439,7 @@ export default function CorporateNetwork() {
           setIsVisible(true);
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
     if (sectionRef.current) {
@@ -404,9 +501,11 @@ export default function CorporateNetwork() {
           </h2>
           <p className="text-xl text-gray-400 max-w-3xl mx-auto leading-relaxed">
             Agents and companies communicate through{" "}
-            <span className="text-purple-400 font-medium">MCP</span> (Model Context
-            Protocol) and <span className="text-cyan-400 font-medium">A2A</span>{" "}
-            (Agent-to-Agent) protocols, creating an open market for AI collaboration.
+            <span className="text-purple-400 font-medium">MCP</span> (Model
+            Context Protocol) and{" "}
+            <span className="text-cyan-400 font-medium">A2A</span>{" "}
+            (Agent-to-Agent) protocols, creating an open market for AI
+            collaboration.
           </p>
         </div>
 
@@ -415,7 +514,9 @@ export default function CorporateNetwork() {
           {/* Left - Network Visualization */}
           <div
             className={`transition-all duration-700 delay-200 ${
-              isVisible ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-8"
+              isVisible
+                ? "opacity-100 translate-x-0"
+                : "opacity-0 -translate-x-8"
             }`}
           >
             <NetworkVisualization />
@@ -424,7 +525,9 @@ export default function CorporateNetwork() {
           {/* Right - Features & Live Feed */}
           <div
             className={`space-y-6 transition-all duration-700 delay-300 ${
-              isVisible ? "opacity-100 translate-x-0" : "opacity-0 translate-x-8"
+              isVisible
+                ? "opacity-100 translate-x-0"
+                : "opacity-0 translate-x-8"
             }`}
           >
             {/* Feature cards */}
@@ -450,7 +553,6 @@ export default function CorporateNetwork() {
             </div>
           </div>
         </div>
-
       </div>
     </section>
   );
