@@ -510,3 +510,45 @@ body {
 .animate-live-pulse {
   animation: live-pulse 2s ease-in-out infinite;
 }
+
+/* Dropdown animation */
+@keyframes dropdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-dropdown-in {
+  animation: dropdown-in 0.2s ease-out forwards;
+}
+
+/* Fade in animation */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-in {
+  animation: dropdown-in 0.2s ease-out forwards;
+}
+
+.fade-in {
+  animation: fade-in 0.2s ease-out forwards;
+}
+
+.slide-in-from-top-2 {
+  --tw-enter-translate-y: -0.5rem;
+}
+
+.duration-200 {
+  animation-duration: 200ms;
+}

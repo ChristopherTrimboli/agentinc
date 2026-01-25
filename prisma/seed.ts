@@ -1,52 +1,40 @@
 import { PrismaClient, Prisma } from "../app/generated/prisma/client";
-import { withAccelerate } from '@prisma/extension-accelerate'
-import 'dotenv/config'
+import { withAccelerate } from "@prisma/extension-accelerate";
+import "dotenv/config";
 
 if (!process.env.DATABASE_URL) {
-  throw new Error('DATABASE_URL environment variable is not set')
+  throw new Error("DATABASE_URL environment variable is not set");
 }
 
 const prisma = new PrismaClient({
   accelerateUrl: process.env.DATABASE_URL,
 }).$extends(withAccelerate());
 
+// Seed data matching the Privy User schema
 const userData: Prisma.UserCreateInput[] = [
   {
-    name: "Alice",
-    email: "alice@prisma.io",
-    posts: {
-      create: [
-        {
-          title: "Join the Prisma Discord",
-          content: "https://pris.ly/discord",
-          published: true,
-        },
-        {
-          title: "Prisma on YouTube",
-          content: "https://pris.ly/youtube",
-        },
-      ],
-    },
+    id: "did:privy:seed-user-1",
+    email: "alice@example.com",
   },
   {
-    name: "Bob",
-    email: "bob@prisma.io",
-    posts: {
-      create: [
-        {
-          title: "Follow Prisma on Twitter",
-          content: "https://www.twitter.com/prisma",
-          published: true,
-        },
-      ],
-    },
+    id: "did:privy:seed-user-2",
+    email: "bob@example.com",
   },
 ];
 
 export async function main() {
+  console.log("Seeding database...");
+
   for (const u of userData) {
-    await prisma.user.create({ data: u });
+    const user = await prisma.user.upsert({
+      where: { id: u.id },
+      update: {},
+      create: u,
+    });
+    console.log(`Created user: ${user.id}`);
   }
+
+  console.log("Seeding complete.");
 }
 
 main();
