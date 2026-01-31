@@ -48,7 +48,7 @@ export default function DashboardLayout({
           
           <button
             onClick={login}
-            className="px-8 py-3 bg-gradient-to-r from-[#6FEC06] to-[#120557] rounded-xl text-white font-semibold hover:opacity-90 transition-all hover:scale-105 hover:shadow-lg hover:shadow-[#6FEC06]/25"
+            className="px-8 py-3 bg-gradient-to-r from-[#6FEC06] to-[#4a9f10] rounded-xl text-black font-semibold hover:opacity-90 transition-all hover:scale-105 hover:shadow-lg hover:shadow-[#6FEC06]/25"
           >
             Log In to Continue
           </button>

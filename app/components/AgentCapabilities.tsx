@@ -450,7 +450,7 @@ export default function AgentCapabilities() {
                   href="https://x.com/agentincdotfun"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group px-5 sm:px-6 md:px-8 py-2.5 sm:py-3 md:py-4 bg-gradient-to-r from-[#6FEC06] to-[#9FF24A] rounded-full font-medium text-sm sm:text-base md:text-lg hover:opacity-90 transition-all flex items-center justify-center gap-2 relative overflow-hidden"
+                  className="group px-5 sm:px-6 md:px-8 py-2.5 sm:py-3 md:py-4 bg-gradient-to-r from-[#6FEC06] to-[#9FF24A] rounded-full font-medium text-sm sm:text-base md:text-lg text-black hover:opacity-90 transition-all flex items-center justify-center gap-2 relative overflow-hidden"
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
                   <Twitter className="w-4 h-4 sm:w-5 sm:h-5" />

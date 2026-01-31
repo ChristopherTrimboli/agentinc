@@ -274,7 +274,7 @@ function CompanyCard({
 
           {/* Actions */}
           <div className="flex gap-2">
-            <button className="flex-1 py-2.5 px-4 bg-gradient-to-r from-[#6FEC06] to-[#120557] hover:from-[#9FF24A] hover:to-[#2a1a8f] rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2 group-hover:shadow-lg group-hover:shadow-[#6FEC06]/25">
+            <button className="flex-1 py-2.5 px-4 bg-gradient-to-r from-[#6FEC06] to-[#4a9f10] hover:from-[#9FF24A] hover:to-[#6FEC06] rounded-xl font-medium text-sm text-black transition-all flex items-center justify-center gap-2 group-hover:shadow-lg group-hover:shadow-[#6FEC06]/25">
               <ShoppingCart className="w-4 h-4" />
               Buy
             </button>
@@ -672,7 +672,7 @@ export default function AgentMarketplace() {
                   onClick={() => setActiveTab("companies")}
                   className={`px-5 py-2.5 rounded-lg font-medium text-sm transition-all flex items-center gap-2 ${
                     activeTab === "companies"
-                      ? "bg-gradient-to-r from-[#6FEC06] to-[#120557] text-white"
+                      ? "bg-gradient-to-r from-[#6FEC06] to-[#4a9f10] text-black"
                       : "text-white/60 hover:text-white"
                   }`}
                 >

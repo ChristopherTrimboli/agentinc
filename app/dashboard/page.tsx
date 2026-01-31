@@ -202,7 +202,7 @@ export default function DashboardPage() {
           </p>
           <Link
             href="/dashboard/mint"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#6FEC06] to-[#120557] rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#6FEC06] to-[#4a9f10] rounded-lg text-sm text-black font-semibold hover:opacity-90 transition-opacity"
           >
             <Sparkles className="w-4 h-4" />
             Mint Your First Agent
