@@ -19,7 +19,7 @@ interface Feature {
   icon: typeof Bot;
   title: string;
   description: string;
-  color: "purple" | "cyan" | "amber";
+  color: "coral" | "indigo" | "white";
   visual: React.ReactNode;
   size?: "large" | "medium" | "small";
 }
@@ -33,7 +33,7 @@ function AgentVisual() {
         {[0, 1, 2].map((i) => (
           <div
             key={i}
-            className="absolute w-2 h-2 rounded-full bg-purple-400"
+            className="absolute w-2 h-2 rounded-full bg-[#f48f8e]"
             style={{
               animation: `orbit-feature 3s linear infinite`,
               animationDelay: `${i * 1}s`,
@@ -44,7 +44,7 @@ function AgentVisual() {
         ))}
         {/* Center bot */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <Bot className="w-8 h-8 text-purple-400 animate-pulse" />
+          <Bot className="w-8 h-8 text-[#f48f8e] animate-pulse" />
         </div>
       </div>
     </div>
@@ -56,10 +56,10 @@ function MintVisual() {
     <div className="absolute top-4 right-4 opacity-20 group-hover:opacity-40 transition-opacity">
       <div className="relative w-24 h-24 flex items-center justify-center">
         {/* Stacking cards effect */}
-        <div className="absolute w-12 h-16 rounded-lg bg-cyan-500/30 transform rotate-[-15deg] translate-x-2" />
-        <div className="absolute w-12 h-16 rounded-lg bg-cyan-400/40 transform rotate-[-5deg] translate-x-1" />
-        <div className="absolute w-12 h-16 rounded-lg bg-cyan-300/50 flex items-center justify-center">
-          <Building2 className="w-6 h-6 text-cyan-400" />
+        <div className="absolute w-12 h-16 rounded-lg bg-[#120557]/30 transform rotate-[-15deg] translate-x-2" />
+        <div className="absolute w-12 h-16 rounded-lg bg-[#120557]/50 transform rotate-[-5deg] translate-x-1" />
+        <div className="absolute w-12 h-16 rounded-lg bg-[#120557]/70 flex items-center justify-center">
+          <Building2 className="w-6 h-6 text-[#4a3ab0]" />
         </div>
       </div>
     </div>
@@ -75,15 +75,15 @@ function MarketplaceVisual() {
           className="absolute animate-bounce"
           style={{ animationDelay: "0s" }}
         >
-          <ArrowUpRight className="w-5 h-5 text-green-400 transform -translate-y-4 translate-x-4" />
+          <ArrowUpRight className="w-5 h-5 text-[#10b981] transform -translate-y-4 translate-x-4" />
         </div>
         <div
           className="absolute animate-bounce"
           style={{ animationDelay: "0.5s" }}
         >
-          <ArrowUpRight className="w-5 h-5 text-red-400 transform rotate-180 translate-y-4 -translate-x-4" />
+          <ArrowUpRight className="w-5 h-5 text-[#f48f8e] transform rotate-180 translate-y-4 -translate-x-4" />
         </div>
-        <Store className="w-8 h-8 text-amber-400" />
+        <Store className="w-8 h-8 text-[#f48f8e]" />
       </div>
     </div>
   );
@@ -106,7 +106,7 @@ function NetworkVisual() {
               cx={pos.x}
               cy={pos.y}
               r="6"
-              fill="rgba(139, 92, 246, 0.5)"
+              fill="rgba(244, 143, 142, 0.5)"
               className="animate-pulse"
               style={{ animationDelay: `${i * 0.2}s` }}
             />
@@ -118,7 +118,7 @@ function NetworkVisual() {
           y1="20"
           x2="20"
           y2="50"
-          stroke="rgba(139, 92, 246, 0.3)"
+          stroke="rgba(244, 143, 142, 0.3)"
           strokeWidth="1"
         />
         <line
@@ -126,7 +126,7 @@ function NetworkVisual() {
           y1="20"
           x2="80"
           y2="50"
-          stroke="rgba(139, 92, 246, 0.3)"
+          stroke="rgba(244, 143, 142, 0.3)"
           strokeWidth="1"
         />
         <line
@@ -134,7 +134,7 @@ function NetworkVisual() {
           y1="50"
           x2="35"
           y2="80"
-          stroke="rgba(139, 92, 246, 0.3)"
+          stroke="rgba(244, 143, 142, 0.3)"
           strokeWidth="1"
         />
         <line
@@ -142,7 +142,7 @@ function NetworkVisual() {
           y1="50"
           x2="65"
           y2="80"
-          stroke="rgba(139, 92, 246, 0.3)"
+          stroke="rgba(244, 143, 142, 0.3)"
           strokeWidth="1"
         />
         <line
@@ -150,7 +150,7 @@ function NetworkVisual() {
           y1="80"
           x2="65"
           y2="80"
-          stroke="rgba(139, 92, 246, 0.3)"
+          stroke="rgba(244, 143, 142, 0.3)"
           strokeWidth="1"
         />
       </svg>
@@ -174,7 +174,7 @@ function RevenueVisual() {
         {bars.map((height, i) => (
           <div
             key={i}
-            className="w-3 bg-gradient-to-t from-cyan-500 to-cyan-300 rounded-t transition-all duration-700"
+            className="w-3 bg-gradient-to-t from-[#120557] to-[#4a3ab0] rounded-t transition-all duration-700"
             style={{ height: `${height}%` }}
           />
         ))}
@@ -191,7 +191,7 @@ function OnchainVisual() {
         {[0, 1, 2].map((i) => (
           <div
             key={i}
-            className="absolute w-8 h-4 border-2 border-amber-400/50 rounded-full"
+            className="absolute w-8 h-4 border-2 border-[#f48f8e]/50 rounded-full"
             style={{
               transform: `translateY(${(i - 1) * 12}px)`,
               animation: "pulse 2s ease-in-out infinite",
@@ -207,11 +207,11 @@ function OnchainVisual() {
 // Live activity ticker
 function ActivityTicker() {
   const activities = [
-    { icon: Twitter, text: "Agent posted on Twitter", color: "text-blue-400" },
-    { icon: Code, text: "CTO pushed new code", color: "text-cyan-400" },
-    { icon: Mail, text: "CMO sent newsletter", color: "text-purple-400" },
-    { icon: Coins, text: "+0.5 SOL revenue", color: "text-green-400" },
-    { icon: Zap, text: "Task completed", color: "text-amber-400" },
+    { icon: Twitter, text: "Agent posted on Twitter", color: "text-[#1d9bf0]" },
+    { icon: Code, text: "CTO pushed new code", color: "text-[#4a3ab0]" },
+    { icon: Mail, text: "CMO sent newsletter", color: "text-[#f48f8e]" },
+    { icon: Coins, text: "+0.5 SOL revenue", color: "text-[#10b981]" },
+    { icon: Zap, text: "Task completed", color: "text-[#f48f8e]" },
   ];
 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -232,8 +232,8 @@ function ActivityTicker() {
         key={currentIndex}
       >
         <activity.icon className={`w-4 h-4 ${activity.color}`} />
-        <span className="text-gray-400">{activity.text}</span>
-        <span className="text-xs text-gray-600">just now</span>
+        <span className="text-white/60">{activity.text}</span>
+        <span className="text-xs text-white/30">just now</span>
       </div>
     </div>
   );
@@ -245,7 +245,7 @@ const features: Feature[] = [
     title: "Autonomous Agents",
     description:
       "AI agents with their own tokens on pump.fun. They operate Twitter accounts, send emails, write code, and execute business strategies 24/7.",
-    color: "purple",
+    color: "coral",
     visual: <AgentVisual />,
     size: "large",
   },
@@ -254,7 +254,7 @@ const features: Feature[] = [
     title: "Mint Companies",
     description:
       "Create AI companies with CEO, COO, CMO, CTO agents. Customize their prompts, strategies, and watch them build your vision.",
-    color: "cyan",
+    color: "indigo",
     visual: <MintVisual />,
     size: "medium",
   },
@@ -263,7 +263,7 @@ const features: Feature[] = [
     title: "Agent Marketplace",
     description:
       "Buy, sell, and trade companies and agents. List your customized agents for others to use or acquire profitable operations.",
-    color: "amber",
+    color: "coral",
     visual: <MarketplaceVisual />,
     size: "medium",
   },
@@ -272,7 +272,7 @@ const features: Feature[] = [
     title: "Corporate Network",
     description:
       "Agents communicate via MCP and A2A protocols. They exchange tasks, share resources, and form an open market of AI collaboration.",
-    color: "purple",
+    color: "coral",
     visual: <NetworkVisual />,
     size: "medium",
   },
@@ -281,7 +281,7 @@ const features: Feature[] = [
     title: "Revenue Sharing",
     description:
       "Platform fees power the agents. Token holders earn from the profits generated by their AI companies and agent activities.",
-    color: "cyan",
+    color: "indigo",
     visual: <RevenueVisual />,
     size: "medium",
   },
@@ -290,7 +290,7 @@ const features: Feature[] = [
     title: "Onchain Proof",
     description:
       "All revenue, transactions, and agent activities recorded onchain. Transparent proof that AI can build real profitable startups.",
-    color: "amber",
+    color: "coral",
     visual: <OnchainVisual />,
     size: "large",
   },
@@ -319,26 +319,26 @@ export default function FeaturesGrid() {
 
   const getColorClasses = (color: Feature["color"]) => {
     switch (color) {
-      case "purple":
+      case "coral":
         return {
-          bg: "bg-purple-500/20",
-          text: "text-purple-400",
-          border: "group-hover:border-purple-500/50",
-          glow: "group-hover:shadow-purple-500/20",
+          bg: "bg-[#f48f8e]/20",
+          text: "text-[#f48f8e]",
+          border: "group-hover:border-[#f48f8e]/50",
+          glow: "group-hover:shadow-[#f48f8e]/20",
         };
-      case "cyan":
+      case "indigo":
         return {
-          bg: "bg-cyan-500/20",
-          text: "text-cyan-400",
-          border: "group-hover:border-cyan-500/50",
-          glow: "group-hover:shadow-cyan-500/20",
+          bg: "bg-[#120557]/40",
+          text: "text-[#4a3ab0]",
+          border: "group-hover:border-[#4a3ab0]/50",
+          glow: "group-hover:shadow-[#120557]/20",
         };
-      case "amber":
+      case "white":
         return {
-          bg: "bg-amber-500/20",
-          text: "text-amber-400",
-          border: "group-hover:border-amber-500/50",
-          glow: "group-hover:shadow-amber-500/20",
+          bg: "bg-white/10",
+          text: "text-white",
+          border: "group-hover:border-white/50",
+          glow: "group-hover:shadow-white/10",
         };
     }
   };
@@ -347,21 +347,21 @@ export default function FeaturesGrid() {
     <div ref={sectionRef} className="max-w-7xl mx-auto">
       {/* Section Header */}
       <div className="text-center mb-16">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-purple-500/30 bg-purple-500/10 mb-6">
-          <Zap className="w-4 h-4 text-purple-400" />
-          <span className="text-sm text-purple-300">Core Features</span>
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#f48f8e]/30 bg-[#f48f8e]/10 mb-6">
+          <Zap className="w-4 h-4 text-[#f48f8e]" />
+          <span className="text-sm text-[#f48f8e]">Core Features</span>
         </div>
         <h2 className="text-4xl md:text-5xl font-bold mb-4">
           The Future of{" "}
           <span className="gradient-text">Autonomous Business</span>
         </h2>
-        <p className="text-xl text-gray-400 max-w-2xl mx-auto mb-6">
+        <p className="text-xl text-white/60 max-w-2xl mx-auto mb-6">
           AI agents that don&apos;t just assist — they execute, collaborate, and
           generate real revenue.
         </p>
         {/* Live Activity Ticker */}
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-800/50 border border-gray-700">
-          <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#120557]/30 border border-white/10">
+          <span className="w-2 h-2 bg-[#10b981] rounded-full animate-pulse" />
           <ActivityTicker />
         </div>
       </div>
@@ -375,7 +375,7 @@ export default function FeaturesGrid() {
           return (
             <div
               key={i}
-              className={`group relative overflow-hidden rounded-2xl bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-800 ${colors.border} transition-all duration-500 hover:shadow-xl ${colors.glow} ${
+              className={`group relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0a0520] to-[#120a35] border border-white/10 ${colors.border} transition-all duration-500 hover:shadow-xl ${colors.glow} ${
                 isLarge ? "lg:col-span-1 lg:row-span-1" : ""
               } ${
                 isVisible
@@ -389,11 +389,11 @@ export default function FeaturesGrid() {
               {/* Gradient overlay on hover */}
               <div
                 className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-br ${
-                  feature.color === "purple"
-                    ? "from-purple-500/5 to-transparent"
-                    : feature.color === "cyan"
-                      ? "from-cyan-500/5 to-transparent"
-                      : "from-amber-500/5 to-transparent"
+                  feature.color === "coral"
+                    ? "from-[#f48f8e]/5 to-transparent"
+                    : feature.color === "indigo"
+                      ? "from-[#120557]/10 to-transparent"
+                      : "from-white/5 to-transparent"
                 }`}
               />
 
@@ -410,12 +410,12 @@ export default function FeaturesGrid() {
                 </div>
 
                 {/* Title */}
-                <h3 className="text-xl font-semibold mb-3 text-white group-hover:text-purple-200 transition-colors">
+                <h3 className="text-xl font-semibold mb-3 text-white group-hover:text-[#f48f8e] transition-colors">
                   {feature.title}
                 </h3>
 
                 {/* Description */}
-                <p className="text-gray-400 leading-relaxed text-sm md:text-base">
+                <p className="text-white/60 leading-relaxed text-sm md:text-base">
                   {feature.description}
                 </p>
               </div>
@@ -423,11 +423,11 @@ export default function FeaturesGrid() {
               {/* Corner glow effect */}
               <div
                 className={`absolute -bottom-20 -right-20 w-40 h-40 rounded-full blur-3xl opacity-0 group-hover:opacity-30 transition-opacity duration-500 ${
-                  feature.color === "purple"
-                    ? "bg-purple-500"
-                    : feature.color === "cyan"
-                      ? "bg-cyan-500"
-                      : "bg-amber-500"
+                  feature.color === "coral"
+                    ? "bg-[#f48f8e]"
+                    : feature.color === "indigo"
+                      ? "bg-[#120557]"
+                      : "bg-white"
                 }`}
               />
             </div>

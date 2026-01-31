@@ -164,14 +164,14 @@ function TickerTape() {
   ];
 
   return (
-    <div className="overflow-hidden bg-gray-900/50 border-y border-gray-800 py-3">
+    <div className="overflow-hidden bg-[#0a0520]/50 border-y border-white/10 py-3">
       <div className="flex animate-ticker whitespace-nowrap">
         {[...items, ...items, ...items].map((item, i) => (
           <div key={i} className="flex items-center gap-2 mx-6">
-            <span className="font-mono text-sm text-gray-300">{item.name}</span>
+            <span className="font-mono text-sm text-white/70">{item.name}</span>
             <span
               className={`font-mono text-sm ${
-                item.change >= 0 ? "text-green-400" : "text-red-400"
+                item.change >= 0 ? "text-[#10b981]" : "text-[#ef4444]"
               }`}
             >
               {item.change >= 0 ? "+" : ""}
@@ -205,22 +205,22 @@ function CompanyCard({
     >
       {/* Glow effect */}
       <div
-        className={`absolute -inset-0.5 bg-gradient-to-r from-purple-600 to-cyan-600 rounded-2xl blur opacity-0 group-hover:opacity-40 transition-opacity duration-500`}
+        className={`absolute -inset-0.5 bg-gradient-to-r from-[#f48f8e] to-[#120557] rounded-2xl blur opacity-0 group-hover:opacity-40 transition-opacity duration-500`}
       />
 
-      <div className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-2xl border border-gray-700 group-hover:border-purple-500/50 transition-all duration-300 overflow-hidden">
+      <div className="relative bg-gradient-to-br from-[#0a0520] via-[#120a35] to-[#0a0520] rounded-2xl border border-white/10 group-hover:border-[#f48f8e]/50 transition-all duration-300 overflow-hidden">
         {/* Hot badge */}
         {company.hot && (
-          <div className="absolute top-3 right-3 flex items-center gap-1 px-2 py-1 bg-orange-500/20 border border-orange-500/30 rounded-full">
-            <Sparkles className="w-3 h-3 text-orange-400" />
-            <span className="text-[10px] font-medium text-orange-400">HOT</span>
+          <div className="absolute top-3 right-3 flex items-center gap-1 px-2 py-1 bg-[#f48f8e]/20 border border-[#f48f8e]/30 rounded-full">
+            <Sparkles className="w-3 h-3 text-[#f48f8e]" />
+            <span className="text-[10px] font-medium text-[#f48f8e]">HOT</span>
           </div>
         )}
 
         {/* Header */}
         <div className="p-5 pb-0">
           <div className="flex items-start gap-4">
-            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-500/20 to-cyan-500/20 border border-purple-500/30 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform duration-300">
+            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-[#f48f8e]/20 to-[#120557]/20 border border-[#f48f8e]/30 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform duration-300">
               {company.logo}
             </div>
             <div className="flex-1 min-w-0">
@@ -228,12 +228,12 @@ function CompanyCard({
                 {company.name}
               </h4>
               <div className="flex items-center gap-2 mt-1">
-                <span className="font-mono text-sm text-purple-400">
+                <span className="font-mono text-sm text-[#f48f8e]">
                   {company.ticker}
                 </span>
                 <span
                   className={`flex items-center gap-0.5 text-xs font-medium ${
-                    company.change >= 0 ? "text-green-400" : "text-red-400"
+                    company.change >= 0 ? "text-[#10b981]" : "text-[#ef4444]"
                   }`}
                 >
                   {company.change >= 0 ? (
@@ -252,21 +252,21 @@ function CompanyCard({
         {/* Stats */}
         <div className="p-5 pt-4">
           <div className="grid grid-cols-3 gap-3 mb-4">
-            <div className="text-center p-2 rounded-lg bg-gray-800/50">
-              <div className="text-xs text-gray-500 mb-1">Price</div>
+            <div className="text-center p-2 rounded-lg bg-[#120557]/30">
+              <div className="text-xs text-white/40 mb-1">Price</div>
               <div className="font-mono font-semibold text-white">
                 {company.price} SOL
               </div>
             </div>
-            <div className="text-center p-2 rounded-lg bg-gray-800/50">
-              <div className="text-xs text-gray-500 mb-1">EMPs</div>
-              <div className="font-semibold text-cyan-400">
+            <div className="text-center p-2 rounded-lg bg-[#120557]/30">
+              <div className="text-xs text-white/40 mb-1">EMPs</div>
+              <div className="font-semibold text-[#4a3ab0]">
                 {company.employees}
               </div>
             </div>
-            <div className="text-center p-2 rounded-lg bg-gray-800/50">
-              <div className="text-xs text-gray-500 mb-1">Revenue</div>
-              <div className="font-semibold text-green-400">
+            <div className="text-center p-2 rounded-lg bg-[#120557]/30">
+              <div className="text-xs text-white/40 mb-1">Revenue</div>
+              <div className="font-semibold text-[#10b981]">
                 ${company.revenue}
               </div>
             </div>
@@ -274,11 +274,11 @@ function CompanyCard({
 
           {/* Actions */}
           <div className="flex gap-2">
-            <button className="flex-1 py-2.5 px-4 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-500 hover:to-purple-600 rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2 group-hover:shadow-lg group-hover:shadow-purple-500/25">
+            <button className="flex-1 py-2.5 px-4 bg-gradient-to-r from-[#f48f8e] to-[#120557] hover:from-[#f7a8a7] hover:to-[#2a1a8f] rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2 group-hover:shadow-lg group-hover:shadow-[#f48f8e]/25">
               <ShoppingCart className="w-4 h-4" />
               Buy
             </button>
-            <button className="py-2.5 px-4 bg-gray-700/50 hover:bg-gray-700 rounded-xl font-medium text-sm transition-all">
+            <button className="py-2.5 px-4 bg-[#120557]/50 hover:bg-[#120557]/80 rounded-xl font-medium text-sm transition-all">
               <ArrowRightLeft className="w-4 h-4" />
             </button>
           </div>
@@ -337,16 +337,16 @@ function EMPCard({
 }) {
   return (
     <div
-      className="group relative flex items-center gap-4 p-4 rounded-xl bg-gray-900/50 border border-gray-800 hover:border-cyan-500/50 transition-all duration-300 hover:bg-gray-900/80"
+      className="group relative flex items-center gap-4 p-4 rounded-xl bg-[#0a0520]/50 border border-white/10 hover:border-[#4a3ab0]/50 transition-all duration-300 hover:bg-[#0a0520]/80"
       style={{ animationDelay: `${index * 50}ms` }}
     >
       {/* Avatar */}
       <div className="relative">
-        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500/20 to-purple-500/20 border border-cyan-500/30 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
+        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#4a3ab0]/20 to-[#f48f8e]/20 border border-[#4a3ab0]/30 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
           {emp.emoji}
         </div>
         {/* Role badge */}
-        <div className="absolute -bottom-1 -right-1 px-1.5 py-0.5 bg-gray-800 border border-gray-700 rounded text-[9px] font-medium text-gray-400">
+        <div className="absolute -bottom-1 -right-1 px-1.5 py-0.5 bg-[#000028] border border-white/10 rounded text-[9px] font-medium text-white/60">
           {emp.role}
         </div>
       </div>
@@ -357,20 +357,20 @@ function EMPCard({
           <h5 className="font-medium text-white truncate">{emp.name}</h5>
           <span
             className={`flex items-center gap-0.5 text-xs ${
-              emp.change >= 0 ? "text-green-400" : "text-red-400"
+              emp.change >= 0 ? "text-[#10b981]" : "text-[#ef4444]"
             }`}
           >
             {emp.change >= 0 ? "+" : ""}
             {emp.change}%
           </span>
         </div>
-        <div className="text-xs text-gray-500 truncate">{emp.company}</div>
+        <div className="text-xs text-white/40 truncate">{emp.company}</div>
         <div className="flex items-center gap-3 mt-1">
-          <span className="text-xs text-gray-400">
+          <span className="text-xs text-white/60">
             <Activity className="w-3 h-3 inline mr-1" />
             {emp.tasks} tasks
           </span>
-          <span className="text-xs text-amber-400">★ {emp.rating}%</span>
+          <span className="text-xs text-[#f48f8e]">★ {emp.rating}%</span>
         </div>
       </div>
 
@@ -379,7 +379,7 @@ function EMPCard({
         <div className="font-mono font-semibold text-white">
           {emp.price} SOL
         </div>
-        <button className="mt-1 px-3 py-1 bg-cyan-600/20 hover:bg-cyan-600/40 border border-cyan-500/30 rounded-lg text-xs font-medium text-cyan-400 transition-all">
+        <button className="mt-1 px-3 py-1 bg-[#4a3ab0]/20 hover:bg-[#4a3ab0]/40 border border-[#4a3ab0]/30 rounded-lg text-xs font-medium text-[#4a3ab0] transition-all">
           Trade
         </button>
       </div>
@@ -394,13 +394,13 @@ function TradesFeed() {
       {recentTrades.map((trade, i) => (
         <div
           key={i}
-          className="flex items-center gap-3 p-3 rounded-lg bg-gray-800/30 border border-gray-800"
+          className="flex items-center gap-3 p-3 rounded-lg bg-[#120557]/20 border border-white/10"
         >
           <div
             className={`w-8 h-8 rounded-lg flex items-center justify-center ${
               trade.type === "buy"
-                ? "bg-green-500/20 text-green-400"
-                : "bg-red-500/20 text-red-400"
+                ? "bg-[#10b981]/20 text-[#10b981]"
+                : "bg-[#ef4444]/20 text-[#ef4444]"
             }`}
           >
             {trade.type === "buy" ? (
@@ -411,9 +411,9 @@ function TradesFeed() {
           </div>
           <div className="flex-1">
             <div className="text-sm font-medium text-white">{trade.item}</div>
-            <div className="text-xs text-gray-500">{trade.price}</div>
+            <div className="text-xs text-white/40">{trade.price}</div>
           </div>
-          <div className="text-xs text-gray-500">{trade.time}</div>
+          <div className="text-xs text-white/40">{trade.time}</div>
         </div>
       ))}
     </div>
@@ -437,15 +437,15 @@ function HexShowcase() {
       {/* Animated rings */}
       <div className="absolute inset-0 flex items-center justify-center">
         <div
-          className="w-[90%] h-[90%] border border-purple-500/20 rounded-full animate-spin"
+          className="w-[90%] h-[90%] border border-[#f48f8e]/20 rounded-full animate-spin"
           style={{ animationDuration: "20s" }}
         />
         <div
-          className="absolute w-[70%] h-[70%] border border-cyan-500/20 rounded-full animate-spin"
+          className="absolute w-[70%] h-[70%] border border-[#4a3ab0]/20 rounded-full animate-spin"
           style={{ animationDuration: "15s", animationDirection: "reverse" }}
         />
         <div
-          className="absolute w-[50%] h-[50%] border border-amber-500/20 rounded-full animate-spin"
+          className="absolute w-[50%] h-[50%] border border-[#f48f8e]/20 rounded-full animate-spin"
           style={{ animationDuration: "10s" }}
         />
       </div>
@@ -456,9 +456,9 @@ function HexShowcase() {
           <svg className="w-32 h-32" viewBox="0 0 100 100">
             <defs>
               <linearGradient id="hexGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#8b5cf6" />
-                <stop offset="50%" stopColor="#06b6d4" />
-                <stop offset="100%" stopColor="#f59e0b" />
+                <stop offset="0%" stopColor="#f48f8e" />
+                <stop offset="50%" stopColor="#f7a8a7" />
+                <stop offset="100%" stopColor="#f48f8e" />
               </linearGradient>
             </defs>
             <polygon
@@ -470,7 +470,7 @@ function HexShowcase() {
             />
           </svg>
           <div className="absolute inset-0 flex items-center justify-center">
-            <Store className="w-12 h-12 text-purple-400" />
+            <Store className="w-12 h-12 text-[#f48f8e]" />
           </div>
         </div>
       </div>
@@ -479,7 +479,7 @@ function HexShowcase() {
       {orbitingIcons.map((item, i) => (
         <div
           key={i}
-          className="absolute w-10 h-10 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center animate-float text-lg"
+          className="absolute w-10 h-10 rounded-full bg-[#120557]/50 border border-white/10 flex items-center justify-center animate-float text-lg"
           style={{
             top: `${item.top}%`,
             left: `${item.left}%`,
@@ -498,7 +498,7 @@ function HexShowcase() {
 function SoonBadge({ className = "" }: { className?: string }) {
   return (
     <span
-      className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider bg-amber-500/20 text-amber-400 rounded-full ${className}`}
+      className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider bg-[#f48f8e]/20 text-[#f48f8e] rounded-full ${className}`}
     >
       <Clock className="w-2.5 h-2.5" />
       Soon
@@ -535,9 +535,9 @@ export default function AgentMarketplace() {
       className="py-32 px-6 relative overflow-hidden"
     >
       {/* Background effects */}
-      <div className="absolute top-1/4 left-0 w-[600px] h-[600px] bg-purple-500/5 rounded-full blur-[150px] pointer-events-none" />
-      <div className="absolute bottom-1/4 right-0 w-[500px] h-[500px] bg-cyan-500/5 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-amber-500/3 rounded-full blur-[200px] pointer-events-none" />
+      <div className="absolute top-1/4 left-0 w-[600px] h-[600px] bg-[#f48f8e]/5 rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute bottom-1/4 right-0 w-[500px] h-[500px] bg-[#120557]/20 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[#f48f8e]/3 rounded-full blur-[200px] pointer-events-none" />
 
       <div className="max-w-7xl mx-auto">
         {/* Header */}
@@ -546,9 +546,9 @@ export default function AgentMarketplace() {
             isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
           }`}
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-amber-500/30 bg-amber-500/10 mb-6">
-            <Store className="w-4 h-4 text-amber-400" />
-            <span className="text-sm text-amber-300">Agent Marketplace</span>
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#f48f8e]/30 bg-[#f48f8e]/10 mb-6">
+            <Store className="w-4 h-4 text-[#f48f8e]" />
+            <span className="text-sm text-[#f48f8e]">Agent Marketplace</span>
             <SoonBadge />
           </div>
 
@@ -556,7 +556,7 @@ export default function AgentMarketplace() {
             Trade <span className="gradient-text">Companies</span> &{" "}
             <span className="gradient-text">EMPs</span>
           </h2>
-          <p className="text-xl text-gray-400 max-w-3xl mx-auto">
+          <p className="text-xl text-white/60 max-w-3xl mx-auto">
             The first decentralized marketplace for AI-powered companies and
             their employee tokens. Buy, sell, and trade entire autonomous
             businesses or individual agent shares.
@@ -589,7 +589,7 @@ export default function AgentMarketplace() {
                 <h3 className="text-lg font-semibold text-white mb-2">
                   Decentralized Trading
                 </h3>
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-white/60">
                   All trades are settled onchain with transparent pricing and
                   instant ownership transfer.
                 </p>
@@ -603,19 +603,19 @@ export default function AgentMarketplace() {
                   label: "Total Volume",
                   value: "$4.2M",
                   icon: DollarSign,
-                  color: "purple",
+                  color: "coral",
                 },
                 {
                   label: "Listed Items",
                   value: "1,247",
                   icon: Briefcase,
-                  color: "cyan",
+                  color: "indigo",
                 },
                 {
                   label: "Active Traders",
                   value: "3.8K",
                   icon: Users,
-                  color: "amber",
+                  color: "coral",
                 },
                 {
                   label: "Avg. Trade",
@@ -626,21 +626,19 @@ export default function AgentMarketplace() {
               ].map((stat, i) => (
                 <div
                   key={i}
-                  className="p-4 rounded-xl bg-gray-900/50 border border-gray-800 text-center"
+                  className="p-4 rounded-xl bg-[#0a0520]/50 border border-white/10 text-center"
                 >
                   <stat.icon
                     className={`w-5 h-5 mx-auto mb-2 ${
-                      stat.color === "purple"
-                        ? "text-purple-400"
-                        : stat.color === "cyan"
-                          ? "text-cyan-400"
-                          : stat.color === "amber"
-                            ? "text-amber-400"
-                            : "text-green-400"
+                      stat.color === "coral"
+                        ? "text-[#f48f8e]"
+                        : stat.color === "indigo"
+                          ? "text-[#4a3ab0]"
+                          : "text-[#10b981]"
                     }`}
                   />
                   <div className="font-semibold text-white">{stat.value}</div>
-                  <div className="text-xs text-gray-500">{stat.label}</div>
+                  <div className="text-xs text-white/40">{stat.label}</div>
                 </div>
               ))}
             </div>
@@ -649,10 +647,10 @@ export default function AgentMarketplace() {
             <div className="gradient-border p-5">
               <div className="flex items-center justify-between mb-4">
                 <h4 className="font-semibold text-white flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-green-400" />
+                  <Activity className="w-4 h-4 text-[#10b981]" />
                   Live Trades
                 </h4>
-                <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                <span className="w-2 h-2 bg-[#10b981] rounded-full animate-pulse" />
               </div>
               <TradesFeed />
             </div>
@@ -669,13 +667,13 @@ export default function AgentMarketplace() {
             {/* Tabs & Filters */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               {/* Tabs */}
-              <div className="flex p-1 rounded-xl bg-gray-900/50 border border-gray-800">
+              <div className="flex p-1 rounded-xl bg-[#0a0520]/50 border border-white/10">
                 <button
                   onClick={() => setActiveTab("companies")}
                   className={`px-5 py-2.5 rounded-lg font-medium text-sm transition-all flex items-center gap-2 ${
                     activeTab === "companies"
-                      ? "bg-gradient-to-r from-purple-600 to-purple-700 text-white"
-                      : "text-gray-400 hover:text-white"
+                      ? "bg-gradient-to-r from-[#f48f8e] to-[#120557] text-white"
+                      : "text-white/60 hover:text-white"
                   }`}
                 >
                   <Building2 className="w-4 h-4" />
@@ -685,8 +683,8 @@ export default function AgentMarketplace() {
                   onClick={() => setActiveTab("emps")}
                   className={`px-5 py-2.5 rounded-lg font-medium text-sm transition-all flex items-center gap-2 ${
                     activeTab === "emps"
-                      ? "bg-gradient-to-r from-cyan-600 to-cyan-700 text-white"
-                      : "text-gray-400 hover:text-white"
+                      ? "bg-gradient-to-r from-[#4a3ab0] to-[#120557] text-white"
+                      : "text-white/60 hover:text-white"
                   }`}
                 >
                   <Bot className="w-4 h-4" />
@@ -697,14 +695,14 @@ export default function AgentMarketplace() {
               {/* Search & Filter */}
               <div className="flex items-center gap-2">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
                   <input
                     type="text"
                     placeholder="Search..."
-                    className="pl-9 pr-4 py-2 rounded-lg bg-gray-900/50 border border-gray-700 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 w-40"
+                    className="pl-9 pr-4 py-2 rounded-lg bg-[#0a0520]/50 border border-white/10 text-sm text-white placeholder-white/40 focus:outline-none focus:border-[#f48f8e]/50 w-40"
                   />
                 </div>
-                <button className="p-2 rounded-lg bg-gray-900/50 border border-gray-700 text-gray-400 hover:text-white hover:border-purple-500/50 transition-all">
+                <button className="p-2 rounded-lg bg-[#0a0520]/50 border border-white/10 text-white/60 hover:text-white hover:border-[#f48f8e]/50 transition-all">
                   <Filter className="w-4 h-4" />
                 </button>
               </div>
@@ -729,7 +727,7 @@ export default function AgentMarketplace() {
             <div className="text-center pt-4">
               <button
                 disabled
-                className="inline-flex items-center gap-2 px-6 py-3 bg-gray-800/50 rounded-xl font-medium text-gray-400 cursor-not-allowed"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-[#120557]/30 rounded-xl font-medium text-white/60 cursor-not-allowed"
               >
                 Browse All Listings
                 <ChevronRight className="w-4 h-4" />
@@ -751,48 +749,44 @@ export default function AgentMarketplace() {
               title: "Instant Settlement",
               description:
                 "All trades settle in seconds on Solana. No waiting, no middlemen.",
-              color: "purple",
+              color: "coral",
             },
             {
               icon: TrendingUp,
               title: "Price Discovery",
               description:
                 "Dynamic pricing based on agent performance, revenue, and market demand.",
-              color: "cyan",
+              color: "indigo",
             },
             {
               icon: Users,
               title: "Fractional Ownership",
               description:
                 "Own pieces of high-performing companies through EMP token fractions.",
-              color: "amber",
+              color: "coral",
             },
           ].map((feature, i) => (
             <div
               key={i}
-              className={`p-6 rounded-2xl bg-gray-900/50 border border-gray-800 hover:border-${feature.color}-500/50 transition-all group`}
+              className={`p-6 rounded-2xl bg-[#0a0520]/50 border border-white/10 hover:border-${feature.color === "coral" ? "[#f48f8e]" : "[#4a3ab0]"}/50 transition-all group`}
             >
               <div
                 className={`w-12 h-12 rounded-xl mb-4 flex items-center justify-center ${
-                  feature.color === "purple"
-                    ? "bg-purple-500/20"
-                    : feature.color === "cyan"
-                      ? "bg-cyan-500/20"
-                      : "bg-amber-500/20"
+                  feature.color === "coral"
+                    ? "bg-[#f48f8e]/20"
+                    : "bg-[#120557]/40"
                 }`}
               >
                 <feature.icon
                   className={`w-6 h-6 ${
-                    feature.color === "purple"
-                      ? "text-purple-400"
-                      : feature.color === "cyan"
-                        ? "text-cyan-400"
-                        : "text-amber-400"
+                    feature.color === "coral"
+                      ? "text-[#f48f8e]"
+                      : "text-[#4a3ab0]"
                   }`}
                 />
               </div>
               <h4 className="font-semibold text-white mb-2">{feature.title}</h4>
-              <p className="text-sm text-gray-400">{feature.description}</p>
+              <p className="text-sm text-white/60">{feature.description}</p>
             </div>
           ))}
         </div>

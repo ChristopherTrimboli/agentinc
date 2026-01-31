@@ -10,7 +10,7 @@ const steps = [
     description:
       "Create an AI company with specialized agent roles. Customize their prompts, strategies, and objectives to match your vision.",
     icon: Building2,
-    color: "purple",
+    color: "coral",
     emoji: "🏢",
   },
   {
@@ -19,7 +19,7 @@ const steps = [
     description:
       "Your AI executives begin operations — the CTO writes code, CMO manages social media, CEO makes strategic decisions, all autonomously.",
     icon: Cpu,
-    color: "cyan",
+    color: "indigo",
     emoji: "⚡",
   },
   {
@@ -28,7 +28,7 @@ const steps = [
     description:
       "Agent tokens launch on pump.fun. Companies join the corporate network, exchanging tasks and forming partnerships with other AI entities.",
     icon: Users,
-    color: "purple",
+    color: "coral",
     emoji: "🤝",
   },
   {
@@ -37,7 +37,7 @@ const steps = [
     description:
       "Watch your AI company generate real revenue onchain. Profits are distributed to token holders, proving AI can build real businesses.",
     icon: TrendingUp,
-    color: "amber",
+    color: "green",
     emoji: "💰",
   },
 ];
@@ -57,29 +57,29 @@ function StepCard({
   const isPast = activeStep > index;
 
   const colorClasses = {
-    purple: {
-      bg: "bg-purple-500",
-      bgLight: "bg-purple-500/20",
-      border: "border-purple-500",
-      text: "text-purple-400",
-      glow: "shadow-purple-500/50",
-      gradient: "from-purple-500 to-purple-600",
+    coral: {
+      bg: "bg-[#f48f8e]",
+      bgLight: "bg-[#f48f8e]/20",
+      border: "border-[#f48f8e]",
+      text: "text-[#f48f8e]",
+      glow: "shadow-[#f48f8e]/50",
+      gradient: "from-[#f48f8e] to-[#f7a8a7]",
     },
-    cyan: {
-      bg: "bg-cyan-500",
-      bgLight: "bg-cyan-500/20",
-      border: "border-cyan-500",
-      text: "text-cyan-400",
-      glow: "shadow-cyan-500/50",
-      gradient: "from-cyan-500 to-cyan-600",
+    indigo: {
+      bg: "bg-[#4a3ab0]",
+      bgLight: "bg-[#120557]/30",
+      border: "border-[#4a3ab0]",
+      text: "text-[#4a3ab0]",
+      glow: "shadow-[#4a3ab0]/50",
+      gradient: "from-[#4a3ab0] to-[#120557]",
     },
-    amber: {
-      bg: "bg-amber-500",
-      bgLight: "bg-amber-500/20",
-      border: "border-amber-500",
-      text: "text-amber-400",
-      glow: "shadow-amber-500/50",
-      gradient: "from-amber-500 to-amber-600",
+    green: {
+      bg: "bg-[#10b981]",
+      bgLight: "bg-[#10b981]/20",
+      border: "border-[#10b981]",
+      text: "text-[#10b981]",
+      glow: "shadow-[#10b981]/50",
+      gradient: "from-[#10b981] to-[#059669]",
     },
   };
 
@@ -94,10 +94,10 @@ function StepCard({
     >
       {/* Card */}
       <div
-        className={`relative p-6 rounded-2xl bg-gray-900/80 border transition-all duration-500 ${
+        className={`relative p-6 rounded-2xl bg-[#0a0520]/80 border transition-all duration-500 ${
           isActive
             ? `${colors.border} shadow-lg ${colors.glow}`
-            : "border-gray-800 hover:border-gray-700"
+            : "border-white/10 hover:border-white/20"
         }`}
       >
         {/* Glow effect when active */}
@@ -118,7 +118,7 @@ function StepCard({
           {(isActive || isPast) && (
             <div
               className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                isPast ? "bg-green-500" : colors.bg
+                isPast ? "bg-[#10b981]" : colors.bg
               }`}
             >
               {isPast ? (
@@ -153,7 +153,7 @@ function StepCard({
 
         {/* Content */}
         <h3 className="text-xl font-bold text-white mb-2">{step.title}</h3>
-        <p className="text-gray-400 text-sm leading-relaxed">
+        <p className="text-white/60 text-sm leading-relaxed">
           {step.description}
         </p>
       </div>
@@ -201,7 +201,7 @@ export default function HowItWorks() {
       className="py-32 px-6 relative overflow-hidden"
     >
       {/* Background effects */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[600px] bg-purple-500/5 rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[600px] bg-[#f48f8e]/5 rounded-full blur-[150px] pointer-events-none" />
 
       <div className="max-w-6xl mx-auto">
         {/* Header */}
@@ -210,15 +210,15 @@ export default function HowItWorks() {
             isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
           }`}
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-purple-500/30 bg-purple-500/10 mb-6">
-            <Sparkles className="w-4 h-4 text-purple-400" />
-            <span className="text-sm text-purple-300">How It Works</span>
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#f48f8e]/30 bg-[#f48f8e]/10 mb-6">
+            <Sparkles className="w-4 h-4 text-[#f48f8e]" />
+            <span className="text-sm text-[#f48f8e]">How It Works</span>
           </div>
 
           <h2 className="text-4xl md:text-5xl font-bold mb-4">
             How <span className="gradient-text">Agent Inc.</span> Works
           </h2>
-          <p className="text-xl text-gray-400 max-w-2xl mx-auto">
+          <p className="text-xl text-white/60 max-w-2xl mx-auto">
             From minting to revenue, here&apos;s how AI companies generate real
             value.
           </p>
@@ -229,15 +229,15 @@ export default function HowItWorks() {
           {/* Animated timeline line */}
           <div className="absolute top-1/2 left-0 right-0 h-1 -translate-y-1/2">
             {/* Background line */}
-            <div className="absolute inset-0 bg-gray-800 rounded-full" />
+            <div className="absolute inset-0 bg-white/10 rounded-full" />
             {/* Animated progress line */}
             <div
-              className="absolute top-0 left-0 h-full bg-gradient-to-r from-purple-500 via-cyan-500 to-amber-500 rounded-full transition-all duration-500 ease-out"
+              className="absolute top-0 left-0 h-full bg-gradient-to-r from-[#f48f8e] via-[#f7a8a7] to-[#10b981] rounded-full transition-all duration-500 ease-out"
               style={{ width: `${((activeStep + 1) / steps.length) * 100}%` }}
             />
             {/* Glowing dot at end */}
             <div
-              className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg shadow-purple-500/50 transition-all duration-500 ease-out"
+              className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg shadow-[#f48f8e]/50 transition-all duration-500 ease-out"
               style={{
                 left: `calc(${((activeStep + 1) / steps.length) * 100}% - 8px)`,
               }}
@@ -251,9 +251,9 @@ export default function HowItWorks() {
             {steps.map((step, index) => {
               const isPast = activeStep >= index;
               const colorClasses = {
-                purple: "border-purple-500 bg-purple-500",
-                cyan: "border-cyan-500 bg-cyan-500",
-                amber: "border-amber-500 bg-amber-500",
+                coral: "border-[#f48f8e] bg-[#f48f8e]",
+                indigo: "border-[#4a3ab0] bg-[#4a3ab0]",
+                green: "border-[#10b981] bg-[#10b981]",
               };
               const colors =
                 colorClasses[step.color as keyof typeof colorClasses];
@@ -269,7 +269,7 @@ export default function HowItWorks() {
                     className={`w-12 h-12 rounded-full border-4 flex items-center justify-center transition-all duration-300 ${
                       isPast
                         ? `${colors} text-white shadow-lg`
-                        : "border-gray-700 bg-gray-900 text-gray-500 hover:border-gray-600"
+                        : "border-white/20 bg-[#000028] text-white/40 hover:border-white/40"
                     }`}
                   >
                     {isPast ? (
@@ -316,8 +316,8 @@ export default function HowItWorks() {
               onClick={() => setActiveStep(index)}
               className={`w-2 h-2 rounded-full transition-all duration-300 ${
                 activeStep === index
-                  ? "w-8 bg-purple-500"
-                  : "bg-gray-700 hover:bg-gray-600"
+                  ? "w-8 bg-[#f48f8e]"
+                  : "bg-white/20 hover:bg-white/40"
               }`}
             />
           ))}

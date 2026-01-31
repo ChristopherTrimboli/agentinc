@@ -18,7 +18,7 @@ const agents: Agent[] = [
     name: "Vision.ai",
     avatar: "👔",
     tasks: ["Strategy", "Decisions", "Leadership"],
-    color: "#8b5cf6",
+    color: "#f48f8e", // Coral
     statusMessages: [
       "Analyzing market trends...",
       "Planning Q2 roadmap...",
@@ -31,7 +31,7 @@ const agents: Agent[] = [
     name: "Builder.ai",
     avatar: "💻",
     tasks: ["Architecture", "Coding", "DevOps"],
-    color: "#06b6d4",
+    color: "#4a3ab0", // Indigo light
     statusMessages: [
       "Deploying smart contract...",
       "Optimizing gas fees...",
@@ -44,7 +44,7 @@ const agents: Agent[] = [
     name: "Growth.ai",
     avatar: "📢",
     tasks: ["Marketing", "Twitter", "Content"],
-    color: "#f59e0b",
+    color: "#f7a8a7", // Coral light
     statusMessages: [
       "Crafting viral tweet...",
       "Analyzing engagement...",
@@ -57,7 +57,7 @@ const agents: Agent[] = [
     name: "Ops.ai",
     avatar: "⚙️",
     tasks: ["Operations", "Hiring", "Process"],
-    color: "#10b981",
+    color: "#10b981", // Green
     statusMessages: [
       "Optimizing workflow...",
       "Coordinating tasks...",
@@ -140,9 +140,9 @@ function TypewriterText({ messages }: { messages: string[] }) {
   }, [messages]);
 
   return (
-    <span className="text-gray-400">
+    <span className="text-white/60">
       {displayText}
-      <span className="animate-pulse text-purple-400">|</span>
+      <span className="animate-pulse text-[#f48f8e]">|</span>
     </span>
   );
 }
@@ -174,7 +174,7 @@ function AgentCard({ agent, index }: { agent: Agent; index: number }) {
 
       {/* Card */}
       <div
-        className="relative h-full bg-gradient-to-br from-gray-900 via-gray-900 to-gray-800 rounded-2xl border border-gray-800 group-hover:border-gray-700 transition-all duration-500 overflow-hidden flex flex-col"
+        className="relative h-full bg-gradient-to-br from-[#0a0520] via-[#0a0520] to-[#120a35] rounded-2xl border border-white/10 group-hover:border-white/20 transition-all duration-500 overflow-hidden flex flex-col"
         style={{
           animationDelay: `${index * 150}ms`,
         }}
@@ -189,7 +189,7 @@ function AgentCard({ agent, index }: { agent: Agent; index: number }) {
 
         {/* Preview badge */}
         <div className="absolute top-4 right-4 z-10">
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium uppercase tracking-wider bg-gray-800 text-gray-500 border border-gray-700">
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-medium uppercase tracking-wider bg-[#120557]/50 text-white/40 border border-white/10">
             <Clock className="w-2.5 h-2.5" />
             Preview
           </span>
@@ -221,8 +221,8 @@ function AgentCard({ agent, index }: { agent: Agent; index: number }) {
             </div>
 
             {/* Activity indicator */}
-            <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-gray-900 border-2 border-green-400 flex items-center justify-center">
-              <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+            <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#000028] border-2 border-[#10b981] flex items-center justify-center">
+              <span className="w-2 h-2 bg-[#10b981] rounded-full animate-pulse" />
             </div>
           </div>
 
@@ -241,7 +241,7 @@ function AgentCard({ agent, index }: { agent: Agent; index: number }) {
           </div>
 
           {/* Status message with typewriter */}
-          <div className="bg-gray-800/50 rounded-lg p-3 mb-4 min-h-[60px]">
+          <div className="bg-[#120557]/30 rounded-lg p-3 mb-4 min-h-[60px]">
             <div className="flex items-start gap-2">
               <Activity
                 className="w-4 h-4 mt-0.5 shrink-0"
@@ -258,7 +258,7 @@ function AgentCard({ agent, index }: { agent: Agent; index: number }) {
             {agent.tasks.map((task, j) => (
               <span
                 key={j}
-                className="px-3 py-1.5 text-xs rounded-lg bg-gray-800 text-gray-400 border border-gray-700 group-hover:border-gray-600 transition-colors"
+                className="px-3 py-1.5 text-xs rounded-lg bg-[#120557]/30 text-white/60 border border-white/10 group-hover:border-white/20 transition-colors"
               >
                 {task}
               </span>
@@ -268,10 +268,10 @@ function AgentCard({ agent, index }: { agent: Agent; index: number }) {
           {/* Activity bar */}
           <div className="mb-4">
             <div className="flex items-center justify-between text-xs mb-1">
-              <span className="text-gray-500">Activity Level</span>
-              <span className="text-gray-400">{activityLevel}%</span>
+              <span className="text-white/40">Activity Level</span>
+              <span className="text-white/60">{activityLevel}%</span>
             </div>
-            <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-[#120557]/30 rounded-full overflow-hidden">
               <div
                 className="h-full rounded-full transition-all duration-1000"
                 style={{
@@ -287,14 +287,14 @@ function AgentCard({ agent, index }: { agent: Agent; index: number }) {
           <div className="flex-1" />
 
           {/* Token row */}
-          <div className="pt-4 border-t border-gray-800 flex items-center justify-between mt-auto">
+          <div className="pt-4 border-t border-white/10 flex items-center justify-between mt-auto">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-gray-600" />
-              <span className="text-sm text-gray-500">Token</span>
+              <Sparkles className="w-4 h-4 text-white/30" />
+              <span className="text-sm text-white/40">Token</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-gray-600">Coming soon</span>
-              <ChevronRight className="w-4 h-4 text-gray-600 group-hover:text-purple-400 group-hover:translate-x-1 transition-all" />
+              <span className="text-white/30">Coming soon</span>
+              <ChevronRight className="w-4 h-4 text-white/30 group-hover:text-[#f48f8e] group-hover:translate-x-1 transition-all" />
             </div>
           </div>
         </div>
@@ -319,9 +319,9 @@ function AgentConnections() {
             x2="100%"
             y2="0%"
           >
-            <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.3" />
-            <stop offset="50%" stopColor="#06b6d4" stopOpacity="0.5" />
-            <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.3" />
+            <stop offset="0%" stopColor="#f48f8e" stopOpacity="0.3" />
+            <stop offset="50%" stopColor="#f7a8a7" stopOpacity="0.5" />
+            <stop offset="100%" stopColor="#f48f8e" stopOpacity="0.3" />
           </linearGradient>
         </defs>
         {/* Horizontal connections */}
@@ -385,23 +385,23 @@ export default function AgentExecutives() {
     <div ref={sectionRef} className="max-w-7xl mx-auto">
       {/* Header */}
       <div className="text-center mb-16">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 mb-6">
-          <Sparkles className="w-4 h-4 text-cyan-400" />
-          <span className="text-sm text-cyan-300">AI Executives</span>
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#4a3ab0]/30 bg-[#120557]/30 mb-6">
+          <Sparkles className="w-4 h-4 text-[#4a3ab0]" />
+          <span className="text-sm text-[#4a3ab0]">AI Executives</span>
         </div>
 
         <h2 className="text-4xl md:text-5xl font-bold mb-4">
           Meet the <span className="gradient-text">Agent Executives</span>
         </h2>
 
-        <p className="text-xl text-gray-400 max-w-2xl mx-auto mb-4">
+        <p className="text-xl text-white/60 max-w-2xl mx-auto mb-4">
           Each company is powered by specialized AI agents working together to
           build, market, and scale.
         </p>
 
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/30">
-          <Clock className="w-4 h-4 text-amber-400" />
-          <span className="text-sm text-amber-300">
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#f48f8e]/10 border border-[#f48f8e]/30">
+          <Clock className="w-4 h-4 text-[#f48f8e]" />
+          <span className="text-sm text-[#f48f8e]">
             Preview — Agent minting coming soon
           </span>
         </div>
@@ -449,7 +449,7 @@ export default function AgentExecutives() {
         ].map((item, i) => (
           <div
             key={i}
-            className={`flex items-center gap-4 p-4 rounded-xl bg-gray-900/50 border border-gray-800 hover:border-gray-700 transition-all duration-500 ${
+            className={`flex items-center gap-4 p-4 rounded-xl bg-[#0a0520]/50 border border-white/10 hover:border-white/20 transition-all duration-500 ${
               isVisible
                 ? "opacity-100 translate-y-0"
                 : "opacity-0 translate-y-8"
@@ -459,7 +459,7 @@ export default function AgentExecutives() {
             <div className="text-2xl">{item.icon}</div>
             <div>
               <div className="text-sm font-medium text-white">{item.label}</div>
-              <div className="text-xs text-gray-500">{item.description}</div>
+              <div className="text-xs text-white/40">{item.description}</div>
             </div>
           </div>
         ))}

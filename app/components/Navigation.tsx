@@ -5,9 +5,7 @@ import { Building2, Menu, X } from "lucide-react";
 import LoginButton from "./LoginButton";
 
 const navLinks = [
-  { href: "/swarm", label: "Swarm", highlight: true },
-  { href: "#arena", label: "Arena" },
-  { href: "#network", label: "Network" },
+  { href: "/dashboard", label: "Launch App", highlight: true },
   { href: "/tokenomics", label: "Tokenomics" },
 ];
 
@@ -44,7 +42,7 @@ export default function Navigation() {
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
         {/* Logo */}
         <a href="/" className="flex items-center gap-2">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#f48f8e] to-[#120557] flex items-center justify-center">
             <Building2 className="w-6 h-6 text-white" />
           </div>
           <span className="text-xl font-bold">Agent Inc.</span>
@@ -58,8 +56,8 @@ export default function Navigation() {
               href={link.href}
               className={
                 link.highlight
-                  ? "text-purple-400 hover:text-purple-300 transition-colors font-medium"
-                  : "text-gray-400 hover:text-white transition-colors"
+                  ? "text-[#f48f8e] hover:text-[#f7a8a7] transition-colors font-medium"
+                  : "text-white/60 hover:text-white transition-colors"
               }
             >
               {link.label}
@@ -85,7 +83,7 @@ export default function Navigation() {
 
       {/* Mobile Menu Overlay */}
       <div
-        className={`fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 md:hidden ${
+        className={`fixed inset-0 bg-[#000104]/60 backdrop-blur-sm transition-opacity duration-300 md:hidden ${
           isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
         onClick={() => setIsOpen(false)}
@@ -94,7 +92,7 @@ export default function Navigation() {
 
       {/* Mobile Menu Panel */}
       <div
-        className={`fixed top-[72px] left-0 right-0 bg-[#030712]/95 backdrop-blur-lg border-b border-gray-800 md:hidden transition-all duration-300 ${
+        className={`fixed top-[72px] left-0 right-0 bg-[#000028]/95 backdrop-blur-lg border-b border-white/10 md:hidden transition-all duration-300 ${
           isOpen
             ? "opacity-100 translate-y-0"
             : "opacity-0 -translate-y-4 pointer-events-none"
@@ -110,8 +108,8 @@ export default function Navigation() {
                 onClick={handleLinkClick}
                 className={`py-3 px-4 rounded-lg text-lg font-medium transition-all duration-200 ${
                   link.highlight
-                    ? "text-purple-400 hover:bg-purple-500/10"
-                    : "text-gray-300 hover:text-white hover:bg-white/5"
+                    ? "text-[#f48f8e] hover:bg-[#f48f8e]/10"
+                    : "text-white/70 hover:text-white hover:bg-white/5"
                 }`}
                 style={{
                   transitionDelay: isOpen ? `${index * 50}ms` : "0ms",
@@ -123,7 +121,7 @@ export default function Navigation() {
           </div>
 
           {/* Mobile CTA */}
-          <div className="mt-6 pt-6 border-t border-gray-800">
+          <div className="mt-6 pt-6 border-t border-white/10">
             <LoginButton fullWidth />
           </div>
         </div>

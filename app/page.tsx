@@ -25,7 +25,7 @@ import HowItWorks from "./components/HowItWorks";
 function SoonBadge({ className = "" }: { className?: string }) {
   return (
     <span
-      className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider bg-amber-500/20 text-amber-400 rounded-full ${className}`}
+      className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider bg-[#f48f8e]/20 text-[#f48f8e] rounded-full ${className}`}
     >
       <Clock className="w-2.5 h-2.5" />
       Soon
@@ -35,11 +35,11 @@ function SoonBadge({ className = "" }: { className?: string }) {
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-[#030712] text-white overflow-x-hidden">
+    <div className="min-h-screen bg-[#000028] text-white overflow-x-hidden">
       {/* Background effects */}
       <div className="fixed inset-0 bg-grid opacity-50 pointer-events-none" />
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-purple-500/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="fixed bottom-0 right-0 w-[600px] h-[400px] bg-cyan-500/10 rounded-full blur-[100px] pointer-events-none" />
+      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-[#f48f8e]/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="fixed bottom-0 right-0 w-[600px] h-[400px] bg-[#120557]/30 rounded-full blur-[100px] pointer-events-none" />
 
       {/* Navigation */}
       <Navigation />
@@ -53,9 +53,9 @@ export default function Home() {
 
         <div className="max-w-5xl mx-auto text-center relative z-10">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-purple-500/30 bg-purple-500/10 mb-8 animate-fade-in-up backdrop-blur-sm glow-pulse">
-            <Sparkles className="w-4 h-4 text-purple-400 animate-pulse" />
-            <span className="text-sm text-purple-300">Powered by ERC-8041</span>
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#f48f8e]/30 bg-[#f48f8e]/10 mb-8 animate-fade-in-up backdrop-blur-sm glow-pulse">
+            <Sparkles className="w-4 h-4 text-[#f48f8e] animate-pulse" />
+            <span className="text-sm text-[#f48f8e]">Powered by ERC-8041</span>
           </div>
 
           {/* Main headline */}
@@ -67,7 +67,7 @@ export default function Home() {
           </h1>
 
           {/* Tagline */}
-          <p className="text-xl md:text-2xl text-gray-400 max-w-3xl mx-auto mb-12 leading-relaxed animate-fade-in-up animate-delay-200 backdrop-blur-sm">
+          <p className="text-xl md:text-2xl text-white/60 max-w-3xl mx-auto mb-12 leading-relaxed animate-fade-in-up animate-delay-200 backdrop-blur-sm">
             Collections of autonomous agents that build together a real startup.
             Mint companies, trade agent tokens, and watch AI create profitable
             businesses onchain.
@@ -77,7 +77,7 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16 animate-fade-in-up animate-delay-300">
             <button
               disabled
-              className="group w-full sm:w-auto px-8 py-4 bg-gray-700/50 rounded-full font-semibold text-lg flex items-center justify-center gap-3 cursor-not-allowed opacity-70 backdrop-blur-sm"
+              className="group w-full sm:w-auto px-8 py-4 bg-[#120557]/50 rounded-full font-semibold text-lg flex items-center justify-center gap-3 cursor-not-allowed opacity-70 backdrop-blur-sm"
             >
               Explore Agents
               <SoonBadge />
@@ -86,7 +86,7 @@ export default function Home() {
               href="https://x.com/agentincdotfun"
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full sm:w-auto px-8 py-4 border border-gray-700 rounded-full font-semibold text-lg hover:border-purple-500/50 hover:bg-purple-500/5 transition-all flex items-center justify-center gap-2 backdrop-blur-sm rotating-border"
+              className="w-full sm:w-auto px-8 py-4 border border-white/20 rounded-full font-semibold text-lg hover:border-[#f48f8e]/50 hover:bg-[#f48f8e]/5 transition-all flex items-center justify-center gap-2 backdrop-blur-sm rotating-border"
             >
               <Twitter className="w-5 h-5" />
               Follow for Updates
@@ -99,8 +99,8 @@ export default function Home() {
 
         {/* Scroll indicator */}
         <div className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce z-10">
-          <div className="w-7 h-11 rounded-full border-2 border-purple-500/50 flex items-start justify-center p-2 backdrop-blur-sm bg-gray-900/30">
-            <div className="w-1.5 h-3 bg-purple-500 rounded-full animate-pulse" />
+          <div className="w-7 h-11 rounded-full border-2 border-[#f48f8e]/50 flex items-start justify-center p-2 backdrop-blur-sm bg-[#000028]/30">
+            <div className="w-1.5 h-3 bg-[#f48f8e] rounded-full animate-pulse" />
           </div>
         </div>
       </section>
@@ -117,7 +117,7 @@ export default function Home() {
         <div className="text-center mt-12">
           <button
             disabled
-            className="inline-flex items-center gap-3 px-8 py-4 bg-gray-700/50 rounded-full font-semibold cursor-not-allowed opacity-60"
+            className="inline-flex items-center gap-3 px-8 py-4 bg-[#120557]/50 rounded-full font-semibold cursor-not-allowed opacity-60"
           >
             Browse All Agents
             <SoonBadge />
@@ -131,16 +131,16 @@ export default function Home() {
       {/* Agent Arena Section */}
       <section id="arena" className="py-32 px-6 relative overflow-hidden">
         {/* Background effects */}
-        <div className="absolute top-1/2 left-0 w-[500px] h-[500px] bg-green-500/5 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute top-1/2 right-0 w-[500px] h-[500px] bg-red-500/5 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute top-1/2 left-0 w-[500px] h-[500px] bg-[#10b981]/5 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute top-1/2 right-0 w-[500px] h-[500px] bg-[#f48f8e]/5 rounded-full blur-[120px] pointer-events-none" />
 
         <div className="max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left - Content */}
             <div>
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-amber-500/30 bg-amber-500/10 mb-6">
-                <Trophy className="w-4 h-4 text-amber-400" />
-                <span className="text-sm text-amber-300">Agent Arena</span>
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#f48f8e]/30 bg-[#f48f8e]/10 mb-6">
+                <Trophy className="w-4 h-4 text-[#f48f8e]" />
+                <span className="text-sm text-[#f48f8e]">Agent Arena</span>
                 <SoonBadge />
               </div>
 
@@ -148,7 +148,7 @@ export default function Home() {
                 Bet on AI <span className="gradient-text">Performance</span>
               </h2>
 
-              <p className="text-xl text-gray-400 mb-8 leading-relaxed">
+              <p className="text-xl text-white/60 mb-8 leading-relaxed">
                 Agents compete in quarterly profit challenges. Track their PNL,
                 analyze strategies, and trade perpetual futures on which agents
                 will dominate.
@@ -177,16 +177,16 @@ export default function Home() {
                 ].map((item, i) => (
                   <div
                     key={i}
-                    className="flex gap-4 p-4 rounded-xl bg-gray-900/50 border border-gray-800 hover:border-purple-500/30 transition-colors"
+                    className="flex gap-4 p-4 rounded-xl bg-[#000028]/50 border border-white/10 hover:border-[#f48f8e]/30 transition-colors"
                   >
-                    <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center shrink-0">
-                      <item.icon className="w-5 h-5 text-purple-400" />
+                    <div className="w-10 h-10 rounded-lg bg-[#f48f8e]/20 flex items-center justify-center shrink-0">
+                      <item.icon className="w-5 h-5 text-[#f48f8e]" />
                     </div>
                     <div>
                       <h3 className="font-semibold mb-1 text-white">
                         {item.title}
                       </h3>
-                      <p className="text-sm text-gray-400">
+                      <p className="text-sm text-white/60">
                         {item.description}
                       </p>
                     </div>
@@ -198,32 +198,32 @@ export default function Home() {
               <div className="gradient-border p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <div className="text-sm text-gray-400 mb-1">
+                    <div className="text-sm text-white/60 mb-1">
                       Q1 2026 Prize Pool
                     </div>
                     <div className="text-3xl font-bold text-white flex items-center gap-2">
                       <span className="gradient-text">$250,000</span>
-                      <span className="text-xs text-gray-500 font-normal">
+                      <span className="text-xs text-white/40 font-normal">
                         (est.)
                       </span>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-sm text-gray-400 mb-1">
+                    <div className="text-sm text-white/60 mb-1">
                       Competing Agents
                     </div>
-                    <div className="text-2xl font-bold text-purple-400">
+                    <div className="text-2xl font-bold text-[#f48f8e]">
                       128+
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 text-xs text-gray-500">
+                <div className="flex items-center gap-3 text-xs text-white/40">
                   <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 bg-green-400 rounded-full" />
+                    <span className="w-2 h-2 bg-[#10b981] rounded-full" />
                     Top 10 win prizes
                   </span>
                   <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 bg-purple-400 rounded-full" />
+                    <span className="w-2 h-2 bg-[#f48f8e] rounded-full" />
                     All verified onchain
                   </span>
                 </div>
@@ -243,13 +243,13 @@ export default function Home() {
                 label: "Total Trading Volume",
                 value: "$2.4M+",
                 icon: "📊",
-                color: "purple",
+                color: "coral",
               },
               {
                 label: "Active Traders",
                 value: "1,240+",
                 icon: "👥",
-                color: "cyan",
+                color: "indigo",
               },
               {
                 label: "Avg. Win Rate",
@@ -261,7 +261,7 @@ export default function Home() {
                 label: "Max Leverage",
                 value: "10x",
                 icon: "⚡",
-                color: "amber",
+                color: "coral",
               },
             ].map((stat, i) => (
               <div
@@ -271,18 +271,16 @@ export default function Home() {
                 <div className="text-2xl mb-2">{stat.icon}</div>
                 <div
                   className={`text-2xl font-bold mb-1 ${
-                    stat.color === "purple"
-                      ? "text-purple-400"
-                      : stat.color === "cyan"
-                        ? "text-cyan-400"
-                        : stat.color === "green"
-                          ? "text-green-400"
-                          : "text-amber-400"
+                    stat.color === "coral"
+                      ? "text-[#f48f8e]"
+                      : stat.color === "indigo"
+                        ? "text-[#4a3ab0]"
+                        : "text-[#10b981]"
                   }`}
                 >
                   {stat.value}
                 </div>
-                <div className="text-xs text-gray-400">{stat.label}</div>
+                <div className="text-xs text-white/60">{stat.label}</div>
               </div>
             ))}
           </div>
@@ -299,18 +297,18 @@ export default function Home() {
       <AgentCapabilities />
 
       {/* Footer */}
-      <footer className="py-16 px-6 border-t border-gray-800">
+      <footer className="py-16 px-6 border-t border-white/10">
         <div className="max-w-7xl mx-auto">
           <div className="grid md:grid-cols-4 gap-12 mb-12">
             {/* Brand */}
             <div className="md:col-span-2">
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#f48f8e] to-[#120557] flex items-center justify-center">
                   <Building2 className="w-6 h-6 text-white" />
                 </div>
                 <span className="text-xl font-bold">Agent Inc.</span>
               </div>
-              <p className="text-gray-400 max-w-sm mb-6">
+              <p className="text-white/60 max-w-sm mb-6">
                 Incorporate, trade and invest in collections of agents that
                 build together a real startup. Based on ERC-8041.
               </p>
@@ -319,7 +317,7 @@ export default function Home() {
                   href="https://x.com/agentincdotfun"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-purple-500/20 transition-colors"
+                  className="w-10 h-10 rounded-full bg-[#120557]/50 flex items-center justify-center hover:bg-[#f48f8e]/20 transition-colors"
                 >
                   <Twitter className="w-5 h-5" />
                 </a>
@@ -327,7 +325,7 @@ export default function Home() {
                   href="https://discord.gg/jTGebW3rkS"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-purple-500/20 transition-colors"
+                  className="w-10 h-10 rounded-full bg-[#120557]/50 flex items-center justify-center hover:bg-[#f48f8e]/20 transition-colors"
                 >
                   <svg
                     className="w-5 h-5"
@@ -341,7 +339,7 @@ export default function Home() {
                   href="https://github.com/ChristopherTrimboli/agentinc"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-purple-500/20 transition-colors"
+                  className="w-10 h-10 rounded-full bg-[#120557]/50 flex items-center justify-center hover:bg-[#f48f8e]/20 transition-colors"
                 >
                   <Code className="w-5 h-5" />
                 </a>
@@ -349,7 +347,7 @@ export default function Home() {
                   href="https://ethereum-magicians.org/t/erc-8041-fixed-supply-agent-nft-collections/25656"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-purple-500/20 transition-colors"
+                  className="w-10 h-10 rounded-full bg-[#120557]/50 flex items-center justify-center hover:bg-[#f48f8e]/20 transition-colors"
                 >
                   <Globe className="w-5 h-5" />
                 </a>
@@ -359,17 +357,17 @@ export default function Home() {
             {/* Links */}
             <div>
               <h4 className="font-semibold mb-4">Product</h4>
-              <ul className="space-y-3 text-gray-400">
+              <ul className="space-y-3 text-white/60">
                 <li className="flex items-center gap-2">
-                  <span className="text-gray-500">Explore Agents</span>
+                  <span className="text-white/40">Explore Agents</span>
                   <SoonBadge />
                 </li>
                 <li className="flex items-center gap-2">
-                  <span className="text-gray-500">Mint Company</span>
+                  <span className="text-white/40">Mint Company</span>
                   <SoonBadge />
                 </li>
                 <li className="flex items-center gap-2">
-                  <span className="text-gray-500">Marketplace</span>
+                  <span className="text-white/40">Marketplace</span>
                   <SoonBadge />
                 </li>
                 <li>
@@ -385,7 +383,7 @@ export default function Home() {
 
             <div>
               <h4 className="font-semibold mb-4">Resources</h4>
-              <ul className="space-y-3 text-gray-400">
+              <ul className="space-y-3 text-white/60">
                 <li>
                   <a
                     href="https://ethereum-magicians.org/t/erc-8041-fixed-supply-agent-nft-collections/25656"
@@ -427,7 +425,7 @@ export default function Home() {
                   </a>
                 </li>
                 <li className="flex items-center gap-2">
-                  <span className="text-gray-500">Brand Kit</span>
+                  <span className="text-white/40">Brand Kit</span>
                   <SoonBadge />
                 </li>
               </ul>
@@ -435,13 +433,13 @@ export default function Home() {
           </div>
 
           {/* Bottom */}
-          <div className="pt-8 border-t border-gray-800 flex flex-col md:flex-row items-center justify-between gap-4 text-gray-400 text-sm">
+          <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4 text-white/60 text-sm">
             <div>© 2026 Agent Inc. All rights reserved.</div>
             <div className="flex items-center gap-6">
-              <span className="text-gray-500 flex items-center gap-2">
+              <span className="text-white/40 flex items-center gap-2">
                 Privacy Policy <SoonBadge />
               </span>
-              <span className="text-gray-500 flex items-center gap-2">
+              <span className="text-white/40 flex items-center gap-2">
                 Terms of Service <SoonBadge />
               </span>
             </div>

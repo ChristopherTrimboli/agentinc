@@ -33,7 +33,31 @@ model Agent {
   createdById String
   createdBy   User   @relation(fields: [createdById], references: [id], onDelete: Cascade)
 
+  // Minted agent fields
+  isMinted      Boolean  @default(false)
+  imageUrl      String?  // AI-generated profile picture
+  
+  // Agent traits (stored as JSON)
+  personality   String?  // e.g., "analytical", "creative", "strategic"
+  traits        String[] // Array of trait strings
+  skills        String[] // Array of skill strings
+  tools         String[] // Array of tool strings
+  specialAbility String? // Unique special ability
+  
+  // Rarity/tier
+  rarity        String?  // common, uncommon, rare, epic, legendary
+  
+  // Token launch fields (Bags API)
+  tokenMint       String?  @unique // Solana token mint address
+  tokenSymbol     String?  // Token symbol (e.g., "$AGNT")
+  tokenMetadata   String?  // IPFS metadata URL
+  launchWallet    String?  // Wallet that launched the token
+  launchSignature String?  // Transaction signature
+  launchedAt      DateTime? // When the token was launched
+
   @@index([createdById])
+  @@index([tokenMint])
+  @@index([isMinted])
 }
 
 // Swarm visualization models
@@ -49,10 +73,19 @@ model Corporation {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  // Token launch fields (Bags API)
+  tokenMint       String?  @unique // Solana token mint address
+  tokenSymbol     String?  // Token symbol (e.g., "AGNT")
+  tokenMetadata   String?  // IPFS metadata URL
+  launchWallet    String?  // Wallet that launched the token
+  launchSignature String?  // Transaction signature
+  launchedAt      DateTime? // When the token was launched
+
   // Relations
   agents SwarmAgent[]
 
   @@index([name])
+  @@index([tokenMint])
 }
 
 model SwarmAgent {

@@ -18,7 +18,7 @@ const initialAgents: AgentData[] = [
     id: "1",
     name: "Alpha.ai",
     avatar: "🤖",
-    color: "#8b5cf6",
+    color: "#f48f8e", // Coral
     pnl: 247.5,
     trend: "up",
     position: 1,
@@ -28,7 +28,7 @@ const initialAgents: AgentData[] = [
     id: "2",
     name: "Sigma.ai",
     avatar: "🧠",
-    color: "#06b6d4",
+    color: "#4a3ab0", // Indigo light
     pnl: 182.3,
     trend: "up",
     position: 2,
@@ -38,7 +38,7 @@ const initialAgents: AgentData[] = [
     id: "3",
     name: "Delta.ai",
     avatar: "⚡",
-    color: "#f59e0b",
+    color: "#f7a8a7", // Coral light
     pnl: -45.2,
     trend: "down",
     position: 3,
@@ -48,7 +48,7 @@ const initialAgents: AgentData[] = [
     id: "4",
     name: "Omega.ai",
     avatar: "🔥",
-    color: "#10b981",
+    color: "#10b981", // Green
     pnl: 89.7,
     trend: "up",
     position: 4,
@@ -130,7 +130,7 @@ export default function AgentArenaChart() {
       {/* Chart Container */}
       <div className="gradient-border p-6 relative overflow-hidden">
         {/* Background glow */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[400px] h-[200px] bg-purple-500/10 rounded-full blur-[80px] pointer-events-none" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[400px] h-[200px] bg-[#f48f8e]/10 rounded-full blur-[80px] pointer-events-none" />
 
         {/* Chart Header */}
         <div className="flex items-center justify-between mb-6">
@@ -138,13 +138,13 @@ export default function AgentArenaChart() {
             <h3 className="text-lg font-semibold text-white">
               Q1 2026 Agent Arena
             </h3>
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-white/60">
               Live PNL Performance Tracking
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-500/20 text-green-400 rounded-full text-xs font-medium">
-              <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#10b981]/20 text-[#10b981] rounded-full text-xs font-medium">
+              <span className="w-2 h-2 bg-[#10b981] rounded-full animate-pulse" />
               Live
             </span>
           </div>
@@ -195,13 +195,13 @@ export default function AgentArenaChart() {
                     y1={y}
                     x2={chartWidth - padding}
                     y2={y}
-                    stroke="rgba(139, 92, 246, 0.1)"
+                    stroke="rgba(244, 143, 142, 0.1)"
                     strokeDasharray="4 4"
                   />
                   <text
                     x={padding - 8}
                     y={y + 4}
-                    fill="#6b7280"
+                    fill="rgba(255, 255, 255, 0.4)"
                     fontSize="10"
                     textAnchor="end"
                   >
@@ -217,7 +217,7 @@ export default function AgentArenaChart() {
                 key={month}
                 x={padding + (i * 5 + 2) * ((chartWidth - padding * 2) / 11)}
                 y={chartHeight - 15}
-                fill="#6b7280"
+                fill="rgba(255, 255, 255, 0.4)"
                 fontSize="10"
                 textAnchor="middle"
               >
@@ -287,7 +287,7 @@ export default function AgentArenaChart() {
                     cx={0}
                     cy={0}
                     r={16}
-                    fill="#111827"
+                    fill="#000028"
                     stroke={agent.color}
                     strokeWidth={2}
                   />
@@ -309,13 +309,13 @@ export default function AgentArenaChart() {
           {/* Hover tooltip */}
           {hoveredPoint && (
             <div
-              className="absolute bg-gray-900 border border-purple-500/30 rounded-lg px-3 py-2 text-sm pointer-events-none z-10"
+              className="absolute bg-[#000028] border border-[#f48f8e]/30 rounded-lg px-3 py-2 text-sm pointer-events-none z-10"
               style={{
                 left: hoveredPoint.x,
                 top: hoveredPoint.y - 50,
               }}
             >
-              <div className="text-gray-400">{hoveredPoint.agent}</div>
+              <div className="text-white/60">{hoveredPoint.agent}</div>
               <div className="text-white font-semibold">
                 ${hoveredPoint.value.toFixed(2)}
               </div>
@@ -330,10 +330,10 @@ export default function AgentArenaChart() {
             .map((agent, index) => (
               <div
                 key={agent.id}
-                className={`relative p-3 rounded-xl bg-gray-800/50 border transition-all duration-300 cursor-pointer ${
+                className={`relative p-3 rounded-xl bg-[#120557]/30 border transition-all duration-300 cursor-pointer ${
                   selectedAgent === agent.id
-                    ? "border-purple-500/50 bg-purple-500/10"
-                    : "border-gray-700/50 hover:border-gray-600"
+                    ? "border-[#f48f8e]/50 bg-[#f48f8e]/10"
+                    : "border-white/10 hover:border-white/20"
                 }`}
                 onMouseEnter={() => setSelectedAgent(agent.id)}
                 onMouseLeave={() => setSelectedAgent(null)}
@@ -342,12 +342,12 @@ export default function AgentArenaChart() {
                 <div
                   className={`absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
                     index === 0
-                      ? "bg-yellow-500 text-black"
+                      ? "bg-[#fbbf24] text-black"
                       : index === 1
                         ? "bg-gray-400 text-black"
                         : index === 2
-                          ? "bg-amber-700 text-white"
-                          : "bg-gray-700 text-gray-400"
+                          ? "bg-[#cd7f32] text-white"
+                          : "bg-[#120557] text-white/60"
                   }`}
                 >
                   {index + 1}
@@ -366,10 +366,10 @@ export default function AgentArenaChart() {
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-400">PNL</span>
+                  <span className="text-xs text-white/60">PNL</span>
                   <span
                     className={`text-sm font-semibold ${
-                      agent.pnl >= 0 ? "text-green-400" : "text-red-400"
+                      agent.pnl >= 0 ? "text-[#10b981]" : "text-[#ef4444]"
                     }`}
                   >
                     {agent.pnl >= 0 ? "+" : ""}
@@ -382,13 +382,13 @@ export default function AgentArenaChart() {
                   <div
                     className={`w-0 h-0 border-l-[4px] border-r-[4px] border-transparent ${
                       agent.trend === "up"
-                        ? "border-b-[6px] border-b-green-400"
-                        : "border-t-[6px] border-t-red-400"
+                        ? "border-b-[6px] border-b-[#10b981]"
+                        : "border-t-[6px] border-t-[#ef4444]"
                     }`}
                   />
                   <span
                     className={`text-xs ${
-                      agent.trend === "up" ? "text-green-400" : "text-red-400"
+                      agent.trend === "up" ? "text-[#10b981]" : "text-[#ef4444]"
                     }`}
                   >
                     {agent.trend === "up" ? "Bullish" : "Bearish"}
@@ -402,12 +402,12 @@ export default function AgentArenaChart() {
       {/* Perpetual Futures Trading Panel */}
       <div className="grid md:grid-cols-2 gap-4 mt-4">
         {/* Long Position Card */}
-        <div className="gradient-border p-4 group hover:border-green-500/30 transition-all">
+        <div className="gradient-border p-4 group hover:border-[#10b981]/30 transition-all">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-[#10b981]/20 flex items-center justify-center">
                 <svg
-                  className="w-5 h-5 text-green-400"
+                  className="w-5 h-5 text-[#10b981]"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -424,29 +424,29 @@ export default function AgentArenaChart() {
                 <div className="text-sm font-semibold text-white">
                   Long Position
                 </div>
-                <div className="text-xs text-gray-400">Bet agent goes up</div>
+                <div className="text-xs text-white/60">Bet agent goes up</div>
               </div>
             </div>
-            <span className="text-xs text-gray-500">Up to 10x</span>
+            <span className="text-xs text-white/40">Up to 10x</span>
           </div>
           <button
             disabled
-            className="w-full py-2.5 bg-green-500/20 text-green-400 rounded-lg font-medium text-sm hover:bg-green-500/30 transition-colors flex items-center justify-center gap-2 opacity-60 cursor-not-allowed"
+            className="w-full py-2.5 bg-[#10b981]/20 text-[#10b981] rounded-lg font-medium text-sm hover:bg-[#10b981]/30 transition-colors flex items-center justify-center gap-2 opacity-60 cursor-not-allowed"
           >
             Open Long
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider bg-amber-500/20 text-amber-400 rounded-full">
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider bg-[#f48f8e]/20 text-[#f48f8e] rounded-full">
               Soon
             </span>
           </button>
         </div>
 
         {/* Short Position Card */}
-        <div className="gradient-border p-4 group hover:border-red-500/30 transition-all">
+        <div className="gradient-border p-4 group hover:border-[#ef4444]/30 transition-all">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-red-500/20 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-[#ef4444]/20 flex items-center justify-center">
                 <svg
-                  className="w-5 h-5 text-red-400"
+                  className="w-5 h-5 text-[#ef4444]"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -463,17 +463,17 @@ export default function AgentArenaChart() {
                 <div className="text-sm font-semibold text-white">
                   Short Position
                 </div>
-                <div className="text-xs text-gray-400">Bet agent goes down</div>
+                <div className="text-xs text-white/60">Bet agent goes down</div>
               </div>
             </div>
-            <span className="text-xs text-gray-500">Up to 10x</span>
+            <span className="text-xs text-white/40">Up to 10x</span>
           </div>
           <button
             disabled
-            className="w-full py-2.5 bg-red-500/20 text-red-400 rounded-lg font-medium text-sm hover:bg-red-500/30 transition-colors flex items-center justify-center gap-2 opacity-60 cursor-not-allowed"
+            className="w-full py-2.5 bg-[#ef4444]/20 text-[#ef4444] rounded-lg font-medium text-sm hover:bg-[#ef4444]/30 transition-colors flex items-center justify-center gap-2 opacity-60 cursor-not-allowed"
           >
             Open Short
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider bg-amber-500/20 text-amber-400 rounded-full">
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider bg-[#f48f8e]/20 text-[#f48f8e] rounded-full">
               Soon
             </span>
           </button>

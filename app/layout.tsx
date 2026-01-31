@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Syne } from "next/font/google";
 import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 import ClientLayout from "./client-layout";
@@ -7,6 +7,12 @@ import ClientLayout from "./client-layout";
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
+});
+
+const syne = Syne({
+  variable: "--font-syne",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
 });
 
 export const metadata: Metadata = {
@@ -49,7 +55,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${inter.variable} antialiased`}>
+      <body className={`${inter.variable} ${syne.variable} antialiased`}>
         <ClientLayout> {children}</ClientLayout>
         <Analytics />
       </body>

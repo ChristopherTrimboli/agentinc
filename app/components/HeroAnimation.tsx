@@ -42,16 +42,16 @@ export default function HeroAnimation() {
     updateSize();
     window.addEventListener("resize", updateSize);
 
-    // Initialize particles (stars)
+    // Initialize particles (stars) - using designer colors
     const initParticles = () => {
       const particles: Particle[] = [];
       const colors = [
-        "#8b5cf6",
-        "#06b6d4",
-        "#a78bfa",
-        "#22d3ee",
-        "#f59e0b",
-        "#ffffff",
+        "#f48f8e", // Coral
+        "#f7a8a7", // Coral light
+        "#120557", // Indigo
+        "#2a1a8f", // Indigo light
+        "#4a3ab0", // Indigo lighter
+        "#ffffff", // White
       ];
 
       for (let i = 0; i < 100; i++) {
@@ -99,7 +99,7 @@ export default function HeroAnimation() {
       const centerX = rect.width / 2;
       const centerY = rect.height / 2;
 
-      // Draw background glow
+      // Draw background glow - using Coral and Indigo
       const gradient = ctx.createRadialGradient(
         centerX,
         centerY,
@@ -108,9 +108,9 @@ export default function HeroAnimation() {
         centerY,
         rect.width * 0.5,
       );
-      gradient.addColorStop(0, "rgba(139, 92, 246, 0.06)");
-      gradient.addColorStop(0.5, "rgba(6, 182, 212, 0.03)");
-      gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
+      gradient.addColorStop(0, "rgba(244, 143, 142, 0.06)"); // Coral
+      gradient.addColorStop(0.5, "rgba(18, 5, 87, 0.04)"); // Indigo
+      gradient.addColorStop(1, "rgba(0, 0, 40, 0)"); // Abyss
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, rect.width, rect.height);
 
@@ -185,7 +185,7 @@ export default function HeroAnimation() {
         ctx.fill();
       });
 
-      // Draw connection lines between close particles
+      // Draw connection lines between close particles - using Coral
       particlesRef.current.forEach((p1, i) => {
         particlesRef.current.slice(i + 1).forEach((p2) => {
           const dx = p1.x - p2.x;
@@ -196,7 +196,7 @@ export default function HeroAnimation() {
             ctx.beginPath();
             ctx.moveTo(p1.x, p1.y);
             ctx.lineTo(p2.x, p2.y);
-            ctx.strokeStyle = `rgba(139, 92, 246, ${0.12 * (1 - dist / 100)})`;
+            ctx.strokeStyle = `rgba(244, 143, 142, ${0.12 * (1 - dist / 100)})`; // Coral
             ctx.lineWidth = 0.5;
             ctx.stroke();
           }
@@ -223,14 +223,14 @@ export default function HeroAnimation() {
         className="w-full h-full"
         style={{ display: "block" }}
       />
-      {/* Floating accent elements */}
-      <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl animate-pulse" />
+      {/* Floating accent elements - using designer colors */}
+      <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-[#f48f8e]/10 rounded-full blur-3xl animate-pulse" />
       <div
-        className="absolute bottom-1/4 right-1/4 w-40 h-40 bg-cyan-500/10 rounded-full blur-3xl animate-pulse"
+        className="absolute bottom-1/4 right-1/4 w-40 h-40 bg-[#120557]/20 rounded-full blur-3xl animate-pulse"
         style={{ animationDelay: "1s" }}
       />
       <div
-        className="absolute top-1/3 right-1/3 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl animate-pulse"
+        className="absolute top-1/3 right-1/3 w-24 h-24 bg-[#f48f8e]/5 rounded-full blur-2xl animate-pulse"
         style={{ animationDelay: "2s" }}
       />
     </div>

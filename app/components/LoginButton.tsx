@@ -22,7 +22,7 @@ export default function LoginButton({
         disabled
         className={`${
           fullWidth ? "w-full" : ""
-        } px-6 py-2.5 bg-gray-700/50 rounded-xl font-medium cursor-not-allowed flex items-center justify-center gap-2 opacity-60 ${className}`}
+        } px-6 py-2.5 bg-[#120557]/50 rounded-xl font-medium cursor-not-allowed flex items-center justify-center gap-2 opacity-60 ${className}`}
       >
         <Loader2 className="w-4 h-4 animate-spin" />
         Loading...
@@ -41,7 +41,7 @@ export default function LoginButton({
       onClick={login}
       className={`${
         fullWidth ? "w-full" : ""
-      } px-6 py-2.5 bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 rounded-xl font-medium transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 ${className}`}
+      } px-6 py-2.5 bg-gradient-to-r from-[#f48f8e] to-[#120557] hover:from-[#f7a8a7] hover:to-[#2a1a8f] rounded-xl font-medium transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-[#f48f8e]/25 hover:shadow-[#f48f8e]/40 ${className}`}
     >
       <LogIn className="w-4 h-4" />
       Login
