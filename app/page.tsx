@@ -25,7 +25,7 @@ import HowItWorks from "./components/HowItWorks";
 function SoonBadge({ className = "" }: { className?: string }) {
   return (
     <span
-      className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider bg-[#f48f8e]/20 text-[#f48f8e] rounded-full ${className}`}
+      className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider bg-[#6FEC06]/20 text-[#6FEC06] rounded-full ${className}`}
     >
       <Clock className="w-2.5 h-2.5" />
       Soon
@@ -38,7 +38,7 @@ export default function Home() {
     <div className="min-h-screen bg-[#000028] text-white overflow-x-hidden">
       {/* Background effects */}
       <div className="fixed inset-0 bg-grid opacity-50 pointer-events-none" />
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-[#f48f8e]/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-[#6FEC06]/10 rounded-full blur-[120px] pointer-events-none" />
       <div className="fixed bottom-0 right-0 w-[600px] h-[400px] bg-[#120557]/30 rounded-full blur-[100px] pointer-events-none" />
 
       {/* Navigation */}
@@ -53,9 +53,9 @@ export default function Home() {
 
         <div className="max-w-5xl mx-auto text-center relative z-10">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#f48f8e]/30 bg-[#f48f8e]/10 mb-8 animate-fade-in-up backdrop-blur-sm glow-pulse">
-            <Sparkles className="w-4 h-4 text-[#f48f8e] animate-pulse" />
-            <span className="text-sm text-[#f48f8e]">Powered by ERC-8041</span>
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#6FEC06]/30 bg-[#6FEC06]/10 mb-8 animate-fade-in-up backdrop-blur-sm glow-pulse">
+            <Sparkles className="w-4 h-4 text-[#6FEC06] animate-pulse" />
+            <span className="text-sm text-[#6FEC06]">Powered by ERC-8041</span>
           </div>
 
           {/* Main headline */}
@@ -86,7 +86,7 @@ export default function Home() {
               href="https://x.com/agentincdotfun"
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full sm:w-auto px-8 py-4 border border-white/20 rounded-full font-semibold text-lg hover:border-[#f48f8e]/50 hover:bg-[#f48f8e]/5 transition-all flex items-center justify-center gap-2 backdrop-blur-sm rotating-border"
+              className="w-full sm:w-auto px-8 py-4 border border-white/20 rounded-full font-semibold text-lg hover:border-[#6FEC06]/50 hover:bg-[#6FEC06]/5 transition-all flex items-center justify-center gap-2 backdrop-blur-sm rotating-border"
             >
               <Twitter className="w-5 h-5" />
               Follow for Updates
@@ -99,8 +99,8 @@ export default function Home() {
 
         {/* Scroll indicator */}
         <div className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce z-10">
-          <div className="w-7 h-11 rounded-full border-2 border-[#f48f8e]/50 flex items-start justify-center p-2 backdrop-blur-sm bg-[#000028]/30">
-            <div className="w-1.5 h-3 bg-[#f48f8e] rounded-full animate-pulse" />
+          <div className="w-7 h-11 rounded-full border-2 border-[#6FEC06]/50 flex items-start justify-center p-2 backdrop-blur-sm bg-[#000028]/30">
+            <div className="w-1.5 h-3 bg-[#6FEC06] rounded-full animate-pulse" />
           </div>
         </div>
       </section>
@@ -132,15 +132,15 @@ export default function Home() {
       <section id="arena" className="py-32 px-6 relative overflow-hidden">
         {/* Background effects */}
         <div className="absolute top-1/2 left-0 w-[500px] h-[500px] bg-[#10b981]/5 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute top-1/2 right-0 w-[500px] h-[500px] bg-[#f48f8e]/5 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute top-1/2 right-0 w-[500px] h-[500px] bg-[#6FEC06]/5 rounded-full blur-[120px] pointer-events-none" />
 
         <div className="max-w-7xl mx-auto">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left - Content */}
             <div>
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#f48f8e]/30 bg-[#f48f8e]/10 mb-6">
-                <Trophy className="w-4 h-4 text-[#f48f8e]" />
-                <span className="text-sm text-[#f48f8e]">Agent Arena</span>
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#6FEC06]/30 bg-[#6FEC06]/10 mb-6">
+                <Trophy className="w-4 h-4 text-[#6FEC06]" />
+                <span className="text-sm text-[#6FEC06]">Agent Arena</span>
                 <SoonBadge />
               </div>
 
@@ -177,10 +177,10 @@ export default function Home() {
                 ].map((item, i) => (
                   <div
                     key={i}
-                    className="flex gap-4 p-4 rounded-xl bg-[#000028]/50 border border-white/10 hover:border-[#f48f8e]/30 transition-colors"
+                    className="flex gap-4 p-4 rounded-xl bg-[#000028]/50 border border-white/10 hover:border-[#6FEC06]/30 transition-colors"
                   >
-                    <div className="w-10 h-10 rounded-lg bg-[#f48f8e]/20 flex items-center justify-center shrink-0">
-                      <item.icon className="w-5 h-5 text-[#f48f8e]" />
+                    <div className="w-10 h-10 rounded-lg bg-[#6FEC06]/20 flex items-center justify-center shrink-0">
+                      <item.icon className="w-5 h-5 text-[#6FEC06]" />
                     </div>
                     <div>
                       <h3 className="font-semibold mb-1 text-white">
@@ -212,7 +212,7 @@ export default function Home() {
                     <div className="text-sm text-white/60 mb-1">
                       Competing Agents
                     </div>
-                    <div className="text-2xl font-bold text-[#f48f8e]">
+                    <div className="text-2xl font-bold text-[#6FEC06]">
                       128+
                     </div>
                   </div>
@@ -223,7 +223,7 @@ export default function Home() {
                     Top 10 win prizes
                   </span>
                   <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 bg-[#f48f8e] rounded-full" />
+                    <span className="w-2 h-2 bg-[#6FEC06] rounded-full" />
                     All verified onchain
                   </span>
                 </div>
@@ -272,7 +272,7 @@ export default function Home() {
                 <div
                   className={`text-2xl font-bold mb-1 ${
                     stat.color === "coral"
-                      ? "text-[#f48f8e]"
+                      ? "text-[#6FEC06]"
                       : stat.color === "indigo"
                         ? "text-[#4a3ab0]"
                         : "text-[#10b981]"
@@ -303,7 +303,7 @@ export default function Home() {
             {/* Brand */}
             <div className="md:col-span-2">
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#f48f8e] to-[#120557] flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#6FEC06] to-[#120557] flex items-center justify-center">
                   <Building2 className="w-6 h-6 text-white" />
                 </div>
                 <span className="text-xl font-bold">Agent Inc.</span>
@@ -317,7 +317,7 @@ export default function Home() {
                   href="https://x.com/agentincdotfun"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-full bg-[#120557]/50 flex items-center justify-center hover:bg-[#f48f8e]/20 transition-colors"
+                  className="w-10 h-10 rounded-full bg-[#120557]/50 flex items-center justify-center hover:bg-[#6FEC06]/20 transition-colors"
                 >
                   <Twitter className="w-5 h-5" />
                 </a>
@@ -325,7 +325,7 @@ export default function Home() {
                   href="https://discord.gg/jTGebW3rkS"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-full bg-[#120557]/50 flex items-center justify-center hover:bg-[#f48f8e]/20 transition-colors"
+                  className="w-10 h-10 rounded-full bg-[#120557]/50 flex items-center justify-center hover:bg-[#6FEC06]/20 transition-colors"
                 >
                   <svg
                     className="w-5 h-5"
@@ -339,7 +339,7 @@ export default function Home() {
                   href="https://github.com/ChristopherTrimboli/agentinc"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-full bg-[#120557]/50 flex items-center justify-center hover:bg-[#f48f8e]/20 transition-colors"
+                  className="w-10 h-10 rounded-full bg-[#120557]/50 flex items-center justify-center hover:bg-[#6FEC06]/20 transition-colors"
                 >
                   <Code className="w-5 h-5" />
                 </a>
@@ -347,7 +347,7 @@ export default function Home() {
                   href="https://ethereum-magicians.org/t/erc-8041-fixed-supply-agent-nft-collections/25656"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-full bg-[#120557]/50 flex items-center justify-center hover:bg-[#f48f8e]/20 transition-colors"
+                  className="w-10 h-10 rounded-full bg-[#120557]/50 flex items-center justify-center hover:bg-[#6FEC06]/20 transition-colors"
                 >
                   <Globe className="w-5 h-5" />
                 </a>

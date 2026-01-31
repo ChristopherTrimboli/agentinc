@@ -100,7 +100,7 @@ function AgentTerminal() {
         ))}
         <div className="flex items-center gap-1 text-white/40">
           <span>$</span>
-          <span className="w-2 h-4 bg-[#f48f8e] animate-pulse" />
+          <span className="w-2 h-4 bg-[#6FEC06] animate-pulse" />
         </div>
       </div>
     </div>
@@ -125,10 +125,10 @@ function CapabilityCard({
 
   const getColorClasses = (color: string) => {
     if (color.includes("blue")) return { bg: "bg-[#3b82f6]/20", text: "text-[#3b82f6]", glow: "#3b82f6" };
-    if (color.includes("coral")) return { bg: "bg-[#f48f8e]/20", text: "text-[#f48f8e]", glow: "#f48f8e" };
+    if (color.includes("coral")) return { bg: "bg-[#6FEC06]/20", text: "text-[#6FEC06]", glow: "#6FEC06" };
     if (color.includes("indigo")) return { bg: "bg-[#120557]/40", text: "text-[#4a3ab0]", glow: "#4a3ab0" };
     if (color.includes("green")) return { bg: "bg-[#10b981]/20", text: "text-[#10b981]", glow: "#10b981" };
-    return { bg: "bg-[#f48f8e]/20", text: "text-[#f48f8e]", glow: "#f48f8e" };
+    return { bg: "bg-[#6FEC06]/20", text: "text-[#6FEC06]", glow: "#6FEC06" };
   };
 
   const colors = getColorClasses(color);
@@ -148,7 +148,7 @@ function CapabilityCard({
         }}
       />
 
-      <div className="relative p-5 rounded-2xl bg-[#0a0520]/80 border border-white/10 group-hover:border-[#f48f8e]/50 transition-all duration-300 overflow-hidden h-full">
+      <div className="relative p-5 rounded-2xl bg-[#0a0520]/80 border border-white/10 group-hover:border-[#6FEC06]/50 transition-all duration-300 overflow-hidden h-full">
         {/* Icon */}
         <div
           className={`w-12 h-12 rounded-xl mb-4 flex items-center justify-center transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3 ${colors.bg}`}
@@ -157,13 +157,13 @@ function CapabilityCard({
         </div>
 
         {/* Content */}
-        <h4 className="font-semibold text-white mb-2 group-hover:text-[#f48f8e] transition-colors">
+        <h4 className="font-semibold text-white mb-2 group-hover:text-[#6FEC06] transition-colors">
           {label}
         </h4>
         <p className="text-sm text-white/40 leading-relaxed">{description}</p>
 
         {/* Animated indicator */}
-        <div className="absolute bottom-3 right-3 flex items-center gap-1 text-xs text-white/30 group-hover:text-[#f48f8e] transition-colors">
+        <div className="absolute bottom-3 right-3 flex items-center gap-1 text-xs text-white/30 group-hover:text-[#6FEC06] transition-colors">
           <Play className="w-3 h-3" />
           <span>Active</span>
         </div>
@@ -226,7 +226,7 @@ function ExecutionStats() {
           <stat.icon
             className={`w-5 h-5 mx-auto mb-2 ${
               stat.color === "coral"
-                ? "text-[#f48f8e]"
+                ? "text-[#6FEC06]"
                 : stat.color === "green"
                   ? "text-[#10b981]"
                   : "text-[#4a3ab0]"
@@ -244,7 +244,7 @@ function ExecutionStats() {
 function SoonBadge({ className = "" }: { className?: string }) {
   return (
     <span
-      className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider bg-[#f48f8e]/20 text-[#f48f8e] rounded-full ${className}`}
+      className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider bg-[#6FEC06]/20 text-[#6FEC06] rounded-full ${className}`}
     >
       <Clock className="w-2.5 h-2.5" />
       Soon
@@ -338,7 +338,7 @@ export default function AgentCapabilities() {
       <section ref={sectionRef} className="py-32 px-6 relative overflow-hidden">
         {/* Background effects */}
         <div className="absolute top-1/4 right-0 w-[600px] h-[600px] bg-[#120557]/20 rounded-full blur-[150px] pointer-events-none" />
-        <div className="absolute bottom-1/4 left-0 w-[500px] h-[500px] bg-[#f48f8e]/5 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-1/4 left-0 w-[500px] h-[500px] bg-[#6FEC06]/5 rounded-full blur-[120px] pointer-events-none" />
 
         <div className="max-w-7xl mx-auto">
           {/* Header */}
@@ -359,7 +359,7 @@ export default function AgentCapabilities() {
             </h2>
             <p className="text-xl text-white/60 max-w-2xl mx-auto">
               Real capabilities, real execution, real results.{" "}
-              <span className="text-[#f48f8e]">
+              <span className="text-[#6FEC06]">
                 24/7 autonomous operations
               </span>{" "}
               that drive actual business value.
@@ -407,7 +407,7 @@ export default function AgentCapabilities() {
         {/* Animated background */}
         <div className="absolute inset-0">
           <div
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[#f48f8e]/10 rounded-full blur-[150px] animate-pulse"
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[#6FEC06]/10 rounded-full blur-[150px] animate-pulse"
             style={{ animationDuration: "4s" }}
           />
           <div
@@ -420,7 +420,7 @@ export default function AgentCapabilities() {
           <div className="relative rounded-2xl md:rounded-3xl overflow-hidden">
             {/* Gradient border animation */}
             <div
-              className="absolute inset-0 bg-gradient-to-r from-[#f48f8e] via-[#f7a8a7] to-[#f48f8e] rounded-2xl md:rounded-3xl animate-gradient-shine"
+              className="absolute inset-0 bg-gradient-to-r from-[#6FEC06] via-[#9FF24A] to-[#6FEC06] rounded-2xl md:rounded-3xl animate-gradient-shine"
               style={{ padding: "2px" }}
             >
               <div className="absolute inset-[2px] bg-[#000028] rounded-2xl md:rounded-3xl" />
@@ -450,7 +450,7 @@ export default function AgentCapabilities() {
                   href="https://x.com/agentincdotfun"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group px-5 sm:px-6 md:px-8 py-2.5 sm:py-3 md:py-4 bg-gradient-to-r from-[#f48f8e] to-[#f7a8a7] rounded-full font-medium text-sm sm:text-base md:text-lg hover:opacity-90 transition-all flex items-center justify-center gap-2 relative overflow-hidden"
+                  className="group px-5 sm:px-6 md:px-8 py-2.5 sm:py-3 md:py-4 bg-gradient-to-r from-[#6FEC06] to-[#9FF24A] rounded-full font-medium text-sm sm:text-base md:text-lg hover:opacity-90 transition-all flex items-center justify-center gap-2 relative overflow-hidden"
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
                   <Twitter className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -460,20 +460,20 @@ export default function AgentCapabilities() {
               </div>
 
               {/* Early access badge */}
-              <div className="inline-flex items-center gap-2 sm:gap-3 px-4 sm:px-6 py-2 sm:py-3 rounded-full border border-[#f48f8e]/30 bg-[#f48f8e]/10">
+              <div className="inline-flex items-center gap-2 sm:gap-3 px-4 sm:px-6 py-2 sm:py-3 rounded-full border border-[#6FEC06]/30 bg-[#6FEC06]/10">
                 <div className="flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-[#f48f8e] rounded-full animate-pulse" />
+                  <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-[#6FEC06] rounded-full animate-pulse" />
                   <span
-                    className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-[#f48f8e] rounded-full animate-pulse"
+                    className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-[#6FEC06] rounded-full animate-pulse"
                     style={{ animationDelay: "0.2s" }}
                   />
                   <span
-                    className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-[#f48f8e] rounded-full animate-pulse"
+                    className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-[#6FEC06] rounded-full animate-pulse"
                     style={{ animationDelay: "0.4s" }}
                   />
                 </div>
-                <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#f48f8e]" />
-                <span className="text-xs sm:text-sm text-[#f48f8e] font-medium">
+                <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#6FEC06]" />
+                <span className="text-xs sm:text-sm text-[#6FEC06] font-medium">
                   Coming Soon — Follow for updates
                 </span>
               </div>

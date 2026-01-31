@@ -91,7 +91,7 @@ export default function Sidebar() {
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-white/10">
           <Link href="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#f48f8e] to-[#120557] flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#6FEC06] to-[#120557] flex items-center justify-center flex-shrink-0">
               <Building2 className="w-5 h-5 text-white" />
             </div>
             {!isCollapsed && (
@@ -121,16 +121,16 @@ export default function Sidebar() {
                 onClick={() => setIsMobileOpen(false)}
                 className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 relative ${
                   active
-                    ? "bg-[#f48f8e]/15 text-white"
+                    ? "bg-[#6FEC06]/15 text-white"
                     : "text-white/60 hover:bg-[#120557]/30 hover:text-white"
                 }`}
               >
                 {/* Active indicator */}
                 {active && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-gradient-to-b from-[#f48f8e] to-[#120557] rounded-r-full" />
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-gradient-to-b from-[#6FEC06] to-[#120557] rounded-r-full" />
                 )}
                 
-                <Icon className={`w-5 h-5 flex-shrink-0 ${active ? "text-[#f48f8e]" : ""}`} />
+                <Icon className={`w-5 h-5 flex-shrink-0 ${active ? "text-[#6FEC06]" : ""}`} />
                 
                 {!isCollapsed && (
                   <span className="font-medium text-sm">

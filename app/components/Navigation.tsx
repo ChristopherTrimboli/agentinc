@@ -42,7 +42,7 @@ export default function Navigation() {
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
         {/* Logo */}
         <a href="/" className="flex items-center gap-2">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#f48f8e] to-[#120557] flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#6FEC06] to-[#120557] flex items-center justify-center">
             <Building2 className="w-6 h-6 text-white" />
           </div>
           <span className="text-xl font-bold">Agent Inc.</span>
@@ -56,7 +56,7 @@ export default function Navigation() {
               href={link.href}
               className={
                 link.highlight
-                  ? "text-[#f48f8e] hover:text-[#f7a8a7] transition-colors font-medium"
+                  ? "text-[#6FEC06] hover:text-[#9FF24A] transition-colors font-medium"
                   : "text-white/60 hover:text-white transition-colors"
               }
             >
@@ -108,7 +108,7 @@ export default function Navigation() {
                 onClick={handleLinkClick}
                 className={`py-3 px-4 rounded-lg text-lg font-medium transition-all duration-200 ${
                   link.highlight
-                    ? "text-[#f48f8e] hover:bg-[#f48f8e]/10"
+                    ? "text-[#6FEC06] hover:bg-[#6FEC06]/10"
                     : "text-white/70 hover:text-white hover:bg-white/5"
                 }`}
                 style={{

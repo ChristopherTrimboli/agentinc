@@ -6,7 +6,7 @@
   - Black: #000104
   - Abyss: #000028
   - Indigo: #120557
-  - Coral: #f48f8e
+  - Coral: #6FEC06
 */
 
 :root {
@@ -15,7 +15,7 @@
   --black: #000104;
   --abyss: #000028;
   --indigo: #120557;
-  --coral: #f48f8e;
+  --coral: #6FEC06;
 
   /* Derived colors */
   --background: #000028;
@@ -23,11 +23,11 @@
   --primary: #120557;
   --primary-light: #2a1a8f;
   --primary-lighter: #4a3ab0;
-  --secondary: #f48f8e;
-  --secondary-light: #f7a8a7;
-  --accent: #f48f8e;
+  --secondary: #6FEC06;
+  --secondary-light: #9FF24A;
+  --accent: #6FEC06;
   --card-bg: rgba(18, 5, 87, 0.15);
-  --card-border: rgba(244, 143, 142, 0.2);
+  --card-border: rgba(111, 236, 6, 0.2);
 
   /* Surface colors */
   --surface-dark: #000104;
@@ -132,8 +132,8 @@ h1, h2, h3, h4, h5, h6,
 /* Glow effects */
 .glow-coral {
   box-shadow:
-    0 0 40px rgba(244, 143, 142, 0.3),
-    0 0 80px rgba(244, 143, 142, 0.1);
+    0 0 40px rgba(111, 236, 6, 0.3),
+    0 0 80px rgba(111, 236, 6, 0.1);
 }
 
 .glow-indigo {
@@ -145,18 +145,18 @@ h1, h2, h3, h4, h5, h6,
 /* Legacy classes */
 .glow-purple {
   box-shadow:
-    0 0 40px rgba(244, 143, 142, 0.3),
-    0 0 80px rgba(244, 143, 142, 0.1);
+    0 0 40px rgba(111, 236, 6, 0.3),
+    0 0 80px rgba(111, 236, 6, 0.1);
 }
 
 .glow-cyan {
   box-shadow:
-    0 0 40px rgba(244, 143, 142, 0.2),
+    0 0 40px rgba(111, 236, 6, 0.2),
     0 0 80px rgba(18, 5, 87, 0.2);
 }
 
 .glow-text {
-  text-shadow: 0 0 40px rgba(244, 143, 142, 0.5);
+  text-shadow: 0 0 40px rgba(111, 236, 6, 0.5);
 }
 
 /* Animated gradient border */
@@ -174,9 +174,9 @@ h1, h2, h3, h4, h5, h6,
   padding: 1px;
   background: linear-gradient(
     135deg,
-    rgba(244, 143, 142, 0.5) 0%,
+    rgba(111, 236, 6, 0.5) 0%,
     rgba(139, 127, 214, 0.4) 50%,
-    rgba(244, 143, 142, 0.3) 100%
+    rgba(111, 236, 6, 0.3) 100%
   );
   -webkit-mask:
     linear-gradient(#fff 0 0) content-box,
@@ -189,8 +189,8 @@ h1, h2, h3, h4, h5, h6,
 /* Animated background grid */
 .bg-grid {
   background-image:
-    linear-gradient(rgba(244, 143, 142, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(244, 143, 142, 0.03) 1px, transparent 1px);
+    linear-gradient(rgba(111, 236, 6, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(111, 236, 6, 0.03) 1px, transparent 1px);
   background-size: 60px 60px;
 }
 
@@ -251,7 +251,7 @@ h1, h2, h3, h4, h5, h6,
 
 .card-hover:hover {
   transform: translateY(-4px);
-  box-shadow: 0 20px 40px rgba(244, 143, 142, 0.2);
+  box-shadow: 0 20px 40px rgba(111, 236, 6, 0.2);
 }
 
 /* Button shine effect */
@@ -284,14 +284,14 @@ h1, h2, h3, h4, h5, h6,
 /* Agent card styles */
 .agent-card {
   background: linear-gradient(135deg, var(--surface) 0%, var(--surface-light) 100%);
-  border: 1px solid rgba(244, 143, 142, 0.2);
+  border: 1px solid rgba(111, 236, 6, 0.2);
   border-radius: 16px;
   transition: all 0.3s ease;
 }
 
 .agent-card:hover {
-  border-color: rgba(244, 143, 142, 0.5);
-  box-shadow: 0 0 30px rgba(244, 143, 142, 0.2);
+  border-color: rgba(111, 236, 6, 0.5);
+  box-shadow: 0 0 30px rgba(111, 236, 6, 0.2);
 }
 
 /* Status indicator */
@@ -389,13 +389,13 @@ h1, h2, h3, h4, h5, h6,
   0%,
   100% {
     box-shadow:
-      0 0 20px rgba(244, 143, 142, 0.3),
-      0 0 40px rgba(244, 143, 142, 0.1);
+      0 0 20px rgba(111, 236, 6, 0.3),
+      0 0 40px rgba(111, 236, 6, 0.1);
   }
   50% {
     box-shadow:
-      0 0 30px rgba(244, 143, 142, 0.5),
-      0 0 60px rgba(244, 143, 142, 0.2);
+      0 0 30px rgba(111, 236, 6, 0.5),
+      0 0 60px rgba(111, 236, 6, 0.2);
   }
 }
 
@@ -550,10 +550,10 @@ h1, h2, h3, h4, h5, h6,
 @keyframes card-glow {
   0%,
   100% {
-    box-shadow: 0 0 20px rgba(244, 143, 142, 0);
+    box-shadow: 0 0 20px rgba(111, 236, 6, 0);
   }
   50% {
-    box-shadow: 0 0 30px rgba(244, 143, 142, 0.2);
+    box-shadow: 0 0 30px rgba(111, 236, 6, 0.2);
   }
 }
 

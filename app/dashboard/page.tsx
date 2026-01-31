@@ -63,7 +63,7 @@ export default function DashboardPage() {
       description: "Create a unique AI agent with randomized traits",
       href: "/dashboard/mint",
       icon: Sparkles,
-      gradient: "from-[#f48f8e] to-[#120557]",
+      gradient: "from-[#6FEC06] to-[#120557]",
     },
     {
       title: "Incorporate",
@@ -138,7 +138,7 @@ export default function DashboardPage() {
           statsCards.map((stat, i) => {
             const Icon = stat.icon;
             const colorClasses = {
-              coral: "bg-[#f48f8e]/20 text-[#f48f8e]",
+              coral: "bg-[#6FEC06]/20 text-[#6FEC06]",
               indigo: "bg-[#120557]/40 text-[#4a3ab0]",
               green: "bg-[#10b981]/20 text-[#10b981]",
             };
@@ -202,7 +202,7 @@ export default function DashboardPage() {
           </p>
           <Link
             href="/dashboard/mint"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#f48f8e] to-[#120557] rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#6FEC06] to-[#120557] rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity"
           >
             <Sparkles className="w-4 h-4" />
             Mint Your First Agent

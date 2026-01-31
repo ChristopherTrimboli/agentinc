@@ -18,7 +18,7 @@ const initialAgents: AgentData[] = [
     id: "1",
     name: "Alpha.ai",
     avatar: "🤖",
-    color: "#f48f8e", // Coral
+    color: "#6FEC06", // Coral
     pnl: 247.5,
     trend: "up",
     position: 1,
@@ -38,7 +38,7 @@ const initialAgents: AgentData[] = [
     id: "3",
     name: "Delta.ai",
     avatar: "⚡",
-    color: "#f7a8a7", // Coral light
+    color: "#9FF24A", // Coral light
     pnl: -45.2,
     trend: "down",
     position: 3,
@@ -130,7 +130,7 @@ export default function AgentArenaChart() {
       {/* Chart Container */}
       <div className="gradient-border p-6 relative overflow-hidden">
         {/* Background glow */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[400px] h-[200px] bg-[#f48f8e]/10 rounded-full blur-[80px] pointer-events-none" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[400px] h-[200px] bg-[#6FEC06]/10 rounded-full blur-[80px] pointer-events-none" />
 
         {/* Chart Header */}
         <div className="flex items-center justify-between mb-6">
@@ -195,7 +195,7 @@ export default function AgentArenaChart() {
                     y1={y}
                     x2={chartWidth - padding}
                     y2={y}
-                    stroke="rgba(244, 143, 142, 0.1)"
+                    stroke="rgba(111, 236, 6, 0.1)"
                     strokeDasharray="4 4"
                   />
                   <text
@@ -309,7 +309,7 @@ export default function AgentArenaChart() {
           {/* Hover tooltip */}
           {hoveredPoint && (
             <div
-              className="absolute bg-[#000028] border border-[#f48f8e]/30 rounded-lg px-3 py-2 text-sm pointer-events-none z-10"
+              className="absolute bg-[#000028] border border-[#6FEC06]/30 rounded-lg px-3 py-2 text-sm pointer-events-none z-10"
               style={{
                 left: hoveredPoint.x,
                 top: hoveredPoint.y - 50,
@@ -332,7 +332,7 @@ export default function AgentArenaChart() {
                 key={agent.id}
                 className={`relative p-3 rounded-xl bg-[#120557]/30 border transition-all duration-300 cursor-pointer ${
                   selectedAgent === agent.id
-                    ? "border-[#f48f8e]/50 bg-[#f48f8e]/10"
+                    ? "border-[#6FEC06]/50 bg-[#6FEC06]/10"
                     : "border-white/10 hover:border-white/20"
                 }`}
                 onMouseEnter={() => setSelectedAgent(agent.id)}
@@ -434,7 +434,7 @@ export default function AgentArenaChart() {
             className="w-full py-2.5 bg-[#10b981]/20 text-[#10b981] rounded-lg font-medium text-sm hover:bg-[#10b981]/30 transition-colors flex items-center justify-center gap-2 opacity-60 cursor-not-allowed"
           >
             Open Long
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider bg-[#f48f8e]/20 text-[#f48f8e] rounded-full">
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider bg-[#6FEC06]/20 text-[#6FEC06] rounded-full">
               Soon
             </span>
           </button>
@@ -473,7 +473,7 @@ export default function AgentArenaChart() {
             className="w-full py-2.5 bg-[#ef4444]/20 text-[#ef4444] rounded-lg font-medium text-sm hover:bg-[#ef4444]/30 transition-colors flex items-center justify-center gap-2 opacity-60 cursor-not-allowed"
           >
             Open Short
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider bg-[#f48f8e]/20 text-[#f48f8e] rounded-full">
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider bg-[#6FEC06]/20 text-[#6FEC06] rounded-full">
               Soon
             </span>
           </button>

@@ -33,7 +33,7 @@ function AgentVisual() {
         {[0, 1, 2].map((i) => (
           <div
             key={i}
-            className="absolute w-2 h-2 rounded-full bg-[#f48f8e]"
+            className="absolute w-2 h-2 rounded-full bg-[#6FEC06]"
             style={{
               animation: `orbit-feature 3s linear infinite`,
               animationDelay: `${i * 1}s`,
@@ -44,7 +44,7 @@ function AgentVisual() {
         ))}
         {/* Center bot */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <Bot className="w-8 h-8 text-[#f48f8e] animate-pulse" />
+          <Bot className="w-8 h-8 text-[#6FEC06] animate-pulse" />
         </div>
       </div>
     </div>
@@ -81,9 +81,9 @@ function MarketplaceVisual() {
           className="absolute animate-bounce"
           style={{ animationDelay: "0.5s" }}
         >
-          <ArrowUpRight className="w-5 h-5 text-[#f48f8e] transform rotate-180 translate-y-4 -translate-x-4" />
+          <ArrowUpRight className="w-5 h-5 text-[#6FEC06] transform rotate-180 translate-y-4 -translate-x-4" />
         </div>
-        <Store className="w-8 h-8 text-[#f48f8e]" />
+        <Store className="w-8 h-8 text-[#6FEC06]" />
       </div>
     </div>
   );
@@ -106,7 +106,7 @@ function NetworkVisual() {
               cx={pos.x}
               cy={pos.y}
               r="6"
-              fill="rgba(244, 143, 142, 0.5)"
+              fill="rgba(111, 236, 6, 0.5)"
               className="animate-pulse"
               style={{ animationDelay: `${i * 0.2}s` }}
             />
@@ -118,7 +118,7 @@ function NetworkVisual() {
           y1="20"
           x2="20"
           y2="50"
-          stroke="rgba(244, 143, 142, 0.3)"
+          stroke="rgba(111, 236, 6, 0.3)"
           strokeWidth="1"
         />
         <line
@@ -126,7 +126,7 @@ function NetworkVisual() {
           y1="20"
           x2="80"
           y2="50"
-          stroke="rgba(244, 143, 142, 0.3)"
+          stroke="rgba(111, 236, 6, 0.3)"
           strokeWidth="1"
         />
         <line
@@ -134,7 +134,7 @@ function NetworkVisual() {
           y1="50"
           x2="35"
           y2="80"
-          stroke="rgba(244, 143, 142, 0.3)"
+          stroke="rgba(111, 236, 6, 0.3)"
           strokeWidth="1"
         />
         <line
@@ -142,7 +142,7 @@ function NetworkVisual() {
           y1="50"
           x2="65"
           y2="80"
-          stroke="rgba(244, 143, 142, 0.3)"
+          stroke="rgba(111, 236, 6, 0.3)"
           strokeWidth="1"
         />
         <line
@@ -150,7 +150,7 @@ function NetworkVisual() {
           y1="80"
           x2="65"
           y2="80"
-          stroke="rgba(244, 143, 142, 0.3)"
+          stroke="rgba(111, 236, 6, 0.3)"
           strokeWidth="1"
         />
       </svg>
@@ -191,7 +191,7 @@ function OnchainVisual() {
         {[0, 1, 2].map((i) => (
           <div
             key={i}
-            className="absolute w-8 h-4 border-2 border-[#f48f8e]/50 rounded-full"
+            className="absolute w-8 h-4 border-2 border-[#6FEC06]/50 rounded-full"
             style={{
               transform: `translateY(${(i - 1) * 12}px)`,
               animation: "pulse 2s ease-in-out infinite",
@@ -209,9 +209,9 @@ function ActivityTicker() {
   const activities = [
     { icon: Twitter, text: "Agent posted on Twitter", color: "text-[#1d9bf0]" },
     { icon: Code, text: "CTO pushed new code", color: "text-[#4a3ab0]" },
-    { icon: Mail, text: "CMO sent newsletter", color: "text-[#f48f8e]" },
+    { icon: Mail, text: "CMO sent newsletter", color: "text-[#6FEC06]" },
     { icon: Coins, text: "+0.5 SOL revenue", color: "text-[#10b981]" },
-    { icon: Zap, text: "Task completed", color: "text-[#f48f8e]" },
+    { icon: Zap, text: "Task completed", color: "text-[#6FEC06]" },
   ];
 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -321,10 +321,10 @@ export default function FeaturesGrid() {
     switch (color) {
       case "coral":
         return {
-          bg: "bg-[#f48f8e]/20",
-          text: "text-[#f48f8e]",
-          border: "group-hover:border-[#f48f8e]/50",
-          glow: "group-hover:shadow-[#f48f8e]/20",
+          bg: "bg-[#6FEC06]/20",
+          text: "text-[#6FEC06]",
+          border: "group-hover:border-[#6FEC06]/50",
+          glow: "group-hover:shadow-[#6FEC06]/20",
         };
       case "indigo":
         return {
@@ -347,9 +347,9 @@ export default function FeaturesGrid() {
     <div ref={sectionRef} className="max-w-7xl mx-auto">
       {/* Section Header */}
       <div className="text-center mb-16">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#f48f8e]/30 bg-[#f48f8e]/10 mb-6">
-          <Zap className="w-4 h-4 text-[#f48f8e]" />
-          <span className="text-sm text-[#f48f8e]">Core Features</span>
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#6FEC06]/30 bg-[#6FEC06]/10 mb-6">
+          <Zap className="w-4 h-4 text-[#6FEC06]" />
+          <span className="text-sm text-[#6FEC06]">Core Features</span>
         </div>
         <h2 className="text-4xl md:text-5xl font-bold mb-4">
           The Future of{" "}
@@ -390,7 +390,7 @@ export default function FeaturesGrid() {
               <div
                 className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-br ${
                   feature.color === "coral"
-                    ? "from-[#f48f8e]/5 to-transparent"
+                    ? "from-[#6FEC06]/5 to-transparent"
                     : feature.color === "indigo"
                       ? "from-[#120557]/10 to-transparent"
                       : "from-white/5 to-transparent"
@@ -410,7 +410,7 @@ export default function FeaturesGrid() {
                 </div>
 
                 {/* Title */}
-                <h3 className="text-xl font-semibold mb-3 text-white group-hover:text-[#f48f8e] transition-colors">
+                <h3 className="text-xl font-semibold mb-3 text-white group-hover:text-[#6FEC06] transition-colors">
                   {feature.title}
                 </h3>
 
@@ -424,7 +424,7 @@ export default function FeaturesGrid() {
               <div
                 className={`absolute -bottom-20 -right-20 w-40 h-40 rounded-full blur-3xl opacity-0 group-hover:opacity-30 transition-opacity duration-500 ${
                   feature.color === "coral"
-                    ? "bg-[#f48f8e]"
+                    ? "bg-[#6FEC06]"
                     : feature.color === "indigo"
                       ? "bg-[#120557]"
                       : "bg-white"

@@ -18,7 +18,7 @@ const agents: Agent[] = [
     name: "Vision.ai",
     avatar: "👔",
     tasks: ["Strategy", "Decisions", "Leadership"],
-    color: "#f48f8e", // Coral
+    color: "#6FEC06", // Coral
     statusMessages: [
       "Analyzing market trends...",
       "Planning Q2 roadmap...",
@@ -44,7 +44,7 @@ const agents: Agent[] = [
     name: "Growth.ai",
     avatar: "📢",
     tasks: ["Marketing", "Twitter", "Content"],
-    color: "#f7a8a7", // Coral light
+    color: "#9FF24A", // Coral light
     statusMessages: [
       "Crafting viral tweet...",
       "Analyzing engagement...",
@@ -142,7 +142,7 @@ function TypewriterText({ messages }: { messages: string[] }) {
   return (
     <span className="text-white/60">
       {displayText}
-      <span className="animate-pulse text-[#f48f8e]">|</span>
+      <span className="animate-pulse text-[#6FEC06]">|</span>
     </span>
   );
 }
@@ -294,7 +294,7 @@ function AgentCard({ agent, index }: { agent: Agent; index: number }) {
             </div>
             <div className="flex items-center gap-2">
               <span className="text-white/30">Coming soon</span>
-              <ChevronRight className="w-4 h-4 text-white/30 group-hover:text-[#f48f8e] group-hover:translate-x-1 transition-all" />
+              <ChevronRight className="w-4 h-4 text-white/30 group-hover:text-[#6FEC06] group-hover:translate-x-1 transition-all" />
             </div>
           </div>
         </div>
@@ -319,9 +319,9 @@ function AgentConnections() {
             x2="100%"
             y2="0%"
           >
-            <stop offset="0%" stopColor="#f48f8e" stopOpacity="0.3" />
-            <stop offset="50%" stopColor="#f7a8a7" stopOpacity="0.5" />
-            <stop offset="100%" stopColor="#f48f8e" stopOpacity="0.3" />
+            <stop offset="0%" stopColor="#6FEC06" stopOpacity="0.3" />
+            <stop offset="50%" stopColor="#9FF24A" stopOpacity="0.5" />
+            <stop offset="100%" stopColor="#6FEC06" stopOpacity="0.3" />
           </linearGradient>
         </defs>
         {/* Horizontal connections */}
@@ -399,9 +399,9 @@ export default function AgentExecutives() {
           build, market, and scale.
         </p>
 
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#f48f8e]/10 border border-[#f48f8e]/30">
-          <Clock className="w-4 h-4 text-[#f48f8e]" />
-          <span className="text-sm text-[#f48f8e]">
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#6FEC06]/10 border border-[#6FEC06]/30">
+          <Clock className="w-4 h-4 text-[#6FEC06]" />
+          <span className="text-sm text-[#6FEC06]">
             Preview — Agent minting coming soon
           </span>
         </div>

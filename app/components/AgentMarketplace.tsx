@@ -205,22 +205,22 @@ function CompanyCard({
     >
       {/* Glow effect */}
       <div
-        className={`absolute -inset-0.5 bg-gradient-to-r from-[#f48f8e] to-[#120557] rounded-2xl blur opacity-0 group-hover:opacity-40 transition-opacity duration-500`}
+        className={`absolute -inset-0.5 bg-gradient-to-r from-[#6FEC06] to-[#120557] rounded-2xl blur opacity-0 group-hover:opacity-40 transition-opacity duration-500`}
       />
 
-      <div className="relative bg-gradient-to-br from-[#0a0520] via-[#120a35] to-[#0a0520] rounded-2xl border border-white/10 group-hover:border-[#f48f8e]/50 transition-all duration-300 overflow-hidden">
+      <div className="relative bg-gradient-to-br from-[#0a0520] via-[#120a35] to-[#0a0520] rounded-2xl border border-white/10 group-hover:border-[#6FEC06]/50 transition-all duration-300 overflow-hidden">
         {/* Hot badge */}
         {company.hot && (
-          <div className="absolute top-3 right-3 flex items-center gap-1 px-2 py-1 bg-[#f48f8e]/20 border border-[#f48f8e]/30 rounded-full">
-            <Sparkles className="w-3 h-3 text-[#f48f8e]" />
-            <span className="text-[10px] font-medium text-[#f48f8e]">HOT</span>
+          <div className="absolute top-3 right-3 flex items-center gap-1 px-2 py-1 bg-[#6FEC06]/20 border border-[#6FEC06]/30 rounded-full">
+            <Sparkles className="w-3 h-3 text-[#6FEC06]" />
+            <span className="text-[10px] font-medium text-[#6FEC06]">HOT</span>
           </div>
         )}
 
         {/* Header */}
         <div className="p-5 pb-0">
           <div className="flex items-start gap-4">
-            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-[#f48f8e]/20 to-[#120557]/20 border border-[#f48f8e]/30 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform duration-300">
+            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-[#6FEC06]/20 to-[#120557]/20 border border-[#6FEC06]/30 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform duration-300">
               {company.logo}
             </div>
             <div className="flex-1 min-w-0">
@@ -228,7 +228,7 @@ function CompanyCard({
                 {company.name}
               </h4>
               <div className="flex items-center gap-2 mt-1">
-                <span className="font-mono text-sm text-[#f48f8e]">
+                <span className="font-mono text-sm text-[#6FEC06]">
                   {company.ticker}
                 </span>
                 <span
@@ -274,7 +274,7 @@ function CompanyCard({
 
           {/* Actions */}
           <div className="flex gap-2">
-            <button className="flex-1 py-2.5 px-4 bg-gradient-to-r from-[#f48f8e] to-[#120557] hover:from-[#f7a8a7] hover:to-[#2a1a8f] rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2 group-hover:shadow-lg group-hover:shadow-[#f48f8e]/25">
+            <button className="flex-1 py-2.5 px-4 bg-gradient-to-r from-[#6FEC06] to-[#120557] hover:from-[#9FF24A] hover:to-[#2a1a8f] rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2 group-hover:shadow-lg group-hover:shadow-[#6FEC06]/25">
               <ShoppingCart className="w-4 h-4" />
               Buy
             </button>
@@ -342,7 +342,7 @@ function EMPCard({
     >
       {/* Avatar */}
       <div className="relative">
-        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#4a3ab0]/20 to-[#f48f8e]/20 border border-[#4a3ab0]/30 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
+        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#4a3ab0]/20 to-[#6FEC06]/20 border border-[#4a3ab0]/30 flex items-center justify-center text-xl group-hover:scale-110 transition-transform">
           {emp.emoji}
         </div>
         {/* Role badge */}
@@ -370,7 +370,7 @@ function EMPCard({
             <Activity className="w-3 h-3 inline mr-1" />
             {emp.tasks} tasks
           </span>
-          <span className="text-xs text-[#f48f8e]">★ {emp.rating}%</span>
+          <span className="text-xs text-[#6FEC06]">★ {emp.rating}%</span>
         </div>
       </div>
 
@@ -437,7 +437,7 @@ function HexShowcase() {
       {/* Animated rings */}
       <div className="absolute inset-0 flex items-center justify-center">
         <div
-          className="w-[90%] h-[90%] border border-[#f48f8e]/20 rounded-full animate-spin"
+          className="w-[90%] h-[90%] border border-[#6FEC06]/20 rounded-full animate-spin"
           style={{ animationDuration: "20s" }}
         />
         <div
@@ -445,7 +445,7 @@ function HexShowcase() {
           style={{ animationDuration: "15s", animationDirection: "reverse" }}
         />
         <div
-          className="absolute w-[50%] h-[50%] border border-[#f48f8e]/20 rounded-full animate-spin"
+          className="absolute w-[50%] h-[50%] border border-[#6FEC06]/20 rounded-full animate-spin"
           style={{ animationDuration: "10s" }}
         />
       </div>
@@ -456,9 +456,9 @@ function HexShowcase() {
           <svg className="w-32 h-32" viewBox="0 0 100 100">
             <defs>
               <linearGradient id="hexGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#f48f8e" />
-                <stop offset="50%" stopColor="#f7a8a7" />
-                <stop offset="100%" stopColor="#f48f8e" />
+                <stop offset="0%" stopColor="#6FEC06" />
+                <stop offset="50%" stopColor="#9FF24A" />
+                <stop offset="100%" stopColor="#6FEC06" />
               </linearGradient>
             </defs>
             <polygon
@@ -470,7 +470,7 @@ function HexShowcase() {
             />
           </svg>
           <div className="absolute inset-0 flex items-center justify-center">
-            <Store className="w-12 h-12 text-[#f48f8e]" />
+            <Store className="w-12 h-12 text-[#6FEC06]" />
           </div>
         </div>
       </div>
@@ -498,7 +498,7 @@ function HexShowcase() {
 function SoonBadge({ className = "" }: { className?: string }) {
   return (
     <span
-      className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider bg-[#f48f8e]/20 text-[#f48f8e] rounded-full ${className}`}
+      className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider bg-[#6FEC06]/20 text-[#6FEC06] rounded-full ${className}`}
     >
       <Clock className="w-2.5 h-2.5" />
       Soon
@@ -535,9 +535,9 @@ export default function AgentMarketplace() {
       className="py-32 px-6 relative overflow-hidden"
     >
       {/* Background effects */}
-      <div className="absolute top-1/4 left-0 w-[600px] h-[600px] bg-[#f48f8e]/5 rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute top-1/4 left-0 w-[600px] h-[600px] bg-[#6FEC06]/5 rounded-full blur-[150px] pointer-events-none" />
       <div className="absolute bottom-1/4 right-0 w-[500px] h-[500px] bg-[#120557]/20 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[#f48f8e]/3 rounded-full blur-[200px] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[#6FEC06]/3 rounded-full blur-[200px] pointer-events-none" />
 
       <div className="max-w-7xl mx-auto">
         {/* Header */}
@@ -546,9 +546,9 @@ export default function AgentMarketplace() {
             isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
           }`}
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#f48f8e]/30 bg-[#f48f8e]/10 mb-6">
-            <Store className="w-4 h-4 text-[#f48f8e]" />
-            <span className="text-sm text-[#f48f8e]">Agent Marketplace</span>
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#6FEC06]/30 bg-[#6FEC06]/10 mb-6">
+            <Store className="w-4 h-4 text-[#6FEC06]" />
+            <span className="text-sm text-[#6FEC06]">Agent Marketplace</span>
             <SoonBadge />
           </div>
 
@@ -631,7 +631,7 @@ export default function AgentMarketplace() {
                   <stat.icon
                     className={`w-5 h-5 mx-auto mb-2 ${
                       stat.color === "coral"
-                        ? "text-[#f48f8e]"
+                        ? "text-[#6FEC06]"
                         : stat.color === "indigo"
                           ? "text-[#4a3ab0]"
                           : "text-[#10b981]"
@@ -672,7 +672,7 @@ export default function AgentMarketplace() {
                   onClick={() => setActiveTab("companies")}
                   className={`px-5 py-2.5 rounded-lg font-medium text-sm transition-all flex items-center gap-2 ${
                     activeTab === "companies"
-                      ? "bg-gradient-to-r from-[#f48f8e] to-[#120557] text-white"
+                      ? "bg-gradient-to-r from-[#6FEC06] to-[#120557] text-white"
                       : "text-white/60 hover:text-white"
                   }`}
                 >
@@ -699,10 +699,10 @@ export default function AgentMarketplace() {
                   <input
                     type="text"
                     placeholder="Search..."
-                    className="pl-9 pr-4 py-2 rounded-lg bg-[#0a0520]/50 border border-white/10 text-sm text-white placeholder-white/40 focus:outline-none focus:border-[#f48f8e]/50 w-40"
+                    className="pl-9 pr-4 py-2 rounded-lg bg-[#0a0520]/50 border border-white/10 text-sm text-white placeholder-white/40 focus:outline-none focus:border-[#6FEC06]/50 w-40"
                   />
                 </div>
-                <button className="p-2 rounded-lg bg-[#0a0520]/50 border border-white/10 text-white/60 hover:text-white hover:border-[#f48f8e]/50 transition-all">
+                <button className="p-2 rounded-lg bg-[#0a0520]/50 border border-white/10 text-white/60 hover:text-white hover:border-[#6FEC06]/50 transition-all">
                   <Filter className="w-4 h-4" />
                 </button>
               </div>
@@ -768,19 +768,19 @@ export default function AgentMarketplace() {
           ].map((feature, i) => (
             <div
               key={i}
-              className={`p-6 rounded-2xl bg-[#0a0520]/50 border border-white/10 hover:border-${feature.color === "coral" ? "[#f48f8e]" : "[#4a3ab0]"}/50 transition-all group`}
+              className={`p-6 rounded-2xl bg-[#0a0520]/50 border border-white/10 hover:border-${feature.color === "coral" ? "[#6FEC06]" : "[#4a3ab0]"}/50 transition-all group`}
             >
               <div
                 className={`w-12 h-12 rounded-xl mb-4 flex items-center justify-center ${
                   feature.color === "coral"
-                    ? "bg-[#f48f8e]/20"
+                    ? "bg-[#6FEC06]/20"
                     : "bg-[#120557]/40"
                 }`}
               >
                 <feature.icon
                   className={`w-6 h-6 ${
                     feature.color === "coral"
-                      ? "text-[#f48f8e]"
+                      ? "text-[#6FEC06]"
                       : "text-[#4a3ab0]"
                   }`}
                 />

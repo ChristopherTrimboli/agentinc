@@ -46,8 +46,8 @@ export default function HeroAnimation() {
     const initParticles = () => {
       const particles: Particle[] = [];
       const colors = [
-        "#f48f8e", // Coral
-        "#f7a8a7", // Coral light
+        "#6FEC06", // Coral
+        "#9FF24A", // Coral light
         "#120557", // Indigo
         "#2a1a8f", // Indigo light
         "#4a3ab0", // Indigo lighter
@@ -108,7 +108,7 @@ export default function HeroAnimation() {
         centerY,
         rect.width * 0.5,
       );
-      gradient.addColorStop(0, "rgba(244, 143, 142, 0.06)"); // Coral
+      gradient.addColorStop(0, "rgba(111, 236, 6, 0.06)"); // Coral
       gradient.addColorStop(0.5, "rgba(18, 5, 87, 0.04)"); // Indigo
       gradient.addColorStop(1, "rgba(0, 0, 40, 0)"); // Abyss
       ctx.fillStyle = gradient;
@@ -196,7 +196,7 @@ export default function HeroAnimation() {
             ctx.beginPath();
             ctx.moveTo(p1.x, p1.y);
             ctx.lineTo(p2.x, p2.y);
-            ctx.strokeStyle = `rgba(244, 143, 142, ${0.12 * (1 - dist / 100)})`; // Coral
+            ctx.strokeStyle = `rgba(111, 236, 6, ${0.12 * (1 - dist / 100)})`; // Coral
             ctx.lineWidth = 0.5;
             ctx.stroke();
           }
@@ -224,13 +224,13 @@ export default function HeroAnimation() {
         style={{ display: "block" }}
       />
       {/* Floating accent elements - using designer colors */}
-      <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-[#f48f8e]/10 rounded-full blur-3xl animate-pulse" />
+      <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-[#6FEC06]/10 rounded-full blur-3xl animate-pulse" />
       <div
         className="absolute bottom-1/4 right-1/4 w-40 h-40 bg-[#120557]/20 rounded-full blur-3xl animate-pulse"
         style={{ animationDelay: "1s" }}
       />
       <div
-        className="absolute top-1/3 right-1/3 w-24 h-24 bg-[#f48f8e]/5 rounded-full blur-2xl animate-pulse"
+        className="absolute top-1/3 right-1/3 w-24 h-24 bg-[#6FEC06]/5 rounded-full blur-2xl animate-pulse"
         style={{ animationDelay: "2s" }}
       />
     </div>

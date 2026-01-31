@@ -43,8 +43,8 @@ function MessageBubble({
       className="absolute animate-fade-in-up"
       style={{ animationDuration: "0.3s" }}
     >
-      <div className="bg-[#120557]/90 backdrop-blur-sm border border-[#f48f8e]/30 rounded-lg px-3 py-2 text-xs max-w-[180px]">
-        <div className="flex items-center gap-1 text-[#f48f8e] mb-1">
+      <div className="bg-[#120557]/90 backdrop-blur-sm border border-[#6FEC06]/30 rounded-lg px-3 py-2 text-xs max-w-[180px]">
+        <div className="flex items-center gap-1 text-[#6FEC06] mb-1">
           <span className="font-medium">{from}</span>
           <ArrowRight className="w-3 h-3" />
           <span className="font-medium">{to}</span>
@@ -122,7 +122,7 @@ function ProtocolFeed() {
           <div
             className={`px-2 py-0.5 rounded text-[10px] font-bold ${
               activity.protocol === "MCP"
-                ? "bg-[#f48f8e]/20 text-[#f48f8e]"
+                ? "bg-[#6FEC06]/20 text-[#6FEC06]"
                 : "bg-[#4a3ab0]/30 text-[#4a3ab0]"
             }`}
           >
@@ -138,7 +138,7 @@ function ProtocolFeed() {
           {activity.status === "complete" ? (
             <CheckCircle2 className="w-3.5 h-3.5 text-[#10b981]" />
           ) : (
-            <Clock className="w-3.5 h-3.5 text-[#f48f8e] animate-pulse" />
+            <Clock className="w-3.5 h-3.5 text-[#6FEC06] animate-pulse" />
           )}
         </div>
       ))}
@@ -153,7 +153,7 @@ const networkNodes = [
   {
     icon: "👔",
     label: "CEO",
-    color: "#f48f8e",
+    color: "#6FEC06",
     svgX: 340,
     svgY: 200,
     cssTop: 50,
@@ -171,7 +171,7 @@ const networkNodes = [
   {
     icon: "📢",
     label: "CMO",
-    color: "#f7a8a7",
+    color: "#9FF24A",
     svgX: 130,
     svgY: 321.24,
     cssTop: 80.31,
@@ -189,7 +189,7 @@ const networkNodes = [
   {
     icon: "📊",
     label: "CFO",
-    color: "#f48f8e",
+    color: "#6FEC06",
     svgX: 130,
     svgY: 78.76,
     cssTop: 19.69,
@@ -231,18 +231,18 @@ function NetworkVisualization() {
     <div className="relative w-full aspect-square max-w-[400px] mx-auto">
       {/* Animated background rings */}
       <div className="absolute inset-0">
-        <div className="absolute inset-[5%] border border-[#f48f8e]/10 rounded-full animate-pulse" />
+        <div className="absolute inset-[5%] border border-[#6FEC06]/10 rounded-full animate-pulse" />
         <div className="absolute inset-[20%] border border-[#120557]/20 rounded-full" />
-        <div className="absolute inset-[35%] border border-[#f48f8e]/20 rounded-full" />
+        <div className="absolute inset-[35%] border border-[#6FEC06]/20 rounded-full" />
       </div>
 
       {/* Data flow particles */}
       <svg className="absolute inset-0 w-full h-full" viewBox="0 0 400 400">
         <defs>
           <linearGradient id="flowGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#f48f8e" stopOpacity="0" />
-            <stop offset="50%" stopColor="#f7a8a7" stopOpacity="1" />
-            <stop offset="100%" stopColor="#f48f8e" stopOpacity="0" />
+            <stop offset="0%" stopColor="#6FEC06" stopOpacity="0" />
+            <stop offset="50%" stopColor="#9FF24A" stopOpacity="1" />
+            <stop offset="100%" stopColor="#6FEC06" stopOpacity="0" />
           </linearGradient>
           <filter id="glow">
             <feGaussianBlur stdDeviation="2" result="coloredBlur" />
@@ -269,7 +269,7 @@ function NetworkVisualization() {
                 y1={y1}
                 x2={x2}
                 y2={y2}
-                stroke={isActive ? node.color : "rgba(244, 143, 142, 0.2)"}
+                stroke={isActive ? node.color : "rgba(111, 236, 6, 0.2)"}
                 strokeWidth={isActive ? 2 : 1}
                 filter={isActive ? "url(#glow)" : undefined}
                 className="transition-all duration-500"
@@ -300,7 +300,7 @@ function NetworkVisualization() {
               y1={fromNode.svgY}
               x2={toNode.svgX}
               y2={toNode.svgY}
-              stroke="rgba(244, 143, 142, 0.1)"
+              stroke="rgba(111, 236, 6, 0.1)"
               strokeWidth="1"
               strokeDasharray="4 4"
             />
@@ -312,7 +312,7 @@ function NetworkVisualization() {
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
         <div className="relative">
           <div
-            className="w-20 h-20 rounded-full bg-gradient-to-br from-[#f48f8e] via-[#f7a8a7] to-[#f48f8e] p-[2px] animate-spin"
+            className="w-20 h-20 rounded-full bg-gradient-to-br from-[#6FEC06] via-[#9FF24A] to-[#6FEC06] p-[2px] animate-spin"
             style={{ animationDuration: "8s" }}
           >
             <div className="w-full h-full rounded-full bg-[#000028] flex items-center justify-center">
@@ -321,7 +321,7 @@ function NetworkVisualization() {
           </div>
           {/* Pulse rings */}
           <div
-            className="absolute inset-0 rounded-full border-2 border-[#f48f8e]/50 animate-ping"
+            className="absolute inset-0 rounded-full border-2 border-[#6FEC06]/50 animate-ping"
             style={{ animationDuration: "2s" }}
           />
         </div>
@@ -341,8 +341,8 @@ function NetworkVisualization() {
           <div
             className={`relative w-16 h-16 rounded-2xl bg-[#000028] border-2 flex flex-col items-center justify-center transition-all duration-300 ${
               i === activeConnection
-                ? "border-[#f48f8e] shadow-lg shadow-[#f48f8e]/30 scale-110"
-                : "border-white/10 hover:border-[#f48f8e]/50"
+                ? "border-[#6FEC06] shadow-lg shadow-[#6FEC06]/30 scale-110"
+                : "border-white/10 hover:border-[#6FEC06]/50"
             }`}
           >
             <span className="text-2xl">{node.icon}</span>
@@ -376,10 +376,10 @@ function FeatureCard({
 }) {
   const colorClasses = {
     coral: {
-      bg: "bg-[#f48f8e]/10",
-      border: "border-[#f48f8e]/30 hover:border-[#f48f8e]/60",
-      icon: "text-[#f48f8e]",
-      glow: "group-hover:shadow-[#f48f8e]/20",
+      bg: "bg-[#6FEC06]/10",
+      border: "border-[#6FEC06]/30 hover:border-[#6FEC06]/60",
+      icon: "text-[#6FEC06]",
+      glow: "group-hover:shadow-[#6FEC06]/20",
     },
     indigo: {
       bg: "bg-[#120557]/30",
@@ -404,7 +404,7 @@ function FeatureCard({
     >
       {/* Background gradient on hover */}
       <div
-        className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-br from-[#f48f8e]/5 to-transparent`}
+        className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-br from-[#6FEC06]/5 to-transparent`}
       />
 
       <div className="relative">
@@ -414,7 +414,7 @@ function FeatureCard({
           <Icon className={`w-7 h-7 ${classes.icon}`} />
         </div>
 
-        <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-[#f48f8e] transition-colors">
+        <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-[#6FEC06] transition-colors">
           {title}
         </h3>
         <p className="text-white/60 text-sm leading-relaxed">{description}</p>
@@ -480,9 +480,9 @@ export default function CorporateNetwork() {
       className="py-32 px-6 relative overflow-hidden"
     >
       {/* Enhanced background effects */}
-      <div className="absolute top-0 left-0 w-[800px] h-[800px] bg-[#f48f8e]/5 rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute top-0 left-0 w-[800px] h-[800px] bg-[#6FEC06]/5 rounded-full blur-[150px] pointer-events-none" />
       <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-[#120557]/20 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#f48f8e]/3 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-[#6FEC06]/3 rounded-full blur-[100px] pointer-events-none" />
 
       <div className="max-w-7xl mx-auto">
         {/* Header */}
@@ -491,9 +491,9 @@ export default function CorporateNetwork() {
             isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
           }`}
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#f48f8e]/30 bg-[#f48f8e]/10 mb-6">
-            <Network className="w-4 h-4 text-[#f48f8e]" />
-            <span className="text-sm text-[#f48f8e]">Corporate Network</span>
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#6FEC06]/30 bg-[#6FEC06]/10 mb-6">
+            <Network className="w-4 h-4 text-[#6FEC06]" />
+            <span className="text-sm text-[#6FEC06]">Corporate Network</span>
           </div>
 
           <h2 className="text-4xl md:text-6xl font-bold mb-6">
@@ -501,7 +501,7 @@ export default function CorporateNetwork() {
           </h2>
           <p className="text-xl text-white/60 max-w-3xl mx-auto leading-relaxed">
             Agents and companies communicate through{" "}
-            <span className="text-[#f48f8e] font-medium">MCP</span> (Model
+            <span className="text-[#6FEC06] font-medium">MCP</span> (Model
             Context Protocol) and{" "}
             <span className="text-[#4a3ab0] font-medium">A2A</span>{" "}
             (Agent-to-Agent) protocols, creating an open market for AI
@@ -541,7 +541,7 @@ export default function CorporateNetwork() {
             <div className="gradient-border p-5">
               <div className="flex items-center justify-between mb-4">
                 <h4 className="font-semibold text-white flex items-center gap-2">
-                  <Send className="w-4 h-4 text-[#f48f8e]" />
+                  <Send className="w-4 h-4 text-[#6FEC06]" />
                   Live Protocol Activity
                 </h4>
                 <div className="flex items-center gap-2">

@@ -58,12 +58,12 @@ function StepCard({
 
   const colorClasses = {
     coral: {
-      bg: "bg-[#f48f8e]",
-      bgLight: "bg-[#f48f8e]/20",
-      border: "border-[#f48f8e]",
-      text: "text-[#f48f8e]",
-      glow: "shadow-[#f48f8e]/50",
-      gradient: "from-[#f48f8e] to-[#f7a8a7]",
+      bg: "bg-[#6FEC06]",
+      bgLight: "bg-[#6FEC06]/20",
+      border: "border-[#6FEC06]",
+      text: "text-[#6FEC06]",
+      glow: "shadow-[#6FEC06]/50",
+      gradient: "from-[#6FEC06] to-[#9FF24A]",
     },
     indigo: {
       bg: "bg-[#4a3ab0]",
@@ -201,7 +201,7 @@ export default function HowItWorks() {
       className="py-32 px-6 relative overflow-hidden"
     >
       {/* Background effects */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[600px] bg-[#f48f8e]/5 rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[600px] bg-[#6FEC06]/5 rounded-full blur-[150px] pointer-events-none" />
 
       <div className="max-w-6xl mx-auto">
         {/* Header */}
@@ -210,9 +210,9 @@ export default function HowItWorks() {
             isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
           }`}
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#f48f8e]/30 bg-[#f48f8e]/10 mb-6">
-            <Sparkles className="w-4 h-4 text-[#f48f8e]" />
-            <span className="text-sm text-[#f48f8e]">How It Works</span>
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#6FEC06]/30 bg-[#6FEC06]/10 mb-6">
+            <Sparkles className="w-4 h-4 text-[#6FEC06]" />
+            <span className="text-sm text-[#6FEC06]">How It Works</span>
           </div>
 
           <h2 className="text-4xl md:text-5xl font-bold mb-4">
@@ -232,12 +232,12 @@ export default function HowItWorks() {
             <div className="absolute inset-0 bg-white/10 rounded-full" />
             {/* Animated progress line */}
             <div
-              className="absolute top-0 left-0 h-full bg-gradient-to-r from-[#f48f8e] via-[#f7a8a7] to-[#10b981] rounded-full transition-all duration-500 ease-out"
+              className="absolute top-0 left-0 h-full bg-gradient-to-r from-[#6FEC06] via-[#9FF24A] to-[#10b981] rounded-full transition-all duration-500 ease-out"
               style={{ width: `${((activeStep + 1) / steps.length) * 100}%` }}
             />
             {/* Glowing dot at end */}
             <div
-              className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg shadow-[#f48f8e]/50 transition-all duration-500 ease-out"
+              className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg shadow-[#6FEC06]/50 transition-all duration-500 ease-out"
               style={{
                 left: `calc(${((activeStep + 1) / steps.length) * 100}% - 8px)`,
               }}
@@ -251,7 +251,7 @@ export default function HowItWorks() {
             {steps.map((step, index) => {
               const isPast = activeStep >= index;
               const colorClasses = {
-                coral: "border-[#f48f8e] bg-[#f48f8e]",
+                coral: "border-[#6FEC06] bg-[#6FEC06]",
                 indigo: "border-[#4a3ab0] bg-[#4a3ab0]",
                 green: "border-[#10b981] bg-[#10b981]",
               };
@@ -316,7 +316,7 @@ export default function HowItWorks() {
               onClick={() => setActiveStep(index)}
               className={`w-2 h-2 rounded-full transition-all duration-300 ${
                 activeStep === index
-                  ? "w-8 bg-[#f48f8e]"
+                  ? "w-8 bg-[#6FEC06]"
                   : "bg-white/20 hover:bg-white/40"
               }`}
             />

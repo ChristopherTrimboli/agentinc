@@ -41,7 +41,7 @@ export default function LoginButton({
       onClick={login}
       className={`${
         fullWidth ? "w-full" : ""
-      } px-6 py-2.5 bg-gradient-to-r from-[#f48f8e] to-[#120557] hover:from-[#f7a8a7] hover:to-[#2a1a8f] rounded-xl font-medium transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-[#f48f8e]/25 hover:shadow-[#f48f8e]/40 ${className}`}
+      } px-6 py-2.5 bg-gradient-to-r from-[#6FEC06] to-[#120557] hover:from-[#9FF24A] hover:to-[#2a1a8f] rounded-xl font-medium transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-[#6FEC06]/25 hover:shadow-[#6FEC06]/40 ${className}`}
     >
       <LogIn className="w-4 h-4" />
       Login

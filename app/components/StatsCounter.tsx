@@ -68,7 +68,7 @@ export default function StatsCounter() {
         >
           <div className="text-xl md:text-2xl font-bold mb-1 flex items-center justify-center">
             {stat.prefix && (
-              <span style={{ color: "#f48f8e" }}>{stat.prefix}</span>
+              <span style={{ color: "#6FEC06" }}>{stat.prefix}</span>
             )}
             <SlotCounter
               value={formatValue(stat)}
@@ -79,7 +79,7 @@ export default function StatsCounter() {
               speed={1.4}
             />
             {stat.suffix && (
-              <span style={{ color: "#f48f8e" }}>{stat.suffix}</span>
+              <span style={{ color: "#6FEC06" }}>{stat.suffix}</span>
             )}
           </div>
           <div className="text-white/60 text-sm">{stat.label}</div>
