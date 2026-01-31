@@ -47,6 +47,10 @@ model Agent {
   // Rarity/tier
   rarity        String?  // common, uncommon, rare, epic, legendary
   
+  // Enabled toolsets (e.g., "moltbook", "github")
+  // Different from 'skills' trait which is conceptual abilities
+  enabledSkills String[] @default([])
+  
   // Token launch fields (Bags API)
   tokenMint       String?  @unique // Solana token mint address
   tokenSymbol     String?  // Token symbol (e.g., "$AGNT")

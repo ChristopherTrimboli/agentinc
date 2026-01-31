@@ -1,15 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
+import { generateImage } from "ai";
 import { PrivyClient } from "@privy-io/node";
 import { generateImagePrompt, AgentTraitData } from "@/lib/agentTraits";
 
 const privy = new PrivyClient({
   appId: process.env.NEXT_PUBLIC_PRIVY_APP_ID!,
   appSecret: process.env.PRIVY_APP_SECRET!,
-});
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
 });
 
 // Helper to verify auth
@@ -43,42 +39,28 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check if OpenAI API key is configured
-    if (!process.env.OPENAI_API_KEY) {
-      return NextResponse.json(
-        { error: "OpenAI API key not configured" },
-        { status: 500 }
-      );
-    }
-
     // Generate the image prompt based on agent traits
     const prompt = generateImagePrompt(name, traits);
 
-    // Generate image using GPT-5 chat with image generation
-    const response = await openai.responses.create({
-      model: "openai/gpt-5-chat",
-      input: `Generate a high-quality image based on this description: ${prompt}`,
-      tools: [{ type: "image_generation" }],
+    // Generate image using AI SDK with gateway model
+    const result = await generateImage({
+      model: "openai/dall-e-3",
+      prompt,
+      size: "1024x1024",
+      n: 1,
     });
 
-    // Extract image URL from response
-    let imageUrl: string | undefined;
-    
-    if (response.output) {
-      for (const item of response.output) {
-        if (item.type === "image_generation_call" && item.result) {
-          imageUrl = item.result;
-          break;
-        }
-      }
-    }
-
-    if (!imageUrl) {
+    // Get the generated image
+    const image = result.images[0];
+    if (!image) {
       return NextResponse.json(
         { error: "Failed to generate image" },
         { status: 500 }
       );
     }
+
+    // Convert to data URL or use the base64 directly
+    const imageUrl = `data:image/png;base64,${image.base64}`;
 
     return NextResponse.json({
       imageUrl,
@@ -87,20 +69,12 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error("Error generating image:", error);
     
-    // Handle specific OpenAI errors
-    if (error instanceof OpenAI.APIError) {
-      if (error.status === 400) {
-        return NextResponse.json(
-          { error: "Invalid image generation request" },
-          { status: 400 }
-        );
-      }
-      if (error.status === 429) {
-        return NextResponse.json(
-          { error: "Rate limit exceeded. Please try again later." },
-          { status: 429 }
-        );
-      }
+    // Handle rate limit errors
+    if (error instanceof Error && error.message.includes("429")) {
+      return NextResponse.json(
+        { error: "Rate limit exceeded. Please try again later." },
+        { status: 429 }
+      );
     }
 
     return NextResponse.json(

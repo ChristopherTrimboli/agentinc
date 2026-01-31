@@ -32,7 +32,6 @@ const navItems = [
     href: "/dashboard/mint",
     label: "Mint Agent",
     icon: Sparkles,
-    highlight: true,
   },
   {
     href: "/dashboard/incorporate",
@@ -123,9 +122,7 @@ export default function Sidebar() {
                 className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 relative ${
                   active
                     ? "bg-[#f48f8e]/15 text-white"
-                    : item.highlight
-                      ? "text-[#f48f8e] hover:bg-[#f48f8e]/10 hover:text-[#f7a8a7]"
-                      : "text-white/60 hover:bg-[#120557]/30 hover:text-white"
+                    : "text-white/60 hover:bg-[#120557]/30 hover:text-white"
                 }`}
               >
                 {/* Active indicator */}
@@ -136,14 +133,8 @@ export default function Sidebar() {
                 <Icon className={`w-5 h-5 flex-shrink-0 ${active ? "text-[#f48f8e]" : ""}`} />
                 
                 {!isCollapsed && (
-                  <span className={`font-medium text-sm ${item.highlight && !active ? "text-[#f48f8e]" : ""}`}>
+                  <span className="font-medium text-sm">
                     {item.label}
-                  </span>
-                )}
-                
-                {item.highlight && !isCollapsed && (
-                  <span className="ml-auto px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-[#f48f8e]/20 text-[#f48f8e] rounded">
-                    New
                   </span>
                 )}
               </Link>

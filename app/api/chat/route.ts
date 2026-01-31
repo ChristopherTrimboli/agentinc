@@ -1,6 +1,9 @@
-import { streamText, convertToModelMessages, type UIMessage } from "ai";
+import { streamText, convertToModelMessages, stepCountIs, type UIMessage } from "ai";
 import { PrivyClient } from "@privy-io/node";
 import prisma from "@/lib/prisma";
+import { getSkillTools, getSkillConfigsFromEnv, skillRegistry } from "@/lib/skills";
+import { getAllTools } from "@/lib/tools";
+import type { AvailableSkill } from "@/lib/skills";
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -37,13 +40,18 @@ export async function POST(req: Request) {
     });
   }
 
-  const { messages, agentId }: { messages: UIMessage[]; agentId?: string } =
-    await req.json();
+  const { messages, agentId, enabledSkills, includeTools = true }: { 
+    messages: UIMessage[]; 
+    agentId?: string;
+    enabledSkills?: AvailableSkill[];
+    includeTools?: boolean;
+  } = await req.json();
 
   let systemPrompt = DEFAULT_SYSTEM_PROMPT;
   let agentName = "Agent Inc. Assistant";
+  let agentSkills: string[] = [];
 
-  // If agentId is provided, fetch the agent's system prompt
+  // If agentId is provided, fetch the agent's system prompt and skills
   if (agentId) {
     try {
       const agent = await prisma.agent.findUnique({
@@ -53,6 +61,7 @@ export async function POST(req: Request) {
           name: true,
           isPublic: true,
           createdById: true,
+          enabledSkills: true,
         },
       });
 
@@ -69,17 +78,47 @@ export async function POST(req: Request) {
         }
         systemPrompt = agent.systemPrompt;
         agentName = agent.name;
+        
+        // Get enabled skills from agent config
+        if (agent.enabledSkills && agent.enabledSkills.length > 0) {
+          agentSkills = agent.enabledSkills;
+        }
       }
     } catch (error) {
       console.error("Failed to fetch agent:", error);
-      // Fall back to default prompt
     }
   }
 
+  // Determine which skills to enable
+  const skillsToEnable = enabledSkills || agentSkills;
+  
+  // Build tools from enabled skills
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let tools: Record<string, any> = {};
+  
+  // Add skill tools if any skills are enabled
+  if (skillsToEnable.length > 0) {
+    const configs = getSkillConfigsFromEnv();
+    tools = { ...tools, ...getSkillTools(skillsToEnable, configs) };
+    
+    // Append skill-specific system prompts
+    const skillPrompts = skillRegistry.getSystemPrompts(skillsToEnable);
+    if (skillPrompts) {
+      systemPrompt = `${systemPrompt}\n\n${skillPrompts}`;
+    }
+  }
+
+  // Add basic tools (weather, etc.) if requested
+  if (includeTools) {
+    tools = { ...tools, ...getAllTools() };
+  }
+
   const result = streamText({
-    model: "openai/gpt-4o",
+    model: "anthropic/claude-haiku-4-5",
     system: systemPrompt,
     messages: await convertToModelMessages(messages),
+    tools: Object.keys(tools).length > 0 ? tools : undefined,
+    stopWhen: stepCountIs(5),
   });
 
   return result.toUIMessageStreamResponse({
