@@ -317,7 +317,7 @@ function ChatContent() {
           {/* Header */}
           <div className="text-center mb-6 shrink-0">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-coral/30 bg-coral/10 mb-4 backdrop-blur-sm">
-              <Sparkles className="w-4 h-4 text-coral animate-pulse" />
+              <Bot className="w-4 h-4 text-coral" />
               <span className="text-sm text-coral">
                 {agentInfo ? "Custom Agent" : "AI Assistant"}
               </span>
