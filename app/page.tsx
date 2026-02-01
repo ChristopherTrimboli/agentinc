@@ -9,7 +9,9 @@ import {
   Building2,
   TrendingUp,
   Globe,
+  ArrowRight,
 } from "lucide-react";
+import Link from "next/link";
 import Navigation from "./components/Navigation";
 import HeroAnimation from "./components/HeroAnimation";
 import StatsCounter from "./components/StatsCounter";
@@ -75,13 +77,13 @@ export default function Home() {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16 animate-fade-in-up animate-delay-300">
-            <button
-              disabled
-              className="group w-full sm:w-auto px-8 py-4 bg-[#120557]/50 rounded-full font-semibold text-lg flex items-center justify-center gap-3 cursor-not-allowed opacity-70 backdrop-blur-sm"
+            <Link
+              href="/dashboard"
+              className="group w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-[#6FEC06] to-[#4a9f10] rounded-full font-semibold text-lg text-black flex items-center justify-center gap-3 hover:opacity-90 transition-all backdrop-blur-sm shadow-lg shadow-[#6FEC06]/25 hover:shadow-[#6FEC06]/40"
             >
-              Explore Agents
-              <SoonBadge />
-            </button>
+              Enter App
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </Link>
             <a
               href="https://x.com/agentincdotfun"
               target="_blank"
