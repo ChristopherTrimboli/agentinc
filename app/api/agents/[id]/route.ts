@@ -36,6 +36,17 @@ export async function GET(req: NextRequest, context: RouteContext) {
         createdBy: {
           select: { id: true, email: true },
         },
+        corporation: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            logo: true,
+            color: true,
+            tokenMint: true,
+            tokenSymbol: true,
+          },
+        },
       },
     });
 

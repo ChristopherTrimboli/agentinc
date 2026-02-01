@@ -59,9 +59,14 @@ model Agent {
   launchSignature String?  // Transaction signature
   launchedAt      DateTime? // When the token was launched
 
+  // Corporation relation (optional - agent can belong to a corporation)
+  corporationId String?
+  corporation   Corporation? @relation(fields: [corporationId], references: [id], onDelete: SetNull)
+
   @@index([createdById])
   @@index([tokenMint])
   @@index([isMinted])
+  @@index([corporationId])
 }
 
 // Swarm visualization models
@@ -86,7 +91,8 @@ model Corporation {
   launchedAt      DateTime? // When the token was launched
 
   // Relations
-  agents SwarmAgent[]
+  swarmAgents SwarmAgent[]
+  agents      Agent[]
 
   @@index([name])
   @@index([tokenMint])

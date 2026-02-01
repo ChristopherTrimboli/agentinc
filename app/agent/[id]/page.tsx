@@ -22,6 +22,16 @@ import {
   Code,
 } from "lucide-react";
 
+interface Corporation {
+  id: string;
+  name: string;
+  description: string | null;
+  logo: string | null;
+  color: string | null;
+  tokenMint: string | null;
+  tokenSymbol: string | null;
+}
+
 interface Agent {
   id: string;
   name: string;
@@ -44,6 +54,7 @@ interface Agent {
     id: string;
     email: string | null;
   };
+  corporation: Corporation | null;
 }
 
 // Rarity colors matching the design system
@@ -436,6 +447,81 @@ export default function AgentProfilePage({
                         </span>
                       ))}
                     </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Corporation Section */}
+            {agent.corporation && (
+              <div className="p-6 rounded-2xl bg-[#0a0520] border border-[#A855F7]/20">
+                <div className="flex items-center gap-2 mb-4">
+                  <Building2 className="w-5 h-5 text-[#A855F7]" />
+                  <h2 className="text-lg font-semibold font-display">
+                    Part of Corporation
+                  </h2>
+                </div>
+                <Link
+                  href={`/incorporate?id=${agent.corporation.id}`}
+                  className="group flex items-center gap-4 p-4 rounded-xl bg-[#120557]/30 border border-[#A855F7]/20 hover:border-[#A855F7]/40 transition-all"
+                >
+                  {/* Corporation Logo */}
+                  <div
+                    className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl shrink-0"
+                    style={{
+                      backgroundColor: agent.corporation.color
+                        ? `${agent.corporation.color}20`
+                        : "rgba(168, 85, 247, 0.1)",
+                      borderColor: agent.corporation.color || "#A855F7",
+                      borderWidth: "1px",
+                    }}
+                  >
+                    {agent.corporation.logo || "🏢"}
+                  </div>
+                  {/* Corporation Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-bold text-white group-hover:text-[#A855F7] transition-colors truncate">
+                        {agent.corporation.name}
+                      </h3>
+                      {agent.corporation.tokenSymbol && (
+                        <span className="px-2 py-0.5 rounded-full bg-[#A855F7]/20 text-[#A855F7] text-xs font-semibold">
+                          {agent.corporation.tokenSymbol}
+                        </span>
+                      )}
+                    </div>
+                    {agent.corporation.description && (
+                      <p className="text-sm text-white/50 line-clamp-2">
+                        {agent.corporation.description}
+                      </p>
+                    )}
+                  </div>
+                  {/* Arrow */}
+                  <ExternalLink className="w-5 h-5 text-white/40 group-hover:text-[#A855F7] transition-colors shrink-0" />
+                </Link>
+                {/* Corporation Token Link */}
+                {agent.corporation.tokenMint && (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <a
+                      href={`https://bags.fm/bag/${agent.corporation.tokenMint}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-4 py-2 bg-[#A855F7]/10 border border-[#A855F7]/30 rounded-xl text-[#A855F7] text-sm font-medium hover:bg-[#A855F7]/20 transition-all"
+                    >
+                      <Zap className="w-4 h-4" />
+                      Buy {agent.corporation.tokenSymbol || "Corp Token"}
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                    <a
+                      href={`https://dexscreener.com/solana/${agent.corporation.tokenMint}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white/70 text-sm font-medium hover:bg-white/10 transition-all"
+                    >
+                      <TrendingUp className="w-4 h-4" />
+                      View Chart
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
                   </div>
                 )}
               </div>
