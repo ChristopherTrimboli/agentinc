@@ -5,13 +5,14 @@ import { Building2, Home, Bot, Sparkles, Network, MessageSquare, ChevronLeft } f
 
 // Skeleton sidebar that mirrors the real sidebar structure
 function SidebarSkeleton() {
+  // Deterministic widths to avoid hydration mismatch (no Math.random())
   const navItems = [
-    { icon: Home },
-    { icon: Bot },
-    { icon: Sparkles },
-    { icon: Building2 },
-    { icon: Network },
-    { icon: MessageSquare },
+    { icon: Home, width: 72 },
+    { icon: Bot, width: 85 },
+    { icon: Sparkles, width: 68 },
+    { icon: Building2, width: 78 },
+    { icon: Network, width: 65 },
+    { icon: MessageSquare, width: 82 },
   ];
 
   return (
@@ -36,7 +37,7 @@ function SidebarSkeleton() {
                 className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
               >
                 <Icon className="w-5 h-5 text-white/20 flex-shrink-0" />
-                <div className="h-4 bg-white/10 rounded animate-pulse" style={{ width: `${60 + Math.random() * 40}%` }} />
+                <div className="h-4 bg-white/10 rounded animate-pulse" style={{ width: `${item.width}%` }} />
               </div>
             );
           })}

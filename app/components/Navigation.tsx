@@ -6,7 +6,6 @@ import LoginButton from "./LoginButton";
 
 const navLinks = [
   { href: "/dashboard", label: "Launch App", highlight: true },
-  { href: "/tokenomics", label: "Tokenomics" },
 ];
 
 export default function Navigation() {

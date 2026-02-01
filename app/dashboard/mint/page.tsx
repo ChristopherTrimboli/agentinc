@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { usePrivy, useIdentityToken } from "@privy-io/react-auth";
 import { useWallets, useSignTransaction } from "@privy-io/react-auth/solana";
 import {
-  Sparkles,
   Shuffle,
   Wand2,
   Rocket,
@@ -21,6 +20,7 @@ import {
   RefreshCw,
   Lock,
   Unlock,
+  Wallet,
 } from "lucide-react";
 import {
   generateRandomAgent,
@@ -33,6 +33,9 @@ import {
   getSpecialAbilityById,
   AgentTraitData,
 } from "@/lib/agentTraits";
+
+// Balance is fetched via server route to keep API key private
+const MIN_SOL_FOR_FEES = 0.01; // Minimum SOL needed for transaction fees
 
 interface LaunchStep {
   id: string;
@@ -189,12 +192,44 @@ export default function MintAgentPage() {
   const [launchError, setLaunchError] = useState("");
   const [launchSteps, setLaunchSteps] = useState<LaunchStep[]>([]);
   const [launchResult, setLaunchResult] = useState<{ tokenMint: string; signature: string; agentId: string } | null>(null);
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [isLoadingBalance, setIsLoadingBalance] = useState(false);
 
+  // Get the embedded Privy wallet for signing
   const embeddedWallet = useMemo(() => wallets.find((w) => w.standardWallet?.name === "Privy"), [wallets]);
   const walletAddress = useMemo(() => {
     const solanaWallet = user?.linkedAccounts?.find((account) => account.type === "wallet" && account.chainType === "solana");
     return solanaWallet && "address" in solanaWallet ? solanaWallet.address : null;
   }, [user?.linkedAccounts]);
+
+  // Fetch wallet balance via server route (uses authenticated RPC)
+  const fetchBalance = useCallback(async () => {
+    if (!walletAddress || !identityToken) return;
+    setIsLoadingBalance(true);
+    try {
+      const response = await fetch("/api/agents/mint/balance", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "privy-id-token": identityToken,
+        },
+        body: JSON.stringify({ wallet: walletAddress }),
+      });
+      const data = await response.json();
+      if (data.balanceSol !== undefined) {
+        setWalletBalance(data.balanceSol);
+      }
+    } catch (error) {
+      console.error("Failed to fetch balance:", error);
+    } finally {
+      setIsLoadingBalance(false);
+    }
+  }, [walletAddress, identityToken]);
+
+  // Fetch balance when wallet address changes
+  useEffect(() => {
+    fetchBalance();
+  }, [fetchBalance]);
 
   useEffect(() => {
     if (!agentTraits) {
@@ -277,10 +312,17 @@ export default function MintAgentPage() {
       return;
     }
 
+    // Check wallet balance
+    const requiredBalance = initialBuy + MIN_SOL_FOR_FEES;
+    if (walletBalance !== null && walletBalance < requiredBalance) {
+      setLaunchError(`Insufficient balance. You need at least ${requiredBalance.toFixed(4)} SOL (${initialBuy} SOL initial buy + ~${MIN_SOL_FOR_FEES} SOL for fees). Current balance: ${walletBalance.toFixed(4)} SOL`);
+      return;
+    }
+
     setLaunchSteps([
       { id: "metadata", label: "Creating metadata", status: "pending" },
       { id: "feeShare", label: "Fee config", status: "pending" },
-      { id: "sign", label: "Signing", status: "pending" },
+      { id: "sign", label: "Signing transaction", status: "pending" },
       { id: "broadcast", label: "Broadcasting", status: "pending" },
       { id: "save", label: "Saving agent", status: "pending" },
     ]);
@@ -312,16 +354,26 @@ export default function MintAgentPage() {
       if (!feeShareResponse.ok) throw new Error((await feeShareResponse.json()).error || "Failed to create fee config");
       const feeShareData = await feeShareResponse.json();
 
+      // Sign and send fee share transactions (user signs via Privy modal)
       if (feeShareData.transactions?.length > 0) {
-        for (const txData of feeShareData.transactions) {
+        for (let i = 0; i < feeShareData.transactions.length; i++) {
+          const txData = feeShareData.transactions[i];
+          // Decode base64 to bytes for signing
           const txBytes = Uint8Array.from(atob(txData.transaction), (c) => c.charCodeAt(0));
-          const signResult = await signTransaction({ transaction: txBytes, wallet: embeddedWallet });
+          // Sign with user's embedded wallet
+          const signResult = await signTransaction({ transaction: txBytes, wallet: embeddedWallet! });
+          // Encode signed transaction back to base64 for server
           const signedTxBase64 = btoa(String.fromCharCode(...new Uint8Array(signResult.signedTransaction)));
-          await fetch("/api/agents/mint/send-transaction", {
+          // Send signed transaction to server for Jito broadcast
+          const sendResponse = await fetch("/api/agents/mint/send-transaction", {
             method: "POST",
             headers: { "Content-Type": "application/json", "privy-id-token": identityToken },
             body: JSON.stringify({ signedTransaction: signedTxBase64 }),
           });
+          if (!sendResponse.ok) {
+            const errorData = await sendResponse.json().catch(() => ({}));
+            throw new Error(errorData.error || `Failed to send fee config transaction ${i + 1}`);
+          }
         }
       }
       updateStep("feeShare", "complete");
@@ -340,11 +392,13 @@ export default function MintAgentPage() {
       });
       if (!launchTxResponse.ok) throw new Error((await launchTxResponse.json()).error || "Failed to create transaction");
       const launchTxData = await launchTxResponse.json();
+      // Sign the launch transaction with user's wallet
       const launchTxBytes = Uint8Array.from(atob(launchTxData.transaction), (c) => c.charCodeAt(0));
-      const signResult = await signTransaction({ transaction: launchTxBytes, wallet: embeddedWallet });
+      const signResult = await signTransaction({ transaction: launchTxBytes, wallet: embeddedWallet! });
       const signedLaunchTxBase64 = btoa(String.fromCharCode(...new Uint8Array(signResult.signedTransaction)));
       updateStep("sign", "complete");
 
+      // Broadcast signed transaction via server (uses Jito for priority)
       updateStep("broadcast", "loading");
       const broadcastResponse = await fetch("/api/agents/mint/send-transaction", {
         method: "POST",
@@ -391,7 +445,10 @@ export default function MintAgentPage() {
 
   const canProceedToStep1 = agentTraits !== null && agentName.trim().length > 0;
   const canProceedToStep2 = canProceedToStep1 && imageUrl.length > 0;
-  const canLaunch = canProceedToStep2 && tokenSymbol.trim().length > 0 && walletAddress;
+  const initialBuy = parseFloat(initialBuyAmount) || 0;
+  const requiredBalance = initialBuy + MIN_SOL_FOR_FEES;
+  const hasEnoughBalance = walletBalance === null || walletBalance >= requiredBalance;
+  const canLaunch = canProceedToStep2 && tokenSymbol.trim().length > 0 && walletAddress && hasEnoughBalance;
 
   const steps = [
     { title: "Randomize", icon: <Shuffle className="w-4 h-4" /> },
@@ -697,7 +754,6 @@ export default function MintAgentPage() {
                     </div>
                   )}
                 </div>
-                <p className="text-[10px] text-gray-500 text-center">Powered by DALL-E based on agent traits</p>
               </div>
 
               <div className="flex justify-between">
@@ -744,11 +800,36 @@ export default function MintAgentPage() {
                   </div>
                   {walletAddress && (
                     <div>
-                      <label className="block text-[10px] uppercase tracking-wider text-gray-500 mb-1.5 font-semibold">Launch Wallet</label>
-                      <div className="flex items-center gap-2 px-3 py-2 bg-gray-800/70 border border-gray-700/50 rounded-lg">
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                        <span className="font-mono text-xs text-gray-300">{walletAddress.slice(0, 6)}...{walletAddress.slice(-6)}</span>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold">Launch Wallet</label>
+                        <button onClick={fetchBalance} disabled={isLoadingBalance} className="text-[10px] text-purple-400 hover:text-purple-300 flex items-center gap-1">
+                          <RefreshCw className={`w-3 h-3 ${isLoadingBalance ? "animate-spin" : ""}`} />
+                          Refresh
+                        </button>
                       </div>
+                      <div className="flex items-center justify-between px-3 py-2 bg-gray-800/70 border border-gray-700/50 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <Wallet className="w-4 h-4 text-gray-500" />
+                          <span className="font-mono text-xs text-gray-300">{walletAddress.slice(0, 6)}...{walletAddress.slice(-6)}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          {isLoadingBalance ? (
+                            <Loader2 className="w-3 h-3 animate-spin text-gray-500" />
+                          ) : walletBalance !== null ? (
+                            <span className={`text-xs font-semibold ${walletBalance >= requiredBalance ? "text-emerald-400" : "text-red-400"}`}>
+                              {walletBalance.toFixed(4)} SOL
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-500">--</span>
+                          )}
+                        </div>
+                      </div>
+                      {walletBalance !== null && walletBalance < requiredBalance && (
+                        <p className="mt-1.5 text-[10px] text-red-400 flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" />
+                          Need at least {requiredBalance.toFixed(4)} SOL ({initialBuy} + ~{MIN_SOL_FOR_FEES} fees)
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>

@@ -50,6 +50,9 @@ interface LaunchStep {
   error?: string;
 }
 
+// Estimated transaction fees (in SOL) for minting process
+const ESTIMATED_TX_FEES = 0.02; // ~0.02 SOL for multiple transactions
+
 // Animated trait pill component
 function TraitPill({
   icon,
@@ -540,7 +543,10 @@ export default function MintAgentPage() {
       return;
     }
 
+    const requiredSol = initialBuy + ESTIMATED_TX_FEES;
+
     setLaunchSteps([
+      { id: "balance", label: `Verifying ${requiredSol.toFixed(3)} SOL`, status: "pending" },
       { id: "metadata", label: "Creating metadata", status: "pending" },
       { id: "feeShare", label: "Fee config", status: "pending" },
       { id: "sign", label: "Signing", status: "pending" },
@@ -551,6 +557,34 @@ export default function MintAgentPage() {
     setIsLaunching(true);
 
     try {
+      // Step 0: Check wallet balance before proceeding
+      updateStep("balance", "loading");
+      
+      // Fetch balance via backend API (avoids CORS issues)
+      const balanceResponse = await fetch("/api/agents/mint/balance", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "privy-id-token": identityToken,
+        },
+        body: JSON.stringify({ wallet: walletAddress }),
+      });
+
+      if (!balanceResponse.ok) {
+        throw new Error("Failed to check wallet balance");
+      }
+
+      const balanceData = await balanceResponse.json();
+      const balanceSol = balanceData.balanceSol || 0;
+
+      if (balanceSol < requiredSol) {
+        throw new Error(
+          `Insufficient balance. You have ${balanceSol.toFixed(4)} SOL but need at least ${requiredSol.toFixed(4)} SOL (${initialBuy} SOL initial buy + ~${ESTIMATED_TX_FEES} SOL for fees)`
+        );
+      }
+
+      updateStep("balance", "complete");
+
       // Step 1: Create metadata
       updateStep("metadata", "loading");
       const metadataResponse = await fetch("/api/agents/mint/metadata", {
@@ -589,6 +623,29 @@ export default function MintAgentPage() {
       }
       const feeShareData = await feeShareResponse.json();
 
+      // Handle LUT transactions if needed (for >15 fee claimers)
+      if (feeShareData.lutTransactions?.length > 0) {
+        console.log(`[Mint] Processing ${feeShareData.lutTransactions.length} LUT transactions...`);
+        
+        for (const lutTx of feeShareData.lutTransactions) {
+          const txBytes = Uint8Array.from(atob(lutTx.transaction), (c) => c.charCodeAt(0));
+          const signResult = await signTransaction({ transaction: txBytes, wallet: embeddedWallet });
+          const signedTxBase64 = btoa(String.fromCharCode(...new Uint8Array(signResult.signedTransaction)));
+          
+          await fetch("/api/agents/mint/send-transaction", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "privy-id-token": identityToken },
+            body: JSON.stringify({ signedTransaction: signedTxBase64 }),
+          });
+
+          // Wait between LUT creation and extend transactions (Solana requires 1 slot)
+          if (lutTx.type === "lut_creation") {
+            console.log("[Mint] Waiting for slot after LUT creation...");
+            await new Promise((resolve) => setTimeout(resolve, 2000)); // ~2 seconds for 1 slot
+          }
+        }
+      }
+
       // Sign any fee share transactions
       if (feeShareData.transactions?.length > 0) {
         for (const txData of feeShareData.transactions) {
@@ -600,6 +657,42 @@ export default function MintAgentPage() {
             headers: { "Content-Type": "application/json", "privy-id-token": identityToken },
             body: JSON.stringify({ signedTransaction: signedTxBase64 }),
           });
+        }
+      }
+
+      // Sign and send any fee share bundles with Jito tips (tip included in bundle from backend)
+      if (feeShareData.bundles?.length > 0) {
+        for (const bundle of feeShareData.bundles) {
+          // Sign all bundle transactions (tip transaction is first if present)
+          const signedBundleTxs: string[] = [];
+          
+          for (const txData of bundle) {
+            const txBytes = Uint8Array.from(atob(txData.transaction), (c) => c.charCodeAt(0));
+            const signResult = await signTransaction({ transaction: txBytes, wallet: embeddedWallet });
+            signedBundleTxs.push(btoa(String.fromCharCode(...new Uint8Array(signResult.signedTransaction))));
+          }
+
+          // Send bundle via Jito
+          const bundleResponse = await fetch("/api/agents/mint/send-bundle", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "privy-id-token": identityToken },
+            body: JSON.stringify({ signedTransactions: signedBundleTxs }),
+          });
+
+          if (!bundleResponse.ok) {
+            // Fallback to sending individually if bundle fails (skip tip transaction)
+            console.log("[Mint] Bundle submission failed, falling back to individual transactions...");
+            for (let i = 0; i < bundle.length; i++) {
+              // Skip tip transaction in fallback mode
+              if (bundle[i].isTip) continue;
+              
+              await fetch("/api/agents/mint/send-transaction", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "privy-id-token": identityToken },
+                body: JSON.stringify({ signedTransaction: signedBundleTxs[i] }),
+              });
+            }
+          }
         }
       }
       updateStep("feeShare", "complete");
@@ -1314,9 +1407,6 @@ export default function MintAgentPage() {
                       )}
                     </div>
 
-                    <p className="text-[10px] text-gray-500 text-center">
-                      Powered by DALL-E based on agent traits
-                    </p>
                   </div>
 
                   {/* Navigation */}

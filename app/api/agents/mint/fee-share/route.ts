@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PrivyClient } from "@privy-io/node";
+import { 
+  BagsSDK, 
+  BAGS_FEE_SHARE_V2_MAX_CLAIMERS_NON_LUT,
+  createTipTransaction,
+} from "@bagsfm/bags-sdk";
+import { Connection, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 
-const BAGS_API_BASE = "https://public-api-v2.bags.fm/api/v1";
+const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || "https://mainnet.helius-rpc.com";
+const FALLBACK_JITO_TIP_LAMPORTS = 0.015 * LAMPORTS_PER_SOL;
 
 const privy = new PrivyClient({
   appId: process.env.NEXT_PUBLIC_PRIVY_APP_ID!,
@@ -39,6 +46,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Get partner configuration from environment
+    const partnerWallet = process.env.BAGS_PARTNER_WALLET;
+    const partnerConfig = process.env.BAGS_PARTNER_KEY;
+
     const body = await req.json();
     const { wallet, tokenMint } = body;
 
@@ -50,55 +61,169 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Creator gets 100% of fees for minted agents
-    const claimersArray = [wallet];
-    const basisPointsArray = [10000]; // 100% to creator
+    // Initialize Bags SDK
+    const connection = new Connection(SOLANA_RPC_URL);
+    const sdk = new BagsSDK(apiKey, connection, "confirmed");
 
-    // Call Bags API to create fee share config
-    const response = await fetch(`${BAGS_API_BASE}/fee-share/config`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-      },
-      body: JSON.stringify({
-        payer: wallet,
-        baseMint: tokenMint,
-        claimersArray,
-        basisPointsArray,
-      }),
+    // Convert to PublicKeys
+    const walletPubkey = new PublicKey(wallet);
+    const tokenMintPubkey = new PublicKey(tokenMint);
+
+    // Creator gets 100% of fees
+    const feeClaimers = [{ user: walletPubkey, userBps: 10000 }];
+
+    // Check if lookup tables are needed (when there are more than MAX_CLAIMERS_NON_LUT claimers)
+    // Currently we only support single fee claimer, but this is here for future multi-claimer support
+    const lutTransactions: Array<{ transaction: string; type: string }> = [];
+    let additionalLookupTables: PublicKey[] | undefined;
+
+    if (feeClaimers.length > BAGS_FEE_SHARE_V2_MAX_CLAIMERS_NON_LUT) {
+      console.log(`[Fee Share] Creating lookup tables for ${feeClaimers.length} fee claimers (exceeds ${BAGS_FEE_SHARE_V2_MAX_CLAIMERS_NON_LUT} limit)...`);
+      
+      // Get LUT creation transactions
+      const lutResult = await sdk.config.getConfigCreationLookupTableTransactions({
+        payer: walletPubkey,
+        baseMint: tokenMintPubkey,
+        feeClaimers: feeClaimers,
+      });
+
+      if (!lutResult) {
+        throw new Error("Failed to create lookup table transactions");
+      }
+
+      // Add creation transaction
+      lutTransactions.push({
+        transaction: Buffer.from(lutResult.creationTransaction.serialize()).toString("base64"),
+        type: "lut_creation",
+      });
+
+      // Add extend transactions
+      for (const extendTx of lutResult.extendTransactions) {
+        lutTransactions.push({
+          transaction: Buffer.from(extendTx.serialize()).toString("base64"),
+          type: "lut_extend",
+        });
+      }
+
+      additionalLookupTables = lutResult.lutAddresses;
+      console.log(`[Fee Share] LUT transactions created: ${lutTransactions.length}`);
+    }
+
+    // Build config options
+    const configOptions: {
+      payer: PublicKey;
+      baseMint: PublicKey;
+      feeClaimers: Array<{ user: PublicKey; userBps: number }>;
+      partner?: PublicKey;
+      partnerConfig?: PublicKey;
+      additionalLookupTables?: PublicKey[];
+    } = {
+      payer: walletPubkey,
+      baseMint: tokenMintPubkey,
+      feeClaimers,
+      additionalLookupTables,
+    };
+
+    // Add partner configuration if both are set
+    if (partnerWallet && partnerConfig) {
+      configOptions.partner = new PublicKey(partnerWallet);
+      configOptions.partnerConfig = new PublicKey(partnerConfig);
+      console.log(`[Fee Share] Using partner config: ${partnerConfig}`);
+    }
+
+
+    // Create fee share config using SDK
+    let configResult;
+
+    console.log("[Fee Share] Creating config with SDK...");
+    console.log("[Fee Share] Config options:", {configOptions
     });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error("Bags API error:", errorData);
-      return NextResponse.json(
-        { error: errorData.error || "Failed to create fee share config" },
-        { status: response.status }
-      );
+    try {
+      configResult = await sdk.config.createBagsFeeShareConfig(configOptions);
+    } catch (sdkError: unknown) {
+      console.error("[Fee Share] SDK Error details:", sdkError);
+      // Try to extract more error details
+      if (sdkError && typeof sdkError === 'object' && 'data' in sdkError) {
+        console.error("[Fee Share] Error data:", JSON.stringify((sdkError as { data: unknown }).data, null, 2));
+      }
+      throw sdkError;
     }
 
-    const data = await response.json();
+    console.log("[Fee Share] Config created successfully");
+    console.log("[Fee Share] Meteora config key:", configResult.meteoraConfigKey.toString());
 
-    if (!data.success || !data.response) {
-      return NextResponse.json(
-        { error: "Invalid response from Bags API" },
-        { status: 500 }
-      );
+    // Convert transactions to base64 for frontend signing
+    const transactions = (configResult.transactions || []).map((tx) => ({
+      transaction: Buffer.from(tx.serialize()).toString("base64"),
+    }));
+
+    // Get recommended Jito tip for bundles
+    let jitoTipLamports = FALLBACK_JITO_TIP_LAMPORTS;
+    try {
+      const recommendedTip = await sdk.solana.getJitoRecentFees();
+      if (recommendedTip?.landed_tips_95th_percentile) {
+        jitoTipLamports = Math.floor(recommendedTip.landed_tips_95th_percentile * LAMPORTS_PER_SOL);
+      }
+    } catch {
+      console.log("[Fee Share] Using fallback Jito tip");
     }
 
-    // Return the fee share config response
+    // Convert bundles to base64 and include tip transactions
+    const commitment = sdk.state.getCommitment();
+    const bundles = await Promise.all((configResult.bundles || []).map(async (bundle) => {
+      // Get blockhash from first transaction in bundle
+      const bundleBlockhash = bundle[0]?.message.recentBlockhash;
+      
+      // Create tip transaction with same blockhash
+      let tipTransaction = null;
+      if (bundleBlockhash) {
+        try {
+          tipTransaction = await createTipTransaction(
+            connection,
+            commitment,
+            walletPubkey,
+            jitoTipLamports,
+            { blockhash: bundleBlockhash }
+          );
+        } catch (tipError) {
+          console.error("[Fee Share] Failed to create tip transaction:", tipError);
+        }
+      }
+
+      // Return tip transaction first (if created), then bundle transactions
+      const bundleTxs = bundle.map((tx) => ({
+        transaction: Buffer.from(tx.serialize()).toString("base64"),
+        isTip: false,
+      }));
+
+      if (tipTransaction) {
+        return [
+          {
+            transaction: Buffer.from(tipTransaction.serialize()).toString("base64"),
+            isTip: true,
+            tipLamports: jitoTipLamports,
+          },
+          ...bundleTxs,
+        ];
+      }
+
+      return bundleTxs;
+    }));
+
     return NextResponse.json({
-      needsCreation: data.response.needsCreation,
-      feeShareAuthority: data.response.feeShareAuthority,
-      meteoraConfigKey: data.response.meteoraConfigKey,
-      transactions: data.response.transactions || [],
-      bundles: data.response.bundles || [],
+      needsCreation: transactions.length > 0 || bundles.length > 0 || lutTransactions.length > 0,
+      needsLutSetup: lutTransactions.length > 0,
+      feeShareAuthority: walletPubkey.toString(),
+      meteoraConfigKey: configResult.meteoraConfigKey.toString(),
+      lutTransactions, // LUT transactions must be sent first, with a slot wait between creation and extend
+      transactions,
+      bundles,
     });
   } catch (error) {
     console.error("Error creating fee share config:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to create fee share config";
     return NextResponse.json(
-      { error: "Failed to create fee share config" },
+      { error: errorMessage },
       { status: 500 }
     );
   }

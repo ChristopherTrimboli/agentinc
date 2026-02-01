@@ -42,11 +42,12 @@ export async function POST(req: NextRequest) {
     // Generate the image prompt based on agent traits
     const prompt = generateImagePrompt(name, traits);
 
-    // Generate image using AI SDK with gateway model
+    // Generate image using AI SDK with gateway provider
+    // Note: Google Imagen doesn't support 'size', use 'aspectRatio' instead
     const result = await generateImage({
-      model: "openai/dall-e-3",
+      model: "google/imagen-4.0-generate-001",
       prompt,
-      size: "1024x1024",
+      aspectRatio: "1:1",
       n: 1,
     });
 
@@ -68,7 +69,7 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error("Error generating image:", error);
-    
+
     // Handle rate limit errors
     if (error instanceof Error && error.message.includes("429")) {
       return NextResponse.json(

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
+import { BagsSDK } from "@bagsfm/bags-sdk";
+import { Connection, PublicKey } from "@solana/web3.js";
 
-const BAGS_API_BASE = "https://public-api-v2.bags.fm/api/v1";
+const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || "https://mainnet.helius-rpc.com";
 
 // POST /api/incorporate/launch - Create token launch transaction
 export async function POST(request: Request) {
@@ -25,73 +27,35 @@ export async function POST(request: Request) {
       );
     }
 
-    // Call Bags API to create launch transaction
-    const response = await fetch(`${BAGS_API_BASE}/token-launch/create-launch-transaction`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-      },
-      body: JSON.stringify({
-        ipfs: metadataUrl,
-        tokenMint,
-        wallet,
-        initialBuyLamports: initialBuyLamports || 0,
-        configKey,
-      }),
+    // Initialize Bags SDK
+    const connection = new Connection(SOLANA_RPC_URL);
+    const sdk = new BagsSDK(apiKey, connection, "confirmed");
+
+    // Convert to PublicKeys
+    const tokenMintPubkey = new PublicKey(tokenMint);
+    const walletPubkey = new PublicKey(wallet);
+    const configKeyPubkey = new PublicKey(configKey);
+
+    // Create launch transaction using SDK
+    const launchTransaction = await sdk.tokenLaunch.createLaunchTransaction({
+      metadataUrl,
+      tokenMint: tokenMintPubkey,
+      launchWallet: walletPubkey,
+      initialBuyLamports: initialBuyLamports || 0,
+      configKey: configKeyPubkey,
     });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error("Bags API error:", errorData);
-      return NextResponse.json(
-        { error: errorData.error || "Failed to create launch transaction" },
-        { status: response.status }
-      );
-    }
-
-    const data = await response.json();
-
-    if (!data.success || !data.response) {
-      return NextResponse.json(
-        { error: "Invalid response from Bags API" },
-        { status: 500 }
-      );
-    }
-
-    // The response is a base58 encoded serialized transaction
-    // Convert to base64 for easier handling in the frontend
-    const transactionBase58 = data.response;
-    
-    // Decode base58 and re-encode as base64
-    const bs58Chars = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
-    let num = BigInt(0);
-    for (const char of transactionBase58) {
-      num = num * BigInt(58) + BigInt(bs58Chars.indexOf(char));
-    }
-    
-    // Convert to bytes
-    const bytes: number[] = [];
-    while (num > 0) {
-      bytes.unshift(Number(num % BigInt(256)));
-      num = num / BigInt(256);
-    }
-    
-    // Add leading zeros for leading '1's in base58
-    for (const char of transactionBase58) {
-      if (char === "1") bytes.unshift(0);
-      else break;
-    }
-    
-    const transactionBase64 = Buffer.from(bytes).toString("base64");
+    // Serialize the transaction to base64 for frontend signing
+    const transactionBase64 = Buffer.from(launchTransaction.serialize()).toString("base64");
 
     return NextResponse.json({
       transaction: transactionBase64,
     });
   } catch (error) {
     console.error("Error creating launch transaction:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to create launch transaction";
     return NextResponse.json(
-      { error: "Failed to create launch transaction" },
+      { error: errorMessage },
       { status: 500 }
     );
   }

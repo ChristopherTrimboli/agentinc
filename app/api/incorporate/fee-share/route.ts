@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
+import { BagsSDK } from "@bagsfm/bags-sdk";
+import { Connection, PublicKey } from "@solana/web3.js";
 
-const BAGS_API_BASE = "https://public-api-v2.bags.fm/api/v1";
+const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || "https://mainnet.helius-rpc.com";
 
 // POST /api/incorporate/fee-share - Create fee share config on Bags
 export async function POST(request: Request) {
@@ -14,6 +16,10 @@ export async function POST(request: Request) {
       );
     }
 
+    // Get partner configuration from environment
+    const partnerWallet = process.env.BAGS_PARTNER_WALLET;
+    const partnerConfig = process.env.BAGS_PARTNER_KEY;
+
     const body = await request.json();
     const { wallet, tokenMint } = body;
 
@@ -25,57 +31,62 @@ export async function POST(request: Request) {
       );
     }
 
-    // For now, creator gets 100% of fees
-    // In the future, this could distribute fees among the selected agents' creators
-    const claimersArray = [wallet];
-    const basisPointsArray = [10000]; // 100% to creator
+    // Initialize Bags SDK
+    const connection = new Connection(SOLANA_RPC_URL);
+    const sdk = new BagsSDK(apiKey, connection, "confirmed");
 
-    // Call Bags API to create fee share config
-    const response = await fetch(`${BAGS_API_BASE}/fee-share/config`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-      },
-      body: JSON.stringify({
-        payer: wallet,
-        baseMint: tokenMint,
-        claimersArray,
-        basisPointsArray,
-      }),
-    });
+    // Convert to PublicKeys
+    const walletPubkey = new PublicKey(wallet);
+    const tokenMintPubkey = new PublicKey(tokenMint);
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error("Bags API error:", errorData);
-      return NextResponse.json(
-        { error: errorData.error || "Failed to create fee share config" },
-        { status: response.status }
-      );
+    // Creator gets 100% of fees
+    const feeClaimers = [{ user: walletPubkey, userBps: 10000 }];
+
+    // Build config options
+    const configOptions: {
+      payer: PublicKey;
+      baseMint: PublicKey;
+      feeClaimers: Array<{ user: PublicKey; userBps: number }>;
+      partner?: PublicKey;
+      partnerConfig?: PublicKey;
+    } = {
+      payer: walletPubkey,
+      baseMint: tokenMintPubkey,
+      feeClaimers,
+    };
+
+    // Add partner configuration if both are set
+    if (partnerWallet && partnerConfig) {
+      configOptions.partner = new PublicKey(partnerWallet);
+      configOptions.partnerConfig = new PublicKey(partnerConfig);
     }
 
-    const data = await response.json();
+    // Create fee share config using SDK
+    const configResult = await sdk.config.createBagsFeeShareConfig(configOptions);
 
-    if (!data.success || !data.response) {
-      return NextResponse.json(
-        { error: "Invalid response from Bags API" },
-        { status: 500 }
-      );
-    }
+    // Convert transactions to base64 for frontend signing
+    const transactions = (configResult.transactions || []).map((tx) => ({
+      transaction: Buffer.from(tx.serialize()).toString("base64"),
+    }));
 
-    // Return the fee share config response
-    // This may include transactions that need to be signed
+    const bundles = (configResult.bundles || []).map((bundle) =>
+      bundle.map((tx) => ({
+        transaction: Buffer.from(tx.serialize()).toString("base64"),
+      }))
+    );
+
     return NextResponse.json({
-      needsCreation: data.response.needsCreation,
-      feeShareAuthority: data.response.feeShareAuthority,
-      meteoraConfigKey: data.response.meteoraConfigKey,
-      transactions: data.response.transactions || [],
-      bundles: data.response.bundles || [],
+      needsCreation: transactions.length > 0 || bundles.length > 0,
+      feeShareAuthority: walletPubkey.toString(),
+      meteoraConfigKey: configResult.meteoraConfigKey.toString(),
+      transactions,
+      bundles,
     });
   } catch (error) {
     console.error("Error creating fee share config:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to create fee share config";
     return NextResponse.json(
-      { error: "Failed to create fee share config" },
+      { error: errorMessage },
       { status: 500 }
     );
   }

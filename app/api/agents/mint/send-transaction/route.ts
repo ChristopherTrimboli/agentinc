@@ -1,125 +1,48 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrivyClient } from "@privy-io/node";
+import { 
+  verifyAuth, 
+  serverSignAndSend, 
+  sendSignedTransaction 
+} from "@/lib/solana";
 
-const SOLANA_RPC_URLS = [
-  process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com",
-  "https://rpc.ankr.com/solana",
-  "https://solana-mainnet.g.alchemy.com/v2/demo",
-];
-
-const privy = new PrivyClient({
-  appId: process.env.NEXT_PUBLIC_PRIVY_APP_ID!,
-  appSecret: process.env.PRIVY_APP_SECRET!,
-});
-
-// Helper to verify auth
-async function verifyAuth(req: NextRequest): Promise<string | null> {
-  const idToken = req.headers.get("privy-id-token");
-  if (!idToken) return null;
-
-  try {
-    const privyUser = await privy.users().get({ id_token: idToken });
-    return privyUser.id;
-  } catch {
-    return null;
-  }
-}
-
-// POST /api/agents/mint/send-transaction - Send a signed transaction to Solana
+// POST /api/agents/mint/send-transaction - Sign and send a transaction server-side
 export async function POST(req: NextRequest) {
-  const userId = await verifyAuth(req);
+  const idToken = req.headers.get("privy-id-token");
+  const auth = await verifyAuth(idToken);
 
-  if (!userId) {
+  if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
     const body = await req.json();
-    const { signedTransaction } = body;
+    const { 
+      transaction,        // unsigned transaction (base64) - for server-side signing
+      signedTransaction,  // already signed transaction (base64) - for backwards compat
+      useJito = true 
+    } = body;
 
-    if (!signedTransaction) {
-      return NextResponse.json(
-        { error: "Missing signedTransaction" },
-        { status: 400 }
-      );
+    // Server-side signing flow (preferred)
+    if (transaction) {
+      const result = await serverSignAndSend(auth.walletId, transaction, { useJito });
+      return NextResponse.json(result);
     }
 
-    // Decode the base64 transaction to base58 for RPC
-    const txBytes = Buffer.from(signedTransaction, "base64");
-    
-    // Convert to base58 for the RPC call
-    const bs58Chars = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
-    let num = BigInt(0);
-    for (const byte of txBytes) {
-      num = num * BigInt(256) + BigInt(byte);
-    }
-    
-    let base58 = "";
-    while (num > 0) {
-      base58 = bs58Chars[Number(num % BigInt(58))] + base58;
-      num = num / BigInt(58);
-    }
-    
-    // Add leading '1's for leading zeros
-    for (const byte of txBytes) {
-      if (byte === 0) base58 = "1" + base58;
-      else break;
-    }
-
-    // Try each RPC endpoint
-    let lastError: Error | null = null;
-    
-    for (const rpcUrl of SOLANA_RPC_URLS) {
-      try {
-        const response = await fetch(rpcUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            jsonrpc: "2.0",
-            id: 1,
-            method: "sendTransaction",
-            params: [
-              base58,
-              {
-                encoding: "base58",
-                skipPreflight: false,
-                preflightCommitment: "confirmed",
-                maxRetries: 3,
-              },
-            ],
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error(`RPC request failed: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        if (data.error) {
-          throw new Error(data.error.message || "Transaction failed");
-        }
-
-        if (data.result) {
-          return NextResponse.json({
-            signature: data.result,
-          });
-        }
-      } catch (err) {
-        lastError = err instanceof Error ? err : new Error("Unknown error");
-        console.error(`RPC ${rpcUrl} failed:`, lastError.message);
-        continue;
-      }
+    // Backwards compatibility: accept pre-signed transactions
+    if (signedTransaction) {
+      const result = await sendSignedTransaction(signedTransaction, { useJito });
+      return NextResponse.json(result);
     }
 
     return NextResponse.json(
-      { error: lastError?.message || "Failed to send transaction" },
-      { status: 500 }
+      { error: "Missing transaction or signedTransaction" },
+      { status: 400 }
     );
   } catch (error) {
     console.error("Error sending transaction:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to send transaction";
     return NextResponse.json(
-      { error: "Failed to send transaction" },
+      { error: errorMessage },
       { status: 500 }
     );
   }

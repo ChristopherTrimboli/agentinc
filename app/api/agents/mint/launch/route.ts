@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PrivyClient } from "@privy-io/node";
+import { BagsSDK } from "@bagsfm/bags-sdk";
+import { Connection, PublicKey } from "@solana/web3.js";
 
-const BAGS_API_BASE = "https://public-api-v2.bags.fm/api/v1";
+const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || "https://mainnet.helius-rpc.com";
 
 const privy = new PrivyClient({
   appId: process.env.NEXT_PUBLIC_PRIVY_APP_ID!,
@@ -50,73 +52,53 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Call Bags API to create launch transaction
-    const response = await fetch(`${BAGS_API_BASE}/token-launch/create-launch-transaction`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-      },
-      body: JSON.stringify({
-        ipfs: metadataUrl,
-        tokenMint,
-        wallet,
-        initialBuyLamports: initialBuyLamports || 0,
-        configKey,
-      }),
+    // Initialize Bags SDK
+    const connection = new Connection(SOLANA_RPC_URL);
+    const sdk = new BagsSDK(apiKey, connection, "confirmed");
+
+    // Convert to PublicKeys
+    const tokenMintPubkey = new PublicKey(tokenMint);
+    const walletPubkey = new PublicKey(wallet);
+    const configKeyPubkey = new PublicKey(configKey);
+
+    console.log("[Launch] Creating launch transaction with SDK...");
+
+    // Create launch transaction using SDK
+    const launchTransaction = await sdk.tokenLaunch.createLaunchTransaction({
+      metadataUrl,
+      tokenMint: tokenMintPubkey,
+      launchWallet: walletPubkey,
+      initialBuyLamports: initialBuyLamports || 0,
+      configKey: configKeyPubkey,
     });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error("Bags API error:", errorData);
-      return NextResponse.json(
-        { error: errorData.error || "Failed to create launch transaction" },
-        { status: response.status }
-      );
-    }
+    console.log("[Launch] Transaction created successfully");
 
-    const data = await response.json();
-
-    if (!data.success || !data.response) {
-      return NextResponse.json(
-        { error: "Invalid response from Bags API" },
-        { status: 500 }
-      );
-    }
-
-    // The response is a base58 encoded serialized transaction
-    // Convert to base64 for easier handling in the frontend
-    const transactionBase58 = data.response;
-    
-    // Decode base58 and re-encode as base64
-    const bs58Chars = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
-    let num = BigInt(0);
-    for (const char of transactionBase58) {
-      num = num * BigInt(58) + BigInt(bs58Chars.indexOf(char));
-    }
-    
-    // Convert to bytes
-    const bytes: number[] = [];
-    while (num > 0) {
-      bytes.unshift(Number(num % BigInt(256)));
-      num = num / BigInt(256);
-    }
-    
-    // Add leading zeros for leading '1's in base58
-    for (const char of transactionBase58) {
-      if (char === "1") bytes.unshift(0);
-      else break;
-    }
-    
-    const transactionBase64 = Buffer.from(bytes).toString("base64");
+    // Serialize the transaction to base64 for frontend signing
+    const transactionBase64 = Buffer.from(launchTransaction.serialize()).toString("base64");
 
     return NextResponse.json({
       transaction: transactionBase64,
     });
   } catch (error) {
     console.error("Error creating launch transaction:", error);
+    
+    // Extract detailed error info from SDK errors
+    let errorMessage = "Failed to create launch transaction";
+    if (error && typeof error === "object") {
+      const err = error as { message?: string; data?: unknown; status?: number };
+      if (err.data) {
+        console.error("[Launch] API Error data:", JSON.stringify(err.data, null, 2));
+        // Try to extract message from nested error data
+        const data = err.data as { error?: string; message?: string };
+        errorMessage = data.error || data.message || err.message || errorMessage;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+    }
+    
     return NextResponse.json(
-      { error: "Failed to create launch transaction" },
+      { error: errorMessage },
       { status: 500 }
     );
   }
