@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Streamdown styling for AI markdown responses */
+@source "../node_modules/streamdown/dist/*.js";
+
 /* 
   Designer Color Palette:
   - White: #ffffff
@@ -40,6 +43,23 @@
   --text-secondary: rgba(255, 255, 255, 0.7);
   --text-muted: rgba(255, 255, 255, 0.5);
   --text-dimmed: rgba(255, 255, 255, 0.3);
+
+  /* shadcn/ui compatible color tokens for AI Elements (dark mode default) */
+  --radius: 0.75rem;
+  --muted: #1a1050;
+  --muted-foreground: rgba(255, 255, 255, 0.5);
+  --popover: #0a0520;
+  --popover-foreground: #ffffff;
+  --card: #0a0520;
+  --card-foreground: #ffffff;
+  --border: rgba(111, 236, 6, 0.2);
+  --input: rgba(111, 236, 6, 0.15);
+  --ring: #6FEC06;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --primary-foreground: #ffffff;
+  --secondary-foreground: #000104;
+  --accent-foreground: #000104;
 }
 
 @theme inline {
@@ -52,6 +72,21 @@
   --color-abyss: var(--abyss);
   --color-indigo: var(--indigo);
   --color-coral: var(--coral);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent-foreground: var(--accent-foreground);
+  --radius: var(--radius);
   --font-sans: var(--font-inter);
   --font-display: var(--font-syne);
 }

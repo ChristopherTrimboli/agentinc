@@ -711,8 +711,8 @@ export default function IncorporatePage() {
                     </div>
                   )}
                   
-                  {/* Agents grid */}
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {/* Agents grid - extra padding for selection badges */}
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 pt-1 pr-1">
                     {agents.map((agent) => (
                       <AgentCard
                         key={agent.id}
