@@ -41,6 +41,14 @@ export const metadata: Metadata = {
     type: "website",
     url: "https://agentinc.fun",
     siteName: "Agent Inc.",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 2000,
+        height: 2000,
+        alt: "Agent Inc.",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
@@ -49,6 +57,7 @@ export const metadata: Metadata = {
       "Incorporate, trade and invest in collections of agents that build together a real startup. Based on ERC-8041.",
     creator: "@agentincdotfun",
     site: "@agentincdotfun",
+    images: ["/og-image.png"],
   },
 };
 
