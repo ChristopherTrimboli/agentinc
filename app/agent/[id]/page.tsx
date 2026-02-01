@@ -101,7 +101,7 @@ const rarityColors: Record<
 
 // Chart/DEX links for Solana tokens
 const getChartLinks = (tokenMint: string) => ({
-  bags: `https://bags.fm/bag/${tokenMint}`,
+  bags: `https://bags.fm/${tokenMint}`,
   dexscreener: `https://dexscreener.com/solana/${tokenMint}`,
   dexscreenerEmbed: `https://dexscreener.com/solana/${tokenMint}?embed=1&theme=dark&trades=0&info=0`,
 });
@@ -503,7 +503,7 @@ export default function AgentProfilePage({
                 {agent.corporation.tokenMint && (
                   <div className="mt-4 flex flex-wrap gap-2">
                     <a
-                      href={`https://bags.fm/bag/${agent.corporation.tokenMint}`}
+                      href={`https://bags.fm/${agent.corporation.tokenMint}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-2 px-4 py-2 bg-[#A855F7]/10 border border-[#A855F7]/30 rounded-xl text-[#A855F7] text-sm font-medium hover:bg-[#A855F7]/20 transition-all"
