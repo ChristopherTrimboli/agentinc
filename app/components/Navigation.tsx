@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Building2, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
+import Image from "next/image";
 import LoginButton from "./LoginButton";
+import Link from "next/link";
 
 const navLinks = [
   { href: "/dashboard", label: "Launch App", highlight: true },
@@ -40,12 +42,15 @@ export default function Navigation() {
     <nav className="fixed top-0 left-0 right-0 z-50 glass">
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
         {/* Logo */}
-        <a href="/" className="flex items-center gap-2">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#6FEC06] to-[#120557] flex items-center justify-center">
-            <Building2 className="w-6 h-6 text-white" />
-          </div>
-          <span className="text-xl font-bold">Agent Inc.</span>
-        </a>
+        <Link href="/" className="flex items-center group">
+          <Image
+            src="/agentinc.png"
+            alt="Agent Inc."
+            width={200}
+            height={50}
+            className="h-8 w-auto transition-transform duration-200 group-hover:scale-[1.02]"
+          />
+        </Link>
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-8">

@@ -637,11 +637,14 @@ export default function AgentProfilePage({
           <div className="grid md:grid-cols-4 gap-12 mb-12">
             {/* Brand */}
             <div className="md:col-span-2">
-              <Link href="/" className="flex items-center gap-2 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#6FEC06] to-[#120557] flex items-center justify-center">
-                  <Building2 className="w-6 h-6 text-white" />
-                </div>
-                <span className="text-xl font-bold">Agent Inc.</span>
+              <Link href="/" className="flex items-center mb-4">
+                <Image
+                  src="/agentinc.svg"
+                  alt="Agent Inc."
+                  width={240}
+                  height={64}
+                  className="h-12 w-auto"
+                />
               </Link>
               <p className="text-white/60 max-w-sm mb-6">
                 Incorporate, trade and invest in collections of agents that
