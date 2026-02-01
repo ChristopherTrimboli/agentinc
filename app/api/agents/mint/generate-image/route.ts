@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateImage } from "ai";
+import { put } from "@vercel/blob";
 import { PrivyClient } from "@privy-io/node";
 import { generateImagePrompt, AgentTraitData } from "@/lib/agentTraits";
 
@@ -43,7 +44,6 @@ export async function POST(req: NextRequest) {
     const prompt = generateImagePrompt(name, traits);
 
     // Generate image using AI SDK with gateway provider
-    // Note: Google Imagen doesn't support 'size', use 'aspectRatio' instead
     const result = await generateImage({
       model: "google/imagen-4.0-generate-001",
       prompt,
@@ -60,11 +60,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Convert to data URL or use the base64 directly
-    const imageUrl = `data:image/png;base64,${image.base64}`;
+    // Convert to Buffer for Vercel Blob upload
+    // Use uint8Array if available (more efficient), otherwise decode from base64
+    const imageBuffer = image.uint8Array 
+      ? Buffer.from(image.uint8Array) 
+      : Buffer.from(image.base64, "base64");
+
+    // Generate a unique filename
+    const timestamp = Date.now();
+    const sanitizedName = name.toLowerCase().replace(/[^a-z0-9]/g, "-");
+    const filename = `agents/${sanitizedName}-${timestamp}.png`;
+
+    // Upload to Vercel Blob
+    const blob = await put(filename, imageBuffer, {
+      access: "public",
+      contentType: "image/png",
+    });
 
     return NextResponse.json({
-      imageUrl,
+      imageUrl: blob.url,
       prompt,
     });
   } catch (error) {
