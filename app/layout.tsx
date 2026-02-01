@@ -30,6 +30,10 @@ export const metadata: Metadata = {
     "startup",
     "onchain",
   ],
+  icons: {
+    icon: "/icon.png",
+    apple: "/icon.png",
+  },
   openGraph: {
     title: "Agent Inc. | AI-Powered Autonomous Startups on Chain",
     description:
