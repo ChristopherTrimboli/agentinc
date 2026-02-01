@@ -166,8 +166,8 @@ function SwarmVisualization() {
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center z-20">
           <div className="text-center">
-            <div className="w-12 h-12 mx-auto mb-4 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin" />
-            <p className="text-gray-400 text-sm">Loading agents...</p>
+            <div className="w-12 h-12 mx-auto mb-4 border-2 border-[#6FEC06]/30 border-t-[#6FEC06] rounded-full animate-spin" />
+            <p className="text-white/50 text-sm">Loading agents...</p>
           </div>
         </div>
       )}
@@ -176,13 +176,13 @@ function SwarmVisualization() {
       {!isLoading && store.agents.size === 0 && (
         <div className="absolute inset-0 flex items-center justify-center z-20">
           <div className="text-center max-w-md px-4">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-purple-500/20 flex items-center justify-center">
-              <svg className="w-8 h-8 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[#6FEC06]/10 flex items-center justify-center border border-[#6FEC06]/30">
+              <svg className="w-8 h-8 text-[#6FEC06]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
             <h3 className="text-lg font-semibold text-white mb-2">No Agents Yet</h3>
-            <p className="text-gray-400 text-sm mb-4">
+            <p className="text-white/50 text-sm mb-4">
               Create agents to see them interact in the swarm visualization.
             </p>
           </div>

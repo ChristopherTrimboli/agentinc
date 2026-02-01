@@ -2,16 +2,19 @@
 
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { Send, Bot, User, Sparkles, ArrowLeft } from "lucide-react";
+import { Send, Bot, User, ArrowLeft, Sparkles } from "lucide-react";
 import { useRef, useEffect, useState, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useIdentityToken } from "@privy-io/react-auth";
 import Link from "next/link";
+import Image from "next/image";
 
 interface AgentInfo {
   id: string;
   name: string;
   description: string | null;
+  imageUrl: string | null;
+  personality: string | null;
 }
 
 function ChatContent() {
@@ -85,30 +88,39 @@ function ChatContent() {
   return (
     <div className="flex flex-col h-[calc(100vh-64px)] lg:h-screen">
       {/* Header */}
-      <div className="p-4 lg:p-6 border-b border-gray-800/50">
+      <div className="p-4 lg:p-6 border-b border-white/10 bg-[#0a0520]/50 backdrop-blur-sm">
         <div className="max-w-3xl mx-auto">
           {/* Back to agents link if viewing custom agent */}
           {agentId && (
             <Link
               href="/dashboard/agents"
-              className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-3"
+              className="inline-flex items-center gap-2 text-white/40 hover:text-[#6FEC06] transition-colors mb-3 text-sm"
             >
               <ArrowLeft className="w-4 h-4" />
               Back to Agents
             </Link>
           )}
 
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center">
-              <Bot className="w-5 h-5 text-white" />
+          <div className="flex items-center gap-4">
+            <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-gradient-to-br from-[#6FEC06]/20 to-[#120557]/50 flex items-center justify-center border border-[#6FEC06]/30">
+              {agentInfo?.imageUrl ? (
+                <Image
+                  src={agentInfo.imageUrl}
+                  alt={displayName}
+                  fill
+                  className="object-cover"
+                />
+              ) : (
+                <Bot className="w-6 h-6 text-[#6FEC06]" />
+              )}
             </div>
             <div>
               {agentLoading ? (
-                <div className="h-5 w-32 bg-gray-800/50 rounded animate-pulse" />
+                <div className="h-5 w-32 bg-[#120557]/50 rounded animate-pulse" />
               ) : (
-                <h1 className="font-semibold">{displayName}</h1>
+                <h1 className="font-semibold font-display text-lg">{displayName}</h1>
               )}
-              <p className="text-sm text-gray-400 line-clamp-1">{displayDescription}</p>
+              <p className="text-sm text-white/50 line-clamp-1">{displayDescription}</p>
             </div>
           </div>
         </div>
@@ -119,11 +131,22 @@ function ChatContent() {
         <div className="max-w-3xl mx-auto space-y-4">
           {messages.length === 0 && (
             <div className="text-center py-16">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-purple-500/20 to-cyan-500/20 flex items-center justify-center border border-purple-500/30">
-                <Bot className="w-8 h-8 text-purple-400" />
+              <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-[#120557] to-[#6FEC06]/20 flex items-center justify-center border border-[#6FEC06]/30 shadow-lg shadow-[#6FEC06]/10">
+                {agentInfo?.imageUrl ? (
+                  <Image
+                    src={agentInfo.imageUrl}
+                    alt={displayName}
+                    width={80}
+                    height={80}
+                    className="rounded-2xl object-cover"
+                  />
+                ) : (
+                  <Bot className="w-10 h-10 text-[#6FEC06]" />
+                )}
               </div>
-              <p className="text-gray-400 mb-6">
-                Start a conversation with our AI assistant
+              <h2 className="text-xl font-bold mb-2 font-display">Start a conversation</h2>
+              <p className="text-white/50 mb-6">
+                Chat with {displayName} and explore their capabilities
               </p>
               <div className="flex flex-wrap justify-center gap-2">
                 {[
@@ -134,7 +157,7 @@ function ChatContent() {
                   <button
                     key={suggestion}
                     onClick={() => setInput(suggestion)}
-                    className="px-4 py-2 rounded-full border border-gray-700 text-sm text-gray-300 hover:border-purple-500/50 hover:bg-purple-500/10 transition-all"
+                    className="px-4 py-2 rounded-full border border-[#6FEC06]/30 text-sm text-white/70 hover:border-[#6FEC06]/60 hover:bg-[#6FEC06]/10 hover:text-[#6FEC06] transition-all"
                   >
                     {suggestion}
                   </button>
@@ -151,16 +174,25 @@ function ChatContent() {
               }`}
             >
               {message.role === "assistant" && (
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center shrink-0">
-                  <Bot className="w-4 h-4 text-white" />
+                <div className="relative w-8 h-8 rounded-lg overflow-hidden bg-gradient-to-br from-[#6FEC06]/20 to-[#120557]/50 flex items-center justify-center shrink-0 border border-[#6FEC06]/30">
+                  {agentInfo?.imageUrl ? (
+                    <Image
+                      src={agentInfo.imageUrl}
+                      alt={displayName}
+                      fill
+                      className="object-cover"
+                    />
+                  ) : (
+                    <Bot className="w-4 h-4 text-[#6FEC06]" />
+                  )}
                 </div>
               )}
 
               <div
                 className={`max-w-[80%] rounded-2xl px-4 py-3 ${
                   message.role === "user"
-                    ? "bg-purple-500/20 border border-purple-500/30"
-                    : "bg-gray-800/50 border border-gray-700/50"
+                    ? "bg-[#6FEC06]/15 border border-[#6FEC06]/30"
+                    : "bg-[#0a0520]/80 border border-white/10"
                 }`}
               >
                 {message.parts.map((part, index) => {
@@ -179,8 +211,8 @@ function ChatContent() {
               </div>
 
               {message.role === "user" && (
-                <div className="w-8 h-8 rounded-lg bg-gray-700 flex items-center justify-center shrink-0">
-                  <User className="w-4 h-4 text-gray-300" />
+                <div className="w-8 h-8 rounded-lg bg-[#120557]/50 border border-white/10 flex items-center justify-center shrink-0">
+                  <User className="w-4 h-4 text-white/60" />
                 </div>
               )}
             </div>
@@ -188,18 +220,27 @@ function ChatContent() {
 
           {isLoading && (
             <div className="flex gap-3 justify-start">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center shrink-0">
-                <Bot className="w-4 h-4 text-white" />
+              <div className="relative w-8 h-8 rounded-lg overflow-hidden bg-gradient-to-br from-[#6FEC06]/20 to-[#120557]/50 flex items-center justify-center shrink-0 border border-[#6FEC06]/30">
+                {agentInfo?.imageUrl ? (
+                  <Image
+                    src={agentInfo.imageUrl}
+                    alt={displayName}
+                    fill
+                    className="object-cover"
+                  />
+                ) : (
+                  <Bot className="w-4 h-4 text-[#6FEC06]" />
+                )}
               </div>
-              <div className="bg-gray-800/50 border border-gray-700/50 rounded-2xl px-4 py-3">
+              <div className="bg-[#0a0520]/80 border border-white/10 rounded-2xl px-4 py-3">
                 <div className="flex gap-1">
-                  <span className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" />
+                  <span className="w-2 h-2 bg-[#6FEC06] rounded-full animate-bounce" />
                   <span
-                    className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"
+                    className="w-2 h-2 bg-[#6FEC06] rounded-full animate-bounce"
                     style={{ animationDelay: "0.1s" }}
                   />
                   <span
-                    className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"
+                    className="w-2 h-2 bg-[#6FEC06] rounded-full animate-bounce"
                     style={{ animationDelay: "0.2s" }}
                   />
                 </div>
@@ -212,7 +253,7 @@ function ChatContent() {
       </div>
 
       {/* Input Area */}
-      <div className="p-4 lg:p-6 border-t border-gray-800/50">
+      <div className="p-4 lg:p-6 border-t border-white/10 bg-[#0a0520]/50 backdrop-blur-sm">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -228,19 +269,20 @@ function ChatContent() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Type your message..."
-              className="w-full px-5 py-4 bg-gray-900/80 border border-gray-700 rounded-2xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 focus:ring-2 focus:ring-purple-500/20 transition-all"
+              className="w-full px-5 py-4 bg-[#0a0520] border border-white/10 rounded-2xl text-white placeholder-white/30 focus:outline-none focus:border-[#6FEC06]/50 focus:ring-2 focus:ring-[#6FEC06]/20 transition-all"
               disabled={isLoading}
             />
           </div>
           <button
             type="submit"
             disabled={isLoading || !input.trim()}
-            className="p-4 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-2xl text-white font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-4 bg-gradient-to-r from-[#6FEC06] to-[#4a9f10] rounded-2xl text-black font-semibold hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-[#6FEC06]/20"
           >
             <Send className="w-5 h-5" />
           </button>
         </form>
-        <p className="text-center text-xs text-gray-500 mt-3">
+        <p className="text-center text-xs text-white/30 mt-3 flex items-center justify-center gap-1">
+          <Sparkles className="w-3 h-3" />
           Powered by AI Gateway
         </p>
       </div>
@@ -253,7 +295,7 @@ export default function ChatPage() {
     <Suspense
       fallback={
         <div className="h-screen flex items-center justify-center">
-          <div className="w-8 h-8 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-[#6FEC06]/30 border-t-[#6FEC06] rounded-full animate-spin" />
         </div>
       }
     >
