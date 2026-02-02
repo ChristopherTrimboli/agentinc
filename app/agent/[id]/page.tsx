@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect, use, useCallback } from "react";
 import { useIdentityToken } from "@privy-io/react-auth";
 import Image from "next/image";
 import Link from "next/link";
@@ -20,8 +20,14 @@ import {
   Twitter,
   Building2,
   Code,
+  ArrowUpDown,
+  ShoppingCart,
+  Wallet,
 } from "lucide-react";
 import { getBagsFmUrl, getDexScreenerUrl } from "@/lib/constants/urls";
+
+// SOL mint address for Jupiter
+const SOL_MINT = "So11111111111111111111111111111111111111112";
 
 interface Corporation {
   id: string;
@@ -104,8 +110,35 @@ const rarityColors: Record<
 const getChartLinks = (tokenMint: string) => ({
   bags: getBagsFmUrl(tokenMint),
   dexscreener: getDexScreenerUrl(tokenMint),
-  dexscreenerEmbed: `${getDexScreenerUrl(tokenMint)}?embed=1&theme=dark&trades=0&info=0`,
+  // Embed with chart, theme, and cleaner look (trades=1 shows recent trades)
+  dexscreenerEmbed: `${getDexScreenerUrl(tokenMint)}?embed=1&theme=dark&info=0`,
+  jupiter: `https://jup.ag/swap/SOL-${tokenMint}`,
+  raydium: `https://raydium.io/swap/?inputMint=sol&outputMint=${tokenMint}`,
 });
+
+// Declare Jupiter global type
+declare global {
+  interface Window {
+    Jupiter?: {
+      init: (config: JupiterConfig) => void;
+      close: () => void;
+      _instance?: unknown;
+    };
+  }
+}
+
+interface JupiterConfig {
+  displayMode: "integrated" | "widget" | "modal";
+  integratedTargetId?: string;
+  endpoint: string;
+  formProps?: {
+    initialOutputMint?: string;
+    initialInputMint?: string;
+    fixedOutputMint?: boolean;
+  };
+  strictTokenList?: boolean;
+  defaultExplorer?: string;
+}
 
 export default function AgentProfilePage({
   params,
@@ -118,6 +151,9 @@ export default function AgentProfilePage({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [showSwapWidget, setShowSwapWidget] = useState(false);
+  const [jupiterLoaded, setJupiterLoaded] = useState(false);
+  const [swapMode, setSwapMode] = useState<"buy" | "sell">("buy");
 
   useEffect(() => {
     async function fetchAgent() {
@@ -151,6 +187,82 @@ export default function AgentProfilePage({
 
     fetchAgent();
   }, [resolvedParams.id, identityToken]);
+
+  // Load Jupiter Terminal script
+  useEffect(() => {
+    if (typeof window !== "undefined" && !jupiterLoaded) {
+      const existingScript = document.querySelector(
+        'script[src*="terminal.jup.ag"]',
+      );
+      if (existingScript) {
+        setJupiterLoaded(true);
+        return;
+      }
+
+      const script = document.createElement("script");
+      script.src = "https://terminal.jup.ag/main-v3.js";
+      script.async = true;
+      script.onload = () => {
+        setJupiterLoaded(true);
+      };
+      document.head.appendChild(script);
+
+      return () => {
+        // Cleanup if needed
+      };
+    }
+  }, [jupiterLoaded]);
+
+  // Initialize Jupiter when widget is shown
+  const initJupiter = useCallback(
+    (mode: "buy" | "sell") => {
+      if (!agent?.tokenMint || !window.Jupiter) return;
+
+      // Close any existing instance
+      if (window.Jupiter._instance) {
+        window.Jupiter.close();
+      }
+
+      // Small delay to ensure DOM is ready
+      setTimeout(() => {
+        window.Jupiter?.init({
+          displayMode: "integrated",
+          integratedTargetId: "jupiter-terminal-container",
+          endpoint:
+            process.env.NEXT_PUBLIC_SOLANA_RPC_URL ||
+            "https://api.mainnet-beta.solana.com",
+          formProps: {
+            initialInputMint: mode === "buy" ? SOL_MINT : agent.tokenMint!,
+            initialOutputMint: mode === "buy" ? agent.tokenMint! : SOL_MINT,
+            fixedOutputMint: mode === "buy",
+          },
+          strictTokenList: false,
+          defaultExplorer: "Solscan",
+        });
+      }, 100);
+    },
+    [agent?.tokenMint],
+  );
+
+  // Handle swap widget toggle
+  const toggleSwapWidget = (mode: "buy" | "sell") => {
+    if (showSwapWidget && swapMode === mode) {
+      setShowSwapWidget(false);
+      if (window.Jupiter?._instance) {
+        window.Jupiter.close();
+      }
+    } else {
+      setSwapMode(mode);
+      setShowSwapWidget(true);
+    }
+  };
+
+  // Initialize Jupiter when widget becomes visible or mode changes
+  useEffect(() => {
+    if (showSwapWidget && jupiterLoaded && agent?.tokenMint) {
+      initJupiter(swapMode);
+    }
+  }, [showSwapWidget, jupiterLoaded, swapMode, agent?.tokenMint, initJupiter]);
 
   const getRarityStyle = (rarity: string | null) => {
     return rarityColors[rarity || "common"] || rarityColors.common;
@@ -203,7 +315,7 @@ export default function AgentProfilePage({
   const chartLinks = agent.tokenMint ? getChartLinks(agent.tokenMint) : null;
 
   return (
-    <div className="min-h-screen bg-[var(--background)]">
+    <div className="min-h-screen bg-[var(--background)] overflow-x-hidden">
       {/* Background effects */}
       <div className="fixed inset-0 bg-grid opacity-30 pointer-events-none" />
       <div
@@ -212,44 +324,60 @@ export default function AgentProfilePage({
 
       {/* Navigation */}
       <nav className="sticky top-0 z-50 backdrop-blur-xl bg-[var(--background)]/80 border-b border-white/5">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-2">
           <Link
             href="/"
-            className="flex items-center gap-2 text-white/60 hover:text-white transition-colors"
+            className="flex items-center gap-1.5 sm:gap-2 text-white/60 hover:text-white transition-colors shrink-0"
           >
             <ArrowLeft className="w-4 h-4" />
             <span className="text-sm">Back</span>
           </Link>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             {agent.isMinted && chartLinks && (
-              <a
-                href={chartLinks.dexscreener}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-4 py-2 bg-[#6FEC06]/10 border border-[#6FEC06]/30 rounded-full text-[#6FEC06] text-sm font-medium hover:bg-[#6FEC06]/20 transition-all"
-              >
-                <TrendingUp className="w-4 h-4" />
-                View Chart
-              </a>
+              <>
+                <a
+                  href={chartLinks.dexscreener}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 bg-white/5 border border-white/10 rounded-full text-white/70 text-xs sm:text-sm font-medium hover:bg-white/10 transition-all"
+                >
+                  <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="hidden xs:inline sm:inline">Chart</span>
+                </a>
+                <button
+                  onClick={() => {
+                    setShowSwapWidget(true);
+                    setSwapMode("buy");
+                    // Scroll to trade section
+                    document
+                      .getElementById("trade-section")
+                      ?.scrollIntoView({ behavior: "smooth" });
+                  }}
+                  className="flex items-center gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2 bg-[#6FEC06]/10 border border-[#6FEC06]/30 rounded-full text-[#6FEC06] text-xs sm:text-sm font-semibold hover:bg-[#6FEC06]/20 transition-all"
+                >
+                  <ShoppingCart className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="hidden xs:inline">Buy</span>
+                </button>
+              </>
             )}
             <Link
               href={`/dashboard/chat?agent=${agent.id}`}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#6FEC06] to-[#4a9f10] rounded-full text-black text-sm font-semibold hover:opacity-90 transition-all"
+              className="flex items-center gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-[#6FEC06] to-[#4a9f10] rounded-full text-black text-xs sm:text-sm font-semibold hover:opacity-90 transition-all"
             >
-              <MessageSquare className="w-4 h-4" />
-              Chat
+              <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="hidden xs:inline sm:inline">Chat</span>
             </Link>
           </div>
         </div>
       </nav>
 
       {/* Main Content */}
-      <main className="relative max-w-6xl mx-auto px-6 py-12">
-        <div className="grid lg:grid-cols-5 gap-8 lg:gap-12">
+      <main className="relative max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-12 overflow-x-hidden">
+        <div className="grid lg:grid-cols-5 gap-6 sm:gap-8 lg:gap-12 w-full min-w-0">
           {/* Left Column - Image */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 max-w-[260px] sm:max-w-[300px] md:max-w-none mx-auto lg:mx-0 min-w-0">
             <div
-              className={`relative aspect-square rounded-3xl overflow-hidden ${rarityStyle.border} border-2 ${rarityStyle.glow} bg-[#0a0520]`}
+              className={`relative aspect-square rounded-2xl sm:rounded-3xl overflow-hidden ${rarityStyle.border} border-2 ${rarityStyle.glow} bg-[#0a0520]`}
             >
               {agent.imageUrl ? (
                 <Image
@@ -270,36 +398,44 @@ export default function AgentProfilePage({
               {/* Rarity Badge */}
               {agent.rarity && agent.rarity !== "common" && (
                 <div
-                  className={`absolute top-4 right-4 px-3 py-1.5 rounded-full ${rarityStyle.bg} ${rarityStyle.text} text-xs font-bold uppercase tracking-wider backdrop-blur-sm border ${rarityStyle.border} flex items-center gap-1.5`}
+                  className={`absolute top-2 right-2 sm:top-4 sm:right-4 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full ${rarityStyle.bg} ${rarityStyle.text} text-[10px] sm:text-xs font-bold uppercase tracking-wider backdrop-blur-sm border ${rarityStyle.border} flex items-center gap-1`}
                 >
-                  <Star className="w-3.5 h-3.5" />
+                  <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                   {agent.rarity}
                 </div>
               )}
             </div>
 
             {/* Quick Stats - Mobile */}
-            <div className="lg:hidden mt-6 grid grid-cols-2 gap-4">
-              <div className="p-4 rounded-2xl bg-[#0a0520] border border-white/10">
-                <div className="text-xs text-white/40 mb-1">Status</div>
-                <div className="flex items-center gap-2">
+            <div className="lg:hidden mt-4 sm:mt-6 grid grid-cols-2 gap-3 sm:gap-4">
+              <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-[#0a0520] border border-white/10">
+                <div className="text-[10px] sm:text-xs text-white/40 mb-1">
+                  Status
+                </div>
+                <div className="flex items-center gap-1.5 sm:gap-2">
                   {agent.isPublic ? (
                     <>
-                      <Globe className="w-4 h-4 text-[#6FEC06]" />
-                      <span className="text-[#6FEC06] font-medium">Public</span>
+                      <Globe className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#6FEC06]" />
+                      <span className="text-[#6FEC06] text-sm sm:text-base font-medium">
+                        Public
+                      </span>
                     </>
                   ) : (
                     <>
-                      <Lock className="w-4 h-4 text-white/40" />
-                      <span className="text-white/60 font-medium">Private</span>
+                      <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white/40" />
+                      <span className="text-white/60 text-sm sm:text-base font-medium">
+                        Private
+                      </span>
                     </>
                   )}
                 </div>
               </div>
               {agent.personality && (
-                <div className="p-4 rounded-2xl bg-[#0a0520] border border-white/10">
-                  <div className="text-xs text-white/40 mb-1">Personality</div>
-                  <div className="text-white font-medium capitalize">
+                <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-[#0a0520] border border-white/10">
+                  <div className="text-[10px] sm:text-xs text-white/40 mb-1">
+                    Personality
+                  </div>
+                  <div className="text-white text-sm sm:text-base font-medium capitalize truncate">
                     {agent.personality}
                   </div>
                 </div>
@@ -308,102 +444,163 @@ export default function AgentProfilePage({
           </div>
 
           {/* Right Column - Info */}
-          <div className="lg:col-span-3 space-y-8">
+          <div className="lg:col-span-3 space-y-5 sm:space-y-8 w-full min-w-0 overflow-hidden">
             {/* Header */}
             <div>
-              <div className="flex flex-wrap items-center gap-3 mb-4">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
                 {agent.isMinted && agent.tokenSymbol && (
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#6FEC06]/10 border border-[#6FEC06]/30">
-                    <Zap className="w-3.5 h-3.5 text-[#6FEC06]" />
-                    <span className="text-sm font-semibold text-[#6FEC06]">
+                  <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full bg-[#6FEC06]/10 border border-[#6FEC06]/30">
+                    <Zap className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#6FEC06]" />
+                    <span className="text-xs sm:text-sm font-semibold text-[#6FEC06]">
                       {agent.tokenSymbol}
                     </span>
                   </div>
                 )}
                 {agent.specialAbility && (
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#A855F7]/10 border border-[#A855F7]/30">
-                    <Sparkles className="w-3.5 h-3.5 text-[#A855F7]" />
-                    <span className="text-sm font-medium text-[#A855F7]">
+                  <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full bg-[#A855F7]/10 border border-[#A855F7]/30">
+                    <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#A855F7]" />
+                    <span className="text-xs sm:text-sm font-medium text-[#A855F7]">
                       {agent.specialAbility}
                     </span>
                   </div>
                 )}
               </div>
-              <h1 className="text-4xl md:text-5xl font-bold font-display mb-4">
+              <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold font-display mb-3 sm:mb-4">
                 {agent.name}
               </h1>
               {agent.description && (
-                <p className="text-lg text-white/70 leading-relaxed">
+                <p className="text-sm sm:text-lg text-white/70 leading-relaxed">
                   {agent.description}
                 </p>
               )}
             </div>
 
-            {/* Token Info */}
+            {/* Token Info & Trading */}
             {agent.isMinted && agent.tokenMint && chartLinks && (
-              <div className="p-6 rounded-2xl bg-[#0a0520] border border-[#6FEC06]/20">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 text-[#6FEC06]" />
-                    <h2 className="text-lg font-semibold font-display">
-                      Token Info
+              <div
+                id="trade-section"
+                className="space-y-3 sm:space-y-4 scroll-mt-24"
+              >
+                {/* Quick Trade Buttons */}
+                <div className="p-4 sm:p-6 rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#6FEC06]/5 to-[#0a0520] border border-[#6FEC06]/30">
+                  <div className="flex items-center gap-2 mb-3 sm:mb-4">
+                    <ArrowUpDown className="w-4 h-4 sm:w-5 sm:h-5 text-[#6FEC06]" />
+                    <h2 className="text-base sm:text-lg font-semibold font-display">
+                      Trade {agent.tokenSymbol || agent.name}
                     </h2>
                   </div>
-                  <div className="flex items-center gap-2">
+
+                  {/* Buy/Sell Toggle Buttons */}
+                  <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-3 sm:mb-4">
+                    <button
+                      onClick={() => toggleSwapWidget("buy")}
+                      className={`flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-3.5 rounded-lg sm:rounded-xl text-sm sm:text-base font-semibold transition-all ${
+                        showSwapWidget && swapMode === "buy"
+                          ? "bg-[#6FEC06] text-black"
+                          : "bg-[#6FEC06]/20 text-[#6FEC06] border border-[#6FEC06]/40 hover:bg-[#6FEC06]/30"
+                      }`}
+                    >
+                      <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
+                      Buy
+                    </button>
+                    <button
+                      onClick={() => toggleSwapWidget("sell")}
+                      className={`flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-3.5 rounded-lg sm:rounded-xl text-sm sm:text-base font-semibold transition-all ${
+                        showSwapWidget && swapMode === "sell"
+                          ? "bg-red-500 text-white"
+                          : "bg-red-500/20 text-red-400 border border-red-500/40 hover:bg-red-500/30"
+                      }`}
+                    >
+                      <Wallet className="w-4 h-4 sm:w-5 sm:h-5" />
+                      Sell
+                    </button>
+                  </div>
+
+                  {/* Jupiter Terminal Container */}
+                  {showSwapWidget && (
+                    <div className="mt-4 overflow-hidden">
+                      <div
+                        id="jupiter-terminal-container"
+                        className="rounded-xl overflow-hidden bg-[#0a0520] min-h-[400px] max-w-full"
+                      />
+                      {!jupiterLoaded && (
+                        <div className="flex items-center justify-center h-[400px]">
+                          <div className="text-center">
+                            <div className="w-10 h-10 border-2 border-[#6FEC06]/30 border-t-[#6FEC06] rounded-full animate-spin mx-auto mb-3" />
+                            <p className="text-white/50 text-sm">
+                              Loading swap widget...
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* External Links */}
+                  <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-white/10">
                     <a
                       href={chartLinks.bags}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#6FEC06] to-[#4a9f10] rounded-full text-black text-sm font-semibold hover:opacity-90 transition-all"
+                      className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 bg-[#6FEC06]/10 border border-[#6FEC06]/30 rounded-lg text-[#6FEC06] text-xs sm:text-sm font-medium hover:bg-[#6FEC06]/20 transition-all"
                     >
-                      <Zap className="w-4 h-4" />
-                      Buy on Bags
+                      <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      Bags
+                      <ExternalLink className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                     </a>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div>
-                    <div className="text-xs text-white/40 mb-1.5">
-                      Token Mint Address
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <code className="flex-1 px-3 py-2 bg-[#120557]/30 rounded-lg text-sm text-white/80 font-mono truncate">
-                        {agent.tokenMint}
-                      </code>
-                      <button
-                        onClick={() => copyToClipboard(agent.tokenMint!)}
-                        className="p-2 rounded-lg bg-[#120557]/30 text-white/60 hover:text-white hover:bg-[#120557]/50 transition-colors"
-                        title="Copy address"
-                      >
-                        {copied ? (
-                          <Check className="w-4 h-4 text-[#6FEC06]" />
-                        ) : (
-                          <Copy className="w-4 h-4" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
                     <a
-                      href={chartLinks.bags}
+                      href={`https://jup.ag/swap/SOL-${agent.tokenMint}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-4 py-2.5 bg-[#6FEC06]/10 border border-[#6FEC06]/30 rounded-xl text-[#6FEC06] text-sm font-medium hover:bg-[#6FEC06]/20 transition-all"
+                      className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 bg-white/5 border border-white/10 rounded-lg text-white/70 text-xs sm:text-sm font-medium hover:bg-white/10 transition-all"
                     >
-                      <Zap className="w-4 h-4" />
-                      Buy on Bags
-                      <ExternalLink className="w-3 h-3" />
+                      <ArrowUpDown className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      <span className="hidden xs:inline">Jupiter</span>
+                      <span className="xs:hidden">Jup</span>
+                      <ExternalLink className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                     </a>
                     <a
                       href={chartLinks.dexscreener}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white/70 text-sm font-medium hover:bg-white/10 transition-all"
+                      className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 bg-white/5 border border-white/10 rounded-lg text-white/70 text-xs sm:text-sm font-medium hover:bg-white/10 transition-all"
                     >
-                      <TrendingUp className="w-4 h-4" />
-                      DexScreener
-                      <ExternalLink className="w-3 h-3" />
+                      <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      <span className="hidden xs:inline">DexScreener</span>
+                      <span className="xs:hidden">Dex</span>
+                      <ExternalLink className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                     </a>
+                  </div>
+                </div>
+
+                {/* Token Info Card */}
+                <div className="p-4 sm:p-6 rounded-xl sm:rounded-2xl bg-[#0a0520] border border-white/10">
+                  <div className="flex items-center gap-2 mb-3 sm:mb-4">
+                    <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-white/60" />
+                    <h2 className="text-base sm:text-lg font-semibold font-display">
+                      Token Details
+                    </h2>
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[10px] sm:text-xs text-white/40 mb-1 sm:mb-1.5">
+                      Token Mint Address
+                    </div>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <code className="flex-1 min-w-0 px-2 sm:px-3 py-1.5 sm:py-2 bg-[#120557]/30 rounded-lg text-xs sm:text-sm text-white/80 font-mono truncate overflow-hidden">
+                        {agent.tokenMint}
+                      </code>
+                      <button
+                        onClick={() => copyToClipboard(agent.tokenMint!)}
+                        className="p-1.5 sm:p-2 rounded-lg bg-[#120557]/30 text-white/60 hover:text-white hover:bg-[#120557]/50 transition-colors shrink-0"
+                        title="Copy address"
+                      >
+                        {copied ? (
+                          <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#6FEC06]" />
+                        ) : (
+                          <Copy className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -412,18 +609,18 @@ export default function AgentProfilePage({
             {/* Traits & Skills */}
             {((agent.traits && agent.traits.length > 0) ||
               (agent.skills && agent.skills.length > 0)) && (
-              <div className="grid md:grid-cols-2 gap-6">
+              <div className="grid sm:grid-cols-2 gap-3 sm:gap-6">
                 {/* Traits */}
                 {agent.traits && agent.traits.length > 0 && (
-                  <div className="p-6 rounded-2xl bg-[#0a0520] border border-white/10">
-                    <h3 className="text-sm font-semibold text-white/40 uppercase tracking-wider mb-4">
+                  <div className="p-4 sm:p-6 rounded-xl sm:rounded-2xl bg-[#0a0520] border border-white/10">
+                    <h3 className="text-xs sm:text-sm font-semibold text-white/40 uppercase tracking-wider mb-3 sm:mb-4">
                       Traits
                     </h3>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-1.5 sm:gap-2">
                       {agent.traits.map((trait) => (
                         <span
                           key={trait}
-                          className="px-3 py-1.5 rounded-full bg-[#120557]/50 border border-[#6FEC06]/20 text-sm text-white/70"
+                          className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-[#120557]/50 border border-[#6FEC06]/20 text-xs sm:text-sm text-white/70"
                         >
                           {trait}
                         </span>
@@ -434,15 +631,15 @@ export default function AgentProfilePage({
 
                 {/* Skills */}
                 {agent.skills && agent.skills.length > 0 && (
-                  <div className="p-6 rounded-2xl bg-[#0a0520] border border-white/10">
-                    <h3 className="text-sm font-semibold text-white/40 uppercase tracking-wider mb-4">
+                  <div className="p-4 sm:p-6 rounded-xl sm:rounded-2xl bg-[#0a0520] border border-white/10">
+                    <h3 className="text-xs sm:text-sm font-semibold text-white/40 uppercase tracking-wider mb-3 sm:mb-4">
                       Skills
                     </h3>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-1.5 sm:gap-2">
                       {agent.skills.map((skill) => (
                         <span
                           key={skill}
-                          className="px-3 py-1.5 rounded-full bg-[#6FEC06]/10 border border-[#6FEC06]/30 text-sm text-[#6FEC06]"
+                          className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-[#6FEC06]/10 border border-[#6FEC06]/30 text-xs sm:text-sm text-[#6FEC06]"
                         >
                           {skill}
                         </span>
@@ -455,20 +652,20 @@ export default function AgentProfilePage({
 
             {/* Corporation Section */}
             {agent.corporation && (
-              <div className="p-6 rounded-2xl bg-[#0a0520] border border-[#A855F7]/20">
-                <div className="flex items-center gap-2 mb-4">
-                  <Building2 className="w-5 h-5 text-[#A855F7]" />
-                  <h2 className="text-lg font-semibold font-display">
+              <div className="p-4 sm:p-6 rounded-xl sm:rounded-2xl bg-[#0a0520] border border-[#A855F7]/20">
+                <div className="flex items-center gap-2 mb-3 sm:mb-4">
+                  <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-[#A855F7]" />
+                  <h2 className="text-base sm:text-lg font-semibold font-display">
                     Part of Corporation
                   </h2>
                 </div>
                 <Link
                   href={`/incorporate?id=${agent.corporation.id}`}
-                  className="group flex items-center gap-4 p-4 rounded-xl bg-[#120557]/30 border border-[#A855F7]/20 hover:border-[#A855F7]/40 transition-all"
+                  className="group flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg sm:rounded-xl bg-[#120557]/30 border border-[#A855F7]/20 hover:border-[#A855F7]/40 transition-all"
                 >
                   {/* Corporation Logo */}
                   <div
-                    className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl shrink-0"
+                    className="w-10 h-10 sm:w-14 sm:h-14 rounded-lg sm:rounded-xl flex items-center justify-center text-xl sm:text-2xl shrink-0"
                     style={{
                       backgroundColor: agent.corporation.color
                         ? `${agent.corporation.color}20`
@@ -481,47 +678,48 @@ export default function AgentProfilePage({
                   </div>
                   {/* Corporation Info */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-bold text-white group-hover:text-[#A855F7] transition-colors truncate">
+                    <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1 flex-wrap">
+                      <h3 className="font-bold text-sm sm:text-base text-white group-hover:text-[#A855F7] transition-colors truncate">
                         {agent.corporation.name}
                       </h3>
                       {agent.corporation.tokenSymbol && (
-                        <span className="px-2 py-0.5 rounded-full bg-[#A855F7]/20 text-[#A855F7] text-xs font-semibold">
+                        <span className="px-1.5 sm:px-2 py-0.5 rounded-full bg-[#A855F7]/20 text-[#A855F7] text-[10px] sm:text-xs font-semibold">
                           {agent.corporation.tokenSymbol}
                         </span>
                       )}
                     </div>
                     {agent.corporation.description && (
-                      <p className="text-sm text-white/50 line-clamp-2">
+                      <p className="text-xs sm:text-sm text-white/50 line-clamp-2">
                         {agent.corporation.description}
                       </p>
                     )}
                   </div>
                   {/* Arrow */}
-                  <ExternalLink className="w-5 h-5 text-white/40 group-hover:text-[#A855F7] transition-colors shrink-0" />
+                  <ExternalLink className="w-4 h-4 sm:w-5 sm:h-5 text-white/40 group-hover:text-[#A855F7] transition-colors shrink-0" />
                 </Link>
                 {/* Corporation Token Link */}
                 {agent.corporation.tokenMint && (
-                  <div className="mt-4 flex flex-wrap gap-2">
+                  <div className="mt-3 sm:mt-4 flex flex-wrap gap-1.5 sm:gap-2">
                     <a
                       href={getBagsFmUrl(agent.corporation.tokenMint)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-4 py-2 bg-[#A855F7]/10 border border-[#A855F7]/30 rounded-xl text-[#A855F7] text-sm font-medium hover:bg-[#A855F7]/20 transition-all"
+                      className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 bg-[#A855F7]/10 border border-[#A855F7]/30 rounded-lg sm:rounded-xl text-[#A855F7] text-xs sm:text-sm font-medium hover:bg-[#A855F7]/20 transition-all"
                     >
-                      <Zap className="w-4 h-4" />
+                      <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       Buy {agent.corporation.tokenSymbol || "Corp Token"}
-                      <ExternalLink className="w-3 h-3" />
+                      <ExternalLink className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                     </a>
                     <a
                       href={getDexScreenerUrl(agent.corporation.tokenMint)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white/70 text-sm font-medium hover:bg-white/10 transition-all"
+                      className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 bg-white/5 border border-white/10 rounded-lg sm:rounded-xl text-white/70 text-xs sm:text-sm font-medium hover:bg-white/10 transition-all"
                     >
-                      <TrendingUp className="w-4 h-4" />
-                      View Chart
-                      <ExternalLink className="w-3 h-3" />
+                      <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      <span className="hidden xs:inline">View Chart</span>
+                      <span className="xs:hidden">Chart</span>
+                      <ExternalLink className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                     </a>
                   </div>
                 )}
@@ -571,23 +769,23 @@ export default function AgentProfilePage({
             </div>
 
             {/* Share Actions */}
-            <div className="flex flex-wrap gap-3 pt-4 border-t border-white/10">
+            <div className="flex flex-wrap gap-2 sm:gap-3 pt-3 sm:pt-4 border-t border-white/10">
               <button
                 onClick={() =>
                   copyToClipboard(`${window.location.origin}/agent/${agent.id}`)
                 }
-                className="flex items-center gap-2 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white/70 text-sm font-medium hover:bg-white/10 transition-all"
+                className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-white/5 border border-white/10 rounded-lg sm:rounded-xl text-white/70 text-xs sm:text-sm font-medium hover:bg-white/10 transition-all"
               >
-                <Copy className="w-4 h-4" />
+                <Copy className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 Copy Link
               </button>
               <a
                 href={`https://twitter.com/intent/tweet?text=Check out ${encodeURIComponent(agent.name)} on Agent Inc!&url=${encodeURIComponent(`${typeof window !== "undefined" ? window.location.origin : ""}/agent/${agent.id}`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white/70 text-sm font-medium hover:bg-white/10 transition-all"
+                className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-white/5 border border-white/10 rounded-lg sm:rounded-xl text-white/70 text-xs sm:text-sm font-medium hover:bg-white/10 transition-all"
               >
-                <Twitter className="w-4 h-4" />
+                <Twitter className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 Share on X
               </a>
             </div>
@@ -596,35 +794,63 @@ export default function AgentProfilePage({
 
         {/* Live Price Chart */}
         {agent.isMinted && agent.tokenMint && chartLinks && (
-          <div className="mt-12">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-[#6FEC06]/10 border border-[#6FEC06]/30">
-                  <TrendingUp className="w-5 h-5 text-[#6FEC06]" />
+          <div className="mt-8 sm:mt-12 overflow-hidden">
+            <div className="flex flex-col gap-4 mb-4 sm:mb-6">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-[#6FEC06]/10 border border-[#6FEC06]/30">
+                  <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-[#6FEC06]" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold font-display">
+                  <h2 className="text-lg sm:text-xl font-bold font-display">
                     Live Price Chart
                   </h2>
-                  <p className="text-sm text-white/50">
+                  <p className="text-xs sm:text-sm text-white/50">
                     {agent.tokenSymbol || agent.name} / SOL
                   </p>
                 </div>
               </div>
-              <a
-                href={chartLinks.dexscreener}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 text-sm text-white/60 hover:text-white transition-colors"
-              >
-                Open full chart
-                <ExternalLink className="w-4 h-4" />
-              </a>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => {
+                    setShowSwapWidget(true);
+                    setSwapMode("buy");
+                    document
+                      .getElementById("trade-section")
+                      ?.scrollIntoView({ behavior: "smooth" });
+                  }}
+                  className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-[#6FEC06] text-black rounded-lg text-xs sm:text-sm font-semibold hover:bg-[#6FEC06]/90 transition-all"
+                >
+                  <ShoppingCart className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  Buy Now
+                </button>
+                <button
+                  onClick={() => {
+                    setShowSwapWidget(true);
+                    setSwapMode("sell");
+                    document
+                      .getElementById("trade-section")
+                      ?.scrollIntoView({ behavior: "smooth" });
+                  }}
+                  className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-red-500/20 text-red-400 border border-red-500/40 rounded-lg text-xs sm:text-sm font-semibold hover:bg-red-500/30 transition-all"
+                >
+                  <Wallet className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  Sell
+                </button>
+                <a
+                  href={chartLinks.dexscreener}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-white/60 hover:text-white transition-colors"
+                >
+                  Full chart
+                  <ExternalLink className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                </a>
+              </div>
             </div>
-            <div className="rounded-2xl overflow-hidden border border-[#6FEC06]/20 bg-[#0a0520]">
+            <div className="rounded-xl sm:rounded-2xl overflow-hidden border border-[#6FEC06]/20 bg-[#0a0520]">
               <iframe
                 src={chartLinks.dexscreenerEmbed}
-                className="w-full h-[500px] md:h-[600px]"
+                className="w-full h-[350px] sm:h-[500px] md:h-[600px]"
                 title={`${agent.name} Price Chart`}
                 allow="clipboard-write"
                 loading="lazy"
@@ -635,41 +861,41 @@ export default function AgentProfilePage({
       </main>
 
       {/* Footer */}
-      <footer className="relative py-16 px-6 border-t border-white/10">
+      <footer className="relative py-8 sm:py-16 px-4 sm:px-6 border-t border-white/10">
         <div className="max-w-6xl mx-auto">
-          <div className="grid md:grid-cols-4 gap-12 mb-12">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-12 mb-8 sm:mb-12">
             {/* Brand */}
-            <div className="md:col-span-2">
-              <Link href="/" className="flex items-center mb-4">
+            <div className="col-span-2">
+              <Link href="/" className="flex items-center mb-3 sm:mb-4">
                 <Image
                   src="/agentinc.svg"
                   alt="Agent Inc."
                   width={180}
                   height={48}
-                  className="h-8 w-auto"
+                  className="h-6 sm:h-8 w-auto"
                 />
               </Link>
-              <p className="text-white/60 max-w-sm mb-6">
+              <p className="text-white/60 text-sm sm:text-base max-w-sm mb-4 sm:mb-6">
                 Incorporate, trade and invest in collections of agents that
                 build together a real startup. Based on ERC-8041.
               </p>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3 sm:gap-4">
                 <a
                   href="https://x.com/agentincdotfun"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-full bg-[#120557]/50 flex items-center justify-center hover:bg-[#6FEC06]/20 transition-colors"
+                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#120557]/50 flex items-center justify-center hover:bg-[#6FEC06]/20 transition-colors"
                 >
-                  <Twitter className="w-5 h-5" />
+                  <Twitter className="w-4 h-4 sm:w-5 sm:h-5" />
                 </a>
                 <a
                   href="https://discord.gg/jTGebW3rkS"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-full bg-[#120557]/50 flex items-center justify-center hover:bg-[#6FEC06]/20 transition-colors"
+                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#120557]/50 flex items-center justify-center hover:bg-[#6FEC06]/20 transition-colors"
                 >
                   <svg
-                    className="w-5 h-5"
+                    className="w-4 h-4 sm:w-5 sm:h-5"
                     viewBox="0 0 24 24"
                     fill="currentColor"
                   >
@@ -680,25 +906,27 @@ export default function AgentProfilePage({
                   href="https://github.com/ChristopherTrimboli/agentinc"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-full bg-[#120557]/50 flex items-center justify-center hover:bg-[#6FEC06]/20 transition-colors"
+                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#120557]/50 flex items-center justify-center hover:bg-[#6FEC06]/20 transition-colors"
                 >
-                  <Code className="w-5 h-5" />
+                  <Code className="w-4 h-4 sm:w-5 sm:h-5" />
                 </a>
                 <a
                   href="https://ethereum-magicians.org/t/erc-8041-fixed-supply-agent-nft-collections/25656"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-full bg-[#120557]/50 flex items-center justify-center hover:bg-[#6FEC06]/20 transition-colors"
+                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#120557]/50 flex items-center justify-center hover:bg-[#6FEC06]/20 transition-colors"
                 >
-                  <Globe className="w-5 h-5" />
+                  <Globe className="w-4 h-4 sm:w-5 sm:h-5" />
                 </a>
               </div>
             </div>
 
             {/* Links */}
             <div>
-              <h4 className="font-semibold mb-4">Product</h4>
-              <ul className="space-y-3 text-white/60">
+              <h4 className="font-semibold text-sm sm:text-base mb-3 sm:mb-4">
+                Product
+              </h4>
+              <ul className="space-y-2 sm:space-y-3 text-white/60 text-sm">
                 <li>
                   <Link
                     href="/dashboard"
@@ -727,8 +955,10 @@ export default function AgentProfilePage({
             </div>
 
             <div>
-              <h4 className="font-semibold mb-4">Resources</h4>
-              <ul className="space-y-3 text-white/60">
+              <h4 className="font-semibold text-sm sm:text-base mb-3 sm:mb-4">
+                Resources
+              </h4>
+              <ul className="space-y-2 sm:space-y-3 text-white/60 text-sm">
                 <li>
                   <a
                     href="https://ethereum-magicians.org/t/erc-8041-fixed-supply-agent-nft-collections/25656"
@@ -774,9 +1004,9 @@ export default function AgentProfilePage({
           </div>
 
           {/* Bottom */}
-          <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4 text-white/60 text-sm">
+          <div className="pt-6 sm:pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4 text-white/60 text-xs sm:text-sm">
             <div>© 2026 Agent Inc. All rights reserved.</div>
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-4 sm:gap-6">
               <span className="text-white/40">Privacy Policy</span>
               <span className="text-white/40">Terms of Service</span>
             </div>

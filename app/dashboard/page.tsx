@@ -1041,247 +1041,262 @@ export default function ExplorePage() {
       {/* Price ticker */}
       <PriceTicker items={items} prices={prices} />
 
-      <div className="flex-1 flex flex-col p-6 lg:p-8 max-w-7xl mx-auto w-full overflow-hidden min-w-0">
+      <div className="flex-1 flex flex-col p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full overflow-hidden min-w-0">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#6FEC06]/30 bg-[#6FEC06]/10">
+        <div className="mb-4 sm:mb-8">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full border border-[#6FEC06]/30 bg-[#6FEC06]/10">
               <div className="relative">
-                <Sparkles className="w-3.5 h-3.5 text-[#6FEC06]" />
-                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-[#6FEC06] rounded-full animate-live-pulse" />
+                <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#6FEC06]" />
+                <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 sm:w-2 sm:h-2 bg-[#6FEC06] rounded-full animate-live-pulse" />
               </div>
-              <span className="text-xs font-medium text-[#6FEC06]">Live</span>
+              <span className="text-[10px] sm:text-xs font-medium text-[#6FEC06]">
+                Live
+              </span>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <Link
                 href="/dashboard/mint"
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-gradient-to-r from-[#6FEC06] to-[#4a9f10] text-black text-sm font-semibold hover:opacity-90 transition-all shadow-lg shadow-[#6FEC06]/20"
+                className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-full bg-gradient-to-r from-[#6FEC06] to-[#4a9f10] text-black text-xs sm:text-sm font-semibold hover:opacity-90 transition-all shadow-lg shadow-[#6FEC06]/20"
               >
-                <Sparkles className="w-4 h-4" />
-                <span className="hidden sm:inline">Mint Agent</span>
+                <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="hidden xs:inline sm:inline">Mint</span>
               </Link>
               <Link
                 href="/dashboard/incorporate"
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-white/20 bg-white/5 text-white text-sm font-medium hover:bg-white/10 hover:border-white/30 transition-all"
+                className="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-full border border-white/20 bg-white/5 text-white text-xs sm:text-sm font-medium hover:bg-white/10 hover:border-white/30 transition-all"
               >
-                <Building2 className="w-4 h-4" />
-                <span className="hidden sm:inline">Incorporate</span>
+                <Building2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="hidden xs:inline sm:inline">Incorporate</span>
               </Link>
             </div>
           </div>
 
-          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 sm:gap-4">
             <div>
-              <h1 className="text-3xl md:text-4xl font-bold mb-2 font-display">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-1 sm:mb-2 font-display">
                 <span className="gradient-text-shimmer">Explore</span>
               </h1>
-              <p className="text-white/50">
+              <p className="text-white/50 text-sm sm:text-base">
                 Discover AI agents and corporations on Agent Inc.
               </p>
             </div>
 
             {/* Stats */}
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-4 sm:gap-6">
               <div className="text-center">
-                <div className="flex items-center gap-1.5 text-2xl font-bold">
-                  <Bot className="w-5 h-5 text-[#6FEC06]" />
+                <div className="flex items-center gap-1 sm:gap-1.5 text-xl sm:text-2xl font-bold">
+                  <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-[#6FEC06]" />
                   {items.filter((i) => i.type === "agent").length}
                 </div>
-                <span className="text-xs text-white/40">Agents</span>
+                <span className="text-[10px] sm:text-xs text-white/40">
+                  Agents
+                </span>
               </div>
               <div className="text-center">
-                <div className="flex items-center gap-1.5 text-2xl font-bold">
-                  <Building2 className="w-5 h-5 text-[#120557]" />
+                <div className="flex items-center gap-1 sm:gap-1.5 text-xl sm:text-2xl font-bold">
+                  <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-[#120557]" />
                   {items.filter((i) => i.type === "corporation").length}
                 </div>
-                <span className="text-xs text-white/40">Corps</span>
+                <span className="text-[10px] sm:text-xs text-white/40">
+                  Corps
+                </span>
               </div>
             </div>
           </div>
         </div>
 
         {/* Controls */}
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
-          {/* Search */}
-          <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" />
+        <div className="flex flex-col gap-3 sm:gap-4 mb-4 sm:mb-6">
+          {/* Search - full width on mobile */}
+          <div className="relative">
+            <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-white/30" />
             <input
               type="text"
-              placeholder="Search by name, symbol, or description..."
+              placeholder="Search..."
               value={globalFilter}
               onChange={(e) => setGlobalFilter(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 rounded-xl bg-[#0a0520]/80 border border-white/10 focus:border-[#6FEC06]/50 focus:outline-none focus:ring-1 focus:ring-[#6FEC06]/30 transition-all placeholder:text-white/30"
+              className="w-full pl-9 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3 rounded-lg sm:rounded-xl bg-[#0a0520]/80 border border-white/10 focus:border-[#6FEC06]/50 focus:outline-none focus:ring-1 focus:ring-[#6FEC06]/30 transition-all placeholder:text-white/30 text-sm sm:text-base"
             />
           </div>
 
-          {/* Type filter */}
-          <div className="flex rounded-xl bg-[#0a0520]/80 border border-white/10 p-1">
-            {(["all", "agent", "corporation"] as const).map((type) => (
+          {/* Filters row - scrollable on mobile */}
+          <div className="flex gap-2 sm:gap-4 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+            {/* Type filter */}
+            <div className="flex rounded-lg sm:rounded-xl bg-[#0a0520]/80 border border-white/10 p-0.5 sm:p-1 shrink-0">
+              {(["all", "agent", "corporation"] as const).map((type) => (
+                <button
+                  key={type}
+                  onClick={() => setTypeFilter(type)}
+                  className={`px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-md sm:rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
+                    typeFilter === type
+                      ? "bg-[#6FEC06]/20 text-[#6FEC06]"
+                      : "text-white/50 hover:text-white"
+                  }`}
+                >
+                  {type === "all" ? (
+                    "All"
+                  ) : type === "agent" ? (
+                    <span className="flex items-center gap-1 sm:gap-1.5">
+                      <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      <span className="hidden xs:inline">Agents</span>
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 sm:gap-1.5">
+                      <Building2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      <span className="hidden xs:inline">Corps</span>
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {/* View toggle */}
+            <div className="flex rounded-lg sm:rounded-xl bg-[#0a0520]/80 border border-white/10 p-0.5 sm:p-1 shrink-0">
               <button
-                key={type}
-                onClick={() => setTypeFilter(type)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  typeFilter === type
+                onClick={() => setView("table")}
+                className={`p-2 sm:p-2.5 rounded-md sm:rounded-lg transition-all ${
+                  view === "table"
                     ? "bg-[#6FEC06]/20 text-[#6FEC06]"
                     : "text-white/50 hover:text-white"
                 }`}
+                title="Table view"
               >
-                {type === "all" ? (
-                  "All"
-                ) : type === "agent" ? (
-                  <span className="flex items-center gap-1.5">
-                    <Bot className="w-4 h-4" /> Agents
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-1.5">
-                    <Building2 className="w-4 h-4" /> Corps
-                  </span>
-                )}
+                <LayoutList className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
-            ))}
-          </div>
-
-          {/* View toggle */}
-          <div className="flex rounded-xl bg-[#0a0520]/80 border border-white/10 p-1">
-            <button
-              onClick={() => setView("table")}
-              className={`p-2.5 rounded-lg transition-all ${
-                view === "table"
-                  ? "bg-[#6FEC06]/20 text-[#6FEC06]"
-                  : "text-white/50 hover:text-white"
-              }`}
-              title="Table view"
-            >
-              <LayoutList className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => setView("cards")}
-              className={`p-2.5 rounded-lg transition-all ${
-                view === "cards"
-                  ? "bg-[#6FEC06]/20 text-[#6FEC06]"
-                  : "text-white/50 hover:text-white"
-              }`}
-              title="Card view"
-            >
-              <LayoutGrid className="w-5 h-5" />
-            </button>
-          </div>
-
-          {/* Column filters dropdown (table view only) */}
-          {view === "table" && (
-            <div className="relative">
               <button
-                onClick={() => setShowColumnMenu(!showColumnMenu)}
-                className={`p-3 rounded-xl bg-[#0a0520]/80 border transition-all flex items-center gap-2 ${
-                  showColumnMenu
-                    ? "border-[#6FEC06]/50 text-[#6FEC06]"
-                    : "border-white/10 text-white/50 hover:border-[#6FEC06]/30 hover:text-[#6FEC06]"
+                onClick={() => setView("cards")}
+                className={`p-2 sm:p-2.5 rounded-md sm:rounded-lg transition-all ${
+                  view === "cards"
+                    ? "bg-[#6FEC06]/20 text-[#6FEC06]"
+                    : "text-white/50 hover:text-white"
                 }`}
-                title="Toggle columns"
+                title="Card view"
               >
-                <SlidersHorizontal className="w-5 h-5" />
+                <LayoutGrid className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
-
-              {showColumnMenu && (
-                <>
-                  {/* Backdrop to close menu */}
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setShowColumnMenu(false)}
-                  />
-
-                  {/* Dropdown menu */}
-                  <div className="absolute right-0 top-full mt-2 w-56 rounded-xl bg-[#0a0520] border border-white/10 shadow-xl shadow-black/50 z-50 overflow-hidden">
-                    <div className="px-3 py-2 border-b border-white/10">
-                      <span className="text-xs font-semibold text-white/40 uppercase tracking-wide">
-                        Toggle Columns
-                      </span>
-                    </div>
-                    <div className="py-1">
-                      {[
-                        { id: "liquidity", label: "Liquidity", icon: Droplets },
-                        { id: "creatorWallet", label: "Creator", icon: User },
-                        {
-                          id: "launchedAt",
-                          label: "Launch Date",
-                          icon: Calendar,
-                        },
-                      ].map(({ id, label, icon: Icon }) => {
-                        const isVisible = columnVisibility[id] !== false;
-                        return (
-                          <button
-                            key={id}
-                            onClick={() => {
-                              setColumnVisibility((prev) => ({
-                                ...prev,
-                                [id]: !isVisible,
-                              }));
-                            }}
-                            className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-white/5 transition-colors"
-                          >
-                            <div
-                              className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${
-                                isVisible
-                                  ? "bg-[#6FEC06] border-[#6FEC06]"
-                                  : "border-white/20"
-                              }`}
-                            >
-                              {isVisible && (
-                                <Check className="w-3.5 h-3.5 text-black" />
-                              )}
-                            </div>
-                            <Icon className="w-4 h-4 text-white/50" />
-                            <span className="text-sm text-white/80">
-                              {label}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <div className="px-3 py-2 border-t border-white/10">
-                      <button
-                        onClick={() => {
-                          setColumnVisibility({
-                            liquidity: true,
-                            creatorWallet: true,
-                            launchedAt: true,
-                          });
-                        }}
-                        className="text-xs text-[#6FEC06] hover:underline"
-                      >
-                        Show all
-                      </button>
-                      <span className="text-white/20 mx-2">•</span>
-                      <button
-                        onClick={() => {
-                          setColumnVisibility({
-                            liquidity: false,
-                            creatorWallet: false,
-                            launchedAt: false,
-                          });
-                        }}
-                        className="text-xs text-white/40 hover:text-white/60 hover:underline"
-                      >
-                        Hide all
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
             </div>
-          )}
 
-          {/* Refresh button */}
-          <button
-            onClick={() => fetchData(true)}
-            disabled={isRefreshing}
-            className="p-3 rounded-xl bg-[#0a0520]/80 border border-white/10 hover:border-[#6FEC06]/30 text-white/50 hover:text-[#6FEC06] transition-all disabled:opacity-50"
-          >
-            <RefreshCw
-              className={`w-5 h-5 ${isRefreshing ? "animate-spin" : ""}`}
-            />
-          </button>
+            {/* Column filters dropdown (table view only) - hidden on mobile */}
+            {view === "table" && (
+              <div className="relative hidden sm:block shrink-0">
+                <button
+                  onClick={() => setShowColumnMenu(!showColumnMenu)}
+                  className={`p-2.5 sm:p-3 rounded-lg sm:rounded-xl bg-[#0a0520]/80 border transition-all flex items-center gap-2 ${
+                    showColumnMenu
+                      ? "border-[#6FEC06]/50 text-[#6FEC06]"
+                      : "border-white/10 text-white/50 hover:border-[#6FEC06]/30 hover:text-[#6FEC06]"
+                  }`}
+                  title="Toggle columns"
+                >
+                  <SlidersHorizontal className="w-4 h-4 sm:w-5 sm:h-5" />
+                </button>
+
+                {showColumnMenu && (
+                  <>
+                    {/* Backdrop to close menu */}
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setShowColumnMenu(false)}
+                    />
+
+                    {/* Dropdown menu */}
+                    <div className="absolute right-0 top-full mt-2 w-56 rounded-xl bg-[#0a0520] border border-white/10 shadow-xl shadow-black/50 z-50 overflow-hidden">
+                      <div className="px-3 py-2 border-b border-white/10">
+                        <span className="text-xs font-semibold text-white/40 uppercase tracking-wide">
+                          Toggle Columns
+                        </span>
+                      </div>
+                      <div className="py-1">
+                        {[
+                          {
+                            id: "liquidity",
+                            label: "Liquidity",
+                            icon: Droplets,
+                          },
+                          { id: "creatorWallet", label: "Creator", icon: User },
+                          {
+                            id: "launchedAt",
+                            label: "Launch Date",
+                            icon: Calendar,
+                          },
+                        ].map(({ id, label, icon: Icon }) => {
+                          const isVisible = columnVisibility[id] !== false;
+                          return (
+                            <button
+                              key={id}
+                              onClick={() => {
+                                setColumnVisibility((prev) => ({
+                                  ...prev,
+                                  [id]: !isVisible,
+                                }));
+                              }}
+                              className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-white/5 transition-colors"
+                            >
+                              <div
+                                className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${
+                                  isVisible
+                                    ? "bg-[#6FEC06] border-[#6FEC06]"
+                                    : "border-white/20"
+                                }`}
+                              >
+                                {isVisible && (
+                                  <Check className="w-3.5 h-3.5 text-black" />
+                                )}
+                              </div>
+                              <Icon className="w-4 h-4 text-white/50" />
+                              <span className="text-sm text-white/80">
+                                {label}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <div className="px-3 py-2 border-t border-white/10">
+                        <button
+                          onClick={() => {
+                            setColumnVisibility({
+                              liquidity: true,
+                              creatorWallet: true,
+                              launchedAt: true,
+                            });
+                          }}
+                          className="text-xs text-[#6FEC06] hover:underline"
+                        >
+                          Show all
+                        </button>
+                        <span className="text-white/20 mx-2">•</span>
+                        <button
+                          onClick={() => {
+                            setColumnVisibility({
+                              liquidity: false,
+                              creatorWallet: false,
+                              launchedAt: false,
+                            });
+                          }}
+                          className="text-xs text-white/40 hover:text-white/60 hover:underline"
+                        >
+                          Hide all
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Refresh button */}
+            <button
+              onClick={() => fetchData(true)}
+              disabled={isRefreshing}
+              className="p-2 sm:p-3 rounded-lg sm:rounded-xl bg-[#0a0520]/80 border border-white/10 hover:border-[#6FEC06]/30 text-white/50 hover:text-[#6FEC06] transition-all disabled:opacity-50 shrink-0"
+            >
+              <RefreshCw
+                className={`w-4 h-4 sm:w-5 sm:h-5 ${isRefreshing ? "animate-spin" : ""}`}
+              />
+            </button>
+          </div>
         </div>
 
         {/* Loading skeleton */}
@@ -1395,8 +1410,8 @@ export default function ExplorePage() {
             </div>
 
             {/* Pagination controls */}
-            <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-t border-white/10 bg-[#0a0520]">
-              <div className="flex items-center gap-2 text-sm text-white/50">
+            <div className="flex-shrink-0 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-0 px-3 sm:px-4 py-2 sm:py-3 border-t border-white/10 bg-[#0a0520]">
+              <div className="hidden sm:flex items-center gap-2 text-sm text-white/50">
                 <span>
                   Showing {pagination.pageIndex * pagination.pageSize + 1}-
                   {Math.min(
@@ -1407,47 +1422,47 @@ export default function ExplorePage() {
                 </span>
               </div>
 
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-0.5 sm:gap-1">
                 <button
                   onClick={() => table.setPageIndex(0)}
                   disabled={!table.getCanPreviousPage()}
-                  className="p-2 rounded-lg hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="p-1.5 sm:p-2 rounded-md sm:rounded-lg hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   title="First page"
                 >
-                  <ChevronsLeft className="w-4 h-4" />
+                  <ChevronsLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </button>
                 <button
                   onClick={() => table.previousPage()}
                   disabled={!table.getCanPreviousPage()}
-                  className="p-2 rounded-lg hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="p-1.5 sm:p-2 rounded-md sm:rounded-lg hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   title="Previous page"
                 >
-                  <ChevronLeft className="w-4 h-4" />
+                  <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </button>
 
-                <div className="flex items-center gap-1 px-2">
+                <div className="flex items-center gap-0.5 sm:gap-1 px-1 sm:px-2">
                   {Array.from(
-                    { length: Math.min(5, table.getPageCount()) },
+                    { length: Math.min(3, table.getPageCount()) },
                     (_, i) => {
                       const pageCount = table.getPageCount();
                       const currentPage = pagination.pageIndex;
                       let pageNumber: number;
 
-                      if (pageCount <= 5) {
+                      if (pageCount <= 3) {
                         pageNumber = i;
-                      } else if (currentPage < 3) {
+                      } else if (currentPage < 2) {
                         pageNumber = i;
-                      } else if (currentPage > pageCount - 4) {
-                        pageNumber = pageCount - 5 + i;
+                      } else if (currentPage > pageCount - 3) {
+                        pageNumber = pageCount - 3 + i;
                       } else {
-                        pageNumber = currentPage - 2 + i;
+                        pageNumber = currentPage - 1 + i;
                       }
 
                       return (
                         <button
                           key={pageNumber}
                           onClick={() => table.setPageIndex(pageNumber)}
-                          className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
+                          className={`w-7 h-7 sm:w-8 sm:h-8 rounded-md sm:rounded-lg text-xs sm:text-sm font-medium transition-colors ${
                             pagination.pageIndex === pageNumber
                               ? "bg-[#6FEC06]/20 text-[#6FEC06]"
                               : "hover:bg-white/5 text-white/50"
@@ -1463,22 +1478,22 @@ export default function ExplorePage() {
                 <button
                   onClick={() => table.nextPage()}
                   disabled={!table.getCanNextPage()}
-                  className="p-2 rounded-lg hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="p-1.5 sm:p-2 rounded-md sm:rounded-lg hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   title="Next page"
                 >
-                  <ChevronRight className="w-4 h-4" />
+                  <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </button>
                 <button
                   onClick={() => table.setPageIndex(table.getPageCount() - 1)}
                   disabled={!table.getCanNextPage()}
-                  className="p-2 rounded-lg hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="p-1.5 sm:p-2 rounded-md sm:rounded-lg hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   title="Last page"
                 >
-                  <ChevronsRight className="w-4 h-4" />
+                  <ChevronsRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </button>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="hidden sm:flex items-center gap-2">
                 <span className="text-sm text-white/50">Rows:</span>
                 <div className="relative">
                   <select
@@ -1507,7 +1522,7 @@ export default function ExplorePage() {
         {!isLoading && filteredRows.length > 0 && view === "cards" && (
           <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
             <div className="flex-1 overflow-auto pb-4">
-              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              <div className="grid gap-4 sm:gap-6 grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {paginatedRows.map((row) => (
                   <ItemCard
                     key={`${row.original.type}-${row.original.id}`}
@@ -1523,8 +1538,8 @@ export default function ExplorePage() {
             </div>
 
             {/* Pagination controls for cards */}
-            <div className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-t border-white/10 bg-[#0a0520]/80 rounded-xl mt-4">
-              <div className="flex items-center gap-2 text-sm text-white/50">
+            <div className="flex-shrink-0 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-0 px-3 sm:px-4 py-2 sm:py-3 border-t border-white/10 bg-[#0a0520]/80 rounded-lg sm:rounded-xl mt-3 sm:mt-4">
+              <div className="hidden sm:flex items-center gap-2 text-sm text-white/50">
                 <span>
                   Showing {pagination.pageIndex * pagination.pageSize + 1}-
                   {Math.min(
@@ -1535,47 +1550,47 @@ export default function ExplorePage() {
                 </span>
               </div>
 
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-0.5 sm:gap-1">
                 <button
                   onClick={() => table.setPageIndex(0)}
                   disabled={!table.getCanPreviousPage()}
-                  className="p-2 rounded-lg hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="p-1.5 sm:p-2 rounded-md sm:rounded-lg hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   title="First page"
                 >
-                  <ChevronsLeft className="w-4 h-4" />
+                  <ChevronsLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </button>
                 <button
                   onClick={() => table.previousPage()}
                   disabled={!table.getCanPreviousPage()}
-                  className="p-2 rounded-lg hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="p-1.5 sm:p-2 rounded-md sm:rounded-lg hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   title="Previous page"
                 >
-                  <ChevronLeft className="w-4 h-4" />
+                  <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </button>
 
-                <div className="flex items-center gap-1 px-2">
+                <div className="flex items-center gap-0.5 sm:gap-1 px-1 sm:px-2">
                   {Array.from(
-                    { length: Math.min(5, table.getPageCount()) },
+                    { length: Math.min(3, table.getPageCount()) },
                     (_, i) => {
                       const pageCount = table.getPageCount();
                       const currentPage = pagination.pageIndex;
                       let pageNumber: number;
 
-                      if (pageCount <= 5) {
+                      if (pageCount <= 3) {
                         pageNumber = i;
-                      } else if (currentPage < 3) {
+                      } else if (currentPage < 2) {
                         pageNumber = i;
-                      } else if (currentPage > pageCount - 4) {
-                        pageNumber = pageCount - 5 + i;
+                      } else if (currentPage > pageCount - 3) {
+                        pageNumber = pageCount - 3 + i;
                       } else {
-                        pageNumber = currentPage - 2 + i;
+                        pageNumber = currentPage - 1 + i;
                       }
 
                       return (
                         <button
                           key={pageNumber}
                           onClick={() => table.setPageIndex(pageNumber)}
-                          className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
+                          className={`w-7 h-7 sm:w-8 sm:h-8 rounded-md sm:rounded-lg text-xs sm:text-sm font-medium transition-colors ${
                             pagination.pageIndex === pageNumber
                               ? "bg-[#6FEC06]/20 text-[#6FEC06]"
                               : "hover:bg-white/5 text-white/50"
@@ -1591,22 +1606,22 @@ export default function ExplorePage() {
                 <button
                   onClick={() => table.nextPage()}
                   disabled={!table.getCanNextPage()}
-                  className="p-2 rounded-lg hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="p-1.5 sm:p-2 rounded-md sm:rounded-lg hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   title="Next page"
                 >
-                  <ChevronRight className="w-4 h-4" />
+                  <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </button>
                 <button
                   onClick={() => table.setPageIndex(table.getPageCount() - 1)}
                   disabled={!table.getCanNextPage()}
-                  className="p-2 rounded-lg hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="p-1.5 sm:p-2 rounded-md sm:rounded-lg hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                   title="Last page"
                 >
-                  <ChevronsRight className="w-4 h-4" />
+                  <ChevronsRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </button>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="hidden sm:flex items-center gap-2">
                 <span className="text-sm text-white/50">Rows:</span>
                 <div className="relative">
                   <select

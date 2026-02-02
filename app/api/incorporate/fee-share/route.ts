@@ -1,20 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { BagsSDK } from "@bagsfm/bags-sdk";
-import { Connection, PublicKey } from "@solana/web3.js";
+import { BagsSDK, createTipTransaction } from "@bagsfm/bags-sdk";
+import { Connection, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { SOLANA_RPC_URL } from "@/lib/constants/solana";
 import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
+import { isValidPublicKey, validatePublicKey } from "@/lib/utils/validation";
 
-// Helper to safely create PublicKey
-function isValidPublicKey(value: string): boolean {
-  try {
-    new PublicKey(value);
-    return true;
-  } catch {
-    return false;
-  }
-}
+const FALLBACK_JITO_TIP_LAMPORTS = 0.015 * LAMPORTS_PER_SOL;
 
-// POST /api/incorporate/fee-share - Create fee share config on Bags
+// POST /api/incorporate/fee-share - Create fee share config on Bags for corporation
 export async function POST(request: NextRequest) {
   // Require authentication
   const auth = await requireAuth(request);
@@ -53,13 +46,13 @@ export async function POST(request: NextRequest) {
     // Validate PublicKey formats
     if (!isValidPublicKey(wallet)) {
       return NextResponse.json(
-        { error: "Invalid wallet address" },
+        { error: "Invalid wallet address: not a valid Solana public key" },
         { status: 400 },
       );
     }
     if (!isValidPublicKey(tokenMint)) {
       return NextResponse.json(
-        { error: "Invalid tokenMint address" },
+        { error: "Invalid tokenMint: not a valid Solana public key" },
         { status: 400 },
       );
     }
@@ -68,11 +61,11 @@ export async function POST(request: NextRequest) {
     const connection = new Connection(SOLANA_RPC_URL);
     const sdk = new BagsSDK(apiKey, connection, "confirmed");
 
-    // Convert to PublicKeys (safe after validation)
-    const walletPubkey = new PublicKey(wallet);
-    const tokenMintPubkey = new PublicKey(tokenMint);
+    // Convert to PublicKeys (validated above)
+    const walletPubkey = validatePublicKey(wallet, "wallet");
+    const tokenMintPubkey = validatePublicKey(tokenMint, "tokenMint");
 
-    // Creator gets 100% of fees
+    // Creator gets 100% of fees (single claimer, no LUT needed)
     const feeClaimers = [{ user: walletPubkey, userBps: 10000 }];
 
     // Build config options
@@ -95,18 +88,87 @@ export async function POST(request: NextRequest) {
     }
 
     // Create fee share config using SDK
-    const configResult =
-      await sdk.config.createBagsFeeShareConfig(configOptions);
+    let configResult;
+
+    try {
+      configResult = await sdk.config.createBagsFeeShareConfig(configOptions);
+    } catch (sdkError: unknown) {
+      console.error("[Fee Share] SDK Error details:", sdkError);
+      // Try to extract more error details
+      if (sdkError && typeof sdkError === "object" && "data" in sdkError) {
+        console.error(
+          "[Fee Share] Error data:",
+          JSON.stringify((sdkError as { data: unknown }).data, null, 2),
+        );
+      }
+      throw sdkError;
+    }
 
     // Convert transactions to base64 for frontend signing
     const transactions = (configResult.transactions || []).map((tx) => ({
       transaction: Buffer.from(tx.serialize()).toString("base64"),
     }));
 
-    const bundles = (configResult.bundles || []).map((bundle) =>
-      bundle.map((tx) => ({
-        transaction: Buffer.from(tx.serialize()).toString("base64"),
-      })),
+    // Get recommended Jito tip for bundles
+    let jitoTipLamports = FALLBACK_JITO_TIP_LAMPORTS;
+    try {
+      const recommendedTip = await sdk.solana.getJitoRecentFees();
+      if (recommendedTip?.landed_tips_95th_percentile) {
+        jitoTipLamports = Math.floor(
+          recommendedTip.landed_tips_95th_percentile * LAMPORTS_PER_SOL,
+        );
+      }
+    } catch {
+      // Use fallback tip amount
+    }
+
+    // Convert bundles to base64 and include tip transactions
+    const commitment = sdk.state.getCommitment();
+    const bundles = await Promise.all(
+      (configResult.bundles || []).map(async (bundle) => {
+        // Get blockhash from first transaction in bundle
+        const bundleBlockhash = bundle[0]?.message.recentBlockhash;
+
+        // Create tip transaction with same blockhash
+        let tipTransaction = null;
+        if (bundleBlockhash) {
+          try {
+            tipTransaction = await createTipTransaction(
+              connection,
+              commitment,
+              walletPubkey,
+              jitoTipLamports,
+              { blockhash: bundleBlockhash },
+            );
+          } catch (tipError) {
+            console.error(
+              "[Fee Share] Failed to create tip transaction:",
+              tipError,
+            );
+          }
+        }
+
+        // Return tip transaction first (if created), then bundle transactions
+        const bundleTxs = bundle.map((tx) => ({
+          transaction: Buffer.from(tx.serialize()).toString("base64"),
+          isTip: false,
+        }));
+
+        if (tipTransaction) {
+          return [
+            {
+              transaction: Buffer.from(tipTransaction.serialize()).toString(
+                "base64",
+              ),
+              isTip: true,
+              tipLamports: jitoTipLamports,
+            },
+            ...bundleTxs,
+          ];
+        }
+
+        return bundleTxs;
+      }),
     );
 
     return NextResponse.json({

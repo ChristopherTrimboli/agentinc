@@ -94,7 +94,7 @@ function StepCard({
     >
       {/* Card */}
       <div
-        className={`relative p-6 rounded-2xl bg-[#0a0520]/80 border transition-all duration-500 ${
+        className={`relative p-4 sm:p-6 rounded-xl sm:rounded-2xl bg-[#0a0520]/80 border transition-all duration-500 ${
           isActive
             ? `${colors.border} shadow-lg ${colors.glow}`
             : "border-white/10 hover:border-white/20"
@@ -103,27 +103,27 @@ function StepCard({
         {/* Glow effect when active */}
         {isActive && (
           <div
-            className={`absolute -inset-0.5 ${colors.bgLight} rounded-2xl blur-xl opacity-50 -z-10`}
+            className={`absolute -inset-0.5 ${colors.bgLight} rounded-xl sm:rounded-2xl blur-xl opacity-50 -z-10`}
           />
         )}
 
         {/* Step number badge */}
-        <div className="flex items-start justify-between mb-4">
+        <div className="flex items-start justify-between mb-3 sm:mb-4">
           <div
-            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-bold ${colors.bgLight} ${colors.text}`}
+            className={`inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-bold ${colors.bgLight} ${colors.text}`}
           >
-            <span className="text-lg">{step.emoji}</span>
+            <span className="text-base sm:text-lg">{step.emoji}</span>
             Step {step.step}
           </div>
           {(isActive || isPast) && (
             <div
-              className={`w-6 h-6 rounded-full flex items-center justify-center ${
+              className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center ${
                 isPast ? "bg-[#10b981]" : colors.bg
               }`}
             >
               {isPast ? (
                 <svg
-                  className="w-4 h-4 text-white"
+                  className="w-3 h-3 sm:w-4 sm:h-4 text-white"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -136,7 +136,7 @@ function StepCard({
                   />
                 </svg>
               ) : (
-                <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full animate-pulse" />
               )}
             </div>
           )}
@@ -144,16 +144,18 @@ function StepCard({
 
         {/* Icon */}
         <div
-          className={`w-14 h-14 rounded-xl mb-4 flex items-center justify-center transition-transform duration-300 ${
+          className={`w-11 h-11 sm:w-14 sm:h-14 rounded-lg sm:rounded-xl mb-3 sm:mb-4 flex items-center justify-center transition-transform duration-300 ${
             isActive ? "scale-110" : ""
           } ${colors.bgLight} border ${isActive ? colors.border : "border-transparent"}`}
         >
-          <step.icon className={`w-7 h-7 ${colors.text}`} />
+          <step.icon className={`w-5 h-5 sm:w-7 sm:h-7 ${colors.text}`} />
         </div>
 
         {/* Content */}
-        <h3 className="text-xl font-bold text-white mb-2">{step.title}</h3>
-        <p className="text-white/60 text-sm leading-relaxed">
+        <h3 className="text-lg sm:text-xl font-bold text-white mb-1.5 sm:mb-2">
+          {step.title}
+        </h3>
+        <p className="text-white/60 text-xs sm:text-sm leading-relaxed">
           {step.description}
         </p>
       </div>
@@ -198,7 +200,7 @@ export default function HowItWorks() {
     <section
       ref={sectionRef}
       id="how-it-works"
-      className="py-32 px-6 relative overflow-hidden"
+      className="py-16 sm:py-32 px-4 sm:px-6 relative overflow-hidden"
     >
       {/* Background effects */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[600px] bg-[#6FEC06]/5 rounded-full blur-[150px] pointer-events-none" />
@@ -206,19 +208,21 @@ export default function HowItWorks() {
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div
-          className={`text-center mb-16 transition-all duration-700 ${
+          className={`text-center mb-10 sm:mb-16 transition-all duration-700 ${
             isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
           }`}
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#6FEC06]/30 bg-[#6FEC06]/10 mb-6">
-            <Sparkles className="w-4 h-4 text-[#6FEC06]" />
-            <span className="text-sm text-[#6FEC06]">How It Works</span>
+          <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-[#6FEC06]/30 bg-[#6FEC06]/10 mb-4 sm:mb-6">
+            <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#6FEC06]" />
+            <span className="text-xs sm:text-sm text-[#6FEC06]">
+              How It Works
+            </span>
           </div>
 
-          <h2 className="text-4xl md:text-5xl font-bold mb-4">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4">
             How <span className="gradient-text">Agent Inc.</span> Works
           </h2>
-          <p className="text-xl text-white/60 max-w-2xl mx-auto">
+          <p className="text-base sm:text-xl text-white/60 max-w-2xl mx-auto px-4">
             From minting to revenue, here&apos;s how AI companies generate real
             value.
           </p>
@@ -296,7 +300,7 @@ export default function HowItWorks() {
         </div>
 
         {/* Cards Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {steps.map((step, index) => (
             <StepCard
               key={index}
@@ -309,7 +313,7 @@ export default function HowItWorks() {
         </div>
 
         {/* Mobile step indicator */}
-        <div className="flex justify-center gap-2 mt-8 lg:hidden">
+        <div className="flex justify-center gap-2 mt-6 sm:mt-8 lg:hidden">
           {steps.map((_, index) => (
             <button
               key={index}

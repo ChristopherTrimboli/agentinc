@@ -1,92 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import bs58 from "bs58";
-import { JITO_ENDPOINTS, FALLBACK_RPC_URLS } from "@/lib/constants/solana";
 import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
-
-// Send transaction via Jito for priority landing
-async function sendViaJito(base58Tx: string): Promise<string | null> {
-  for (const jitoEndpoint of JITO_ENDPOINTS) {
-    try {
-      const response = await fetch(jitoEndpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          jsonrpc: "2.0",
-          id: 1,
-          method: "sendTransaction",
-          params: [
-            base58Tx,
-            {
-              encoding: "base58",
-              skipPreflight: true,
-              maxRetries: 0,
-            },
-          ],
-        }),
-      });
-
-      if (!response.ok) continue;
-
-      const data = await response.json();
-
-      if (data.error) continue;
-
-      if (data.result) {
-        return data.result;
-      }
-    } catch {
-      continue;
-    }
-  }
-  return null;
-}
-
-// Send transaction via standard RPC as fallback
-async function sendViaRpc(base58Tx: string): Promise<string | null> {
-  for (const rpcUrl of FALLBACK_RPC_URLS) {
-    try {
-      const response = await fetch(rpcUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          jsonrpc: "2.0",
-          id: 1,
-          method: "sendTransaction",
-          params: [
-            base58Tx,
-            {
-              encoding: "base58",
-              skipPreflight: false,
-              preflightCommitment: "confirmed",
-              maxRetries: 3,
-            },
-          ],
-        }),
-      });
-
-      if (!response.ok) continue;
-
-      const data = await response.json();
-
-      if (data.error) {
-        if (data.error.message?.includes("insufficient")) {
-          throw new Error(data.error.message);
-        }
-        continue;
-      }
-
-      if (data.result) {
-        return data.result;
-      }
-    } catch (err) {
-      if (err instanceof Error && err.message.includes("insufficient")) {
-        throw err;
-      }
-      continue;
-    }
-  }
-  return null;
-}
+import { sendSignedTransaction } from "@/lib/solana";
 
 // POST /api/incorporate/send-transaction - Send a signed transaction to Solana
 export async function POST(request: NextRequest) {
@@ -105,38 +19,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Decode base64 transaction and encode to base58 for RPC
-    const txBytes = Buffer.from(signedTransaction, "base64");
-    const base58Tx = bs58.encode(txBytes);
+    // Use shared utility for transaction sending (Jito priority + RPC fallback)
+    const result = await sendSignedTransaction(signedTransaction, { useJito });
 
-    let signature: string | null = null;
-
-    // Try Jito first for priority landing (if enabled)
-    if (useJito) {
-      signature = await sendViaJito(base58Tx);
-
-      if (signature) {
-        return NextResponse.json({
-          signature,
-          method: "jito",
-        });
-      }
-    }
-
-    // Fallback to standard RPC
-    signature = await sendViaRpc(base58Tx);
-
-    if (signature) {
-      return NextResponse.json({
-        signature,
-        method: "rpc",
-      });
-    }
-
-    return NextResponse.json(
-      { error: "Failed to send transaction via all endpoints" },
-      { status: 500 },
-    );
+    return NextResponse.json({
+      signature: result.signature,
+      method: result.method,
+    });
   } catch (error) {
     console.error("Error sending transaction:", error);
     const errorMessage =

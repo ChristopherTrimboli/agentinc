@@ -120,13 +120,13 @@ export function MintWizard({ mint, chatPath }: MintWizardProps) {
   }
 
   return (
-    <div className="p-6 lg:p-8 max-w-7xl mx-auto">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="text-center mb-6">
-        <h1 className="text-3xl md:text-4xl font-extrabold mb-2 tracking-tight font-display">
+      <div className="text-center mb-4 sm:mb-6">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold mb-2 tracking-tight font-display">
           Mint Your <span className="gradient-text-shimmer">AI Agent</span>
         </h1>
-        <p className="text-white/50 text-sm md:text-base mb-4 max-w-2xl mx-auto">
+        <p className="text-white/50 text-xs sm:text-sm md:text-base mb-3 sm:mb-4 max-w-2xl mx-auto px-2">
           Randomize traits, generate a unique AI image, and launch your
           agent&apos;s token on Solana
         </p>
@@ -151,9 +151,9 @@ export function MintWizard({ mint, chatPath }: MintWizardProps) {
       <LaunchModal isLaunching={isLaunching} launchSteps={launchSteps} />
 
       {/* Main content grid */}
-      <div className="grid lg:grid-cols-2 gap-6 items-start">
+      <div className="grid lg:grid-cols-2 gap-4 sm:gap-6 items-start">
         {/* Left: Agent preview */}
-        <div className="lg:sticky lg:top-20">
+        <div className="lg:sticky lg:top-20 order-2 lg:order-1">
           {agentTraits && (
             <AgentPreviewCard
               name={agentName}
@@ -165,7 +165,7 @@ export function MintWizard({ mint, chatPath }: MintWizardProps) {
         </div>
 
         {/* Right: Step content */}
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4 order-1 lg:order-2">
           {/* Step 0: Randomize */}
           {currentStep === 0 && agentTraits && (
             <div className="space-y-4">

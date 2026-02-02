@@ -80,17 +80,17 @@ bun dev
 
 Copy `example.env` to `.env.local` and configure:
 
-| Variable | Description |
-|----------|-------------|
-| `NEXT_PUBLIC_PRIVY_APP_ID` | Privy app ID for authentication |
-| `PRIVY_APP_SECRET` | Privy app secret |
-| `DATABASE_URL` | PostgreSQL connection string |
-| `AI_GATEWAY_API_KEY` | AI Gateway API key for Claude |
-| `BAGS_API_KEY` | Bags SDK API key for token launches |
-| `BAGS_PARTNER_KEY` | Bags partner key |
-| `BAGS_PARTNER_WALLET` | Bags partner wallet address |
-| `BLOB_READ_WRITE_TOKEN` | Vercel Blob storage token |
-| `SOLANA_RPC_URL` | Solana RPC endpoint |
+| Variable                   | Description                         |
+| -------------------------- | ----------------------------------- |
+| `NEXT_PUBLIC_PRIVY_APP_ID` | Privy app ID for authentication     |
+| `PRIVY_APP_SECRET`         | Privy app secret                    |
+| `DATABASE_URL`             | PostgreSQL connection string        |
+| `AI_GATEWAY_API_KEY`       | AI Gateway API key for Claude       |
+| `BAGS_API_KEY`             | Bags SDK API key for token launches |
+| `BAGS_PARTNER_KEY`         | Bags partner key                    |
+| `BAGS_PARTNER_WALLET`      | Bags partner wallet address         |
+| `BLOB_READ_WRITE_TOKEN`    | Vercel Blob storage token           |
+| `SOLANA_RPC_URL`           | Solana RPC endpoint                 |
 
 ## Project Structure
 

@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { EXTERNAL_APIS } from "@/lib/constants/urls";
+import { BagsSDK } from "@bagsfm/bags-sdk";
+import { Connection } from "@solana/web3.js";
+import { put } from "@vercel/blob";
 import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
+import { SOLANA_RPC_URL } from "@/lib/constants/solana";
 
-// POST /api/incorporate/metadata - Create token info and metadata on Bags
+// POST /api/incorporate/metadata - Create token info and metadata on Bags for corporation
 export async function POST(request: NextRequest) {
   // Require authentication
   const auth = await requireAuth(request);
@@ -58,57 +61,63 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create form data for Bags API
-    const formData = new FormData();
-    formData.append("name", name);
-    formData.append("symbol", symbol.toUpperCase().replace("$", ""));
-    formData.append("description", description);
-    formData.append("imageUrl", imageUrl);
+    // Handle image - if it's a base64 data URL, upload to Vercel Blob first
+    let publicImageUrl = imageUrl;
 
-    if (twitter) formData.append("twitter", twitter);
-    if (website) formData.append("website", website);
-    if (telegram) formData.append("telegram", telegram);
+    if (imageUrl.startsWith("data:")) {
+      // Extract base64 data and mime type from data URL
+      const matches = imageUrl.match(/^data:([^;]+);base64,(.+)$/);
+      if (!matches) {
+        return NextResponse.json(
+          { error: "Invalid image data URL format" },
+          { status: 400 },
+        );
+      }
+      const mimeType = matches[1];
+      const base64Data = matches[2];
 
-    // Call Bags API to create token info
-    const response = await fetch(
-      `${EXTERNAL_APIS.bagsApi}/token-launch/create-token-info`,
-      {
-        method: "POST",
-        headers: {
-          "x-api-key": apiKey,
-        },
-        body: formData,
-      },
-    );
+      // Convert base64 to buffer
+      const imageBuffer = Buffer.from(base64Data, "base64");
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error("Bags API error:", errorData);
-      return NextResponse.json(
-        { error: errorData.error || "Failed to create token metadata" },
-        { status: response.status },
-      );
+      // Determine file extension from mime type
+      const ext = mimeType.split("/")[1] || "png";
+      const filename = `corporations/${Date.now()}-${symbol.toLowerCase()}.${ext}`;
+
+      // Upload to Vercel Blob
+      const { url } = await put(filename, imageBuffer, {
+        access: "public",
+        contentType: mimeType,
+      });
+
+      publicImageUrl = url;
     }
 
-    const data = await response.json();
+    // Initialize Bags SDK
+    const connection = new Connection(SOLANA_RPC_URL);
+    const sdk = new BagsSDK(apiKey, connection, "confirmed");
 
-    if (!data.success || !data.response) {
-      return NextResponse.json(
-        { error: "Invalid response from Bags API" },
-        { status: 500 },
-      );
-    }
+    // Create token info and metadata using SDK (same as agent mint)
+    const tokenInfoResponse = await sdk.tokenLaunch.createTokenInfoAndMetadata({
+      imageUrl: publicImageUrl,
+      name,
+      symbol: symbol.toUpperCase().replace("$", ""),
+      description,
+      twitter: twitter || undefined,
+      website: website || undefined,
+      telegram: telegram || undefined,
+    });
 
     return NextResponse.json({
-      tokenMint: data.response.tokenMint,
-      tokenMetadata: data.response.tokenMetadata,
-      tokenLaunch: data.response.tokenLaunch,
+      tokenMint: tokenInfoResponse.tokenMint,
+      tokenMetadata: tokenInfoResponse.tokenMetadata,
+      tokenLaunch: tokenInfoResponse.tokenLaunch,
     });
   } catch (error) {
     console.error("Error creating token metadata:", error);
-    return NextResponse.json(
-      { error: "Failed to create token metadata" },
-      { status: 500 },
-    );
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "Failed to create token metadata";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

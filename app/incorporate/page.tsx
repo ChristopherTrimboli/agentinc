@@ -446,7 +446,7 @@ function Stepper({
   steps: { title: string; icon: React.ReactNode }[];
 }) {
   return (
-    <div className="flex items-center justify-center gap-3">
+    <div className="flex items-center justify-center gap-2 sm:gap-3">
       {steps.map((step, index) => {
         const isActive = index === currentStep;
         const isComplete = index < currentStep;
@@ -454,7 +454,7 @@ function Stepper({
         return (
           <div key={index} className="flex items-center">
             <div
-              className={`relative flex items-center gap-2.5 px-4 py-2 rounded-full transition-all duration-300 ${
+              className={`relative flex items-center gap-1.5 sm:gap-2.5 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-full transition-all duration-300 ${
                 isComplete
                   ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
                   : isActive
@@ -468,17 +468,21 @@ function Stepper({
               )}
 
               <div
-                className={`w-5 h-5 flex items-center justify-center transition-transform duration-300 ${isActive ? "scale-110" : ""}`}
+                className={`w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center transition-transform duration-300 ${isActive ? "scale-110" : ""}`}
               >
-                {isComplete ? <Check className="w-4 h-4" /> : step.icon}
+                {isComplete ? (
+                  <Check className="w-3 h-3 sm:w-4 sm:h-4" />
+                ) : (
+                  step.icon
+                )}
               </div>
-              <span className="text-xs font-semibold tracking-wide">
+              <span className="text-[10px] sm:text-xs font-semibold tracking-wide">
                 {step.title}
               </span>
             </div>
 
             {index < steps.length - 1 && (
-              <div className="w-12 h-[2px] mx-3 bg-gray-800 rounded-full overflow-hidden">
+              <div className="w-6 sm:w-12 h-[2px] mx-1.5 sm:mx-3 bg-gray-800 rounded-full overflow-hidden">
                 <div
                   className={`h-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-500 ease-out ${
                     isComplete ? "w-full" : "w-0"
@@ -652,28 +656,109 @@ export default function IncorporatePage() {
         );
       const feeShareData = await feeShareResponse.json();
 
+      // Process regular transactions
       if (feeShareData.transactions?.length > 0) {
-        for (const txData of feeShareData.transactions) {
-          const txBytes = Uint8Array.from(atob(txData.transaction), (c) =>
-            c.charCodeAt(0),
-          );
-          const signResult = await signTransaction({
-            transaction: txBytes,
-            wallet: embeddedWallet,
-          });
-          const signedTxBase64 = btoa(
-            String.fromCharCode(
-              ...new Uint8Array(signResult.signedTransaction),
-            ),
-          );
-          await fetch("/api/incorporate/send-transaction", {
+        for (let i = 0; i < feeShareData.transactions.length; i++) {
+          try {
+            const txData = feeShareData.transactions[i];
+            let txBytes: Uint8Array;
+            try {
+              txBytes = Uint8Array.from(atob(txData.transaction), (c) =>
+                c.charCodeAt(0),
+              );
+            } catch {
+              throw new Error(
+                `Invalid transaction data for fee config ${i + 1}`,
+              );
+            }
+            const signResult = await signTransaction({
+              transaction: txBytes,
+              wallet: embeddedWallet,
+            });
+            const signedTxBase64 = btoa(
+              String.fromCharCode(
+                ...new Uint8Array(signResult.signedTransaction),
+              ),
+            );
+
+            const sendResponse = await fetch(
+              "/api/incorporate/send-transaction",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "privy-id-token": identityToken,
+                },
+                body: JSON.stringify({ signedTransaction: signedTxBase64 }),
+              },
+            );
+
+            if (!sendResponse.ok) {
+              const errorData = await sendResponse.json().catch(() => ({}));
+              throw new Error(
+                errorData.error ||
+                  `Failed to send fee config transaction ${i + 1}`,
+              );
+            }
+          } catch (error) {
+            throw new Error(
+              `Fee config transaction ${i + 1} failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+            );
+          }
+        }
+      }
+
+      // Process bundles (if any) - sign all transactions then send as bundle via Jito
+      if (feeShareData.bundles?.length > 0) {
+        for (
+          let bundleIdx = 0;
+          bundleIdx < feeShareData.bundles.length;
+          bundleIdx++
+        ) {
+          const bundle = feeShareData.bundles[bundleIdx];
+          const signedTransactions: string[] = [];
+
+          // Sign each transaction in the bundle
+          for (let txIdx = 0; txIdx < bundle.length; txIdx++) {
+            const txData = bundle[txIdx];
+            let txBytes: Uint8Array;
+            try {
+              txBytes = Uint8Array.from(atob(txData.transaction), (c) =>
+                c.charCodeAt(0),
+              );
+            } catch {
+              throw new Error(
+                `Invalid bundle ${bundleIdx + 1} transaction ${txIdx + 1} data`,
+              );
+            }
+            const signResult = await signTransaction({
+              transaction: txBytes,
+              wallet: embeddedWallet,
+            });
+            const signedTxBase64 = btoa(
+              String.fromCharCode(
+                ...new Uint8Array(signResult.signedTransaction),
+              ),
+            );
+            signedTransactions.push(signedTxBase64);
+          }
+
+          // Send the signed bundle via Jito
+          const bundleResponse = await fetch("/api/incorporate/send-bundle", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               "privy-id-token": identityToken,
             },
-            body: JSON.stringify({ signedTransaction: signedTxBase64 }),
+            body: JSON.stringify({ signedTransactions }),
           });
+
+          if (!bundleResponse.ok) {
+            const errorData = await bundleResponse.json().catch(() => ({}));
+            throw new Error(
+              errorData.error || `Failed to send bundle ${bundleIdx + 1}`,
+            );
+          }
         }
       }
       updateStep("feeShare", "complete");
@@ -908,14 +993,14 @@ export default function IncorporatePage() {
 
       <Navigation />
 
-      <main className="min-h-[calc(100vh-72px)] mt-[72px] flex flex-col px-6 pb-8 overflow-y-auto">
+      <main className="min-h-[calc(100vh-72px)] mt-[72px] flex flex-col px-4 sm:px-6 pb-6 sm:pb-8 overflow-y-auto">
         <div className="max-w-6xl w-full mx-auto flex flex-col">
           {/* Header */}
-          <div className="text-center pt-14 pb-8 flex-shrink-0">
-            <h1 className="text-4xl md:text-5xl font-extrabold mb-4 tracking-tight">
+          <div className="text-center pt-8 sm:pt-14 pb-6 sm:pb-8 flex-shrink-0">
+            <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold mb-3 sm:mb-4 tracking-tight">
               Incorporate Your <span className="gradient-text">AI Startup</span>
             </h1>
-            <p className="text-gray-400 text-base md:text-lg mb-8 max-w-2xl mx-auto leading-relaxed font-medium">
+            <p className="text-gray-400 text-sm sm:text-base md:text-lg mb-6 sm:mb-8 max-w-2xl mx-auto leading-relaxed font-medium px-2">
               Launch your AI Corporation with{" "}
               <a
                 href={EXTERNAL_APIS.bagsFm}
@@ -1020,32 +1105,32 @@ export default function IncorporatePage() {
             {currentStep === 0 && (
               <div className="flex flex-col">
                 {/* Header bar */}
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500/20 to-cyan-500/20 flex items-center justify-center border border-purple-500/30">
-                      <Users className="w-5 h-5 text-purple-400" />
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-0 mb-4">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br from-purple-500/20 to-cyan-500/20 flex items-center justify-center border border-purple-500/30">
+                      <Users className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400" />
                     </div>
                     <div>
-                      <h2 className="font-semibold text-white">
+                      <h2 className="font-semibold text-white text-sm sm:text-base">
                         Select Your Team
                       </h2>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-[10px] sm:text-xs text-gray-500">
                         Choose 1-5 AI agents to power your corporation
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm">
-                    <span className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
+                  <div className="flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl bg-gray-800/60 border border-gray-700/50 backdrop-blur-sm self-start sm:self-auto">
+                    <span className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
                       {selectedAgentIds.length}
                     </span>
-                    <span className="text-gray-500 text-sm font-medium">
+                    <span className="text-gray-500 text-xs sm:text-sm font-medium">
                       /5 selected
                     </span>
                   </div>
                 </div>
 
                 {/* Selected pills */}
-                <div className="flex flex-wrap gap-2 mb-4 min-h-[40px] items-center p-3 rounded-xl bg-gray-900/40 border border-gray-800/50">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-3 sm:mb-4 min-h-[36px] sm:min-h-[40px] items-center p-2 sm:p-3 rounded-lg sm:rounded-xl bg-gray-900/40 border border-gray-800/50">
                   {selectedAgentIds.length > 0 ? (
                     selectedAgentIds.map((id, i) => {
                       const agent = agents.find((a) => a.id === id);
@@ -1056,23 +1141,23 @@ export default function IncorporatePage() {
                       return agent ? (
                         <div
                           key={id}
-                          className="group flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all duration-200 hover:scale-105"
+                          className="group flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-md sm:rounded-lg border transition-all duration-200 hover:scale-105"
                           style={{
                             backgroundColor: `${agentColor}15`,
                             borderColor: `${agentColor}40`,
                           }}
                         >
                           <span
-                            className="w-6 h-6 rounded-md text-sm flex items-center justify-center"
+                            className="w-5 h-5 sm:w-6 sm:h-6 rounded-md text-xs sm:text-sm flex items-center justify-center"
                             style={{ backgroundColor: `${agentColor}30` }}
                           >
                             {avatar}
                           </span>
-                          <span className="text-sm font-medium text-white">
+                          <span className="text-xs sm:text-sm font-medium text-white truncate max-w-[60px] sm:max-w-none">
                             {agent.name}
                           </span>
                           <span
-                            className="w-4 h-4 rounded text-[10px] flex items-center justify-center font-bold text-white"
+                            className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded text-[8px] sm:text-[10px] flex items-center justify-center font-bold text-white shrink-0"
                             style={{ backgroundColor: agentColor }}
                           >
                             {i + 1}
@@ -1080,7 +1165,7 @@ export default function IncorporatePage() {
                           <button
                             type="button"
                             onClick={() => toggleAgent(id)}
-                            className="w-5 h-5 rounded-md flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all"
+                            className="w-4 h-4 sm:w-5 sm:h-5 rounded-md flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all shrink-0"
                           >
                             ×
                           </button>
@@ -1088,29 +1173,31 @@ export default function IncorporatePage() {
                       ) : null;
                     })
                   ) : (
-                    <span className="text-sm text-gray-500 flex items-center gap-2">
-                      <Sparkles className="w-4 h-4" />
+                    <span className="text-xs sm:text-sm text-gray-500 flex items-center gap-1.5 sm:gap-2">
+                      <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       Click agents below to build your team
                     </span>
                   )}
                 </div>
 
                 {/* Agents grid */}
-                <div className="rounded-2xl bg-gray-900/30 border border-gray-800/40 p-4 backdrop-blur-sm max-h-[560px] overflow-y-auto">
+                <div className="rounded-xl sm:rounded-2xl bg-gray-900/30 border border-gray-800/40 p-3 sm:p-4 backdrop-blur-sm max-h-[400px] sm:max-h-[560px] overflow-y-auto">
                   {isLoadingAgents ? (
-                    <div className="py-12 flex flex-col items-center justify-center gap-3">
-                      <Loader2 className="w-8 h-8 text-purple-400 animate-spin" />
-                      <span className="text-sm text-gray-500">
+                    <div className="py-8 sm:py-12 flex flex-col items-center justify-center gap-2 sm:gap-3">
+                      <Loader2 className="w-6 h-6 sm:w-8 sm:h-8 text-purple-400 animate-spin" />
+                      <span className="text-xs sm:text-sm text-gray-500">
                         Loading agents...
                       </span>
                     </div>
                   ) : agents.length === 0 ? (
-                    <div className="py-12 flex flex-col items-center justify-center gap-3 text-gray-500">
-                      <Users className="w-12 h-12 opacity-30" />
-                      <span className="text-sm">No agents available</span>
+                    <div className="py-8 sm:py-12 flex flex-col items-center justify-center gap-2 sm:gap-3 text-gray-500">
+                      <Users className="w-10 h-10 sm:w-12 sm:h-12 opacity-30" />
+                      <span className="text-xs sm:text-sm">
+                        No agents available
+                      </span>
                     </div>
                   ) : (
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    <div className="grid gap-2 sm:gap-3 grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                       {agents.map((agent) => {
                         const isSelected = selectedAgentIds.includes(agent.id);
                         const isDisabled =
@@ -1133,15 +1220,15 @@ export default function IncorporatePage() {
                 </div>
 
                 {/* Navigation */}
-                <div className="flex justify-end mt-4">
+                <div className="flex justify-end mt-3 sm:mt-4">
                   <button
                     type="button"
                     onClick={() => setCurrentStep(1)}
                     disabled={!canProceedToStep2}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-lg text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 hover:opacity-90"
+                    className="flex items-center gap-1.5 sm:gap-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-lg text-white text-xs sm:text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 hover:opacity-90"
                   >
                     <span>Continue</span>
-                    <ChevronRight className="w-4 h-4" />
+                    <ChevronRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </button>
                 </div>
               </div>
@@ -1151,10 +1238,10 @@ export default function IncorporatePage() {
             {currentStep === 1 && (
               <div className="flex flex-col">
                 {/* Team summary - compact */}
-                <div className="flex items-center justify-between mb-4 px-3 py-2 rounded-lg bg-purple-500/10 border border-purple-500/30 flex-shrink-0">
-                  <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4 text-purple-400" />
-                    <span className="text-sm font-medium text-purple-300">
+                <div className="flex items-center justify-between mb-3 sm:mb-4 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg bg-purple-500/10 border border-purple-500/30 flex-shrink-0">
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-400" />
+                    <span className="text-xs sm:text-sm font-medium text-purple-300">
                       {selectedAgentIds.length} agent
                       {selectedAgentIds.length !== 1 ? "s" : ""} selected
                     </span>
@@ -1162,15 +1249,15 @@ export default function IncorporatePage() {
                   <button
                     type="button"
                     onClick={() => setCurrentStep(0)}
-                    className="text-xs font-medium text-purple-400 hover:text-purple-300 transition-colors"
+                    className="text-[10px] sm:text-xs font-medium text-purple-400 hover:text-purple-300 transition-colors"
                   >
                     Edit
                   </button>
                 </div>
 
                 {/* Form - compact layout */}
-                <div className="rounded-xl bg-gray-900/30 border border-gray-800/40 p-4">
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="rounded-lg sm:rounded-xl bg-gray-900/30 border border-gray-800/40 p-3 sm:p-4">
+                  <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                     {/* Name */}
                     <FormInput
                       label="Name"
@@ -1263,14 +1350,14 @@ export default function IncorporatePage() {
                   </div>
 
                   {/* Social links - compact row */}
-                  <div className="mt-4 pt-4 border-t border-gray-800/50">
-                    <label className="block text-[11px] font-medium text-gray-500 mb-2 uppercase tracking-wider">
+                  <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-800/50">
+                    <label className="block text-[10px] sm:text-[11px] font-medium text-gray-500 mb-2 uppercase tracking-wider">
                       Social Links{" "}
                       <span className="text-gray-600 normal-case">
                         (optional)
                       </span>
                     </label>
-                    <div className="grid gap-3 sm:grid-cols-3">
+                    <div className="grid gap-2 sm:gap-3 grid-cols-1 sm:grid-cols-3">
                       <div className="relative">
                         <Twitter className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500" />
                         <input
@@ -1309,20 +1396,20 @@ export default function IncorporatePage() {
                 </div>
 
                 {/* Navigation */}
-                <div className="flex justify-between mt-4">
+                <div className="flex justify-between mt-3 sm:mt-4">
                   <button
                     type="button"
                     onClick={() => setCurrentStep(0)}
-                    className="flex items-center gap-1.5 px-4 py-2.5 bg-gray-800/80 hover:bg-gray-700/80 border border-gray-700/60 rounded-lg text-sm font-medium transition-colors"
+                    className="flex items-center gap-1 sm:gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 bg-gray-800/80 hover:bg-gray-700/80 border border-gray-700/60 rounded-lg text-xs sm:text-sm font-medium transition-colors"
                   >
-                    <ChevronLeft className="w-4 h-4" /> Back
+                    <ChevronLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Back
                   </button>
                   <button
                     type="submit"
                     disabled={isLaunching || !canLaunch}
-                    className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-lg text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 hover:opacity-90"
+                    className="flex items-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-2 sm:py-2.5 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-lg text-white text-xs sm:text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 hover:opacity-90"
                   >
-                    <Rocket className="w-4 h-4" /> Launch Corporation
+                    <Rocket className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> Launch
                   </button>
                 </div>
               </div>

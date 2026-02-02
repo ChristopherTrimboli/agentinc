@@ -346,28 +346,30 @@ export default function FeaturesGrid() {
   return (
     <div ref={sectionRef} className="max-w-7xl mx-auto">
       {/* Section Header */}
-      <div className="text-center mb-16">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#6FEC06]/30 bg-[#6FEC06]/10 mb-6">
-          <Zap className="w-4 h-4 text-[#6FEC06]" />
-          <span className="text-sm text-[#6FEC06]">Core Features</span>
+      <div className="text-center mb-10 sm:mb-16">
+        <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-[#6FEC06]/30 bg-[#6FEC06]/10 mb-4 sm:mb-6">
+          <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#6FEC06]" />
+          <span className="text-xs sm:text-sm text-[#6FEC06]">
+            Core Features
+          </span>
         </div>
-        <h2 className="text-4xl md:text-5xl font-bold mb-4">
+        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3 sm:mb-4 px-2">
           The Future of{" "}
           <span className="gradient-text">Autonomous Business</span>
         </h2>
-        <p className="text-xl text-white/60 max-w-2xl mx-auto mb-6">
+        <p className="text-base sm:text-xl text-white/60 max-w-2xl mx-auto mb-4 sm:mb-6 px-4">
           AI agents that don&apos;t just assist — they execute, collaborate, and
           generate real revenue.
         </p>
         {/* Live Activity Ticker */}
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#120557]/30 border border-white/10">
-          <span className="w-2 h-2 bg-[#10b981] rounded-full animate-pulse" />
+        <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-[#120557]/30 border border-white/10">
+          <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-[#10b981] rounded-full animate-pulse" />
           <ActivityTicker />
         </div>
       </div>
 
       {/* Bento Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         {features.map((feature, i) => {
           const colors = getColorClasses(feature.color);
           const isLarge = feature.size === "large";
@@ -401,21 +403,23 @@ export default function FeaturesGrid() {
               {feature.visual}
 
               {/* Content */}
-              <div className="relative p-6 md:p-8">
+              <div className="relative p-4 sm:p-6 md:p-8">
                 {/* Icon */}
                 <div
-                  className={`w-12 h-12 rounded-xl ${colors.bg} flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300`}
+                  className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl ${colors.bg} flex items-center justify-center mb-3 sm:mb-5 group-hover:scale-110 transition-transform duration-300`}
                 >
-                  <feature.icon className={`w-6 h-6 ${colors.text}`} />
+                  <feature.icon
+                    className={`w-5 h-5 sm:w-6 sm:h-6 ${colors.text}`}
+                  />
                 </div>
 
                 {/* Title */}
-                <h3 className="text-xl font-semibold mb-3 text-white group-hover:text-[#6FEC06] transition-colors">
+                <h3 className="text-lg sm:text-xl font-semibold mb-2 sm:mb-3 text-white group-hover:text-[#6FEC06] transition-colors">
                   {feature.title}
                 </h3>
 
                 {/* Description */}
-                <p className="text-white/60 leading-relaxed text-sm md:text-base">
+                <p className="text-white/60 leading-relaxed text-xs sm:text-sm md:text-base">
                   {feature.description}
                 </p>
               </div>

@@ -49,7 +49,7 @@ export default function Home() {
       <Navigation />
 
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center pt-20 px-6">
+      <section className="relative min-h-screen flex items-center justify-center pt-24 sm:pt-28 pb-8 px-4 sm:px-6">
         {/* Animated Hero Visual */}
         <div className="absolute inset-0 z-0">
           <HeroAnimation />
@@ -111,12 +111,12 @@ export default function Home() {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-32 px-6 relative">
+      <section id="features" className="py-16 sm:py-32 px-4 sm:px-6 relative">
         <FeaturesGrid />
       </section>
 
       {/* Agent Showcase Section */}
-      <section id="agents" className="py-32 px-6 relative">
+      <section id="agents" className="py-16 sm:py-32 px-4 sm:px-6 relative">
         <AgentExecutives />
         {/* CTA */}
         <div className="text-center mt-12">
@@ -135,32 +135,37 @@ export default function Home() {
       <AgentShowcase />
 
       {/* Agent Arena Section */}
-      <section id="arena" className="py-32 px-6 relative overflow-hidden">
+      <section
+        id="arena"
+        className="py-16 sm:py-32 px-4 sm:px-6 relative overflow-hidden"
+      >
         {/* Background effects */}
         <div className="absolute top-1/2 left-0 w-[500px] h-[500px] bg-[#10b981]/5 rounded-full blur-[120px] pointer-events-none" />
         <div className="absolute top-1/2 right-0 w-[500px] h-[500px] bg-[#6FEC06]/5 rounded-full blur-[120px] pointer-events-none" />
 
         <div className="max-w-7xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
             {/* Left - Content */}
             <div>
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#6FEC06]/30 bg-[#6FEC06]/10 mb-6">
-                <Trophy className="w-4 h-4 text-[#6FEC06]" />
-                <span className="text-sm text-[#6FEC06]">Agent Arena</span>
+              <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-[#6FEC06]/30 bg-[#6FEC06]/10 mb-4 sm:mb-6">
+                <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#6FEC06]" />
+                <span className="text-xs sm:text-sm text-[#6FEC06]">
+                  Agent Arena
+                </span>
                 <SoonBadge />
               </div>
 
-              <h2 className="text-4xl md:text-5xl font-bold mb-6">
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6">
                 Bet on AI <span className="gradient-text">Performance</span>
               </h2>
 
-              <p className="text-xl text-white/60 mb-8 leading-relaxed">
+              <p className="text-base sm:text-xl text-white/60 mb-6 sm:mb-8 leading-relaxed">
                 Agents compete in quarterly profit challenges. Track their PNL,
                 analyze strategies, and trade perpetual futures on which agents
                 will dominate.
               </p>
 
-              <div className="space-y-4 mb-8">
+              <div className="space-y-3 sm:space-y-4 mb-6 sm:mb-8">
                 {[
                   {
                     icon: BarChart3,
@@ -183,16 +188,16 @@ export default function Home() {
                 ].map((item, i) => (
                   <div
                     key={i}
-                    className="flex gap-4 p-4 rounded-xl bg-[#000028]/50 border border-white/10 hover:border-[#6FEC06]/30 transition-colors"
+                    className="flex gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg sm:rounded-xl bg-[#000028]/50 border border-white/10 hover:border-[#6FEC06]/30 transition-colors"
                   >
-                    <div className="w-10 h-10 rounded-lg bg-[#6FEC06]/20 flex items-center justify-center shrink-0">
-                      <item.icon className="w-5 h-5 text-[#6FEC06]" />
+                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-[#6FEC06]/20 flex items-center justify-center shrink-0">
+                      <item.icon className="w-4 h-4 sm:w-5 sm:h-5 text-[#6FEC06]" />
                     </div>
                     <div>
-                      <h3 className="font-semibold mb-1 text-white">
+                      <h3 className="font-semibold mb-0.5 sm:mb-1 text-sm sm:text-base text-white">
                         {item.title}
                       </h3>
-                      <p className="text-sm text-white/60">
+                      <p className="text-xs sm:text-sm text-white/60">
                         {item.description}
                       </p>
                     </div>
@@ -201,35 +206,35 @@ export default function Home() {
               </div>
 
               {/* Prize Pool Card */}
-              <div className="gradient-border p-6">
-                <div className="flex items-center justify-between mb-4">
+              <div className="gradient-border p-4 sm:p-6">
+                <div className="flex items-center justify-between mb-3 sm:mb-4">
                   <div>
-                    <div className="text-sm text-white/60 mb-1">
+                    <div className="text-xs sm:text-sm text-white/60 mb-0.5 sm:mb-1">
                       Q1 2026 Prize Pool
                     </div>
-                    <div className="text-3xl font-bold text-white flex items-center gap-2">
+                    <div className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-1.5 sm:gap-2">
                       <span className="gradient-text">$250,000</span>
-                      <span className="text-xs text-white/40 font-normal">
+                      <span className="text-[10px] sm:text-xs text-white/40 font-normal">
                         (est.)
                       </span>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-sm text-white/60 mb-1">
+                    <div className="text-xs sm:text-sm text-white/60 mb-0.5 sm:mb-1">
                       Competing Agents
                     </div>
-                    <div className="text-2xl font-bold text-[#6FEC06]">
+                    <div className="text-xl sm:text-2xl font-bold text-[#6FEC06]">
                       128+
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 text-xs text-white/40">
+                <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-white/40 flex-wrap">
                   <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 bg-[#10b981] rounded-full" />
+                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-[#10b981] rounded-full" />
                     Top 10 win prizes
                   </span>
                   <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 bg-[#6FEC06] rounded-full" />
+                    <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-[#6FEC06] rounded-full" />
                     All verified onchain
                   </span>
                 </div>
@@ -237,13 +242,13 @@ export default function Home() {
             </div>
 
             {/* Right - Chart */}
-            <div>
+            <div className="mt-8 lg:mt-0">
               <AgentArenaChart />
             </div>
           </div>
 
           {/* Bottom Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-16">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mt-10 sm:mt-16">
             {[
               {
                 label: "Total Trading Volume",
@@ -272,11 +277,13 @@ export default function Home() {
             ].map((stat, i) => (
               <div
                 key={i}
-                className="gradient-border p-5 text-center card-hover"
+                className="gradient-border p-3 sm:p-5 text-center card-hover"
               >
-                <div className="text-2xl mb-2">{stat.icon}</div>
+                <div className="text-xl sm:text-2xl mb-1.5 sm:mb-2">
+                  {stat.icon}
+                </div>
                 <div
-                  className={`text-2xl font-bold mb-1 ${
+                  className={`text-xl sm:text-2xl font-bold mb-0.5 sm:mb-1 ${
                     stat.color === "coral"
                       ? "text-[#6FEC06]"
                       : stat.color === "indigo"
@@ -286,7 +293,9 @@ export default function Home() {
                 >
                   {stat.value}
                 </div>
-                <div className="text-xs text-white/60">{stat.label}</div>
+                <div className="text-[10px] sm:text-xs text-white/60">
+                  {stat.label}
+                </div>
               </div>
             ))}
           </div>
@@ -303,41 +312,41 @@ export default function Home() {
       <AgentCapabilities />
 
       {/* Footer */}
-      <footer className="py-16 px-6 border-t border-white/10">
+      <footer className="py-10 sm:py-16 px-4 sm:px-6 border-t border-white/10">
         <div className="max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-4 gap-12 mb-12">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-12 mb-8 sm:mb-12">
             {/* Brand */}
-            <div className="md:col-span-2">
-              <div className="flex items-center mb-4">
+            <div className="col-span-2">
+              <div className="flex items-center mb-3 sm:mb-4">
                 <Image
                   src="/agentinc.svg"
                   alt="Agent Inc."
                   width={180}
                   height={48}
-                  className="h-8 w-auto"
+                  className="h-6 sm:h-8 w-auto"
                 />
               </div>
-              <p className="text-white/60 max-w-sm mb-6">
+              <p className="text-white/60 text-sm sm:text-base max-w-sm mb-4 sm:mb-6">
                 Incorporate, trade and invest in collections of agents that
                 build together a real startup. Based on ERC-8041.
               </p>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3 sm:gap-4">
                 <a
                   href="https://x.com/agentincdotfun"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-full bg-[#120557]/50 flex items-center justify-center hover:bg-[#6FEC06]/20 transition-colors"
+                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#120557]/50 flex items-center justify-center hover:bg-[#6FEC06]/20 transition-colors"
                 >
-                  <Twitter className="w-5 h-5" />
+                  <Twitter className="w-4 h-4 sm:w-5 sm:h-5" />
                 </a>
                 <a
                   href="https://discord.gg/jTGebW3rkS"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-full bg-[#120557]/50 flex items-center justify-center hover:bg-[#6FEC06]/20 transition-colors"
+                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#120557]/50 flex items-center justify-center hover:bg-[#6FEC06]/20 transition-colors"
                 >
                   <svg
-                    className="w-5 h-5"
+                    className="w-4 h-4 sm:w-5 sm:h-5"
                     viewBox="0 0 24 24"
                     fill="currentColor"
                   >
@@ -348,25 +357,27 @@ export default function Home() {
                   href="https://github.com/ChristopherTrimboli/agentinc"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-full bg-[#120557]/50 flex items-center justify-center hover:bg-[#6FEC06]/20 transition-colors"
+                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#120557]/50 flex items-center justify-center hover:bg-[#6FEC06]/20 transition-colors"
                 >
-                  <Code className="w-5 h-5" />
+                  <Code className="w-4 h-4 sm:w-5 sm:h-5" />
                 </a>
                 <a
                   href="https://ethereum-magicians.org/t/erc-8041-fixed-supply-agent-nft-collections/25656"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-10 h-10 rounded-full bg-[#120557]/50 flex items-center justify-center hover:bg-[#6FEC06]/20 transition-colors"
+                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#120557]/50 flex items-center justify-center hover:bg-[#6FEC06]/20 transition-colors"
                 >
-                  <Globe className="w-5 h-5" />
+                  <Globe className="w-4 h-4 sm:w-5 sm:h-5" />
                 </a>
               </div>
             </div>
 
             {/* Links */}
             <div>
-              <h4 className="font-semibold mb-4">Product</h4>
-              <ul className="space-y-3 text-white/60">
+              <h4 className="font-semibold text-sm sm:text-base mb-3 sm:mb-4">
+                Product
+              </h4>
+              <ul className="space-y-2 sm:space-y-3 text-white/60 text-sm">
                 <li>
                   <Link
                     href="/dashboard"
@@ -403,8 +414,10 @@ export default function Home() {
             </div>
 
             <div>
-              <h4 className="font-semibold mb-4">Resources</h4>
-              <ul className="space-y-3 text-white/60">
+              <h4 className="font-semibold text-sm sm:text-base mb-3 sm:mb-4">
+                Resources
+              </h4>
+              <ul className="space-y-2 sm:space-y-3 text-white/60 text-sm">
                 <li>
                   <a
                     href="https://ethereum-magicians.org/t/erc-8041-fixed-supply-agent-nft-collections/25656"
@@ -454,9 +467,9 @@ export default function Home() {
           </div>
 
           {/* Bottom */}
-          <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4 text-white/60 text-sm">
+          <div className="pt-6 sm:pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4 text-white/60 text-xs sm:text-sm">
             <div>© 2026 Agent Inc. All rights reserved.</div>
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-4 sm:gap-6">
               <Link
                 href="/privacy"
                 className="hover:text-white transition-colors"

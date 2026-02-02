@@ -51,7 +51,13 @@ export async function POST(req: NextRequest) {
     // Handle manual image upload
     if (uploadedImage) {
       // Validate content type
-      const allowedTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"];
+      const allowedTypes = [
+        "image/png",
+        "image/jpeg",
+        "image/jpg",
+        "image/webp",
+        "image/gif",
+      ];
       if (!contentType || !allowedTypes.includes(contentType)) {
         return NextResponse.json(
           { error: "Invalid image type. Allowed: PNG, JPEG, WebP, GIF" },

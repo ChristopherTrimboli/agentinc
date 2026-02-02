@@ -12,6 +12,12 @@
   - Coral: #6FEC06
 */
 
+html,
+body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
 :root {
   /* Core palette */
   --white: #ffffff;
