@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use, useCallback } from "react";
+import { useState, useEffect, use } from "react";
 import { useIdentityToken } from "@privy-io/react-auth";
 import Image from "next/image";
 import Link from "next/link";
@@ -20,14 +20,8 @@ import {
   Twitter,
   Building2,
   Code,
-  ArrowUpDown,
-  ShoppingCart,
-  Wallet,
 } from "lucide-react";
 import { getBagsFmUrl, getDexScreenerUrl } from "@/lib/constants/urls";
-
-// SOL mint address for Jupiter
-const SOL_MINT = "So11111111111111111111111111111111111111112";
 
 interface Corporation {
   id: string;
@@ -110,35 +104,8 @@ const rarityColors: Record<
 const getChartLinks = (tokenMint: string) => ({
   bags: getBagsFmUrl(tokenMint),
   dexscreener: getDexScreenerUrl(tokenMint),
-  // Embed with chart, theme, and cleaner look (trades=1 shows recent trades)
-  dexscreenerEmbed: `${getDexScreenerUrl(tokenMint)}?embed=1&theme=dark&info=0`,
-  jupiter: `https://jup.ag/swap/SOL-${tokenMint}`,
-  raydium: `https://raydium.io/swap/?inputMint=sol&outputMint=${tokenMint}`,
+  dexscreenerEmbed: `${getDexScreenerUrl(tokenMint)}?embed=1&theme=dark`,
 });
-
-// Declare Jupiter global type
-declare global {
-  interface Window {
-    Jupiter?: {
-      init: (config: JupiterConfig) => void;
-      close: () => void;
-      _instance?: unknown;
-    };
-  }
-}
-
-interface JupiterConfig {
-  displayMode: "integrated" | "widget" | "modal";
-  integratedTargetId?: string;
-  endpoint: string;
-  formProps?: {
-    initialOutputMint?: string;
-    initialInputMint?: string;
-    fixedOutputMint?: boolean;
-  };
-  strictTokenList?: boolean;
-  defaultExplorer?: string;
-}
 
 export default function AgentProfilePage({
   params,
@@ -151,9 +118,6 @@ export default function AgentProfilePage({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
-  const [showSwapWidget, setShowSwapWidget] = useState(false);
-  const [jupiterLoaded, setJupiterLoaded] = useState(false);
-  const [swapMode, setSwapMode] = useState<"buy" | "sell">("buy");
 
   useEffect(() => {
     async function fetchAgent() {
@@ -187,82 +151,6 @@ export default function AgentProfilePage({
 
     fetchAgent();
   }, [resolvedParams.id, identityToken]);
-
-  // Load Jupiter Terminal script
-  useEffect(() => {
-    if (typeof window !== "undefined" && !jupiterLoaded) {
-      const existingScript = document.querySelector(
-        'script[src*="terminal.jup.ag"]',
-      );
-      if (existingScript) {
-        setJupiterLoaded(true);
-        return;
-      }
-
-      const script = document.createElement("script");
-      script.src = "https://terminal.jup.ag/main-v3.js";
-      script.async = true;
-      script.onload = () => {
-        setJupiterLoaded(true);
-      };
-      document.head.appendChild(script);
-
-      return () => {
-        // Cleanup if needed
-      };
-    }
-  }, [jupiterLoaded]);
-
-  // Initialize Jupiter when widget is shown
-  const initJupiter = useCallback(
-    (mode: "buy" | "sell") => {
-      if (!agent?.tokenMint || !window.Jupiter) return;
-
-      // Close any existing instance
-      if (window.Jupiter._instance) {
-        window.Jupiter.close();
-      }
-
-      // Small delay to ensure DOM is ready
-      setTimeout(() => {
-        window.Jupiter?.init({
-          displayMode: "integrated",
-          integratedTargetId: "jupiter-terminal-container",
-          endpoint:
-            process.env.NEXT_PUBLIC_SOLANA_RPC_URL ||
-            "https://api.mainnet-beta.solana.com",
-          formProps: {
-            initialInputMint: mode === "buy" ? SOL_MINT : agent.tokenMint!,
-            initialOutputMint: mode === "buy" ? agent.tokenMint! : SOL_MINT,
-            fixedOutputMint: mode === "buy",
-          },
-          strictTokenList: false,
-          defaultExplorer: "Solscan",
-        });
-      }, 100);
-    },
-    [agent?.tokenMint],
-  );
-
-  // Handle swap widget toggle
-  const toggleSwapWidget = (mode: "buy" | "sell") => {
-    if (showSwapWidget && swapMode === mode) {
-      setShowSwapWidget(false);
-      if (window.Jupiter?._instance) {
-        window.Jupiter.close();
-      }
-    } else {
-      setSwapMode(mode);
-      setShowSwapWidget(true);
-    }
-  };
-
-  // Initialize Jupiter when widget becomes visible or mode changes
-  useEffect(() => {
-    if (showSwapWidget && jupiterLoaded && agent?.tokenMint) {
-      initJupiter(swapMode);
-    }
-  }, [showSwapWidget, jupiterLoaded, swapMode, agent?.tokenMint, initJupiter]);
 
   const getRarityStyle = (rarity: string | null) => {
     return rarityColors[rarity || "common"] || rarityColors.common;
@@ -334,31 +222,15 @@ export default function AgentProfilePage({
           </Link>
           <div className="flex items-center gap-1.5 sm:gap-2">
             {agent.isMinted && chartLinks && (
-              <>
-                <a
-                  href={chartLinks.dexscreener}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 bg-white/5 border border-white/10 rounded-full text-white/70 text-xs sm:text-sm font-medium hover:bg-white/10 transition-all"
-                >
-                  <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  <span className="hidden xs:inline sm:inline">Chart</span>
-                </a>
-                <button
-                  onClick={() => {
-                    setShowSwapWidget(true);
-                    setSwapMode("buy");
-                    // Scroll to trade section
-                    document
-                      .getElementById("trade-section")
-                      ?.scrollIntoView({ behavior: "smooth" });
-                  }}
-                  className="flex items-center gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2 bg-[#6FEC06]/10 border border-[#6FEC06]/30 rounded-full text-[#6FEC06] text-xs sm:text-sm font-semibold hover:bg-[#6FEC06]/20 transition-all"
-                >
-                  <ShoppingCart className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  <span className="hidden xs:inline">Buy</span>
-                </button>
-              </>
+              <a
+                href={chartLinks.dexscreener}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 bg-white/5 border border-white/10 rounded-full text-white/70 text-xs sm:text-sm font-medium hover:bg-white/10 transition-all"
+              >
+                <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span className="hidden xs:inline sm:inline">Chart</span>
+              </a>
             )}
             <Link
               href={`/dashboard/chat?agent=${agent.id}`}
@@ -475,134 +347,46 @@ export default function AgentProfilePage({
               )}
             </div>
 
-            {/* Token Info & Trading */}
+            {/* Token Info */}
             {agent.isMinted && agent.tokenMint && chartLinks && (
-              <div
-                id="trade-section"
-                className="space-y-3 sm:space-y-4 scroll-mt-24"
-              >
-                {/* Quick Trade Buttons */}
-                <div className="p-4 sm:p-6 rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#6FEC06]/5 to-[#0a0520] border border-[#6FEC06]/30">
-                  <div className="flex items-center gap-2 mb-3 sm:mb-4">
-                    <ArrowUpDown className="w-4 h-4 sm:w-5 sm:h-5 text-[#6FEC06]" />
-                    <h2 className="text-base sm:text-lg font-semibold font-display">
-                      Trade {agent.tokenSymbol || agent.name}
-                    </h2>
+              <div className="p-4 sm:p-6 rounded-xl sm:rounded-2xl bg-[#0a0520] border border-white/10">
+                <div className="flex items-center gap-2 mb-3 sm:mb-4">
+                  <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-white/60" />
+                  <h2 className="text-base sm:text-lg font-semibold font-display">
+                    Token Details
+                  </h2>
+                </div>
+                <div className="min-w-0 mb-4">
+                  <div className="text-[10px] sm:text-xs text-white/40 mb-1 sm:mb-1.5">
+                    Token Mint Address
                   </div>
-
-                  {/* Buy/Sell Toggle Buttons */}
-                  <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-3 sm:mb-4">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <code className="flex-1 min-w-0 px-2 sm:px-3 py-1.5 sm:py-2 bg-[#120557]/30 rounded-lg text-xs sm:text-sm text-white/80 font-mono truncate overflow-hidden">
+                      {agent.tokenMint}
+                    </code>
                     <button
-                      onClick={() => toggleSwapWidget("buy")}
-                      className={`flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-3.5 rounded-lg sm:rounded-xl text-sm sm:text-base font-semibold transition-all ${
-                        showSwapWidget && swapMode === "buy"
-                          ? "bg-[#6FEC06] text-black"
-                          : "bg-[#6FEC06]/20 text-[#6FEC06] border border-[#6FEC06]/40 hover:bg-[#6FEC06]/30"
-                      }`}
+                      onClick={() => copyToClipboard(agent.tokenMint!)}
+                      className="p-1.5 sm:p-2 rounded-lg bg-[#120557]/30 text-white/60 hover:text-white hover:bg-[#120557]/50 transition-colors shrink-0"
+                      title="Copy address"
                     >
-                      <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
-                      Buy
-                    </button>
-                    <button
-                      onClick={() => toggleSwapWidget("sell")}
-                      className={`flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-6 py-2.5 sm:py-3.5 rounded-lg sm:rounded-xl text-sm sm:text-base font-semibold transition-all ${
-                        showSwapWidget && swapMode === "sell"
-                          ? "bg-red-500 text-white"
-                          : "bg-red-500/20 text-red-400 border border-red-500/40 hover:bg-red-500/30"
-                      }`}
-                    >
-                      <Wallet className="w-4 h-4 sm:w-5 sm:h-5" />
-                      Sell
-                    </button>
-                  </div>
-
-                  {/* Jupiter Terminal Container */}
-                  {showSwapWidget && (
-                    <div className="mt-4 overflow-hidden">
-                      <div
-                        id="jupiter-terminal-container"
-                        className="rounded-xl overflow-hidden bg-[#0a0520] min-h-[400px] max-w-full"
-                      />
-                      {!jupiterLoaded && (
-                        <div className="flex items-center justify-center h-[400px]">
-                          <div className="text-center">
-                            <div className="w-10 h-10 border-2 border-[#6FEC06]/30 border-t-[#6FEC06] rounded-full animate-spin mx-auto mb-3" />
-                            <p className="text-white/50 text-sm">
-                              Loading swap widget...
-                            </p>
-                          </div>
-                        </div>
+                      {copied ? (
+                        <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#6FEC06]" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       )}
-                    </div>
-                  )}
-
-                  {/* External Links */}
-                  <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-white/10">
-                    <a
-                      href={chartLinks.bags}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 bg-[#6FEC06]/10 border border-[#6FEC06]/30 rounded-lg text-[#6FEC06] text-xs sm:text-sm font-medium hover:bg-[#6FEC06]/20 transition-all"
-                    >
-                      <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                      Bags
-                      <ExternalLink className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                    </a>
-                    <a
-                      href={`https://jup.ag/swap/SOL-${agent.tokenMint}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 bg-white/5 border border-white/10 rounded-lg text-white/70 text-xs sm:text-sm font-medium hover:bg-white/10 transition-all"
-                    >
-                      <ArrowUpDown className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                      <span className="hidden xs:inline">Jupiter</span>
-                      <span className="xs:hidden">Jup</span>
-                      <ExternalLink className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                    </a>
-                    <a
-                      href={chartLinks.dexscreener}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-4 py-1.5 sm:py-2 bg-white/5 border border-white/10 rounded-lg text-white/70 text-xs sm:text-sm font-medium hover:bg-white/10 transition-all"
-                    >
-                      <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                      <span className="hidden xs:inline">DexScreener</span>
-                      <span className="xs:hidden">Dex</span>
-                      <ExternalLink className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                    </a>
+                    </button>
                   </div>
                 </div>
-
-                {/* Token Info Card */}
-                <div className="p-4 sm:p-6 rounded-xl sm:rounded-2xl bg-[#0a0520] border border-white/10">
-                  <div className="flex items-center gap-2 mb-3 sm:mb-4">
-                    <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-white/60" />
-                    <h2 className="text-base sm:text-lg font-semibold font-display">
-                      Token Details
-                    </h2>
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-[10px] sm:text-xs text-white/40 mb-1 sm:mb-1.5">
-                      Token Mint Address
-                    </div>
-                    <div className="flex items-center gap-2 min-w-0">
-                      <code className="flex-1 min-w-0 px-2 sm:px-3 py-1.5 sm:py-2 bg-[#120557]/30 rounded-lg text-xs sm:text-sm text-white/80 font-mono truncate overflow-hidden">
-                        {agent.tokenMint}
-                      </code>
-                      <button
-                        onClick={() => copyToClipboard(agent.tokenMint!)}
-                        className="p-1.5 sm:p-2 rounded-lg bg-[#120557]/30 text-white/60 hover:text-white hover:bg-[#120557]/50 transition-colors shrink-0"
-                        title="Copy address"
-                      >
-                        {copied ? (
-                          <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#6FEC06]" />
-                        ) : (
-                          <Copy className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                <a
+                  href={chartLinks.bags}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#6FEC06]/10 border border-[#6FEC06]/30 rounded-xl text-[#6FEC06] text-sm font-semibold hover:bg-[#6FEC06]/20 transition-all"
+                >
+                  <Zap className="w-4 h-4" />
+                  Buy on Bags
+                  <ExternalLink className="w-3 h-3" />
+                </a>
               </div>
             )}
 
@@ -809,43 +593,15 @@ export default function AgentProfilePage({
                   </p>
                 </div>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  onClick={() => {
-                    setShowSwapWidget(true);
-                    setSwapMode("buy");
-                    document
-                      .getElementById("trade-section")
-                      ?.scrollIntoView({ behavior: "smooth" });
-                  }}
-                  className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-[#6FEC06] text-black rounded-lg text-xs sm:text-sm font-semibold hover:bg-[#6FEC06]/90 transition-all"
-                >
-                  <ShoppingCart className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  Buy Now
-                </button>
-                <button
-                  onClick={() => {
-                    setShowSwapWidget(true);
-                    setSwapMode("sell");
-                    document
-                      .getElementById("trade-section")
-                      ?.scrollIntoView({ behavior: "smooth" });
-                  }}
-                  className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-red-500/20 text-red-400 border border-red-500/40 rounded-lg text-xs sm:text-sm font-semibold hover:bg-red-500/30 transition-all"
-                >
-                  <Wallet className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  Sell
-                </button>
-                <a
-                  href={chartLinks.dexscreener}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-white/60 hover:text-white transition-colors"
-                >
-                  Full chart
-                  <ExternalLink className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                </a>
-              </div>
+              <a
+                href={chartLinks.dexscreener}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-white/60 hover:text-white transition-colors"
+              >
+                Full chart
+                <ExternalLink className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              </a>
             </div>
             <div className="rounded-xl sm:rounded-2xl overflow-hidden border border-[#6FEC06]/20 bg-[#0a0520]">
               <iframe
