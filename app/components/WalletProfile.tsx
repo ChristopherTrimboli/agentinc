@@ -1,12 +1,13 @@
 "use client";
 
-import { usePrivy, useIdentityToken } from "@privy-io/react-auth";
+import { usePrivy } from "@privy-io/react-auth";
 import {
   useExportWallet,
   useWallets as useSolanaWallets,
   useSignTransaction,
 } from "@privy-io/react-auth/solana";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useAuth } from "@/lib/auth/AuthProvider";
 import {
   Wallet,
   Copy,
@@ -42,7 +43,7 @@ export default function WalletProfile({
   compact = false,
 }: WalletProfileProps) {
   const { logout, user } = usePrivy();
-  const { identityToken } = useIdentityToken();
+  const { authFetch, identityToken } = useAuth();
   const { wallets: solanaWallets } = useSolanaWallets();
   const { exportWallet } = useExportWallet();
   const { signTransaction } = useSignTransaction();
@@ -91,11 +92,7 @@ export default function WalletProfile({
       }
 
       try {
-        const response = await fetch("/api/price", {
-          headers: {
-            "privy-id-token": identityToken,
-          },
-        });
+        const response = await authFetch("/api/price");
         if (response.ok) {
           const data = await response.json();
           if (data.price) {
@@ -107,7 +104,7 @@ export default function WalletProfile({
         console.error("[WalletProfile] Failed to fetch SOL price:", error);
       }
     },
-    [identityToken],
+    [identityToken, authFetch],
   );
 
   // Fetch SOL price on mount and every 30 seconds (only when visible)
@@ -148,12 +145,8 @@ export default function WalletProfile({
 
       setIsLoadingEarnings(true);
       try {
-        const response = await fetch("/api/earnings/positions", {
+        const response = await authFetch("/api/earnings/positions", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "privy-id-token": identityToken,
-          },
           body: JSON.stringify({ wallet: walletAddress }),
         });
         if (response.ok) {
@@ -168,7 +161,7 @@ export default function WalletProfile({
         setIsLoadingEarnings(false);
       }
     },
-    [identityToken, walletAddress],
+    [identityToken, walletAddress, authFetch],
   );
 
   // Fetch balance via backend API (avoids CORS issues)
@@ -178,12 +171,8 @@ export default function WalletProfile({
     setIsLoadingBalance(true);
 
     try {
-      const response = await fetch("/api/agents/mint/balance", {
+      const response = await authFetch("/api/agents/mint/balance", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "privy-id-token": identityToken,
-        },
         body: JSON.stringify({ wallet: walletAddress }),
       });
 
@@ -198,7 +187,7 @@ export default function WalletProfile({
     } finally {
       setIsLoadingBalance(false);
     }
-  }, [walletAddress, identityToken]);
+  }, [walletAddress, identityToken, authFetch]);
 
   // Fetch balance on mount and when wallet/token changes
   useEffect(() => {
@@ -251,12 +240,8 @@ export default function WalletProfile({
       }
 
       // Get claim transactions from API
-      const claimResponse = await fetch("/api/earnings/claim", {
+      const claimResponse = await authFetch("/api/earnings/claim", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "privy-id-token": identityToken,
-        },
         body: JSON.stringify({ wallet: walletAddress }), // Claim all positions
       });
 
@@ -287,12 +272,8 @@ export default function WalletProfile({
 
         // Send via server
         const serializedTx = Buffer.from(signedTxBytes).toString("base64");
-        const sendResponse = await fetch("/api/solana/send", {
+        const sendResponse = await authFetch("/api/solana/send", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "privy-id-token": identityToken,
-          },
           body: JSON.stringify({ signedTransaction: serializedTx }),
         });
 
@@ -325,6 +306,7 @@ export default function WalletProfile({
     signTransaction,
     fetchBalance,
     fetchEarnings,
+    authFetch,
   ]);
 
   // Manual refresh handler
@@ -382,9 +364,7 @@ export default function WalletProfile({
           await import("@solana/web3.js");
 
         // Get blockhash from server (uses authenticated RPC)
-        const blockhashResponse = await fetch("/api/solana/blockhash", {
-          headers: { "privy-id-token": identityToken },
-        });
+        const blockhashResponse = await authFetch("/api/solana/blockhash");
 
         if (!blockhashResponse.ok) {
           throw new Error("Failed to get blockhash");
@@ -422,12 +402,8 @@ export default function WalletProfile({
         // Send via server (uses authenticated RPC)
         const serializedTx = Buffer.from(signedTxBytes).toString("base64");
 
-        const sendResponse = await fetch("/api/solana/send", {
+        const sendResponse = await authFetch("/api/solana/send", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "privy-id-token": identityToken,
-          },
           body: JSON.stringify({ signedTransaction: serializedTx }),
         });
 
@@ -453,6 +429,7 @@ export default function WalletProfile({
       identityToken,
       signTransaction,
       fetchBalance,
+      authFetch,
     ],
   );
 

@@ -1,11 +1,12 @@
 "use client";
 
-import { usePrivy, useIdentityToken } from "@privy-io/react-auth";
+import { usePrivy } from "@privy-io/react-auth";
+import { useAuth } from "@/lib/auth/AuthProvider";
 import { useEffect, useRef } from "react";
 
 export default function UserSync() {
   const { ready, authenticated } = usePrivy();
-  const { identityToken } = useIdentityToken();
+  const { authFetch, identityToken } = useAuth();
   const hasSynced = useRef(false);
 
   useEffect(() => {
@@ -15,11 +16,8 @@ export default function UserSync() {
       }
 
       try {
-        const response = await fetch("/api/users/sync", {
+        const response = await authFetch("/api/users/sync", {
           method: "POST",
-          headers: {
-            "privy-id-token": identityToken,
-          },
         });
 
         if (response.ok) {
@@ -31,7 +29,7 @@ export default function UserSync() {
     }
 
     syncUser();
-  }, [ready, authenticated, identityToken]);
+  }, [ready, authenticated, identityToken, authFetch]);
 
   return null;
 }

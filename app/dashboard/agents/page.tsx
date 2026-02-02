@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useIdentityToken } from "@privy-io/react-auth";
+import { useState, useEffect, useCallback } from "react";
+import { useAuth } from "@/lib/auth/AuthProvider";
 import {
   Bot,
   Plus,
@@ -69,42 +69,38 @@ const rarityColors: Record<
 };
 
 export default function AgentsPage() {
-  const { identityToken } = useIdentityToken();
+  const { authFetch, identityToken } = useAuth();
 
   const [agents, setAgents] = useState<Agent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function fetchAgents() {
-      if (!identityToken) {
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        const response = await fetch("/api/agents", {
-          headers: {
-            "privy-id-token": identityToken,
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch agents");
-        }
-
-        const data = await response.json();
-        setAgents(data.agents);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load agents");
-      } finally {
-        setIsLoading(false);
-      }
+  const fetchAgents = useCallback(async () => {
+    if (!identityToken) {
+      setIsLoading(false);
+      return;
     }
 
+    try {
+      const response = await authFetch("/api/agents");
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch agents");
+      }
+
+      const data = await response.json();
+      setAgents(data.agents);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load agents");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [identityToken, authFetch]);
+
+  useEffect(() => {
     fetchAgents();
-  }, [identityToken]);
+  }, [fetchAgents]);
 
   const handleDelete = async (agentId: string, agentName: string) => {
     if (!confirm(`Are you sure you want to delete "${agentName}"?`)) {
@@ -116,11 +112,8 @@ export default function AgentsPage() {
     setDeletingId(agentId);
 
     try {
-      const response = await fetch(`/api/agents/${agentId}`, {
+      const response = await authFetch(`/api/agents/${agentId}`, {
         method: "DELETE",
-        headers: {
-          "privy-id-token": identityToken,
-        },
       });
 
       if (!response.ok) {

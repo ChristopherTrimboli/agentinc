@@ -3,7 +3,9 @@
 import { PrivyProvider } from "@privy-io/react-auth";
 import { toSolanaWalletConnectors } from "@privy-io/react-auth/solana";
 import { createSolanaRpc, createSolanaRpcSubscriptions } from "@solana/kit";
+import { AuthProvider } from "@/lib/auth/AuthProvider";
 import UserSync from "./components/UserSync";
+import SessionExpiredModal from "./components/SessionExpiredModal";
 
 // Configure Solana connectors (required even if not using external wallets)
 const solanaConnectors = toSolanaWalletConnectors({
@@ -57,8 +59,11 @@ export default function ClientLayout({
         },
       }}
     >
-      <UserSync />
-      {children}
+      <AuthProvider>
+        <UserSync />
+        <SessionExpiredModal />
+        {children}
+      </AuthProvider>
     </PrivyProvider>
   );
 }

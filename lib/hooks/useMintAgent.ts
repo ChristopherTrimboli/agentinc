@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { useIdentityToken } from "@privy-io/react-auth";
 import { useWallets, useSignTransaction } from "@privy-io/react-auth/solana";
 import { nanoid } from "nanoid";
 import {
@@ -14,6 +13,7 @@ import {
   MINT_TX_FEE_ESTIMATE,
   DEFAULT_LAUNCH_STEPS,
 } from "@/lib/constants/mint";
+import { useAuth } from "@/lib/auth/AuthProvider";
 
 export interface LaunchStep {
   id: string;
@@ -39,7 +39,7 @@ export interface UseMintAgentOptions {
 }
 
 export function useMintAgent({ user }: UseMintAgentOptions) {
-  const { identityToken } = useIdentityToken();
+  const { authFetch, identityToken } = useAuth();
   const { wallets } = useWallets();
   const { signTransaction } = useSignTransaction();
 
@@ -113,12 +113,8 @@ export function useMintAgent({ user }: UseMintAgentOptions) {
     if (!walletAddress || !identityToken) return;
     setIsLoadingBalance(true);
     try {
-      const response = await fetch("/api/agents/mint/balance", {
+      const response = await authFetch("/api/agents/mint/balance", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "privy-id-token": identityToken,
-        },
         body: JSON.stringify({ wallet: walletAddress }),
       });
       const data = await response.json();
@@ -130,7 +126,7 @@ export function useMintAgent({ user }: UseMintAgentOptions) {
     } finally {
       setIsLoadingBalance(false);
     }
-  }, [walletAddress, identityToken]);
+  }, [walletAddress, identityToken, authFetch]);
 
   // Initialize with random agent
   useEffect(() => {
@@ -205,12 +201,8 @@ export function useMintAgent({ user }: UseMintAgentOptions) {
     if (!identityToken || !agentTraits) return;
     setIsGeneratingImage(true);
     try {
-      const response = await fetch("/api/agents/mint/generate-image", {
+      const response = await authFetch("/api/agents/mint/generate-image", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "privy-id-token": identityToken,
-        },
         body: JSON.stringify({
           name: agentName,
           traits: agentTraits,
@@ -228,7 +220,7 @@ export function useMintAgent({ user }: UseMintAgentOptions) {
     } finally {
       setIsGeneratingImage(false);
     }
-  }, [identityToken, agentTraits, agentName, customImagePrompt]);
+  }, [identityToken, agentTraits, agentName, customImagePrompt, authFetch]);
 
   // Upload image manually
   const uploadImage = useCallback(
@@ -258,12 +250,8 @@ export function useMintAgent({ user }: UseMintAgentOptions) {
           reader.readAsDataURL(file);
         });
 
-        const response = await fetch("/api/agents/mint/generate-image", {
+        const response = await authFetch("/api/agents/mint/generate-image", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "privy-id-token": identityToken,
-          },
           body: JSON.stringify({
             name: agentName,
             uploadedImage: base64,
@@ -282,7 +270,7 @@ export function useMintAgent({ user }: UseMintAgentOptions) {
         setIsUploadingImage(false);
       }
     },
-    [identityToken, agentName],
+    [identityToken, agentName, authFetch],
   );
 
   // Update a specific launch step
@@ -345,12 +333,8 @@ export function useMintAgent({ user }: UseMintAgentOptions) {
       const formattedTwitter =
         twitterHandle.trim().replace(/^@/, "") || undefined;
 
-      const metadataResponse = await fetch("/api/agents/mint/metadata", {
+      const metadataResponse = await authFetch("/api/agents/mint/metadata", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "privy-id-token": identityToken,
-        },
         body: JSON.stringify({
           name: agentName.trim(),
           symbol: tokenSymbol.trim().toUpperCase(),
@@ -373,12 +357,8 @@ export function useMintAgent({ user }: UseMintAgentOptions) {
       // Step 2: Fee share config
       updateStep("feeShare", "loading");
 
-      const feeShareResponse = await fetch("/api/agents/mint/fee-share", {
+      const feeShareResponse = await authFetch("/api/agents/mint/fee-share", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "privy-id-token": identityToken,
-        },
         body: JSON.stringify({
           wallet: walletAddress,
           tokenMint: metadataData.tokenMint,
@@ -416,14 +396,10 @@ export function useMintAgent({ user }: UseMintAgentOptions) {
               ),
             );
 
-            const sendResponse = await fetch(
+            const sendResponse = await authFetch(
               "/api/agents/mint/send-transaction",
               {
                 method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  "privy-id-token": identityToken,
-                },
                 body: JSON.stringify({ signedTransaction: signedTxBase64 }),
               },
             );
@@ -447,12 +423,8 @@ export function useMintAgent({ user }: UseMintAgentOptions) {
       // Step 3: Create and sign launch transaction
       updateStep("sign", "loading");
 
-      const launchTxResponse = await fetch("/api/agents/mint/launch", {
+      const launchTxResponse = await authFetch("/api/agents/mint/launch", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "privy-id-token": identityToken,
-        },
         body: JSON.stringify({
           tokenMint: metadataData.tokenMint,
           metadataUrl: metadataData.tokenMetadata,
@@ -490,14 +462,10 @@ export function useMintAgent({ user }: UseMintAgentOptions) {
       // Step 4: Broadcast
       updateStep("broadcast", "loading");
 
-      const broadcastResponse = await fetch(
+      const broadcastResponse = await authFetch(
         "/api/agents/mint/send-transaction",
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "privy-id-token": identityToken,
-          },
           body: JSON.stringify({ signedTransaction: signedLaunchTxBase64 }),
         },
       );
@@ -512,12 +480,8 @@ export function useMintAgent({ user }: UseMintAgentOptions) {
       // Step 5: Save to database
       updateStep("save", "loading");
 
-      const saveResponse = await fetch("/api/agents/mint/save", {
+      const saveResponse = await authFetch("/api/agents/mint/save", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "privy-id-token": identityToken,
-        },
         body: JSON.stringify({
           agentId: agentId,
           name: agentName.trim(),
@@ -572,6 +536,7 @@ export function useMintAgent({ user }: UseMintAgentOptions) {
     description,
     signTransaction,
     updateStep,
+    authFetch,
   ]);
 
   // Reset for minting another agent

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeft } from "lucide-react";
+import Footer from "@/app/components/Footer";
 
 export default function PrivacyPolicyPage() {
   return (
@@ -240,12 +241,7 @@ export default function PrivacyPolicyPage() {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-white/10 py-8 px-4">
-        <div className="max-w-7xl mx-auto text-center text-white/60 text-sm">
-          <p>&copy; 2026 Agent Inc. All rights reserved.</p>
-        </div>
-      </footer>
+      <Footer variant="simple" />
     </div>
   );
 }

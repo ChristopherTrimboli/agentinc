@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Footer from "@/app/components/Footer";
 
 // Token Distribution Data
 const tokenDistribution = [
@@ -536,12 +537,7 @@ export default function TokenomicsPage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-gray-800 py-8 px-4">
-        <div className="max-w-7xl mx-auto text-center text-gray-500">
-          <p>&copy; 2025 Agent Inc. All rights reserved.</p>
-        </div>
-      </footer>
+      <Footer variant="simple" />
     </div>
   );
 }
