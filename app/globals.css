@@ -18,7 +18,7 @@
   --black: #000104;
   --abyss: #000028;
   --indigo: #120557;
-  --coral: #6FEC06;
+  --coral: #6fec06;
 
   /* Derived colors */
   --background: #000028;
@@ -26,9 +26,9 @@
   --primary: #120557;
   --primary-light: #2a1a8f;
   --primary-lighter: #4a3ab0;
-  --secondary: #6FEC06;
-  --secondary-light: #9FF24A;
-  --accent: #6FEC06;
+  --secondary: #6fec06;
+  --secondary-light: #9ff24a;
+  --accent: #6fec06;
   --card-bg: rgba(18, 5, 87, 0.15);
   --card-border: rgba(111, 236, 6, 0.2);
 
@@ -54,7 +54,7 @@
   --card-foreground: #ffffff;
   --border: rgba(111, 236, 6, 0.2);
   --input: rgba(111, 236, 6, 0.15);
-  --ring: #6FEC06;
+  --ring: #6fec06;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
   --primary-foreground: #ffffff;
@@ -106,13 +106,14 @@ body {
 }
 
 /* Headings use Syne display font */
-h1, h2, h3, h4, h5, h6,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
 .font-display {
-  font-family:
-    var(--font-syne),
-    var(--font-inter),
-    system-ui,
-    sans-serif;
+  font-family: var(--font-syne), var(--font-inter), system-ui, sans-serif;
   font-weight: 500;
 }
 
@@ -136,14 +137,23 @@ h1, h2, h3, h4, h5, h6,
 
 /* Gradient text utility - using lighter colors for readability */
 .gradient-text {
-  background: linear-gradient(135deg, var(--coral) 0%, var(--secondary-light) 50%, #ffffff 100%);
+  background: linear-gradient(
+    135deg,
+    var(--coral) 0%,
+    var(--secondary-light) 50%,
+    #ffffff 100%
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .gradient-text-coral {
-  background: linear-gradient(135deg, var(--coral) 0%, var(--secondary-light) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--coral) 0%,
+    var(--secondary-light) 100%
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -158,7 +168,11 @@ h1, h2, h3, h4, h5, h6,
 
 /* Legacy class for compatibility */
 .gradient-text-purple {
-  background: linear-gradient(135deg, var(--coral) 0%, var(--secondary-light) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--coral) 0%,
+    var(--secondary-light) 100%
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -197,7 +211,11 @@ h1, h2, h3, h4, h5, h6,
 /* Animated gradient border */
 .gradient-border {
   position: relative;
-  background: linear-gradient(135deg, var(--surface) 0%, var(--surface-light) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--surface) 0%,
+    var(--surface-light) 100%
+  );
   border-radius: 16px;
 }
 
@@ -318,7 +336,11 @@ h1, h2, h3, h4, h5, h6,
 
 /* Agent card styles */
 .agent-card {
-  background: linear-gradient(135deg, var(--surface) 0%, var(--surface-light) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--surface) 0%,
+    var(--surface-light) 100%
+  );
   border: 1px solid rgba(111, 236, 6, 0.2);
   border-radius: 16px;
   transition: all 0.3s ease;
@@ -596,7 +618,7 @@ h1, h2, h3, h4, h5, h6,
   animation: card-glow 2s ease-in-out infinite;
 }
 
-/* Ticker tape animation for marketplace */
+/* Ticker tape animation for explore page */
 @keyframes ticker {
   0% {
     transform: translateX(0);
@@ -610,15 +632,15 @@ h1, h2, h3, h4, h5, h6,
   animation: ticker 30s linear infinite;
 }
 
-/* Marketplace card 3D hover effect */
-.marketplace-card {
+/* Explore card 3D hover effect */
+.explore-card {
   transition:
     transform 0.3s ease,
     box-shadow 0.3s ease;
   transform-style: preserve-3d;
 }
 
-.marketplace-card:hover {
+.explore-card:hover {
   transform: translateY(-4px) rotateX(2deg);
 }
 
@@ -712,9 +734,48 @@ h1, h2, h3, h4, h5, h6,
 
 /* Font utilities */
 .font-body {
-  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+  font-family:
+    var(--font-inter),
+    system-ui,
+    -apple-system,
+    sans-serif;
 }
 
 .font-display {
   font-family: var(--font-syne), var(--font-inter), system-ui, sans-serif;
+}
+
+/* Skeleton loading shimmer effect */
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03) 0%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.03) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+/* Staggered skeleton fade-in */
+@keyframes skeleton-fade-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.skeleton-row {
+  animation: skeleton-fade-in 0.3s ease-out forwards;
 }

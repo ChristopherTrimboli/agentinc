@@ -41,6 +41,7 @@
     "@streamdown/code": "^1.0.1",
     "@streamdown/math": "^1.0.1",
     "@streamdown/mermaid": "^1.0.1",
+    "@tanstack/react-table": "^8.21.3",
     "@vercel/analytics": "^1.6.1",
     "@vercel/blob": "^2.0.1",
     "ai": "^6.0.67",

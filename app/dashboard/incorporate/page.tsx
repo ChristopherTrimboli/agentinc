@@ -44,12 +44,40 @@ interface LaunchStep {
   error?: string;
 }
 
-const rarityColors: Record<string, { bg: string; border: string; text: string; glow: string }> = {
-  common: { bg: "bg-gray-500/20", border: "border-gray-500/40", text: "text-gray-400", glow: "shadow-gray-500/20" },
-  uncommon: { bg: "bg-green-500/20", border: "border-green-500/40", text: "text-green-400", glow: "shadow-green-500/20" },
-  rare: { bg: "bg-blue-500/20", border: "border-blue-500/40", text: "text-blue-400", glow: "shadow-blue-500/20" },
-  epic: { bg: "bg-purple-500/20", border: "border-purple-500/40", text: "text-purple-400", glow: "shadow-purple-500/20" },
-  legendary: { bg: "bg-amber-500/20", border: "border-amber-500/40", text: "text-amber-400", glow: "shadow-amber-500/20" },
+const rarityColors: Record<
+  string,
+  { bg: string; border: string; text: string; glow: string }
+> = {
+  common: {
+    bg: "bg-gray-500/20",
+    border: "border-gray-500/40",
+    text: "text-gray-400",
+    glow: "shadow-gray-500/20",
+  },
+  uncommon: {
+    bg: "bg-green-500/20",
+    border: "border-green-500/40",
+    text: "text-green-400",
+    glow: "shadow-green-500/20",
+  },
+  rare: {
+    bg: "bg-blue-500/20",
+    border: "border-blue-500/40",
+    text: "text-blue-400",
+    glow: "shadow-blue-500/20",
+  },
+  epic: {
+    bg: "bg-purple-500/20",
+    border: "border-purple-500/40",
+    text: "text-purple-400",
+    glow: "shadow-purple-500/20",
+  },
+  legendary: {
+    bg: "bg-amber-500/20",
+    border: "border-amber-500/40",
+    text: "text-amber-400",
+    glow: "shadow-amber-500/20",
+  },
 };
 
 function AgentCard({
@@ -67,7 +95,8 @@ function AgentCard({
 }) {
   const rarity = agent.rarity || "common";
   const rarityStyle = rarityColors[rarity] || rarityColors.common;
-  const rarityConfig = RARITIES[rarity as keyof typeof RARITIES] || RARITIES.common;
+  const rarityConfig =
+    RARITIES[rarity as keyof typeof RARITIES] || RARITIES.common;
 
   return (
     <button
@@ -81,7 +110,9 @@ function AgentCard({
       {/* Glow effect */}
       <div
         className={`absolute -inset-1 rounded-2xl transition-all duration-500 ${
-          isSelected ? "opacity-60 blur-xl" : "opacity-0 group-hover:opacity-20 blur-lg"
+          isSelected
+            ? "opacity-60 blur-xl"
+            : "opacity-0 group-hover:opacity-20 blur-lg"
         }`}
         style={{ backgroundColor: rarityConfig.color }}
       />
@@ -90,7 +121,10 @@ function AgentCard({
       {isSelected && (
         <div
           className="absolute -top-2 -right-2 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-black shadow-lg ring-2 ring-[#000028] z-20 animate-in zoom-in duration-200"
-          style={{ backgroundColor: rarityConfig.color, boxShadow: `0 0 12px ${rarityConfig.color}60` }}
+          style={{
+            backgroundColor: rarityConfig.color,
+            boxShadow: `0 0 12px ${rarityConfig.color}60`,
+          }}
         >
           {selectionOrder}
         </div>
@@ -104,7 +138,9 @@ function AgentCard({
         }`}
         style={{
           borderColor: isSelected ? `${rarityConfig.color}60` : undefined,
-          boxShadow: isSelected ? `0 0 30px ${rarityConfig.color}20` : undefined,
+          boxShadow: isSelected
+            ? `0 0 30px ${rarityConfig.color}20`
+            : undefined,
         }}
       >
         <div className="relative p-4">
@@ -114,11 +150,19 @@ function AgentCard({
               className={`relative w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 border transition-all duration-300 ${
                 isSelected ? "scale-105" : "group-hover:scale-105"
               }`}
-              style={{ borderColor: isSelected ? `${rarityConfig.color}40` : "rgba(255,255,255,0.1)" }}
+              style={{
+                borderColor: isSelected
+                  ? `${rarityConfig.color}40`
+                  : "rgba(255,255,255,0.1)",
+              }}
             >
               {agent.imageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={agent.imageUrl} alt={agent.name} className="w-full h-full object-cover" />
+                <img
+                  src={agent.imageUrl}
+                  alt={agent.name}
+                  className="w-full h-full object-cover"
+                />
               ) : (
                 <div className="w-full h-full bg-[#120557]/50 flex items-center justify-center">
                   <span className="text-2xl">🤖</span>
@@ -129,10 +173,18 @@ function AgentCard({
             {/* Agent info */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
-                <h3 className="font-semibold text-sm text-white truncate">{agent.name}</h3>
+                <h3 className="font-semibold text-sm text-white truncate">
+                  {agent.name}
+                </h3>
                 {isSelected && (
-                  <div className="w-4 h-4 rounded-full flex items-center justify-center" style={{ backgroundColor: `${rarityConfig.color}30` }}>
-                    <Check className="w-2.5 h-2.5" style={{ color: rarityConfig.color }} />
+                  <div
+                    className="w-4 h-4 rounded-full flex items-center justify-center"
+                    style={{ backgroundColor: `${rarityConfig.color}30` }}
+                  >
+                    <Check
+                      className="w-2.5 h-2.5"
+                      style={{ color: rarityConfig.color }}
+                    />
                   </div>
                 )}
               </div>
@@ -178,7 +230,13 @@ function AgentCard({
   );
 }
 
-function Stepper({ currentStep, steps }: { currentStep: number; steps: { title: string; icon: React.ReactNode }[] }) {
+function Stepper({
+  currentStep,
+  steps,
+}: {
+  currentStep: number;
+  steps: { title: string; icon: React.ReactNode }[];
+}) {
   return (
     <div className="flex items-center justify-center gap-3">
       {steps.map((step, index) => {
@@ -195,15 +253,23 @@ function Stepper({ currentStep, steps }: { currentStep: number; steps: { title: 
                     : "bg-[#120557]/30 text-white/40 border border-white/10"
               }`}
             >
-              {isActive && <div className="absolute inset-0 rounded-full bg-[#6FEC06]/20 blur-lg -z-10" />}
-              <div className={`w-5 h-5 flex items-center justify-center ${isActive ? "scale-110" : ""}`}>
+              {isActive && (
+                <div className="absolute inset-0 rounded-full bg-[#6FEC06]/20 blur-lg -z-10" />
+              )}
+              <div
+                className={`w-5 h-5 flex items-center justify-center ${isActive ? "scale-110" : ""}`}
+              >
                 {isComplete ? <Check className="w-4 h-4" /> : step.icon}
               </div>
-              <span className="text-xs font-semibold tracking-wide">{step.title}</span>
+              <span className="text-xs font-semibold tracking-wide">
+                {step.title}
+              </span>
             </div>
             {index < steps.length - 1 && (
               <div className="w-12 h-[2px] mx-3 bg-[#120557] rounded-full overflow-hidden">
-                <div className={`h-full bg-gradient-to-r from-[#6FEC06] to-[#4a9f10] transition-all duration-500 ${isComplete ? "w-full" : "w-0"}`} />
+                <div
+                  className={`h-full bg-gradient-to-r from-[#6FEC06] to-[#4a9f10] transition-all duration-500 ${isComplete ? "w-full" : "w-0"}`}
+                />
               </div>
             )}
           </div>
@@ -244,10 +310,17 @@ export default function IncorporatePage() {
     corporationId: string;
   } | null>(null);
 
-  const embeddedWallet = useMemo(() => wallets.find((w) => w.standardWallet?.name === "Privy"), [wallets]);
+  const embeddedWallet = useMemo(
+    () => wallets.find((w) => w.standardWallet?.name === "Privy"),
+    [wallets],
+  );
   const walletAddress = useMemo(() => {
-    const solanaWallet = user?.linkedAccounts?.find((account) => account.type === "wallet" && account.chainType === "solana");
-    return solanaWallet && "address" in solanaWallet ? solanaWallet.address : null;
+    const solanaWallet = user?.linkedAccounts?.find(
+      (account) => account.type === "wallet" && account.chainType === "solana",
+    );
+    return solanaWallet && "address" in solanaWallet
+      ? solanaWallet.address
+      : null;
   }, [user?.linkedAccounts]);
 
   // Fetch user's real agents
@@ -255,14 +328,14 @@ export default function IncorporatePage() {
     async function fetchAgents() {
       // Wait for Privy to be ready
       if (!ready) return;
-      
+
       // If not authenticated, stop loading and show empty
       if (!authenticated || !identityToken) {
         setIsLoadingAgents(false);
         setAgents([]);
         return;
       }
-      
+
       setIsLoadingAgents(true);
       setFetchError("");
       try {
@@ -277,7 +350,9 @@ export default function IncorporatePage() {
         setAgents(data.agents || []);
       } catch (err) {
         console.error("Failed to load agents:", err);
-        setFetchError(err instanceof Error ? err.message : "Failed to load agents");
+        setFetchError(
+          err instanceof Error ? err.message : "Failed to load agents",
+        );
         setAgents([]);
       } finally {
         setIsLoadingAgents(false);
@@ -294,12 +369,25 @@ export default function IncorporatePage() {
     });
   };
 
-  const updateStep = (stepId: string, status: LaunchStep["status"], error?: string) => {
-    setLaunchSteps((prev) => prev.map((step) => (step.id === stepId ? { ...step, status, error } : step)));
+  const updateStep = (
+    stepId: string,
+    status: LaunchStep["status"],
+    error?: string,
+  ) => {
+    setLaunchSteps((prev) =>
+      prev.map((step) =>
+        step.id === stepId ? { ...step, status, error } : step,
+      ),
+    );
   };
 
   const canProceedToStep2 = selectedAgentIds.length >= 2; // Need at least 2 agents for a corporation
-  const canLaunch = name.trim() && symbol.trim() && description.trim() && imageUrl.trim() && selectedAgentIds.length >= 2;
+  const canLaunch =
+    name.trim() &&
+    symbol.trim() &&
+    description.trim() &&
+    imageUrl.trim() &&
+    selectedAgentIds.length >= 2;
 
   const handleLaunch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -307,7 +395,9 @@ export default function IncorporatePage() {
     setLaunchResult(null);
 
     if (!identityToken || !embeddedWallet || !walletAddress || !canLaunch) {
-      setLaunchError("Please fill in all required fields and select at least 2 agents");
+      setLaunchError(
+        "Please fill in all required fields and select at least 2 agents",
+      );
       return;
     }
 
@@ -331,7 +421,10 @@ export default function IncorporatePage() {
       updateStep("metadata", "loading");
       const metadataResponse = await fetch("/api/incorporate/metadata", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "privy-id-token": identityToken },
+        headers: {
+          "Content-Type": "application/json",
+          "privy-id-token": identityToken,
+        },
         body: JSON.stringify({
           name: name.trim(),
           symbol: symbol.trim().toUpperCase(),
@@ -343,28 +436,53 @@ export default function IncorporatePage() {
         }),
       });
 
-      if (!metadataResponse.ok) throw new Error((await metadataResponse.json()).error || "Failed to create metadata");
+      if (!metadataResponse.ok)
+        throw new Error(
+          (await metadataResponse.json()).error || "Failed to create metadata",
+        );
       const metadataData = await metadataResponse.json();
       updateStep("metadata", "complete");
 
       updateStep("feeShare", "loading");
       const feeShareResponse = await fetch("/api/incorporate/fee-share", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "privy-id-token": identityToken },
-        body: JSON.stringify({ wallet: walletAddress, tokenMint: metadataData.tokenMint }),
+        headers: {
+          "Content-Type": "application/json",
+          "privy-id-token": identityToken,
+        },
+        body: JSON.stringify({
+          wallet: walletAddress,
+          tokenMint: metadataData.tokenMint,
+        }),
       });
 
-      if (!feeShareResponse.ok) throw new Error((await feeShareResponse.json()).error || "Failed to create fee config");
+      if (!feeShareResponse.ok)
+        throw new Error(
+          (await feeShareResponse.json()).error ||
+            "Failed to create fee config",
+        );
       const feeShareData = await feeShareResponse.json();
 
       if (feeShareData.transactions?.length > 0) {
         for (const txData of feeShareData.transactions) {
-          const txBytes = Uint8Array.from(atob(txData.transaction), (c) => c.charCodeAt(0));
-          const signResult = await signTransaction({ transaction: txBytes, wallet: embeddedWallet });
-          const signedTxBase64 = btoa(String.fromCharCode(...new Uint8Array(signResult.signedTransaction)));
+          const txBytes = Uint8Array.from(atob(txData.transaction), (c) =>
+            c.charCodeAt(0),
+          );
+          const signResult = await signTransaction({
+            transaction: txBytes,
+            wallet: embeddedWallet,
+          });
+          const signedTxBase64 = btoa(
+            String.fromCharCode(
+              ...new Uint8Array(signResult.signedTransaction),
+            ),
+          );
           await fetch("/api/incorporate/send-transaction", {
             method: "POST",
-            headers: { "Content-Type": "application/json", "privy-id-token": identityToken },
+            headers: {
+              "Content-Type": "application/json",
+              "privy-id-token": identityToken,
+            },
             body: JSON.stringify({ signedTransaction: signedTxBase64 }),
           });
         }
@@ -374,7 +492,10 @@ export default function IncorporatePage() {
       updateStep("sign", "loading");
       const launchTxResponse = await fetch("/api/incorporate/launch", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "privy-id-token": identityToken },
+        headers: {
+          "Content-Type": "application/json",
+          "privy-id-token": identityToken,
+        },
         body: JSON.stringify({
           tokenMint: metadataData.tokenMint,
           metadataUrl: metadataData.tokenMetadata,
@@ -384,28 +505,52 @@ export default function IncorporatePage() {
         }),
       });
 
-      if (!launchTxResponse.ok) throw new Error((await launchTxResponse.json()).error || "Failed to create transaction");
+      if (!launchTxResponse.ok)
+        throw new Error(
+          (await launchTxResponse.json()).error ||
+            "Failed to create transaction",
+        );
       const launchTxData = await launchTxResponse.json();
-      const launchTxBytes = Uint8Array.from(atob(launchTxData.transaction), (c) => c.charCodeAt(0));
-      const signResult = await signTransaction({ transaction: launchTxBytes, wallet: embeddedWallet });
-      const signedLaunchTxBase64 = btoa(String.fromCharCode(...new Uint8Array(signResult.signedTransaction)));
+      const launchTxBytes = Uint8Array.from(
+        atob(launchTxData.transaction),
+        (c) => c.charCodeAt(0),
+      );
+      const signResult = await signTransaction({
+        transaction: launchTxBytes,
+        wallet: embeddedWallet,
+      });
+      const signedLaunchTxBase64 = btoa(
+        String.fromCharCode(...new Uint8Array(signResult.signedTransaction)),
+      );
       updateStep("sign", "complete");
 
       updateStep("broadcast", "loading");
-      const broadcastResponse = await fetch("/api/incorporate/send-transaction", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "privy-id-token": identityToken },
-        body: JSON.stringify({ signedTransaction: signedLaunchTxBase64 }),
-      });
+      const broadcastResponse = await fetch(
+        "/api/incorporate/send-transaction",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "privy-id-token": identityToken,
+          },
+          body: JSON.stringify({ signedTransaction: signedLaunchTxBase64 }),
+        },
+      );
 
-      if (!broadcastResponse.ok) throw new Error((await broadcastResponse.json()).error || "Failed to broadcast");
+      if (!broadcastResponse.ok)
+        throw new Error(
+          (await broadcastResponse.json()).error || "Failed to broadcast",
+        );
       const broadcastData = await broadcastResponse.json();
       updateStep("broadcast", "complete");
 
       updateStep("save", "loading");
       const saveResponse = await fetch("/api/incorporate/save", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "privy-id-token": identityToken },
+        headers: {
+          "Content-Type": "application/json",
+          "privy-id-token": identityToken,
+        },
         body: JSON.stringify({
           name: name.trim(),
           description: description.trim(),
@@ -419,7 +564,8 @@ export default function IncorporatePage() {
         }),
       });
 
-      if (!saveResponse.ok) throw new Error((await saveResponse.json()).error || "Failed to save");
+      if (!saveResponse.ok)
+        throw new Error((await saveResponse.json()).error || "Failed to save");
       const saveData = await saveResponse.json();
       updateStep("save", "complete");
 
@@ -431,7 +577,13 @@ export default function IncorporatePage() {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Launch failed";
       setLaunchError(errorMessage);
-      setLaunchSteps((prev) => prev.map((step) => (step.status === "loading" ? { ...step, status: "error", error: errorMessage } : step)));
+      setLaunchSteps((prev) =>
+        prev.map((step) =>
+          step.status === "loading"
+            ? { ...step, status: "error", error: errorMessage }
+            : step,
+        ),
+      );
     } finally {
       setIsLaunching(false);
     }
@@ -439,7 +591,9 @@ export default function IncorporatePage() {
 
   // Success screen
   if (launchResult) {
-    const selectedAgents = agents.filter((a) => selectedAgentIds.includes(a.id));
+    const selectedAgents = agents.filter((a) =>
+      selectedAgentIds.includes(a.id),
+    );
     return (
       <div className="p-6 lg:p-8 flex items-center justify-center min-h-[calc(100vh-64px)]">
         <div className="text-center max-w-lg w-full">
@@ -449,22 +603,36 @@ export default function IncorporatePage() {
               <Building2 className="w-12 h-12 text-[#6FEC06] animate-pulse" />
             </div>
           </div>
-          
-          <h1 className="text-3xl font-bold mb-3 font-display">Corporation Launched!</h1>
+
+          <h1 className="text-3xl font-bold mb-3 font-display">
+            Corporation Launched!
+          </h1>
           <p className="text-white/50 mb-6">
-            <span className="text-white font-semibold">{name}</span> is now live with{" "}
-            <span className="text-[#6FEC06] font-mono font-semibold">${symbol.toUpperCase()}</span>
+            <span className="text-white font-semibold">{name}</span> is now live
+            with{" "}
+            <span className="text-[#6FEC06] font-mono font-semibold">
+              ${symbol.toUpperCase()}
+            </span>
           </p>
 
           {/* Team display */}
           <div className="flex justify-center gap-2 mb-6">
             {selectedAgents.map((agent) => (
-              <div key={agent.id} className="relative w-12 h-12 rounded-xl overflow-hidden border-2 border-[#6FEC06]/30">
+              <div
+                key={agent.id}
+                className="relative w-12 h-12 rounded-xl overflow-hidden border-2 border-[#6FEC06]/30"
+              >
                 {agent.imageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={agent.imageUrl} alt={agent.name} className="w-full h-full object-cover" />
+                  <img
+                    src={agent.imageUrl}
+                    alt={agent.name}
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
-                  <div className="w-full h-full bg-[#120557] flex items-center justify-center text-lg">🤖</div>
+                  <div className="w-full h-full bg-[#120557] flex items-center justify-center text-lg">
+                    🤖
+                  </div>
                 )}
               </div>
             ))}
@@ -520,11 +688,17 @@ export default function IncorporatePage() {
       {/* Header */}
       <div className="text-center mb-8">
         <h1 className="text-3xl md:text-4xl font-extrabold mb-3 tracking-tight font-display">
-          Incorporate Your <span className="gradient-text-shimmer">AI Corporation</span>
+          Incorporate Your{" "}
+          <span className="gradient-text-shimmer">AI Corporation</span>
         </h1>
         <p className="text-white/50 text-sm md:text-base mb-6 max-w-2xl mx-auto">
           Combine your minted AI agents into a corporation and launch a token on{" "}
-          <a href="https://bags.fm" target="_blank" rel="noopener noreferrer" className="text-[#6FEC06] hover:underline font-semibold">
+          <a
+            href="https://bags.fm"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#6FEC06] hover:underline font-semibold"
+          >
             Bags.fm
           </a>
         </p>
@@ -536,7 +710,12 @@ export default function IncorporatePage() {
         <div className="mb-4 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 flex items-center gap-3 backdrop-blur-sm">
           <AlertCircle className="w-5 h-5 flex-shrink-0" />
           <span className="text-sm font-medium">{launchError}</span>
-          <button onClick={() => setLaunchError("")} className="ml-auto text-red-400/60 hover:text-red-400">×</button>
+          <button
+            onClick={() => setLaunchError("")}
+            className="ml-auto text-red-400/60 hover:text-red-400"
+          >
+            ×
+          </button>
         </div>
       )}
 
@@ -551,24 +730,36 @@ export default function IncorporatePage() {
                   <Rocket className="w-8 h-8 text-[#6FEC06] animate-bounce" />
                 </div>
               </div>
-              <h3 className="font-bold text-xl font-display">Launching Corporation</h3>
-              <p className="text-white/50 text-sm mt-1">Please approve any wallet prompts</p>
+              <h3 className="font-bold text-xl font-display">
+                Launching Corporation
+              </h3>
+              <p className="text-white/50 text-sm mt-1">
+                Please approve any wallet prompts
+              </p>
             </div>
             <div className="space-y-3">
               {launchSteps.map((step, index) => (
-                <div key={step.id} className={`flex items-center gap-4 p-3 rounded-xl transition-all duration-300 ${
-                  step.status === "loading" ? "bg-[#6FEC06]/10 border border-[#6FEC06]/30" :
-                  step.status === "complete" ? "bg-[#6FEC06]/5 border border-[#6FEC06]/20" :
-                  step.status === "error" ? "bg-red-500/10 border border-red-500/30" :
-                  "bg-[#120557]/30 border border-white/10"
-                }`}>
+                <div
+                  key={step.id}
+                  className={`flex items-center gap-4 p-3 rounded-xl transition-all duration-300 ${
+                    step.status === "loading"
+                      ? "bg-[#6FEC06]/10 border border-[#6FEC06]/30"
+                      : step.status === "complete"
+                        ? "bg-[#6FEC06]/5 border border-[#6FEC06]/20"
+                        : step.status === "error"
+                          ? "bg-red-500/10 border border-red-500/30"
+                          : "bg-[#120557]/30 border border-white/10"
+                  }`}
+                >
                   <div className="flex-shrink-0">
                     {step.status === "pending" && (
                       <div className="w-6 h-6 rounded-full border-2 border-white/20 flex items-center justify-center text-white/40 text-xs font-medium">
                         {index + 1}
                       </div>
                     )}
-                    {step.status === "loading" && <Loader2 className="w-6 h-6 text-[#6FEC06] animate-spin" />}
+                    {step.status === "loading" && (
+                      <Loader2 className="w-6 h-6 text-[#6FEC06] animate-spin" />
+                    )}
                     {step.status === "complete" && (
                       <div className="w-6 h-6 rounded-full bg-[#6FEC06] flex items-center justify-center">
                         <Check className="w-3.5 h-3.5 text-black" />
@@ -580,12 +771,17 @@ export default function IncorporatePage() {
                       </div>
                     )}
                   </div>
-                  <span className={`text-sm font-medium ${
-                    step.status === "loading" ? "text-white" : 
-                    step.status === "complete" ? "text-[#6FEC06]" : 
-                    step.status === "error" ? "text-red-400" : 
-                    "text-white/40"
-                  }`}>
+                  <span
+                    className={`text-sm font-medium ${
+                      step.status === "loading"
+                        ? "text-white"
+                        : step.status === "complete"
+                          ? "text-[#6FEC06]"
+                          : step.status === "error"
+                            ? "text-red-400"
+                            : "text-white/40"
+                    }`}
+                  >
                     {step.label}
                   </span>
                 </div>
@@ -606,15 +802,21 @@ export default function IncorporatePage() {
                   <Users className="w-5 h-5 text-[#6FEC06]" />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-white">Select Your Executive Team</h2>
-                  <p className="text-xs text-white/40">Choose 2-5 minted AI agents to form your corporation</p>
+                  <h2 className="font-semibold text-white">
+                    Select Your Executive Team
+                  </h2>
+                  <p className="text-xs text-white/40">
+                    Choose 2-5 minted AI agents to form your corporation
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#120557]/50 border border-[#6FEC06]/20">
                 <span className="text-2xl font-bold text-[#6FEC06]">
                   {selectedAgentIds.length}
                 </span>
-                <span className="text-white/40 text-sm font-medium">/5 selected</span>
+                <span className="text-white/40 text-sm font-medium">
+                  /5 selected
+                </span>
               </div>
             </div>
 
@@ -624,22 +826,44 @@ export default function IncorporatePage() {
                 selectedAgentIds.map((id, i) => {
                   const agent = agents.find((a) => a.id === id);
                   const rarity = agent?.rarity || "common";
-                  const rarityConfig = RARITIES[rarity as keyof typeof RARITIES] || RARITIES.common;
+                  const rarityConfig =
+                    RARITIES[rarity as keyof typeof RARITIES] ||
+                    RARITIES.common;
                   return agent ? (
-                    <div key={id} className="flex items-center gap-2 px-3 py-1.5 rounded-lg border" style={{ backgroundColor: `${rarityConfig.color}15`, borderColor: `${rarityConfig.color}40` }}>
+                    <div
+                      key={id}
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-lg border"
+                      style={{
+                        backgroundColor: `${rarityConfig.color}15`,
+                        borderColor: `${rarityConfig.color}40`,
+                      }}
+                    >
                       <div className="w-6 h-6 rounded-md overflow-hidden">
                         {agent.imageUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={agent.imageUrl} alt={agent.name} className="w-full h-full object-cover" />
+                          <img
+                            src={agent.imageUrl}
+                            alt={agent.name}
+                            className="w-full h-full object-cover"
+                          />
                         ) : (
                           <span className="text-sm">🤖</span>
                         )}
                       </div>
-                      <span className="text-sm font-medium text-white">{agent.name}</span>
-                      <span className="w-4 h-4 rounded text-[10px] flex items-center justify-center font-bold text-black" style={{ backgroundColor: rarityConfig.color }}>
+                      <span className="text-sm font-medium text-white">
+                        {agent.name}
+                      </span>
+                      <span
+                        className="w-4 h-4 rounded text-[10px] flex items-center justify-center font-bold text-black"
+                        style={{ backgroundColor: rarityConfig.color }}
+                      >
                         {i + 1}
                       </span>
-                      <button type="button" onClick={() => toggleAgent(id)} className="w-5 h-5 rounded-md flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10">
+                      <button
+                        type="button"
+                        onClick={() => toggleAgent(id)}
+                        className="w-5 h-5 rounded-md flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10"
+                      >
                         ×
                       </button>
                     </div>
@@ -658,7 +882,9 @@ export default function IncorporatePage() {
               {isLoadingAgents ? (
                 <div className="py-12 flex flex-col items-center justify-center gap-3">
                   <Loader2 className="w-8 h-8 text-[#6FEC06] animate-spin" />
-                  <span className="text-sm text-white/40">Loading your agents...</span>
+                  <span className="text-sm text-white/40">
+                    Loading your agents...
+                  </span>
                 </div>
               ) : fetchError ? (
                 <div className="py-12 flex flex-col items-center justify-center gap-4 text-red-400">
@@ -679,8 +905,12 @@ export default function IncorporatePage() {
                     <Users className="w-8 h-8" />
                   </div>
                   <div className="text-center">
-                    <p className="font-medium text-white/60 mb-1">No agents yet</p>
-                    <p className="text-sm text-white/40 mb-4">Create agents before forming a corporation</p>
+                    <p className="font-medium text-white/60 mb-1">
+                      No agents yet
+                    </p>
+                    <p className="text-sm text-white/40 mb-4">
+                      Create agents before forming a corporation
+                    </p>
                     <button
                       type="button"
                       onClick={() => router.push("/dashboard/mint")}
@@ -698,7 +928,9 @@ export default function IncorporatePage() {
                       <div className="flex items-center gap-3">
                         <AlertCircle className="w-5 h-5 text-amber-400" />
                         <p className="text-sm text-amber-200">
-                          You need at least <span className="font-semibold">2 agents</span> to form a corporation. Create {2 - agents.length} more!
+                          You need at least{" "}
+                          <span className="font-semibold">2 agents</span> to
+                          form a corporation. Create {2 - agents.length} more!
                         </p>
                       </div>
                       <button
@@ -710,7 +942,7 @@ export default function IncorporatePage() {
                       </button>
                     </div>
                   )}
-                  
+
                   {/* Agents grid - extra padding for selection badges */}
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 pt-1 pr-1">
                     {agents.map((agent) => (
@@ -718,7 +950,10 @@ export default function IncorporatePage() {
                         key={agent.id}
                         agent={agent}
                         isSelected={selectedAgentIds.includes(agent.id)}
-                        isDisabled={!selectedAgentIds.includes(agent.id) && selectedAgentIds.length >= 5}
+                        isDisabled={
+                          !selectedAgentIds.includes(agent.id) &&
+                          selectedAgentIds.length >= 5
+                        }
                         selectionOrder={selectedAgentIds.indexOf(agent.id) + 1}
                         onToggle={() => toggleAgent(agent.id)}
                       />
@@ -751,12 +986,21 @@ export default function IncorporatePage() {
                   {selectedAgentIds.slice(0, 4).map((id) => {
                     const agent = agents.find((a) => a.id === id);
                     return agent ? (
-                      <div key={id} className="w-8 h-8 rounded-lg overflow-hidden border-2 border-[#000028]">
+                      <div
+                        key={id}
+                        className="w-8 h-8 rounded-lg overflow-hidden border-2 border-[#000028]"
+                      >
                         {agent.imageUrl ? (
                           // eslint-disable-next-line @next/next/no-img-element
-                          <img src={agent.imageUrl} alt={agent.name} className="w-full h-full object-cover" />
+                          <img
+                            src={agent.imageUrl}
+                            alt={agent.name}
+                            className="w-full h-full object-cover"
+                          />
                         ) : (
-                          <div className="w-full h-full bg-[#120557] flex items-center justify-center text-sm">🤖</div>
+                          <div className="w-full h-full bg-[#120557] flex items-center justify-center text-sm">
+                            🤖
+                          </div>
                         )}
                       </div>
                     ) : null;
@@ -767,9 +1011,15 @@ export default function IncorporatePage() {
                     </div>
                   )}
                 </div>
-                <span className="text-sm font-medium text-[#6FEC06]">{selectedAgentIds.length} agents selected</span>
+                <span className="text-sm font-medium text-[#6FEC06]">
+                  {selectedAgentIds.length} agents selected
+                </span>
               </div>
-              <button type="button" onClick={() => setCurrentStep(0)} className="text-xs font-medium text-[#6FEC06] hover:underline">
+              <button
+                type="button"
+                onClick={() => setCurrentStep(0)}
+                className="text-xs font-medium text-[#6FEC06] hover:underline"
+              >
                 Edit Team
               </button>
             </div>
@@ -779,7 +1029,8 @@ export default function IncorporatePage() {
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="lg:col-span-2">
                   <label className="block text-[11px] font-medium text-white/40 mb-1.5 uppercase tracking-wider">
-                    Corporation Name<span className="text-[#6FEC06] ml-0.5">*</span>
+                    Corporation Name
+                    <span className="text-[#6FEC06] ml-0.5">*</span>
                   </label>
                   <input
                     type="text"
@@ -795,7 +1046,9 @@ export default function IncorporatePage() {
                     Token Symbol<span className="text-[#6FEC06] ml-0.5">*</span>
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 text-sm font-medium">$</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 text-sm font-medium">
+                      $
+                    </span>
                     <input
                       type="text"
                       value={symbol}
@@ -818,15 +1071,20 @@ export default function IncorporatePage() {
                       placeholder="0.01"
                       className="w-full px-3 py-2.5 bg-[#120557]/50 border border-[#6FEC06]/20 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-[#6FEC06]/50"
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 text-xs font-medium">SOL</span>
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 text-xs font-medium">
+                      SOL
+                    </span>
                   </div>
                 </div>
                 <div className="sm:col-span-2 lg:col-span-4">
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="text-[11px] font-medium text-white/40 uppercase tracking-wider">
-                      Description<span className="text-[#6FEC06] ml-0.5">*</span>
+                      Description
+                      <span className="text-[#6FEC06] ml-0.5">*</span>
                     </label>
-                    <span className="text-[10px] text-white/30">{description.length}/1000</span>
+                    <span className="text-[10px] text-white/30">
+                      {description.length}/1000
+                    </span>
                   </div>
                   <textarea
                     value={description}
@@ -852,7 +1110,15 @@ export default function IncorporatePage() {
                     <div className="w-10 h-10 rounded-lg bg-[#120557]/80 border border-[#6FEC06]/20 overflow-hidden flex-shrink-0 flex items-center justify-center">
                       {imageUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={imageUrl} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                        <img
+                          src={imageUrl}
+                          alt=""
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display =
+                              "none";
+                          }}
+                        />
                       ) : (
                         <ImageIcon className="w-4 h-4 text-white/30" />
                       )}
@@ -877,27 +1143,50 @@ export default function IncorporatePage() {
               {/* Social links */}
               <div className="mt-4 pt-4 border-t border-white/10">
                 <label className="block text-[11px] font-medium text-white/40 mb-2 uppercase tracking-wider">
-                  Social Links <span className="text-white/20 normal-case">(optional)</span>
+                  Social Links{" "}
+                  <span className="text-white/20 normal-case">(optional)</span>
                 </label>
                 <div className="grid gap-3 sm:grid-cols-3">
                   <div className="relative">
                     <Twitter className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
-                    <input type="url" value={twitterUrl} onChange={(e) => setTwitterUrl(e.target.value)} placeholder="Twitter URL" className="w-full pl-9 pr-3 py-2 bg-[#120557]/30 border border-white/10 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-[#6FEC06]/50" />
+                    <input
+                      type="url"
+                      value={twitterUrl}
+                      onChange={(e) => setTwitterUrl(e.target.value)}
+                      placeholder="Twitter URL"
+                      className="w-full pl-9 pr-3 py-2 bg-[#120557]/30 border border-white/10 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-[#6FEC06]/50"
+                    />
                   </div>
                   <div className="relative">
                     <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
-                    <input type="url" value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} placeholder="Website URL" className="w-full pl-9 pr-3 py-2 bg-[#120557]/30 border border-white/10 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-[#6FEC06]/50" />
+                    <input
+                      type="url"
+                      value={websiteUrl}
+                      onChange={(e) => setWebsiteUrl(e.target.value)}
+                      placeholder="Website URL"
+                      className="w-full pl-9 pr-3 py-2 bg-[#120557]/30 border border-white/10 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-[#6FEC06]/50"
+                    />
                   </div>
                   <div className="relative">
                     <MessageCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
-                    <input type="url" value={telegramUrl} onChange={(e) => setTelegramUrl(e.target.value)} placeholder="Telegram URL" className="w-full pl-9 pr-3 py-2 bg-[#120557]/30 border border-white/10 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-[#6FEC06]/50" />
+                    <input
+                      type="url"
+                      value={telegramUrl}
+                      onChange={(e) => setTelegramUrl(e.target.value)}
+                      placeholder="Telegram URL"
+                      className="w-full pl-9 pr-3 py-2 bg-[#120557]/30 border border-white/10 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-[#6FEC06]/50"
+                    />
                   </div>
                 </div>
               </div>
             </div>
 
             <div className="flex justify-between mt-4">
-              <button type="button" onClick={() => setCurrentStep(0)} className="flex items-center gap-1.5 px-4 py-2.5 bg-[#120557]/50 hover:bg-[#120557]/70 border border-white/10 rounded-lg text-sm font-medium">
+              <button
+                type="button"
+                onClick={() => setCurrentStep(0)}
+                className="flex items-center gap-1.5 px-4 py-2.5 bg-[#120557]/50 hover:bg-[#120557]/70 border border-white/10 rounded-lg text-sm font-medium"
+              >
                 <ChevronLeft className="w-4 h-4" /> Back
               </button>
               <button

@@ -3,7 +3,11 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Application, Container, Graphics, Text, TextStyle } from "pixi.js";
 import { ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
-import type { SwarmAgent, SwarmConnection, Corporation } from "@/lib/swarm/types";
+import type {
+  SwarmAgent,
+  SwarmConnection,
+  Corporation,
+} from "@/lib/swarm/types";
 import type { PhysicsSimulation } from "@/lib/swarm/physics";
 
 interface SwarmCanvasProps {
@@ -24,39 +28,44 @@ const GRID_COLOR = 0x1a1a2e;
 const GRID_COLOR_MAJOR = 0x252540;
 
 // Draw grid background
-function drawGrid(graphics: Graphics, width: number, height: number, scale: number) {
+function drawGrid(
+  graphics: Graphics,
+  width: number,
+  height: number,
+  scale: number,
+) {
   graphics.clear();
-  
+
   // Extend grid beyond visible area for panning
   const padding = 2000;
   const startX = -padding;
   const startY = -padding;
   const endX = width / scale + padding;
   const endY = height / scale + padding;
-  
+
   // Draw minor grid lines
   for (let x = startX; x <= endX; x += GRID_SIZE) {
     const isMajor = Math.round(x) % (GRID_SIZE * 5) === 0;
     graphics.moveTo(x, startY);
     graphics.lineTo(x, endY);
-    graphics.stroke({ 
-      width: isMajor ? 1 : 0.5, 
-      color: isMajor ? GRID_COLOR_MAJOR : GRID_COLOR, 
-      alpha: isMajor ? 0.6 : 0.4 
+    graphics.stroke({
+      width: isMajor ? 1 : 0.5,
+      color: isMajor ? GRID_COLOR_MAJOR : GRID_COLOR,
+      alpha: isMajor ? 0.6 : 0.4,
     });
   }
-  
+
   for (let y = startY; y <= endY; y += GRID_SIZE) {
     const isMajor = Math.round(y) % (GRID_SIZE * 5) === 0;
     graphics.moveTo(startX, y);
     graphics.lineTo(endX, y);
-    graphics.stroke({ 
-      width: isMajor ? 1 : 0.5, 
-      color: isMajor ? GRID_COLOR_MAJOR : GRID_COLOR, 
-      alpha: isMajor ? 0.6 : 0.4 
+    graphics.stroke({
+      width: isMajor ? 1 : 0.5,
+      color: isMajor ? GRID_COLOR_MAJOR : GRID_COLOR,
+      alpha: isMajor ? 0.6 : 0.4,
     });
   }
-  
+
   // Draw center cross for reference
   graphics.moveTo(-20, 0);
   graphics.lineTo(20, 0);
@@ -66,19 +75,22 @@ function drawGrid(graphics: Graphics, width: number, height: number, scale: numb
 }
 
 // Check WebGPU support
-async function checkWebGPUSupport(): Promise<{ supported: boolean; adapter: GPUAdapter | null }> {
+async function checkWebGPUSupport(): Promise<{
+  supported: boolean;
+  adapter: GPUAdapter | null;
+}> {
   try {
     if (!navigator.gpu) {
       console.log("[Swarm] WebGPU not available in this browser");
       return { supported: false, adapter: null };
     }
-    
+
     const adapter = await navigator.gpu.requestAdapter();
     if (!adapter) {
       console.log("[Swarm] WebGPU adapter not available");
       return { supported: false, adapter: null };
     }
-    
+
     console.log("[Swarm] WebGPU supported");
     return { supported: true, adapter };
   } catch (err) {
@@ -88,24 +100,29 @@ async function checkWebGPUSupport(): Promise<{ supported: boolean; adapter: GPUA
 }
 
 // Check WebGL support with detailed logging (fallback)
-function checkWebGLSupport(): { supported: boolean; version: string; error?: string } {
+function checkWebGLSupport(): {
+  supported: boolean;
+  version: string;
+  error?: string;
+} {
   try {
     const canvas = document.createElement("canvas");
-    
+
     // Try WebGL2 first
     const gl2 = canvas.getContext("webgl2");
     if (gl2) {
       console.log("[Swarm] WebGL2 supported");
       return { supported: true, version: "webgl2" };
     }
-    
+
     // Fall back to WebGL1
-    const gl1 = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+    const gl1 =
+      canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
     if (gl1) {
       console.log("[Swarm] WebGL1 supported");
       return { supported: true, version: "webgl1" };
     }
-    
+
     console.warn("[Swarm] No WebGL context available");
     return { supported: false, version: "none", error: "No WebGL context" };
   } catch (err) {
@@ -130,17 +147,23 @@ export default function SwarmCanvas({
   const corporationGraphicsRef = useRef<Map<string, Container>>(new Map());
   const agentGraphicsRef = useRef<Map<string, Container>>(new Map());
   const connectionGraphicsRef = useRef<Graphics | null>(null);
-  
+
   // Store refs for animation loop access
   const agentsRef = useRef(agents);
   const corporationsRef = useRef(corporations);
   const connectionsRef = useRef(connections);
-  
+
   // Keep refs updated
-  useEffect(() => { agentsRef.current = agents; }, [agents]);
-  useEffect(() => { corporationsRef.current = corporations; }, [corporations]);
-  useEffect(() => { connectionsRef.current = connections; }, [connections]);
-  
+  useEffect(() => {
+    agentsRef.current = agents;
+  }, [agents]);
+  useEffect(() => {
+    corporationsRef.current = corporations;
+  }, [corporations]);
+  useEffect(() => {
+    connectionsRef.current = connections;
+  }, [connections]);
+
   // Draw all connection lines - called every frame
   const drawConnections = useCallback((graphics: Graphics) => {
     graphics.clear();
@@ -150,43 +173,53 @@ export default function SwarmCanvas({
     const currentConnections = connectionsRef.current;
 
     // Draw corporation bubbles and simple lines to agents
-    const agentInc = Array.from(currentCorps.values()).find(c => c.name === "Agent Inc.");
-    
+    const agentInc = Array.from(currentCorps.values()).find(
+      (c) => c.name === "Agent Inc.",
+    );
+
     for (const [corpId, corp] of currentCorps) {
       const corpColor = parseInt(corp.color?.replace("#", "") || "8b5cf6", 16);
-      
+
       // Draw line from non-Agent Inc corporations to Agent Inc
       if (corp.name !== "Agent Inc." && agentInc) {
         const dx = agentInc.x - corp.x;
         const dy = agentInc.y - corp.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        
+
         // Simple curved line with sag
         const sag = Math.min(dist * 0.08, 30);
         const midX = (corp.x + agentInc.x) / 2;
         const midY = (corp.y + agentInc.y) / 2 + sag;
-        
+
         // Draw main line
         graphics.moveTo(corp.x, corp.y);
         graphics.quadraticCurveTo(midX, midY, agentInc.x, agentInc.y);
         graphics.stroke({ width: 3, color: corpColor, alpha: 0.3 });
-        
+
         // Animated pulse traveling along the line
         const pulseCount = 2;
         for (let i = 0; i < pulseCount; i++) {
-          const t = ((time * 0.2 + i / pulseCount) % 1);
-          const px = (1-t)*(1-t)*corp.x + 2*(1-t)*t*midX + t*t*agentInc.x;
-          const py = (1-t)*(1-t)*corp.y + 2*(1-t)*t*midY + t*t*agentInc.y;
+          const t = (time * 0.2 + i / pulseCount) % 1;
+          const px =
+            (1 - t) * (1 - t) * corp.x +
+            2 * (1 - t) * t * midX +
+            t * t * agentInc.x;
+          const py =
+            (1 - t) * (1 - t) * corp.y +
+            2 * (1 - t) * t * midY +
+            t * t * agentInc.y;
           const pulseAlpha = Math.sin(t * Math.PI) * 0.5;
-          
+
           graphics.circle(px, py, 4);
           graphics.fill({ color: corpColor, alpha: pulseAlpha });
         }
       }
-      
+
       // Get agents belonging to this corporation
-      const corpAgents = Array.from(currentAgents.values()).filter(a => a.corporationId === corpId);
-      
+      const corpAgents = Array.from(currentAgents.values()).filter(
+        (a) => a.corporationId === corpId,
+      );
+
       if (corpAgents.length > 0) {
         // Calculate bubble radius
         let maxDist = 0;
@@ -196,41 +229,50 @@ export default function SwarmCanvas({
           const dist = Math.sqrt(dx * dx + dy * dy) + (agent.size || 35) + 40;
           maxDist = Math.max(maxDist, dist);
         }
-        
+
         const breathe = Math.sin(time * 0.8) * 8;
         const bubbleRadius = Math.max(maxDist, 180) + breathe;
-        
+
         // Draw bubble
         graphics.circle(corp.x, corp.y, bubbleRadius);
         graphics.fill({ color: corpColor, alpha: 0.02 });
         graphics.circle(corp.x, corp.y, bubbleRadius);
         graphics.stroke({ width: 2, color: corpColor, alpha: 0.15 });
-        
+
         // Draw lines from corporation center to each agent
         for (const agent of corpAgents) {
-          const agentColor = parseInt(agent.color?.replace("#", "") || "8b5cf6", 16);
-          
+          const agentColor = parseInt(
+            agent.color?.replace("#", "") || "8b5cf6",
+            16,
+          );
+
           const dx = agent.x - corp.x;
           const dy = agent.y - corp.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          
+
           const sag = Math.min(dist * 0.15, 40);
           const midX = (corp.x + agent.x) / 2;
           const midY = (corp.y + agent.y) / 2 + sag;
-          
+
           // Draw simple curved line
           graphics.moveTo(corp.x, corp.y);
           graphics.quadraticCurveTo(midX, midY, agent.x, agent.y);
           graphics.stroke({ width: 2, color: agentColor, alpha: 0.2 });
-          
+
           // Animated pulse
           const pulseCount = 2;
           for (let i = 0; i < pulseCount; i++) {
-            const t = ((time * 0.3 + i / pulseCount) % 1);
-            const px = (1-t)*(1-t)*corp.x + 2*(1-t)*t*midX + t*t*agent.x;
-            const py = (1-t)*(1-t)*corp.y + 2*(1-t)*t*midY + t*t*agent.y;
+            const t = (time * 0.3 + i / pulseCount) % 1;
+            const px =
+              (1 - t) * (1 - t) * corp.x +
+              2 * (1 - t) * t * midX +
+              t * t * agent.x;
+            const py =
+              (1 - t) * (1 - t) * corp.y +
+              2 * (1 - t) * t * midY +
+              t * t * agent.y;
             const pulseAlpha = Math.sin(t * Math.PI) * 0.6;
-            
+
             graphics.circle(px, py, 3);
             graphics.fill({ color: agentColor, alpha: pulseAlpha });
           }
@@ -261,43 +303,49 @@ export default function SwarmCanvas({
       const dy = toAgent.y - fromAgent.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
       const sag = Math.min(dist * 0.12, 35);
-      
+
       const endX = fromAgent.x + dx * progress;
       const endY = fromAgent.y + dy * progress;
       const midX = fromAgent.x + dx * progress * 0.5;
       const midY = fromAgent.y + dy * progress * 0.5 + sag * progress;
-      
+
       // Draw curved line
       graphics.moveTo(fromAgent.x, fromAgent.y);
       graphics.quadraticCurveTo(midX, midY, endX, endY);
       graphics.stroke({ width: 2.5, color, alpha });
-      
+
       // Animated particles
       if (connection.status === "active") {
         for (let i = 0; i < 3; i++) {
           const t = ((time * 0.5 + i / 3) % 1) * progress;
-          const px = (1-t)*(1-t)*fromAgent.x + 2*(1-t)*t*midX + t*t*endX;
-          const py = (1-t)*(1-t)*fromAgent.y + 2*(1-t)*t*midY + t*t*endY;
-          
+          const px =
+            (1 - t) * (1 - t) * fromAgent.x +
+            2 * (1 - t) * t * midX +
+            t * t * endX;
+          const py =
+            (1 - t) * (1 - t) * fromAgent.y +
+            2 * (1 - t) * t * midY +
+            t * t * endY;
+
           graphics.circle(px, py, 4);
           graphics.fill({ color: 0x06b6d4, alpha: 0.9 });
         }
       }
-      
+
       // Arrow head
       if (progress > 0.1) {
         const angle = Math.atan2(dy, dx);
         const arrowSize = 10;
-        
+
         graphics.moveTo(endX, endY);
         graphics.lineTo(
           endX - arrowSize * Math.cos(angle - Math.PI / 6),
-          endY - arrowSize * Math.sin(angle - Math.PI / 6)
+          endY - arrowSize * Math.sin(angle - Math.PI / 6),
         );
         graphics.moveTo(endX, endY);
         graphics.lineTo(
           endX - arrowSize * Math.cos(angle + Math.PI / 6),
-          endY - arrowSize * Math.sin(angle + Math.PI / 6)
+          endY - arrowSize * Math.sin(angle + Math.PI / 6),
         );
         graphics.stroke({ width: 2, color, alpha });
       }
@@ -318,17 +366,19 @@ export default function SwarmCanvas({
       // Check WebGPU support first, then fall back to WebGL
       const webgpuCheck = await checkWebGPUSupport();
       console.log("[Swarm] WebGPU check result:", webgpuCheck);
-      
+
       const webglCheck = checkWebGLSupport();
       console.log("[Swarm] WebGL check result:", webglCheck);
 
       const app = new Application();
-      
+
       try {
         // Prefer WebGPU if available, fall back to WebGL
         const preference = webgpuCheck.supported ? "webgpu" : "webgl";
-        console.log(`[Swarm] Initializing PixiJS with ${preference} renderer...`);
-        
+        console.log(
+          `[Swarm] Initializing PixiJS with ${preference} renderer...`,
+        );
+
         await app.init({
           background: 0x030712,
           resizeTo: containerRef.current!,
@@ -337,14 +387,18 @@ export default function SwarmCanvas({
           autoDensity: true,
           preference: preference,
         });
-        console.log(`[Swarm] PixiJS initialized successfully with ${preference}`);
+        console.log(
+          `[Swarm] PixiJS initialized successfully with ${preference}`,
+        );
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : String(err);
         console.error("[Swarm] Failed to initialize PixiJS:", errorMsg);
-        
+
         // Provide helpful error message
         if (errorMsg.includes("Canvas") || errorMsg.includes("WebGL")) {
-          setError(`Graphics initialization failed: ${errorMsg}. Check browser://gpu in Brave for WebGL status.`);
+          setError(
+            `Graphics initialization failed: ${errorMsg}. Check browser://gpu in Brave for WebGL status.`,
+          );
         } else {
           setError(`Failed to initialize visualization: ${errorMsg}`);
         }
@@ -364,7 +418,7 @@ export default function SwarmCanvas({
       const grid = new Graphics();
       world.addChild(grid);
       gridRef.current = grid;
-      
+
       // Draw initial grid
       drawGrid(grid, app.screen.width, app.screen.height, 1);
 
@@ -384,7 +438,7 @@ export default function SwarmCanvas({
       // Animation loop - redraw connections every frame
       app.ticker.add(() => {
         onTick?.();
-        
+
         // Redraw connections every frame for smooth lines
         const graphics = connectionGraphicsRef.current;
         if (graphics) {
@@ -400,7 +454,12 @@ export default function SwarmCanvas({
         });
         // Redraw grid on resize
         if (gridRef.current) {
-          drawGrid(gridRef.current, app.screen.width, app.screen.height, world.scale.x);
+          drawGrid(
+            gridRef.current,
+            app.screen.width,
+            app.screen.height,
+            world.scale.x,
+          );
         }
       };
 
@@ -454,7 +513,7 @@ export default function SwarmCanvas({
         // Outer glow ring
         circle.circle(0, 0, size + 15);
         circle.fill({ color, alpha: 0.15 });
-        
+
         // Middle ring
         circle.circle(0, 0, size + 8);
         circle.fill({ color, alpha: 0.25 });
@@ -510,7 +569,7 @@ export default function SwarmCanvas({
         // Pulsing outer glow
         circle.circle(0, 0, size + 15 + pulse * 5);
         circle.fill({ color, alpha: 0.1 + pulse * 0.1 });
-        
+
         // Middle ring
         circle.circle(0, 0, size + 8);
         circle.fill({ color, alpha: 0.25 });
@@ -601,7 +660,10 @@ export default function SwarmCanvas({
       const circle = container.children[0] as Graphics;
       if (circle) {
         const size = agent.size || 35;
-        const baseColor = parseInt(agent.color?.replace("#", "") || "8b5cf6", 16);
+        const baseColor = parseInt(
+          agent.color?.replace("#", "") || "8b5cf6",
+          16,
+        );
 
         circle.clear();
 
@@ -639,39 +701,42 @@ export default function SwarmCanvas({
   }, [agents, onAgentClick, onAgentHover]);
 
   // Handle zoom
-  const handleZoom = useCallback((delta: number, centerX?: number, centerY?: number) => {
-    const world = worldRef.current;
-    const app = appRef.current;
-    if (!world || !app) return;
+  const handleZoom = useCallback(
+    (delta: number, centerX?: number, centerY?: number) => {
+      const world = worldRef.current;
+      const app = appRef.current;
+      if (!world || !app) return;
 
-    const oldZoom = world.scale.x;
-    const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, oldZoom + delta));
-    
-    if (newZoom === oldZoom) return;
+      const oldZoom = world.scale.x;
+      const newZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, oldZoom + delta));
 
-    // Zoom towards center of screen or mouse position
-    const cx = centerX ?? app.screen.width / 2;
-    const cy = centerY ?? app.screen.height / 2;
+      if (newZoom === oldZoom) return;
 
-    // Calculate the world position under the cursor before zoom
-    const worldX = (cx - world.x) / oldZoom;
-    const worldY = (cy - world.y) / oldZoom;
+      // Zoom towards center of screen or mouse position
+      const cx = centerX ?? app.screen.width / 2;
+      const cy = centerY ?? app.screen.height / 2;
 
-    // Apply new zoom
-    world.scale.set(newZoom);
+      // Calculate the world position under the cursor before zoom
+      const worldX = (cx - world.x) / oldZoom;
+      const worldY = (cy - world.y) / oldZoom;
 
-    // Adjust position to keep the point under cursor stationary
-    world.x = cx - worldX * newZoom;
-    world.y = cy - worldY * newZoom;
+      // Apply new zoom
+      world.scale.set(newZoom);
 
-    setZoom(newZoom);
-  }, []);
+      // Adjust position to keep the point under cursor stationary
+      world.x = cx - worldX * newZoom;
+      world.y = cy - worldY * newZoom;
+
+      setZoom(newZoom);
+    },
+    [],
+  );
 
   // Reset zoom
   const handleResetZoom = useCallback(() => {
     const world = worldRef.current;
     if (!world) return;
-    
+
     world.scale.set(1);
     world.x = 0;
     world.y = 0;
@@ -703,16 +768,16 @@ export default function SwarmCanvas({
 
     const handleMouseMove = (e: MouseEvent) => {
       if (!isPanning) return;
-      
+
       const world = worldRef.current;
       if (!world) return;
 
       const dx = e.clientX - lastPanPos.current.x;
       const dy = e.clientY - lastPanPos.current.y;
-      
+
       world.x += dx;
       world.y += dy;
-      
+
       lastPanPos.current = { x: e.clientX, y: e.clientY };
     };
 
@@ -727,7 +792,7 @@ export default function SwarmCanvas({
     container.addEventListener("mousedown", handleMouseDown);
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
-    
+
     return () => {
       container.removeEventListener("wheel", handleWheel);
       container.removeEventListener("mousedown", handleMouseDown);
@@ -743,7 +808,7 @@ export default function SwarmCanvas({
         ref={containerRef}
         className={`w-full h-full cursor-grab ${isLoading || error ? "invisible" : ""}`}
       />
-      
+
       {/* Zoom controls */}
       {!isLoading && !error && (
         <div className="absolute bottom-4 right-4 flex flex-col gap-2">
@@ -755,7 +820,9 @@ export default function SwarmCanvas({
             <ZoomIn className="w-5 h-5 text-gray-300" />
           </button>
           <div className="px-2 py-1 bg-gray-900/90 backdrop-blur-lg border border-gray-700 rounded-lg text-center">
-            <span className="text-xs text-gray-400">{Math.round(zoom * 100)}%</span>
+            <span className="text-xs text-gray-400">
+              {Math.round(zoom * 100)}%
+            </span>
           </div>
           <button
             onClick={() => handleZoom(-ZOOM_STEP)}
@@ -779,17 +846,41 @@ export default function SwarmCanvas({
         <div className="absolute inset-0 flex items-center justify-center bg-gray-900/50 rounded-2xl border border-gray-800">
           <div className="text-center p-8">
             <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-red-500/20 flex items-center justify-center">
-              <svg className="w-8 h-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              <svg
+                className="w-8 h-8 text-red-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
               </svg>
             </div>
-            <h3 className="text-lg font-semibold text-white mb-2">Visualization Error</h3>
+            <h3 className="text-lg font-semibold text-white mb-2">
+              Visualization Error
+            </h3>
             <p className="text-gray-400 text-sm max-w-md mb-4">{error}</p>
             <div className="text-xs text-gray-500 bg-gray-800/50 rounded-lg p-3 text-left max-w-md">
-              <p className="font-semibold mb-1">Troubleshooting for Brave on Linux:</p>
+              <p className="font-semibold mb-1">
+                Troubleshooting for Brave on Linux:
+              </p>
               <ol className="list-decimal list-inside space-y-1">
-                <li>Open <code className="bg-gray-700 px-1 rounded">brave://gpu</code> to check WebGL status</li>
-                <li>Try <code className="bg-gray-700 px-1 rounded">brave://flags/#use-angle</code> → set to &quot;OpenGL&quot;</li>
+                <li>
+                  Open{" "}
+                  <code className="bg-gray-700 px-1 rounded">brave://gpu</code>{" "}
+                  to check WebGL status
+                </li>
+                <li>
+                  Try{" "}
+                  <code className="bg-gray-700 px-1 rounded">
+                    brave://flags/#use-angle
+                  </code>{" "}
+                  → set to &quot;OpenGL&quot;
+                </li>
                 <li>Ensure GPU drivers are up to date</li>
                 <li>Try disabling hardware acceleration then re-enabling it</li>
               </ol>
@@ -797,7 +888,6 @@ export default function SwarmCanvas({
           </div>
         </div>
       )}
-
     </div>
   );
 }

@@ -113,7 +113,10 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     }
 
     if (systemPrompt !== undefined) {
-      if (typeof systemPrompt !== "string" || systemPrompt.trim().length === 0) {
+      if (
+        typeof systemPrompt !== "string" ||
+        systemPrompt.trim().length === 0
+      ) {
         return NextResponse.json(
           { error: "System prompt cannot be empty" },
           { status: 400 },

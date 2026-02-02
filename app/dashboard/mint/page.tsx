@@ -44,10 +44,20 @@ interface LaunchStep {
   error?: string;
 }
 
-function TraitPill({ icon, name, size = "sm" }: { icon: string; name: string; size?: "sm" | "md" }) {
+function TraitPill({
+  icon,
+  name,
+  size = "sm",
+}: {
+  icon: string;
+  name: string;
+  size?: "sm" | "md";
+}) {
   const sizeClasses = { sm: "px-2 py-1 text-xs", md: "px-3 py-1.5 text-sm" };
   return (
-    <div className={`inline-flex items-center gap-1.5 rounded-lg border bg-[#120557]/40 border-[#6FEC06]/20 ${sizeClasses[size]}`}>
+    <div
+      className={`inline-flex items-center gap-1.5 rounded-lg border bg-[#120557]/40 border-[#6FEC06]/20 ${sizeClasses[size]}`}
+    >
       <span className="text-base">{icon}</span>
       <span className="font-medium text-white/80">{name}</span>
     </div>
@@ -57,56 +67,111 @@ function TraitPill({ icon, name, size = "sm" }: { icon: string; name: string; si
 function RarityBadge({ rarity }: { rarity: keyof typeof RARITIES }) {
   const config = RARITIES[rarity];
   return (
-    <div className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wider" style={{ backgroundColor: `${config.color}20`, color: config.color }}>
+    <div
+      className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wider"
+      style={{ backgroundColor: `${config.color}20`, color: config.color }}
+    >
       <Star className="w-3 h-3" />
       {config.name}
     </div>
   );
 }
 
-function AgentPreviewCard({ name, traits, imageUrl, isGeneratingImage }: { name: string; traits: AgentTraitData; imageUrl?: string; isGeneratingImage?: boolean }) {
+function AgentPreviewCard({
+  name,
+  traits,
+  imageUrl,
+  isGeneratingImage,
+}: {
+  name: string;
+  traits: AgentTraitData;
+  imageUrl?: string;
+  isGeneratingImage?: boolean;
+}) {
   const personality = getPersonalityById(traits.personality);
   const specialAbility = getSpecialAbilityById(traits.specialAbility);
   const rarityConfig = RARITIES[traits.rarity];
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border-2" style={{ borderColor: `${rarityConfig.color}50`, boxShadow: `0 0 40px ${rarityConfig.color}15` }}>
-      <div className="absolute inset-0" style={{ background: `radial-gradient(ellipse at top, ${rarityConfig.color}15 0%, transparent 50%)` }} />
+    <div
+      className="relative overflow-hidden rounded-2xl border-2"
+      style={{
+        borderColor: `${rarityConfig.color}50`,
+        boxShadow: `0 0 40px ${rarityConfig.color}15`,
+      }}
+    >
+      <div
+        className="absolute inset-0"
+        style={{
+          background: `radial-gradient(ellipse at top, ${rarityConfig.color}15 0%, transparent 50%)`,
+        }}
+      />
       <div className="relative p-4 bg-[#0a0520]/90 backdrop-blur-xl">
         <div className="flex items-center justify-between mb-3">
           <RarityBadge rarity={traits.rarity} />
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full" style={{ backgroundColor: `${personality?.color}20` }}>
+          <div
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+            style={{ backgroundColor: `${personality?.color}20` }}
+          >
             <span className="text-base">{personality?.icon}</span>
-            <span className="text-xs font-semibold" style={{ color: personality?.color }}>{personality?.name}</span>
+            <span
+              className="text-xs font-semibold"
+              style={{ color: personality?.color }}
+            >
+              {personality?.name}
+            </span>
           </div>
         </div>
 
         <div className="relative mb-4">
-          <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden border" style={{ borderColor: `${rarityConfig.color}30` }}>
+          <div
+            className="relative w-full aspect-[4/3] rounded-xl overflow-hidden border"
+            style={{ borderColor: `${rarityConfig.color}30` }}
+          >
             {isGeneratingImage ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-[#120557]/50 to-[#000028]">
                 <div className="relative">
                   <div className="w-12 h-12 rounded-full border-4 border-[#6FEC06]/30 border-t-[#6FEC06] animate-spin" />
                   <Wand2 className="absolute inset-0 m-auto w-6 h-6 text-[#6FEC06]" />
                 </div>
-                <p className="mt-3 text-xs text-white/50 animate-pulse">Generating AI image...</p>
+                <p className="mt-3 text-xs text-white/50 animate-pulse">
+                  Generating AI image...
+                </p>
               </div>
             ) : imageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={imageUrl} alt={name} className="w-full h-full object-cover" />
+              <img
+                src={imageUrl}
+                alt={name}
+                className="w-full h-full object-cover"
+              />
             ) : (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-[#120557]/50 to-[#000028]">
-                <div className="w-16 h-16 rounded-xl flex items-center justify-center text-4xl mb-2" style={{ backgroundColor: `${personality?.color}20` }}>
+                <div
+                  className="w-16 h-16 rounded-xl flex items-center justify-center text-4xl mb-2"
+                  style={{ backgroundColor: `${personality?.color}20` }}
+                >
                   {personality?.icon}
                 </div>
                 <p className="text-xs text-white/40">No image yet</p>
               </div>
             )}
           </div>
-          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full border backdrop-blur-sm" style={{ backgroundColor: `${rarityConfig.color}20`, borderColor: `${rarityConfig.color}50` }}>
+          <div
+            className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full border backdrop-blur-sm"
+            style={{
+              backgroundColor: `${rarityConfig.color}20`,
+              borderColor: `${rarityConfig.color}50`,
+            }}
+          >
             <div className="flex items-center gap-1.5">
               <span className="text-sm">{specialAbility?.icon}</span>
-              <span className="text-xs font-bold" style={{ color: rarityConfig.color }}>{specialAbility?.name}</span>
+              <span
+                className="text-xs font-bold"
+                style={{ color: rarityConfig.color }}
+              >
+                {specialAbility?.name}
+              </span>
             </div>
           </div>
         </div>
@@ -115,21 +180,42 @@ function AgentPreviewCard({ name, traits, imageUrl, isGeneratingImage }: { name:
 
         <div className="space-y-3">
           <div>
-            <p className="text-[10px] uppercase tracking-wider text-white/40 mb-1.5 font-semibold">Traits</p>
+            <p className="text-[10px] uppercase tracking-wider text-white/40 mb-1.5 font-semibold">
+              Traits
+            </p>
             <div className="flex flex-wrap gap-1.5">
-              {traits.traits.map((id) => { const t = getTraitById(id); return t ? <TraitPill key={id} icon={t.icon} name={t.name} /> : null; })}
+              {traits.traits.map((id) => {
+                const t = getTraitById(id);
+                return t ? (
+                  <TraitPill key={id} icon={t.icon} name={t.name} />
+                ) : null;
+              })}
             </div>
           </div>
           <div>
-            <p className="text-[10px] uppercase tracking-wider text-white/40 mb-1.5 font-semibold">Skills</p>
+            <p className="text-[10px] uppercase tracking-wider text-white/40 mb-1.5 font-semibold">
+              Skills
+            </p>
             <div className="flex flex-wrap gap-1.5">
-              {traits.skills.map((id) => { const s = getSkillById(id); return s ? <TraitPill key={id} icon={s.icon} name={s.name} /> : null; })}
+              {traits.skills.map((id) => {
+                const s = getSkillById(id);
+                return s ? (
+                  <TraitPill key={id} icon={s.icon} name={s.name} />
+                ) : null;
+              })}
             </div>
           </div>
           <div>
-            <p className="text-[10px] uppercase tracking-wider text-white/40 mb-1.5 font-semibold">Tools</p>
+            <p className="text-[10px] uppercase tracking-wider text-white/40 mb-1.5 font-semibold">
+              Tools
+            </p>
             <div className="flex flex-wrap gap-1.5">
-              {traits.tools.map((id) => { const t = getToolById(id); return t ? <TraitPill key={id} icon={t.icon} name={t.name} /> : null; })}
+              {traits.tools.map((id) => {
+                const t = getToolById(id);
+                return t ? (
+                  <TraitPill key={id} icon={t.icon} name={t.name} />
+                ) : null;
+              })}
             </div>
           </div>
         </div>
@@ -138,7 +224,13 @@ function AgentPreviewCard({ name, traits, imageUrl, isGeneratingImage }: { name:
   );
 }
 
-function StepIndicator({ currentStep, steps }: { currentStep: number; steps: { title: string; icon: React.ReactNode }[] }) {
+function StepIndicator({
+  currentStep,
+  steps,
+}: {
+  currentStep: number;
+  steps: { title: string; icon: React.ReactNode }[];
+}) {
   return (
     <div className="flex items-center justify-center gap-2">
       {steps.map((step, index) => {
@@ -146,20 +238,32 @@ function StepIndicator({ currentStep, steps }: { currentStep: number; steps: { t
         const isComplete = index < currentStep;
         return (
           <div key={index} className="flex items-center">
-            <div className={`relative flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 ${
-              isComplete ? "bg-[#6FEC06]/15 text-[#6FEC06] border border-[#6FEC06]/30" :
-              isActive ? "bg-[#6FEC06]/10 text-[#6FEC06] border border-[#6FEC06]/40 shadow-lg shadow-[#6FEC06]/10" :
-              "bg-[#120557]/30 text-white/40 border border-white/10"
-            }`}>
-              {isActive && <div className="absolute inset-0 rounded-full bg-[#6FEC06]/20 blur-lg -z-10" />}
-              <div className={`w-5 h-5 flex items-center justify-center ${isActive ? "scale-110" : ""}`}>
+            <div
+              className={`relative flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 ${
+                isComplete
+                  ? "bg-[#6FEC06]/15 text-[#6FEC06] border border-[#6FEC06]/30"
+                  : isActive
+                    ? "bg-[#6FEC06]/10 text-[#6FEC06] border border-[#6FEC06]/40 shadow-lg shadow-[#6FEC06]/10"
+                    : "bg-[#120557]/30 text-white/40 border border-white/10"
+              }`}
+            >
+              {isActive && (
+                <div className="absolute inset-0 rounded-full bg-[#6FEC06]/20 blur-lg -z-10" />
+              )}
+              <div
+                className={`w-5 h-5 flex items-center justify-center ${isActive ? "scale-110" : ""}`}
+              >
                 {isComplete ? <Check className="w-4 h-4" /> : step.icon}
               </div>
-              <span className="text-xs font-semibold tracking-wide hidden sm:inline">{step.title}</span>
+              <span className="text-xs font-semibold tracking-wide hidden sm:inline">
+                {step.title}
+              </span>
             </div>
             {index < steps.length - 1 && (
               <div className="w-8 h-[2px] mx-2 bg-[#120557] rounded-full overflow-hidden">
-                <div className={`h-full bg-gradient-to-r from-[#6FEC06] to-[#4a9f10] transition-all duration-500 ${isComplete ? "w-full" : "w-0"}`} />
+                <div
+                  className={`h-full bg-gradient-to-r from-[#6FEC06] to-[#4a9f10] transition-all duration-500 ${isComplete ? "w-full" : "w-0"}`}
+                />
               </div>
             )}
           </div>
@@ -191,15 +295,26 @@ export default function MintAgentPage() {
   const [isLaunching, setIsLaunching] = useState(false);
   const [launchError, setLaunchError] = useState("");
   const [launchSteps, setLaunchSteps] = useState<LaunchStep[]>([]);
-  const [launchResult, setLaunchResult] = useState<{ tokenMint: string; signature: string; agentId: string } | null>(null);
+  const [launchResult, setLaunchResult] = useState<{
+    tokenMint: string;
+    signature: string;
+    agentId: string;
+  } | null>(null);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
 
   // Get the embedded Privy wallet for signing
-  const embeddedWallet = useMemo(() => wallets.find((w) => w.standardWallet?.name === "Privy"), [wallets]);
+  const embeddedWallet = useMemo(
+    () => wallets.find((w) => w.standardWallet?.name === "Privy"),
+    [wallets],
+  );
   const walletAddress = useMemo(() => {
-    const solanaWallet = user?.linkedAccounts?.find((account) => account.type === "wallet" && account.chainType === "solana");
-    return solanaWallet && "address" in solanaWallet ? solanaWallet.address : null;
+    const solanaWallet = user?.linkedAccounts?.find(
+      (account) => account.type === "wallet" && account.chainType === "solana",
+    );
+    return solanaWallet && "address" in solanaWallet
+      ? solanaWallet.address
+      : null;
   }, [user?.linkedAccounts]);
 
   // Fetch wallet balance via server route (uses authenticated RPC)
@@ -240,7 +355,12 @@ export default function MintAgentPage() {
 
   useEffect(() => {
     if (agentName && !tokenSymbol) {
-      const symbol = agentName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 5);
+      const symbol = agentName
+        .split(" ")
+        .map((w) => w[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 5);
       setTokenSymbol(symbol);
     }
   }, [agentName, tokenSymbol]);
@@ -250,8 +370,10 @@ export default function MintAgentPage() {
     setTimeout(() => {
       const newTraits = generateRandomAgent();
       if (agentTraits) {
-        if (lockedTraits.has("personality")) newTraits.personality = agentTraits.personality;
-        if (lockedTraits.has("specialAbility")) newTraits.specialAbility = agentTraits.specialAbility;
+        if (lockedTraits.has("personality"))
+          newTraits.personality = agentTraits.personality;
+        if (lockedTraits.has("specialAbility"))
+          newTraits.specialAbility = agentTraits.specialAbility;
         if (lockedTraits.has("traits")) newTraits.traits = agentTraits.traits;
         if (lockedTraits.has("skills")) newTraits.skills = agentTraits.skills;
         if (lockedTraits.has("tools")) newTraits.tools = agentTraits.tools;
@@ -280,28 +402,48 @@ export default function MintAgentPage() {
     try {
       const response = await fetch("/api/agents/mint/generate-image", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "privy-id-token": identityToken },
+        headers: {
+          "Content-Type": "application/json",
+          "privy-id-token": identityToken,
+        },
         body: JSON.stringify({ name: agentName, traits: agentTraits }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Failed to generate image");
+      if (!response.ok)
+        throw new Error(data.error || "Failed to generate image");
       setImageUrl(data.imageUrl);
     } catch (error) {
-      setLaunchError(error instanceof Error ? error.message : "Failed to generate image");
+      setLaunchError(
+        error instanceof Error ? error.message : "Failed to generate image",
+      );
     } finally {
       setIsGeneratingImage(false);
     }
   };
 
-  const updateStep = (stepId: string, status: LaunchStep["status"], error?: string) => {
-    setLaunchSteps((prev) => prev.map((step) => (step.id === stepId ? { ...step, status, error } : step)));
+  const updateStep = (
+    stepId: string,
+    status: LaunchStep["status"],
+    error?: string,
+  ) => {
+    setLaunchSteps((prev) =>
+      prev.map((step) =>
+        step.id === stepId ? { ...step, status, error } : step,
+      ),
+    );
   };
 
   const handleLaunch = async () => {
     setLaunchError("");
     setLaunchResult(null);
 
-    if (!identityToken || !embeddedWallet || !walletAddress || !agentTraits || !imageUrl) {
+    if (
+      !identityToken ||
+      !embeddedWallet ||
+      !walletAddress ||
+      !agentTraits ||
+      !imageUrl
+    ) {
       setLaunchError("Please complete all steps before launching");
       return;
     }
@@ -315,7 +457,9 @@ export default function MintAgentPage() {
     // Check wallet balance
     const requiredBalance = initialBuy + MIN_SOL_FOR_FEES;
     if (walletBalance !== null && walletBalance < requiredBalance) {
-      setLaunchError(`Insufficient balance. You need at least ${requiredBalance.toFixed(4)} SOL (${initialBuy} SOL initial buy + ~${MIN_SOL_FOR_FEES} SOL for fees). Current balance: ${walletBalance.toFixed(4)} SOL`);
+      setLaunchError(
+        `Insufficient balance. You need at least ${requiredBalance.toFixed(4)} SOL (${initialBuy} SOL initial buy + ~${MIN_SOL_FOR_FEES} SOL for fees). Current balance: ${walletBalance.toFixed(4)} SOL`,
+      );
       return;
     }
 
@@ -333,25 +477,43 @@ export default function MintAgentPage() {
       updateStep("metadata", "loading");
       const metadataResponse = await fetch("/api/agents/mint/metadata", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "privy-id-token": identityToken },
+        headers: {
+          "Content-Type": "application/json",
+          "privy-id-token": identityToken,
+        },
         body: JSON.stringify({
           name: agentName.trim(),
           symbol: tokenSymbol.trim().toUpperCase(),
-          description: description.trim() || `${agentName} - A ${agentTraits.rarity} AI Agent`,
+          description:
+            description.trim() ||
+            `${agentName} - A ${agentTraits.rarity} AI Agent`,
           imageUrl: imageUrl,
         }),
       });
-      if (!metadataResponse.ok) throw new Error((await metadataResponse.json()).error || "Failed to create metadata");
+      if (!metadataResponse.ok)
+        throw new Error(
+          (await metadataResponse.json()).error || "Failed to create metadata",
+        );
       const metadataData = await metadataResponse.json();
       updateStep("metadata", "complete");
 
       updateStep("feeShare", "loading");
       const feeShareResponse = await fetch("/api/agents/mint/fee-share", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "privy-id-token": identityToken },
-        body: JSON.stringify({ wallet: walletAddress, tokenMint: metadataData.tokenMint }),
+        headers: {
+          "Content-Type": "application/json",
+          "privy-id-token": identityToken,
+        },
+        body: JSON.stringify({
+          wallet: walletAddress,
+          tokenMint: metadataData.tokenMint,
+        }),
       });
-      if (!feeShareResponse.ok) throw new Error((await feeShareResponse.json()).error || "Failed to create fee config");
+      if (!feeShareResponse.ok)
+        throw new Error(
+          (await feeShareResponse.json()).error ||
+            "Failed to create fee config",
+        );
       const feeShareData = await feeShareResponse.json();
 
       // Sign and send fee share transactions (user signs via Privy modal)
@@ -359,20 +521,38 @@ export default function MintAgentPage() {
         for (let i = 0; i < feeShareData.transactions.length; i++) {
           const txData = feeShareData.transactions[i];
           // Decode base64 to bytes for signing
-          const txBytes = Uint8Array.from(atob(txData.transaction), (c) => c.charCodeAt(0));
+          const txBytes = Uint8Array.from(atob(txData.transaction), (c) =>
+            c.charCodeAt(0),
+          );
           // Sign with user's embedded wallet
-          const signResult = await signTransaction({ transaction: txBytes, wallet: embeddedWallet! });
-          // Encode signed transaction back to base64 for server
-          const signedTxBase64 = btoa(String.fromCharCode(...new Uint8Array(signResult.signedTransaction)));
-          // Send signed transaction to server for Jito broadcast
-          const sendResponse = await fetch("/api/agents/mint/send-transaction", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "privy-id-token": identityToken },
-            body: JSON.stringify({ signedTransaction: signedTxBase64 }),
+          const signResult = await signTransaction({
+            transaction: txBytes,
+            wallet: embeddedWallet!,
           });
+          // Encode signed transaction back to base64 for server
+          const signedTxBase64 = btoa(
+            String.fromCharCode(
+              ...new Uint8Array(signResult.signedTransaction),
+            ),
+          );
+          // Send signed transaction to server for Jito broadcast
+          const sendResponse = await fetch(
+            "/api/agents/mint/send-transaction",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "privy-id-token": identityToken,
+              },
+              body: JSON.stringify({ signedTransaction: signedTxBase64 }),
+            },
+          );
           if (!sendResponse.ok) {
             const errorData = await sendResponse.json().catch(() => ({}));
-            throw new Error(errorData.error || `Failed to send fee config transaction ${i + 1}`);
+            throw new Error(
+              errorData.error ||
+                `Failed to send fee config transaction ${i + 1}`,
+            );
           }
         }
       }
@@ -381,7 +561,10 @@ export default function MintAgentPage() {
       updateStep("sign", "loading");
       const launchTxResponse = await fetch("/api/agents/mint/launch", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "privy-id-token": identityToken },
+        headers: {
+          "Content-Type": "application/json",
+          "privy-id-token": identityToken,
+        },
         body: JSON.stringify({
           tokenMint: metadataData.tokenMint,
           metadataUrl: metadataData.tokenMetadata,
@@ -390,29 +573,53 @@ export default function MintAgentPage() {
           configKey: feeShareData.meteoraConfigKey,
         }),
       });
-      if (!launchTxResponse.ok) throw new Error((await launchTxResponse.json()).error || "Failed to create transaction");
+      if (!launchTxResponse.ok)
+        throw new Error(
+          (await launchTxResponse.json()).error ||
+            "Failed to create transaction",
+        );
       const launchTxData = await launchTxResponse.json();
       // Sign the launch transaction with user's wallet
-      const launchTxBytes = Uint8Array.from(atob(launchTxData.transaction), (c) => c.charCodeAt(0));
-      const signResult = await signTransaction({ transaction: launchTxBytes, wallet: embeddedWallet! });
-      const signedLaunchTxBase64 = btoa(String.fromCharCode(...new Uint8Array(signResult.signedTransaction)));
+      const launchTxBytes = Uint8Array.from(
+        atob(launchTxData.transaction),
+        (c) => c.charCodeAt(0),
+      );
+      const signResult = await signTransaction({
+        transaction: launchTxBytes,
+        wallet: embeddedWallet!,
+      });
+      const signedLaunchTxBase64 = btoa(
+        String.fromCharCode(...new Uint8Array(signResult.signedTransaction)),
+      );
       updateStep("sign", "complete");
 
       // Broadcast signed transaction via server (uses Jito for priority)
       updateStep("broadcast", "loading");
-      const broadcastResponse = await fetch("/api/agents/mint/send-transaction", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "privy-id-token": identityToken },
-        body: JSON.stringify({ signedTransaction: signedLaunchTxBase64 }),
-      });
-      if (!broadcastResponse.ok) throw new Error((await broadcastResponse.json()).error || "Failed to broadcast");
+      const broadcastResponse = await fetch(
+        "/api/agents/mint/send-transaction",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "privy-id-token": identityToken,
+          },
+          body: JSON.stringify({ signedTransaction: signedLaunchTxBase64 }),
+        },
+      );
+      if (!broadcastResponse.ok)
+        throw new Error(
+          (await broadcastResponse.json()).error || "Failed to broadcast",
+        );
       const broadcastData = await broadcastResponse.json();
       updateStep("broadcast", "complete");
 
       updateStep("save", "loading");
       const saveResponse = await fetch("/api/agents/mint/save", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "privy-id-token": identityToken },
+        headers: {
+          "Content-Type": "application/json",
+          "privy-id-token": identityToken,
+        },
         body: JSON.stringify({
           name: agentName.trim(),
           description: description.trim() || null,
@@ -425,7 +632,10 @@ export default function MintAgentPage() {
           launchSignature: broadcastData.signature,
         }),
       });
-      if (!saveResponse.ok) throw new Error((await saveResponse.json()).error || "Failed to save agent");
+      if (!saveResponse.ok)
+        throw new Error(
+          (await saveResponse.json()).error || "Failed to save agent",
+        );
       const saveData = await saveResponse.json();
       updateStep("save", "complete");
 
@@ -437,7 +647,13 @@ export default function MintAgentPage() {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Launch failed";
       setLaunchError(errorMessage);
-      setLaunchSteps((prev) => prev.map((step) => (step.status === "loading" ? { ...step, status: "error", error: errorMessage } : step)));
+      setLaunchSteps((prev) =>
+        prev.map((step) =>
+          step.status === "loading"
+            ? { ...step, status: "error", error: errorMessage }
+            : step,
+        ),
+      );
     } finally {
       setIsLaunching(false);
     }
@@ -447,8 +663,13 @@ export default function MintAgentPage() {
   const canProceedToStep2 = canProceedToStep1 && imageUrl.length > 0;
   const initialBuy = parseFloat(initialBuyAmount) || 0;
   const requiredBalance = initialBuy + MIN_SOL_FOR_FEES;
-  const hasEnoughBalance = walletBalance === null || walletBalance >= requiredBalance;
-  const canLaunch = canProceedToStep2 && tokenSymbol.trim().length > 0 && walletAddress && hasEnoughBalance;
+  const hasEnoughBalance =
+    walletBalance === null || walletBalance >= requiredBalance;
+  const canLaunch =
+    canProceedToStep2 &&
+    tokenSymbol.trim().length > 0 &&
+    walletAddress &&
+    hasEnoughBalance;
 
   const steps = [
     { title: "Randomize", icon: <Shuffle className="w-4 h-4" /> },
@@ -469,34 +690,61 @@ export default function MintAgentPage() {
             </div>
           </div>
 
-          <h1 className="text-4xl font-bold mb-3 font-display">Agent Minted!</h1>
+          <h1 className="text-4xl font-bold mb-3 font-display">
+            Agent Minted!
+          </h1>
           <p className="text-white/50 mb-8 text-lg">
-            <span className="text-white font-semibold">{agentName}</span> is now live with{" "}
-            <span className="text-[#6FEC06] font-mono font-semibold">${tokenSymbol.toUpperCase()}</span>
+            <span className="text-white font-semibold">{agentName}</span> is now
+            live with{" "}
+            <span className="text-[#6FEC06] font-mono font-semibold">
+              ${tokenSymbol.toUpperCase()}
+            </span>
           </p>
 
           {agentTraits && (
             <div className="max-w-sm mx-auto mb-8">
-              <AgentPreviewCard name={agentName} traits={agentTraits} imageUrl={imageUrl} />
+              <AgentPreviewCard
+                name={agentName}
+                traits={agentTraits}
+                imageUrl={imageUrl}
+              />
             </div>
           )}
 
           <div className="bg-[#0a0520]/60 rounded-2xl p-6 mb-8 text-left border border-white/10 max-w-lg mx-auto">
             <div className="mb-4">
-              <p className="text-white/40 uppercase tracking-wider text-xs font-semibold mb-2">Token Mint</p>
-              <p className="font-mono text-sm text-white/70 bg-[#120557]/50 px-3 py-2 rounded-lg truncate border border-[#6FEC06]/20">{launchResult.tokenMint}</p>
+              <p className="text-white/40 uppercase tracking-wider text-xs font-semibold mb-2">
+                Token Mint
+              </p>
+              <p className="font-mono text-sm text-white/70 bg-[#120557]/50 px-3 py-2 rounded-lg truncate border border-[#6FEC06]/20">
+                {launchResult.tokenMint}
+              </p>
             </div>
             <div>
-              <p className="text-white/40 uppercase tracking-wider text-xs font-semibold mb-2">Transaction</p>
-              <p className="font-mono text-sm text-white/70 bg-[#120557]/50 px-3 py-2 rounded-lg truncate border border-[#6FEC06]/20">{launchResult.signature}</p>
+              <p className="text-white/40 uppercase tracking-wider text-xs font-semibold mb-2">
+                Transaction
+              </p>
+              <p className="font-mono text-sm text-white/70 bg-[#120557]/50 px-3 py-2 rounded-lg truncate border border-[#6FEC06]/20">
+                {launchResult.signature}
+              </p>
             </div>
           </div>
 
           <div className="flex gap-4 justify-center flex-wrap">
-            <a href={`https://bags.fm/${launchResult.tokenMint}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#6FEC06] to-[#4a9f10] rounded-xl text-black font-semibold transition-all hover:scale-105 shadow-lg shadow-[#6FEC06]/20">
+            <a
+              href={`https://bags.fm/${launchResult.tokenMint}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#6FEC06] to-[#4a9f10] rounded-xl text-black font-semibold transition-all hover:scale-105 shadow-lg shadow-[#6FEC06]/20"
+            >
               View on Bags <ExternalLink className="w-4 h-4" />
             </a>
-            <button onClick={() => router.push(`/dashboard/chat?agent=${launchResult.agentId}`)} className="px-6 py-3 bg-[#120557]/50 hover:bg-[#120557]/70 border border-[#6FEC06]/30 rounded-xl font-semibold transition-all hover:scale-105">
+            <button
+              onClick={() =>
+                router.push(`/dashboard/chat?agent=${launchResult.agentId}`)
+              }
+              className="px-6 py-3 bg-[#120557]/50 hover:bg-[#120557]/70 border border-[#6FEC06]/30 rounded-xl font-semibold transition-all hover:scale-105"
+            >
               Chat with Agent
             </button>
             <button
@@ -527,7 +775,8 @@ export default function MintAgentPage() {
           Mint Your <span className="gradient-text-shimmer">AI Agent</span>
         </h1>
         <p className="text-white/50 text-sm md:text-base mb-4 max-w-2xl mx-auto">
-          Randomize traits, generate a unique AI image, and launch your agent&apos;s token on Solana
+          Randomize traits, generate a unique AI image, and launch your
+          agent&apos;s token on Solana
         </p>
         <StepIndicator currentStep={currentStep} steps={steps} />
       </div>
@@ -537,7 +786,12 @@ export default function MintAgentPage() {
         <div className="max-w-2xl mx-auto mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 flex items-center gap-3 backdrop-blur-sm">
           <AlertCircle className="w-5 h-5 flex-shrink-0" />
           <span className="text-sm">{launchError}</span>
-          <button onClick={() => setLaunchError("")} className="ml-auto text-red-400/60 hover:text-red-400">×</button>
+          <button
+            onClick={() => setLaunchError("")}
+            className="ml-auto text-red-400/60 hover:text-red-400"
+          >
+            ×
+          </button>
         </div>
       )}
 
@@ -553,23 +807,47 @@ export default function MintAgentPage() {
                 </div>
               </div>
               <h3 className="font-bold text-xl font-display">Minting Agent</h3>
-              <p className="text-white/50 text-sm mt-1">Please approve any wallet prompts</p>
+              <p className="text-white/50 text-sm mt-1">
+                Please approve any wallet prompts
+              </p>
             </div>
             <div className="space-y-3">
               {launchSteps.map((step, index) => (
-                <div key={step.id} className={`flex items-center gap-4 p-3 rounded-xl transition-all ${
-                  step.status === "loading" ? "bg-[#6FEC06]/10 border border-[#6FEC06]/30" :
-                  step.status === "complete" ? "bg-[#6FEC06]/5 border border-[#6FEC06]/20" :
-                  step.status === "error" ? "bg-red-500/10 border border-red-500/30" :
-                  "bg-[#120557]/30 border border-white/10"
-                }`}>
+                <div
+                  key={step.id}
+                  className={`flex items-center gap-4 p-3 rounded-xl transition-all ${
+                    step.status === "loading"
+                      ? "bg-[#6FEC06]/10 border border-[#6FEC06]/30"
+                      : step.status === "complete"
+                        ? "bg-[#6FEC06]/5 border border-[#6FEC06]/20"
+                        : step.status === "error"
+                          ? "bg-red-500/10 border border-red-500/30"
+                          : "bg-[#120557]/30 border border-white/10"
+                  }`}
+                >
                   <div className="flex-shrink-0">
-                    {step.status === "pending" && <div className="w-6 h-6 rounded-full border-2 border-white/20 flex items-center justify-center text-white/40 text-xs font-medium">{index + 1}</div>}
-                    {step.status === "loading" && <Loader2 className="w-6 h-6 text-[#6FEC06] animate-spin" />}
-                    {step.status === "complete" && <div className="w-6 h-6 rounded-full bg-[#6FEC06] flex items-center justify-center"><Check className="w-4 h-4 text-black" /></div>}
-                    {step.status === "error" && <div className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center"><AlertCircle className="w-4 h-4 text-white" /></div>}
+                    {step.status === "pending" && (
+                      <div className="w-6 h-6 rounded-full border-2 border-white/20 flex items-center justify-center text-white/40 text-xs font-medium">
+                        {index + 1}
+                      </div>
+                    )}
+                    {step.status === "loading" && (
+                      <Loader2 className="w-6 h-6 text-[#6FEC06] animate-spin" />
+                    )}
+                    {step.status === "complete" && (
+                      <div className="w-6 h-6 rounded-full bg-[#6FEC06] flex items-center justify-center">
+                        <Check className="w-4 h-4 text-black" />
+                      </div>
+                    )}
+                    {step.status === "error" && (
+                      <div className="w-6 h-6 rounded-full bg-red-500 flex items-center justify-center">
+                        <AlertCircle className="w-4 h-4 text-white" />
+                      </div>
+                    )}
                   </div>
-                  <span className={`text-sm font-medium ${step.status === "loading" ? "text-white" : step.status === "complete" ? "text-[#6FEC06]" : step.status === "error" ? "text-red-400" : "text-white/40"}`}>
+                  <span
+                    className={`text-sm font-medium ${step.status === "loading" ? "text-white" : step.status === "complete" ? "text-[#6FEC06]" : step.status === "error" ? "text-red-400" : "text-white/40"}`}
+                  >
                     {step.label}
                   </span>
                 </div>
@@ -583,7 +861,14 @@ export default function MintAgentPage() {
       <div className="grid lg:grid-cols-2 gap-6 items-start">
         {/* Left: Agent preview */}
         <div className="lg:sticky lg:top-20">
-          {agentTraits && <AgentPreviewCard name={agentName} traits={agentTraits} imageUrl={imageUrl} isGeneratingImage={isGeneratingImage} />}
+          {agentTraits && (
+            <AgentPreviewCard
+              name={agentName}
+              traits={agentTraits}
+              imageUrl={imageUrl}
+              isGeneratingImage={isGeneratingImage}
+            />
+          )}
         </div>
 
         {/* Right: Step content */}
@@ -594,45 +879,99 @@ export default function MintAgentPage() {
               <div className="rounded-xl bg-[#0a0520]/50 border border-white/10 p-4">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-[#6FEC06]/20 flex items-center justify-center border border-[#6FEC06]/30"><Shuffle className="w-4 h-4 text-[#6FEC06]" /></div>
+                    <div className="w-8 h-8 rounded-lg bg-[#6FEC06]/20 flex items-center justify-center border border-[#6FEC06]/30">
+                      <Shuffle className="w-4 h-4 text-[#6FEC06]" />
+                    </div>
                     <div>
-                      <h2 className="font-semibold text-sm">Randomize Traits</h2>
-                      <p className="text-[10px] text-white/40">Roll for unique attributes</p>
+                      <h2 className="font-semibold text-sm">
+                        Randomize Traits
+                      </h2>
+                      <p className="text-[10px] text-white/40">
+                        Roll for unique attributes
+                      </p>
                     </div>
                   </div>
-                  <button onClick={randomizeAgent} disabled={isRandomizing} className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-[#6FEC06] to-[#4a9f10] rounded-lg text-black text-sm font-semibold transition-all hover:scale-105 disabled:opacity-50 shadow-lg shadow-[#6FEC06]/20">
-                    {isRandomizing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Shuffle className="w-3.5 h-3.5" />}
+                  <button
+                    onClick={randomizeAgent}
+                    disabled={isRandomizing}
+                    className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-[#6FEC06] to-[#4a9f10] rounded-lg text-black text-sm font-semibold transition-all hover:scale-105 disabled:opacity-50 shadow-lg shadow-[#6FEC06]/20"
+                  >
+                    {isRandomizing ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Shuffle className="w-3.5 h-3.5" />
+                    )}
                     Randomize
                   </button>
                 </div>
 
                 <div className="mb-4">
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-[10px] uppercase tracking-wider text-white/40 font-semibold">Agent Name</label>
-                    <button onClick={() => toggleLock("name")} className={`p-0.5 rounded ${lockedTraits.has("name") ? "text-amber-400" : "text-white/30 hover:text-white/50"}`}>
-                      {lockedTraits.has("name") ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+                    <label className="text-[10px] uppercase tracking-wider text-white/40 font-semibold">
+                      Agent Name
+                    </label>
+                    <button
+                      onClick={() => toggleLock("name")}
+                      className={`p-0.5 rounded ${lockedTraits.has("name") ? "text-amber-400" : "text-white/30 hover:text-white/50"}`}
+                    >
+                      {lockedTraits.has("name") ? (
+                        <Lock className="w-3.5 h-3.5" />
+                      ) : (
+                        <Unlock className="w-3.5 h-3.5" />
+                      )}
                     </button>
                   </div>
-                  <input type="text" value={agentName} onChange={(e) => { setAgentName(e.target.value); setTokenSymbol(""); }} className="w-full px-3 py-2 bg-[#120557]/50 border border-[#6FEC06]/20 rounded-lg text-white font-semibold placeholder-white/30 focus:outline-none focus:border-[#6FEC06]/50" placeholder="Enter agent name" />
+                  <input
+                    type="text"
+                    value={agentName}
+                    onChange={(e) => {
+                      setAgentName(e.target.value);
+                      setTokenSymbol("");
+                    }}
+                    className="w-full px-3 py-2 bg-[#120557]/50 border border-[#6FEC06]/20 rounded-lg text-white font-semibold placeholder-white/30 focus:outline-none focus:border-[#6FEC06]/50"
+                    placeholder="Enter agent name"
+                  />
                 </div>
 
                 <div className="space-y-3">
                   {/* Personality */}
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-[10px] uppercase tracking-wider text-white/40 font-semibold">Personality</span>
-                      <button onClick={() => toggleLock("personality")} className={`p-0.5 rounded ${lockedTraits.has("personality") ? "text-amber-400" : "text-white/30 hover:text-white/50"}`}>
-                        {lockedTraits.has("personality") ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+                      <span className="text-[10px] uppercase tracking-wider text-white/40 font-semibold">
+                        Personality
+                      </span>
+                      <button
+                        onClick={() => toggleLock("personality")}
+                        className={`p-0.5 rounded ${lockedTraits.has("personality") ? "text-amber-400" : "text-white/30 hover:text-white/50"}`}
+                      >
+                        {lockedTraits.has("personality") ? (
+                          <Lock className="w-3.5 h-3.5" />
+                        ) : (
+                          <Unlock className="w-3.5 h-3.5" />
+                        )}
                       </button>
                     </div>
                     {(() => {
                       const p = getPersonalityById(agentTraits.personality);
                       return p ? (
-                        <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${isRandomizing && !lockedTraits.has("personality") ? "opacity-50 blur-sm" : ""}`} style={{ backgroundColor: `${p.color}15`, borderColor: `${p.color}40` }}>
+                        <div
+                          className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${isRandomizing && !lockedTraits.has("personality") ? "opacity-50 blur-sm" : ""}`}
+                          style={{
+                            backgroundColor: `${p.color}15`,
+                            borderColor: `${p.color}40`,
+                          }}
+                        >
                           <span className="text-xl">{p.icon}</span>
                           <div>
-                            <p className="font-semibold text-sm" style={{ color: p.color }}>{p.name}</p>
-                            <p className="text-[10px] text-white/50">{p.description}</p>
+                            <p
+                              className="font-semibold text-sm"
+                              style={{ color: p.color }}
+                            >
+                              {p.name}
+                            </p>
+                            <p className="text-[10px] text-white/50">
+                              {p.description}
+                            </p>
                           </div>
                         </div>
                       ) : null;
@@ -642,59 +981,131 @@ export default function MintAgentPage() {
                   {/* Traits */}
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-[10px] uppercase tracking-wider text-white/40 font-semibold">Traits ({agentTraits.traits.length})</span>
-                      <button onClick={() => toggleLock("traits")} className={`p-0.5 rounded ${lockedTraits.has("traits") ? "text-amber-400" : "text-white/30 hover:text-white/50"}`}>
-                        {lockedTraits.has("traits") ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+                      <span className="text-[10px] uppercase tracking-wider text-white/40 font-semibold">
+                        Traits ({agentTraits.traits.length})
+                      </span>
+                      <button
+                        onClick={() => toggleLock("traits")}
+                        className={`p-0.5 rounded ${lockedTraits.has("traits") ? "text-amber-400" : "text-white/30 hover:text-white/50"}`}
+                      >
+                        {lockedTraits.has("traits") ? (
+                          <Lock className="w-3.5 h-3.5" />
+                        ) : (
+                          <Unlock className="w-3.5 h-3.5" />
+                        )}
                       </button>
                     </div>
-                    <div className={`flex flex-wrap gap-1.5 ${isRandomizing && !lockedTraits.has("traits") ? "opacity-50 blur-sm" : ""}`}>
-                      {agentTraits.traits.map((id) => { const t = getTraitById(id); return t ? <TraitPill key={id} icon={t.icon} name={t.name} /> : null; })}
+                    <div
+                      className={`flex flex-wrap gap-1.5 ${isRandomizing && !lockedTraits.has("traits") ? "opacity-50 blur-sm" : ""}`}
+                    >
+                      {agentTraits.traits.map((id) => {
+                        const t = getTraitById(id);
+                        return t ? (
+                          <TraitPill key={id} icon={t.icon} name={t.name} />
+                        ) : null;
+                      })}
                     </div>
                   </div>
 
                   {/* Skills */}
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-[10px] uppercase tracking-wider text-white/40 font-semibold">Skills ({agentTraits.skills.length})</span>
-                      <button onClick={() => toggleLock("skills")} className={`p-0.5 rounded ${lockedTraits.has("skills") ? "text-amber-400" : "text-white/30 hover:text-white/50"}`}>
-                        {lockedTraits.has("skills") ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+                      <span className="text-[10px] uppercase tracking-wider text-white/40 font-semibold">
+                        Skills ({agentTraits.skills.length})
+                      </span>
+                      <button
+                        onClick={() => toggleLock("skills")}
+                        className={`p-0.5 rounded ${lockedTraits.has("skills") ? "text-amber-400" : "text-white/30 hover:text-white/50"}`}
+                      >
+                        {lockedTraits.has("skills") ? (
+                          <Lock className="w-3.5 h-3.5" />
+                        ) : (
+                          <Unlock className="w-3.5 h-3.5" />
+                        )}
                       </button>
                     </div>
-                    <div className={`flex flex-wrap gap-1.5 ${isRandomizing && !lockedTraits.has("skills") ? "opacity-50 blur-sm" : ""}`}>
-                      {agentTraits.skills.map((id) => { const s = getSkillById(id); return s ? <TraitPill key={id} icon={s.icon} name={s.name} /> : null; })}
+                    <div
+                      className={`flex flex-wrap gap-1.5 ${isRandomizing && !lockedTraits.has("skills") ? "opacity-50 blur-sm" : ""}`}
+                    >
+                      {agentTraits.skills.map((id) => {
+                        const s = getSkillById(id);
+                        return s ? (
+                          <TraitPill key={id} icon={s.icon} name={s.name} />
+                        ) : null;
+                      })}
                     </div>
                   </div>
 
                   {/* Tools */}
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-[10px] uppercase tracking-wider text-white/40 font-semibold">Tools ({agentTraits.tools.length})</span>
-                      <button onClick={() => toggleLock("tools")} className={`p-0.5 rounded ${lockedTraits.has("tools") ? "text-amber-400" : "text-white/30 hover:text-white/50"}`}>
-                        {lockedTraits.has("tools") ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+                      <span className="text-[10px] uppercase tracking-wider text-white/40 font-semibold">
+                        Tools ({agentTraits.tools.length})
+                      </span>
+                      <button
+                        onClick={() => toggleLock("tools")}
+                        className={`p-0.5 rounded ${lockedTraits.has("tools") ? "text-amber-400" : "text-white/30 hover:text-white/50"}`}
+                      >
+                        {lockedTraits.has("tools") ? (
+                          <Lock className="w-3.5 h-3.5" />
+                        ) : (
+                          <Unlock className="w-3.5 h-3.5" />
+                        )}
                       </button>
                     </div>
-                    <div className={`flex flex-wrap gap-1.5 ${isRandomizing && !lockedTraits.has("tools") ? "opacity-50 blur-sm" : ""}`}>
-                      {agentTraits.tools.map((id) => { const t = getToolById(id); return t ? <TraitPill key={id} icon={t.icon} name={t.name} /> : null; })}
+                    <div
+                      className={`flex flex-wrap gap-1.5 ${isRandomizing && !lockedTraits.has("tools") ? "opacity-50 blur-sm" : ""}`}
+                    >
+                      {agentTraits.tools.map((id) => {
+                        const t = getToolById(id);
+                        return t ? (
+                          <TraitPill key={id} icon={t.icon} name={t.name} />
+                        ) : null;
+                      })}
                     </div>
                   </div>
 
                   {/* Special Ability */}
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-[10px] uppercase tracking-wider text-white/40 font-semibold">Special Ability</span>
-                      <button onClick={() => toggleLock("specialAbility")} className={`p-0.5 rounded ${lockedTraits.has("specialAbility") ? "text-amber-400" : "text-white/30 hover:text-white/50"}`}>
-                        {lockedTraits.has("specialAbility") ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+                      <span className="text-[10px] uppercase tracking-wider text-white/40 font-semibold">
+                        Special Ability
+                      </span>
+                      <button
+                        onClick={() => toggleLock("specialAbility")}
+                        className={`p-0.5 rounded ${lockedTraits.has("specialAbility") ? "text-amber-400" : "text-white/30 hover:text-white/50"}`}
+                      >
+                        {lockedTraits.has("specialAbility") ? (
+                          <Lock className="w-3.5 h-3.5" />
+                        ) : (
+                          <Unlock className="w-3.5 h-3.5" />
+                        )}
                       </button>
                     </div>
                     {(() => {
-                      const a = getSpecialAbilityById(agentTraits.specialAbility);
+                      const a = getSpecialAbilityById(
+                        agentTraits.specialAbility,
+                      );
                       const rarity = RARITIES[agentTraits.rarity];
                       return a ? (
-                        <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${isRandomizing && !lockedTraits.has("specialAbility") ? "opacity-50 blur-sm" : ""}`} style={{ backgroundColor: `${rarity.color}10`, borderColor: `${rarity.color}30` }}>
+                        <div
+                          className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${isRandomizing && !lockedTraits.has("specialAbility") ? "opacity-50 blur-sm" : ""}`}
+                          style={{
+                            backgroundColor: `${rarity.color}10`,
+                            borderColor: `${rarity.color}30`,
+                          }}
+                        >
                           <span className="text-xl">{a.icon}</span>
                           <div>
-                            <p className="font-semibold text-sm" style={{ color: rarity.color }}>{a.name}</p>
-                            <p className="text-[10px] text-white/50">{a.description}</p>
+                            <p
+                              className="font-semibold text-sm"
+                              style={{ color: rarity.color }}
+                            >
+                              {a.name}
+                            </p>
+                            <p className="text-[10px] text-white/50">
+                              {a.description}
+                            </p>
                           </div>
                         </div>
                       ) : null;
@@ -704,7 +1115,11 @@ export default function MintAgentPage() {
               </div>
 
               <div className="flex justify-end">
-                <button onClick={() => setCurrentStep(1)} disabled={!canProceedToStep1} className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#6FEC06] to-[#4a9f10] rounded-lg text-black text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 shadow-lg shadow-[#6FEC06]/20">
+                <button
+                  onClick={() => setCurrentStep(1)}
+                  disabled={!canProceedToStep1}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#6FEC06] to-[#4a9f10] rounded-lg text-black text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 shadow-lg shadow-[#6FEC06]/20"
+                >
                   Continue <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
@@ -716,10 +1131,14 @@ export default function MintAgentPage() {
             <div className="space-y-4">
               <div className="rounded-xl bg-[#0a0520]/50 border border-white/10 p-4">
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="w-8 h-8 rounded-lg bg-[#6FEC06]/20 flex items-center justify-center border border-[#6FEC06]/30"><Wand2 className="w-4 h-4 text-[#6FEC06]" /></div>
+                  <div className="w-8 h-8 rounded-lg bg-[#6FEC06]/20 flex items-center justify-center border border-[#6FEC06]/30">
+                    <Wand2 className="w-4 h-4 text-[#6FEC06]" />
+                  </div>
                   <div>
                     <h2 className="font-semibold text-sm">Generate AI Image</h2>
-                    <p className="text-[10px] text-white/40">Create a unique profile picture</p>
+                    <p className="text-[10px] text-white/40">
+                      Create a unique profile picture
+                    </p>
                   </div>
                 </div>
 
@@ -728,10 +1147,20 @@ export default function MintAgentPage() {
                     <div className="space-y-3">
                       <div className="relative w-40 h-40 mx-auto rounded-xl overflow-hidden border-2 border-[#6FEC06]/30">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={imageUrl} alt={agentName} className="w-full h-full object-cover" />
+                        <img
+                          src={imageUrl}
+                          alt={agentName}
+                          className="w-full h-full object-cover"
+                        />
                       </div>
-                      <button onClick={generateImage} disabled={isGeneratingImage} className="flex items-center gap-1.5 px-3 py-1.5 mx-auto bg-[#120557]/50 hover:bg-[#120557]/70 border border-[#6FEC06]/20 rounded-lg text-xs font-medium">
-                        <RefreshCw className={`w-3.5 h-3.5 ${isGeneratingImage ? "animate-spin" : ""}`} />
+                      <button
+                        onClick={generateImage}
+                        disabled={isGeneratingImage}
+                        className="flex items-center gap-1.5 px-3 py-1.5 mx-auto bg-[#120557]/50 hover:bg-[#120557]/70 border border-[#6FEC06]/20 rounded-lg text-xs font-medium"
+                      >
+                        <RefreshCw
+                          className={`w-3.5 h-3.5 ${isGeneratingImage ? "animate-spin" : ""}`}
+                        />
                         Regenerate
                       </button>
                     </div>
@@ -741,14 +1170,24 @@ export default function MintAgentPage() {
                         {isGeneratingImage ? (
                           <div className="text-center">
                             <Loader2 className="w-10 h-10 text-[#6FEC06] animate-spin mx-auto mb-2" />
-                            <p className="text-xs text-white/50">Generating...</p>
+                            <p className="text-xs text-white/50">
+                              Generating...
+                            </p>
                           </div>
                         ) : (
                           <ImageIcon className="w-12 h-12 text-white/20" />
                         )}
                       </div>
-                      <button onClick={generateImage} disabled={isGeneratingImage} className="flex items-center gap-2 px-5 py-2.5 mx-auto bg-gradient-to-r from-[#6FEC06] to-[#4a9f10] rounded-lg text-black text-sm font-semibold disabled:opacity-50 hover:opacity-90 shadow-lg shadow-[#6FEC06]/20">
-                        {isGeneratingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+                      <button
+                        onClick={generateImage}
+                        disabled={isGeneratingImage}
+                        className="flex items-center gap-2 px-5 py-2.5 mx-auto bg-gradient-to-r from-[#6FEC06] to-[#4a9f10] rounded-lg text-black text-sm font-semibold disabled:opacity-50 hover:opacity-90 shadow-lg shadow-[#6FEC06]/20"
+                      >
+                        {isGeneratingImage ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Wand2 className="w-4 h-4" />
+                        )}
                         Generate AI Image
                       </button>
                     </div>
@@ -757,10 +1196,17 @@ export default function MintAgentPage() {
               </div>
 
               <div className="flex justify-between">
-                <button onClick={() => setCurrentStep(0)} className="flex items-center gap-1.5 px-3 py-2 bg-[#120557]/50 hover:bg-[#120557]/70 border border-white/10 rounded-lg text-xs font-medium">
+                <button
+                  onClick={() => setCurrentStep(0)}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-[#120557]/50 hover:bg-[#120557]/70 border border-white/10 rounded-lg text-xs font-medium"
+                >
                   <ChevronLeft className="w-4 h-4" /> Back
                 </button>
-                <button onClick={() => setCurrentStep(2)} disabled={!canProceedToStep2} className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#6FEC06] to-[#4a9f10] rounded-lg text-black text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 shadow-lg shadow-[#6FEC06]/20">
+                <button
+                  onClick={() => setCurrentStep(2)}
+                  disabled={!canProceedToStep2}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#6FEC06] to-[#4a9f10] rounded-lg text-black text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 shadow-lg shadow-[#6FEC06]/20"
+                >
                   Continue <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
@@ -772,51 +1218,105 @@ export default function MintAgentPage() {
             <div className="space-y-4">
               <div className="rounded-xl bg-[#0a0520]/50 border border-white/10 p-4">
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="w-8 h-8 rounded-lg bg-[#6FEC06]/20 flex items-center justify-center border border-[#6FEC06]/30"><Coins className="w-4 h-4 text-[#6FEC06]" /></div>
+                  <div className="w-8 h-8 rounded-lg bg-[#6FEC06]/20 flex items-center justify-center border border-[#6FEC06]/30">
+                    <Coins className="w-4 h-4 text-[#6FEC06]" />
+                  </div>
                   <div>
                     <h2 className="font-semibold text-sm">Configure Token</h2>
-                    <p className="text-[10px] text-white/40">Set up token details</p>
+                    <p className="text-[10px] text-white/40">
+                      Set up token details
+                    </p>
                   </div>
                 </div>
 
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-[10px] uppercase tracking-wider text-white/40 mb-1.5 font-semibold">Token Symbol <span className="text-[#6FEC06]">*</span></label>
+                    <label className="block text-[10px] uppercase tracking-wider text-white/40 mb-1.5 font-semibold">
+                      Token Symbol <span className="text-[#6FEC06]">*</span>
+                    </label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 font-medium text-sm">$</span>
-                      <input type="text" value={tokenSymbol} onChange={(e) => setTokenSymbol(e.target.value.toUpperCase().slice(0, 10))} className="w-full pl-7 pr-3 py-2 bg-[#120557]/50 border border-[#6FEC06]/20 rounded-lg text-white text-sm font-mono uppercase placeholder-white/30 focus:outline-none focus:border-[#6FEC06]/50" placeholder="AGENT" maxLength={10} />
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 font-medium text-sm">
+                        $
+                      </span>
+                      <input
+                        type="text"
+                        value={tokenSymbol}
+                        onChange={(e) =>
+                          setTokenSymbol(
+                            e.target.value.toUpperCase().slice(0, 10),
+                          )
+                        }
+                        className="w-full pl-7 pr-3 py-2 bg-[#120557]/50 border border-[#6FEC06]/20 rounded-lg text-white text-sm font-mono uppercase placeholder-white/30 focus:outline-none focus:border-[#6FEC06]/50"
+                        placeholder="AGENT"
+                        maxLength={10}
+                      />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-[10px] uppercase tracking-wider text-white/40 mb-1.5 font-semibold">Description <span className="text-white/20">(optional)</span></label>
-                    <textarea value={description} onChange={(e) => setDescription(e.target.value)} className="w-full px-3 py-2 bg-[#120557]/50 border border-[#6FEC06]/20 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-[#6FEC06]/50 resize-none" placeholder="Describe your agent..." rows={2} maxLength={1000} />
+                    <label className="block text-[10px] uppercase tracking-wider text-white/40 mb-1.5 font-semibold">
+                      Description{" "}
+                      <span className="text-white/20">(optional)</span>
+                    </label>
+                    <textarea
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      className="w-full px-3 py-2 bg-[#120557]/50 border border-[#6FEC06]/20 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-[#6FEC06]/50 resize-none"
+                      placeholder="Describe your agent..."
+                      rows={2}
+                      maxLength={1000}
+                    />
                   </div>
                   <div>
-                    <label className="block text-[10px] uppercase tracking-wider text-white/40 mb-1.5 font-semibold">Initial Buy Amount</label>
+                    <label className="block text-[10px] uppercase tracking-wider text-white/40 mb-1.5 font-semibold">
+                      Initial Buy Amount
+                    </label>
                     <div className="relative">
-                      <input type="number" value={initialBuyAmount} onChange={(e) => setInitialBuyAmount(e.target.value)} className="w-full px-3 py-2 bg-[#120557]/50 border border-[#6FEC06]/20 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-[#6FEC06]/50" placeholder="0.01" min="0" step="0.01" />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 text-xs font-medium">SOL</span>
+                      <input
+                        type="number"
+                        value={initialBuyAmount}
+                        onChange={(e) => setInitialBuyAmount(e.target.value)}
+                        className="w-full px-3 py-2 bg-[#120557]/50 border border-[#6FEC06]/20 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-[#6FEC06]/50"
+                        placeholder="0.01"
+                        min="0"
+                        step="0.01"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 text-xs font-medium">
+                        SOL
+                      </span>
                     </div>
                   </div>
                   {walletAddress && (
                     <div>
                       <div className="flex items-center justify-between mb-1.5">
-                        <label className="text-[10px] uppercase tracking-wider text-white/40 font-semibold">Launch Wallet</label>
-                        <button onClick={fetchBalance} disabled={isLoadingBalance} className="text-[10px] text-[#6FEC06] hover:text-[#9FF24A] flex items-center gap-1">
-                          <RefreshCw className={`w-3 h-3 ${isLoadingBalance ? "animate-spin" : ""}`} />
+                        <label className="text-[10px] uppercase tracking-wider text-white/40 font-semibold">
+                          Launch Wallet
+                        </label>
+                        <button
+                          onClick={fetchBalance}
+                          disabled={isLoadingBalance}
+                          className="text-[10px] text-[#6FEC06] hover:text-[#9FF24A] flex items-center gap-1"
+                        >
+                          <RefreshCw
+                            className={`w-3 h-3 ${isLoadingBalance ? "animate-spin" : ""}`}
+                          />
                           Refresh
                         </button>
                       </div>
                       <div className="flex items-center justify-between px-3 py-2 bg-[#120557]/50 border border-[#6FEC06]/20 rounded-lg">
                         <div className="flex items-center gap-2">
                           <Wallet className="w-4 h-4 text-white/40" />
-                          <span className="font-mono text-xs text-white/60">{walletAddress.slice(0, 6)}...{walletAddress.slice(-6)}</span>
+                          <span className="font-mono text-xs text-white/60">
+                            {walletAddress.slice(0, 6)}...
+                            {walletAddress.slice(-6)}
+                          </span>
                         </div>
                         <div className="flex items-center gap-1.5">
                           {isLoadingBalance ? (
                             <Loader2 className="w-3 h-3 animate-spin text-white/40" />
                           ) : walletBalance !== null ? (
-                            <span className={`text-xs font-semibold ${walletBalance >= requiredBalance ? "text-[#6FEC06]" : "text-red-400"}`}>
+                            <span
+                              className={`text-xs font-semibold ${walletBalance >= requiredBalance ? "text-[#6FEC06]" : "text-red-400"}`}
+                            >
                               {walletBalance.toFixed(4)} SOL
                             </span>
                           ) : (
@@ -824,22 +1324,31 @@ export default function MintAgentPage() {
                           )}
                         </div>
                       </div>
-                      {walletBalance !== null && walletBalance < requiredBalance && (
-                        <p className="mt-1.5 text-[10px] text-red-400 flex items-center gap-1">
-                          <AlertCircle className="w-3 h-3" />
-                          Need at least {requiredBalance.toFixed(4)} SOL ({initialBuy} + ~{MIN_SOL_FOR_FEES} fees)
-                        </p>
-                      )}
+                      {walletBalance !== null &&
+                        walletBalance < requiredBalance && (
+                          <p className="mt-1.5 text-[10px] text-red-400 flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3" />
+                            Need at least {requiredBalance.toFixed(4)} SOL (
+                            {initialBuy} + ~{MIN_SOL_FOR_FEES} fees)
+                          </p>
+                        )}
                     </div>
                   )}
                 </div>
               </div>
 
               <div className="flex justify-between">
-                <button onClick={() => setCurrentStep(1)} className="flex items-center gap-1.5 px-3 py-2 bg-[#120557]/50 hover:bg-[#120557]/70 border border-white/10 rounded-lg text-xs font-medium">
+                <button
+                  onClick={() => setCurrentStep(1)}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-[#120557]/50 hover:bg-[#120557]/70 border border-white/10 rounded-lg text-xs font-medium"
+                >
                   <ChevronLeft className="w-4 h-4" /> Back
                 </button>
-                <button onClick={() => setCurrentStep(3)} disabled={!tokenSymbol.trim()} className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#6FEC06] to-[#4a9f10] rounded-lg text-black text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 shadow-lg shadow-[#6FEC06]/20">
+                <button
+                  onClick={() => setCurrentStep(3)}
+                  disabled={!tokenSymbol.trim()}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#6FEC06] to-[#4a9f10] rounded-lg text-black text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 shadow-lg shadow-[#6FEC06]/20"
+                >
                   Continue <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
@@ -851,10 +1360,14 @@ export default function MintAgentPage() {
             <div className="space-y-4">
               <div className="rounded-xl bg-[#0a0520]/50 border border-white/10 p-4">
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="w-8 h-8 rounded-lg bg-[#6FEC06]/20 flex items-center justify-center border border-[#6FEC06]/30"><Rocket className="w-4 h-4 text-[#6FEC06]" /></div>
+                  <div className="w-8 h-8 rounded-lg bg-[#6FEC06]/20 flex items-center justify-center border border-[#6FEC06]/30">
+                    <Rocket className="w-4 h-4 text-[#6FEC06]" />
+                  </div>
                   <div>
                     <h2 className="font-semibold text-sm">Launch Agent</h2>
-                    <p className="text-[10px] text-white/40">Review and mint on Solana</p>
+                    <p className="text-[10px] text-white/40">
+                      Review and mint on Solana
+                    </p>
                   </div>
                 </div>
 
@@ -865,7 +1378,9 @@ export default function MintAgentPage() {
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-white/10">
                     <span className="text-white/50 text-xs">Token Symbol</span>
-                    <span className="font-mono font-semibold text-sm text-[#6FEC06]">${tokenSymbol}</span>
+                    <span className="font-mono font-semibold text-sm text-[#6FEC06]">
+                      ${tokenSymbol}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-white/10">
                     <span className="text-white/50 text-xs">Rarity</span>
@@ -873,7 +1388,11 @@ export default function MintAgentPage() {
                   </div>
                   <div className="flex justify-between items-center py-2 border-b border-white/10">
                     <span className="text-white/50 text-xs">Initial Buy</span>
-                    <span className="font-semibold text-sm">{parseFloat(initialBuyAmount) > 0 ? `${initialBuyAmount} SOL` : "None"}</span>
+                    <span className="font-semibold text-sm">
+                      {parseFloat(initialBuyAmount) > 0
+                        ? `${initialBuyAmount} SOL`
+                        : "None"}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center py-2">
                     <span className="text-white/50 text-xs">Network</span>
@@ -884,16 +1403,41 @@ export default function MintAgentPage() {
                   </div>
                 </div>
 
-                <button onClick={handleLaunch} disabled={!canLaunch || isLaunching} className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-[#6FEC06] to-[#4a9f10] rounded-lg text-black font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 shadow-lg shadow-[#6FEC06]/25">
-                  {isLaunching ? <><Loader2 className="w-4 h-4 animate-spin" />Minting...</> : <><Rocket className="w-4 h-4" />Mint Agent on Solana</>}
+                <button
+                  onClick={handleLaunch}
+                  disabled={!canLaunch || isLaunching}
+                  className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-[#6FEC06] to-[#4a9f10] rounded-lg text-black font-bold disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 shadow-lg shadow-[#6FEC06]/25"
+                >
+                  {isLaunching ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Minting...
+                    </>
+                  ) : (
+                    <>
+                      <Rocket className="w-4 h-4" />
+                      Mint Agent on Solana
+                    </>
+                  )}
                 </button>
                 <p className="text-[10px] text-white/40 text-center mt-3">
-                  Token launched on <a href="https://bags.fm" target="_blank" rel="noopener noreferrer" className="text-[#6FEC06] hover:underline">Bags.fm</a>
+                  Token launched on{" "}
+                  <a
+                    href="https://bags.fm"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[#6FEC06] hover:underline"
+                  >
+                    Bags.fm
+                  </a>
                 </p>
               </div>
 
               <div className="flex justify-start">
-                <button onClick={() => setCurrentStep(2)} className="flex items-center gap-1.5 px-3 py-2 bg-[#120557]/50 hover:bg-[#120557]/70 border border-white/10 rounded-lg text-xs font-medium">
+                <button
+                  onClick={() => setCurrentStep(2)}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-[#120557]/50 hover:bg-[#120557]/70 border border-white/10 rounded-lg text-xs font-medium"
+                >
                   <ChevronLeft className="w-4 h-4" /> Back
                 </button>
               </div>

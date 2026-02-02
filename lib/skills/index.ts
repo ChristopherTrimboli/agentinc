@@ -1,21 +1,21 @@
 /**
  * Agent Skills System
- * 
+ *
  * Skills are complex integrations (external APIs) that provide multiple related tools.
  * Only supported by Claude models via Anthropic's skill system.
- * 
+ *
  * For simple tools that work with any model, see lib/tools/
- * 
+ *
  * Usage:
  * ```typescript
  * import { skillRegistry, getSkillTools } from "@/lib/skills";
  * import { streamText } from "ai";
- * 
+ *
  * // Get tools for specific skills
  * const tools = getSkillTools(["moltbook"], {
  *   moltbook: { apiKey: process.env.MOLTBOOK_API_KEY }
  * });
- * 
+ *
  * // Use with AI SDK (Claude only)
  * const result = streamText({
  *   model: "anthropic/claude-haiku-4-5",

@@ -602,7 +602,9 @@ export default function AgentProfilePage({
                   <TrendingUp className="w-5 h-5 text-[#6FEC06]" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold font-display">Live Price Chart</h2>
+                  <h2 className="text-xl font-bold font-display">
+                    Live Price Chart
+                  </h2>
                   <p className="text-sm text-white/50">
                     {agent.tokenSymbol || agent.name} / SOL
                   </p>
@@ -641,9 +643,9 @@ export default function AgentProfilePage({
                 <Image
                   src="/agentinc.svg"
                   alt="Agent Inc."
-                  width={240}
-                  height={64}
-                  className="h-12 w-auto"
+                  width={180}
+                  height={48}
+                  className="h-8 w-auto"
                 />
               </Link>
               <p className="text-white/60 max-w-sm mb-6">

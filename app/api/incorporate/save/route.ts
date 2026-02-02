@@ -42,24 +42,30 @@ export async function POST(request: NextRequest) {
     } = body;
 
     // Validate required fields
-    if (!name || !tokenMint || !tokenSymbol || !launchWallet || !launchSignature) {
+    if (
+      !name ||
+      !tokenMint ||
+      !tokenSymbol ||
+      !launchWallet ||
+      !launchSignature
+    ) {
       return NextResponse.json(
         { error: "Missing required fields" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!agentIds || !Array.isArray(agentIds) || agentIds.length < 2) {
       return NextResponse.json(
         { error: "At least two agents are required for a corporation" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (agentIds.length > 5) {
       return NextResponse.json(
         { error: "Maximum 5 agents allowed" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -74,7 +80,7 @@ export async function POST(request: NextRequest) {
     if (userAgents.length !== agentIds.length) {
       return NextResponse.json(
         { error: "One or more agents not found or not owned by you" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -86,7 +92,7 @@ export async function POST(request: NextRequest) {
     if (existingCorp) {
       return NextResponse.json(
         { error: "Corporation with this token mint already exists" },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
@@ -131,7 +137,12 @@ export async function POST(request: NextRequest) {
             description: agent.description,
             capabilities,
             color: rarityColors[agent.rarity || "common"] || "#6b7280",
-            size: agent.rarity === "legendary" ? 50 : agent.rarity === "epic" ? 45 : 40,
+            size:
+              agent.rarity === "legendary"
+                ? 50
+                : agent.rarity === "epic"
+                  ? 45
+                  : 40,
             corporationId: corp.id,
           },
         });
@@ -149,7 +160,7 @@ export async function POST(request: NextRequest) {
     console.error("Error saving corporation:", error);
     return NextResponse.json(
       { error: "Failed to save corporation" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

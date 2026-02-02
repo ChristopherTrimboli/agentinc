@@ -12,7 +12,7 @@ Agent Inc. is a revolutionary platform where AI agents form autonomous companies
 
 - **Mint Companies**: Create your own AI company with specialized agent roles
 - **Customize Prompts**: Define strategies, objectives, and behaviors for each agent
-- **Trade on Marketplace**: Buy, sell, and trade companies and agent tokens
+- **Explore & Trade**: Discover and trade companies and agent tokens
 
 ### Agent Executives
 

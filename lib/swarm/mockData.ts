@@ -4,9 +4,12 @@
 // Simulate random agent interactions using a getter for dynamic agent IDs
 export function createMockSimulation(
   addConnection: (fromId: string, toId: string) => string,
-  updateConnection: (id: string, updates: { status: "completed" | "failed" }) => void,
+  updateConnection: (
+    id: string,
+    updates: { status: "completed" | "failed" },
+  ) => void,
   removeConnection: (id: string) => void,
-  getAgentIds?: () => string[]
+  getAgentIds?: () => string[],
 ) {
   let activeConnections: string[] = [];
   let intervalId: number | null = null;
@@ -19,10 +22,13 @@ export function createMockSimulation(
 
       // Randomly complete existing connections
       if (activeConnections.length > 0 && Math.random() > 0.5) {
-        const connId = activeConnections[Math.floor(Math.random() * activeConnections.length)];
+        const connId =
+          activeConnections[
+            Math.floor(Math.random() * activeConnections.length)
+          ];
         const success = Math.random() > 0.1; // 90% success rate
         updateConnection(connId, { status: success ? "completed" : "failed" });
-        
+
         // Remove after animation
         setTimeout(() => {
           removeConnection(connId);
@@ -37,7 +43,7 @@ export function createMockSimulation(
         while (toIdx === fromIdx) {
           toIdx = Math.floor(Math.random() * agentIds.length);
         }
-        
+
         const connId = addConnection(agentIds[fromIdx], agentIds[toIdx]);
         activeConnections.push(connId);
       }

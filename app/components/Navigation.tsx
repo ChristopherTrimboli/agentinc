@@ -6,9 +6,7 @@ import Image from "next/image";
 import LoginButton from "./LoginButton";
 import Link from "next/link";
 
-const navLinks = [
-  { href: "/dashboard", label: "Launch App", highlight: true },
-];
+const navLinks = [{ href: "/dashboard", label: "Launch App", highlight: true }];
 
 export default function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
@@ -46,9 +44,9 @@ export default function Navigation() {
           <Image
             src="/agentinc.png"
             alt="Agent Inc."
-            width={200}
-            height={50}
-            className="h-8 w-auto transition-transform duration-200 group-hover:scale-[1.02]"
+            width={150}
+            height={38}
+            className="h-6 w-auto transition-transform duration-200 group-hover:scale-[1.02]"
           />
         </Link>
 

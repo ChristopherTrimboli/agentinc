@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { 
-  verifyAuth, 
-  serverSignAndSend, 
+import {
+  verifyAuth,
+  serverSignAndSend,
   sendSignedTransaction,
-  getConnection 
+  getConnection,
 } from "@/lib/solana";
 
 // POST /api/solana/send - Sign and send a transaction server-side
@@ -17,10 +17,10 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { 
-      transaction,        // unsigned transaction (base64) - for server-side signing
-      signedTransaction,  // already signed transaction (base64) - backwards compat
-      waitForConfirmation = true 
+    const {
+      transaction, // unsigned transaction (base64) - for server-side signing
+      signedTransaction, // already signed transaction (base64) - backwards compat
+      waitForConfirmation = true,
     } = body;
 
     let signature: string;
@@ -36,19 +36,22 @@ export async function POST(req: NextRequest) {
     } else {
       return NextResponse.json(
         { error: "Missing transaction or signedTransaction" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Optionally wait for confirmation
     if (waitForConfirmation) {
       const connection = getConnection();
-      const confirmation = await connection.confirmTransaction(signature, "confirmed");
+      const confirmation = await connection.confirmTransaction(
+        signature,
+        "confirmed",
+      );
 
       if (confirmation.value.err) {
         return NextResponse.json(
           { error: "Transaction failed", details: confirmation.value.err },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -61,10 +64,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ signature });
   } catch (error) {
     console.error("Error sending transaction:", error);
-    const errorMessage = error instanceof Error ? error.message : "Failed to send transaction";
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    const errorMessage =
+      error instanceof Error ? error.message : "Failed to send transaction";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

@@ -1,13 +1,23 @@
 "use client";
 
 import { usePrivy } from "@privy-io/react-auth";
-import { Building2, Home, Bot, Sparkles, Network, MessageSquare, ChevronLeft } from "lucide-react";
+import {
+  Building2,
+  Store,
+  LayoutDashboard,
+  Bot,
+  Sparkles,
+  Network,
+  MessageSquare,
+  ChevronLeft,
+} from "lucide-react";
 
 // Skeleton sidebar that mirrors the real sidebar structure
 function SidebarSkeleton() {
   // Deterministic widths to avoid hydration mismatch (no Math.random())
   const navItems = [
-    { icon: Home, width: 72 },
+    { icon: Store, width: 75 },
+    { icon: LayoutDashboard, width: 70 },
     { icon: Bot, width: 85 },
     { icon: Sparkles, width: 68 },
     { icon: Building2, width: 78 },
@@ -37,7 +47,10 @@ function SidebarSkeleton() {
                 className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
               >
                 <Icon className="w-5 h-5 text-white/20 flex-shrink-0" />
-                <div className="h-4 bg-white/10 rounded animate-pulse" style={{ width: `${item.width}%` }} />
+                <div
+                  className="h-4 bg-white/10 rounded animate-pulse"
+                  style={{ width: `${item.width}%` }}
+                />
               </div>
             );
           })}
@@ -60,49 +73,69 @@ function SidebarSkeleton() {
   );
 }
 
-// Skeleton dashboard content
+// Skeleton dashboard content (explore style)
 function DashboardSkeleton() {
   return (
-    <div className="p-6 lg:p-8 max-w-7xl mx-auto">
-      {/* Welcome header skeleton */}
-      <div className="mb-8">
-        <div className="h-9 w-72 bg-white/10 rounded-lg animate-pulse mb-2" />
-        <div className="h-5 w-96 bg-white/5 rounded animate-pulse" />
-      </div>
-
-      {/* Stats grid skeleton */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {Array(4).fill(0).map((_, i) => (
-          <div key={i} className="p-5 rounded-2xl bg-[#0a0520]/50 border border-white/10">
-            <div className="w-10 h-10 rounded-xl bg-white/5 mb-3 animate-pulse" />
-            <div className="h-8 w-16 rounded bg-white/10 mb-1 animate-pulse" />
-            <div className="h-4 w-20 rounded bg-white/5 animate-pulse" />
-          </div>
-        ))}
-      </div>
-
-      {/* Quick actions skeleton */}
-      <div className="mb-8">
-        <div className="h-6 w-32 bg-white/10 rounded animate-pulse mb-4" />
-        <div className="grid md:grid-cols-3 gap-4">
-          {Array(3).fill(0).map((_, i) => (
-            <div key={i} className="p-6 rounded-2xl bg-[#0a0520]/50 border border-white/10">
-              <div className="w-12 h-12 rounded-xl bg-white/5 mb-4 animate-pulse" />
-              <div className="h-5 w-28 bg-white/10 rounded mb-2 animate-pulse" />
-              <div className="h-4 w-full bg-white/5 rounded animate-pulse" />
-            </div>
-          ))}
+    <div className="min-h-screen">
+      {/* Ticker skeleton */}
+      <div className="bg-[#0a0520]/80 border-b border-white/10 py-2">
+        <div className="flex gap-8 px-4 overflow-hidden">
+          {Array(8)
+            .fill(0)
+            .map((_, i) => (
+              <div key={i} className="flex items-center gap-2 shrink-0">
+                <div className="w-5 h-5 rounded-full bg-white/10 animate-pulse" />
+                <div className="h-4 w-12 bg-white/10 rounded animate-pulse" />
+                <div className="h-4 w-14 bg-white/5 rounded animate-pulse" />
+              </div>
+            ))}
         </div>
       </div>
 
-      {/* Recent activity skeleton */}
-      <div>
-        <div className="h-6 w-36 bg-white/10 rounded animate-pulse mb-4" />
-        <div className="rounded-2xl bg-[#0a0520]/50 border border-white/10 p-8">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-white/5 animate-pulse" />
-          <div className="h-5 w-40 mx-auto bg-white/10 rounded mb-2 animate-pulse" />
-          <div className="h-4 w-64 mx-auto bg-white/5 rounded mb-4 animate-pulse" />
-          <div className="h-10 w-48 mx-auto bg-white/10 rounded-lg animate-pulse" />
+      <div className="p-6 lg:p-8 max-w-7xl mx-auto">
+        {/* Header skeleton */}
+        <div className="mb-8">
+          <div className="h-6 w-32 bg-[#6FEC06]/20 rounded-full animate-pulse mb-4" />
+          <div className="h-10 w-80 bg-white/10 rounded-lg animate-pulse mb-2" />
+          <div className="h-5 w-96 bg-white/5 rounded animate-pulse" />
+        </div>
+
+        {/* Controls skeleton */}
+        <div className="flex flex-col md:flex-row gap-4 mb-6">
+          <div className="flex-1 h-12 bg-[#0a0520]/80 border border-white/10 rounded-xl animate-pulse" />
+          <div className="h-12 w-48 bg-[#0a0520]/80 border border-white/10 rounded-xl animate-pulse" />
+          <div className="h-12 w-24 bg-[#0a0520]/80 border border-white/10 rounded-xl animate-pulse" />
+        </div>
+
+        {/* Table skeleton */}
+        <div className="rounded-2xl bg-[#0a0520]/50 border border-white/10 overflow-hidden">
+          <div className="flex gap-8 px-4 py-4 border-b border-white/10">
+            <div className="h-4 w-8 bg-white/10 rounded animate-pulse" />
+            <div className="h-4 w-32 bg-white/10 rounded animate-pulse" />
+            <div className="h-4 w-24 bg-white/10 rounded animate-pulse" />
+            <div className="h-4 w-20 bg-white/10 rounded animate-pulse" />
+            <div className="h-4 w-16 bg-white/10 rounded animate-pulse" />
+          </div>
+          {Array(6)
+            .fill(0)
+            .map((_, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-8 px-4 py-4 border-b border-white/5"
+              >
+                <div className="h-4 w-8 bg-white/5 rounded animate-pulse" />
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-white/5 animate-pulse" />
+                  <div>
+                    <div className="h-4 w-24 bg-white/10 rounded animate-pulse mb-1" />
+                    <div className="h-3 w-16 bg-white/5 rounded animate-pulse" />
+                  </div>
+                </div>
+                <div className="h-4 w-16 bg-[#6FEC06]/10 rounded animate-pulse" />
+                <div className="h-4 w-20 bg-white/5 rounded animate-pulse" />
+                <div className="h-5 w-16 bg-white/5 rounded-full animate-pulse" />
+              </div>
+            ))}
         </div>
       </div>
     </div>
@@ -111,9 +144,9 @@ function DashboardSkeleton() {
 
 // Lazy load the real sidebar only when authenticated
 import dynamic from "next/dynamic";
-const Sidebar = dynamic(() => import("../components/Sidebar"), { 
+const Sidebar = dynamic(() => import("../components/Sidebar"), {
   ssr: false,
-  loading: () => <SidebarSkeleton />
+  loading: () => <SidebarSkeleton />,
 });
 
 export default function DashboardLayout({
@@ -131,7 +164,7 @@ export default function DashboardLayout({
         <div className="fixed inset-0 bg-grid opacity-30 pointer-events-none" />
         <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-[#6FEC06]/5 rounded-full blur-[120px] pointer-events-none" />
         <div className="fixed bottom-0 right-0 w-[600px] h-[400px] bg-[#120557]/20 rounded-full blur-[100px] pointer-events-none" />
-        
+
         {/* Skeleton layout with blur */}
         <div className="flex w-full filter blur-[2px] opacity-60">
           <SidebarSkeleton />
@@ -150,9 +183,18 @@ export default function DashboardLayout({
               <Building2 className="w-6 h-6 text-[#6FEC06]" />
             </div>
             <div className="flex gap-1">
-              <span className="w-2 h-2 bg-[#6FEC06] rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-              <span className="w-2 h-2 bg-[#6FEC06] rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-              <span className="w-2 h-2 bg-[#6FEC06] rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+              <span
+                className="w-2 h-2 bg-[#6FEC06] rounded-full animate-bounce"
+                style={{ animationDelay: "0ms" }}
+              />
+              <span
+                className="w-2 h-2 bg-[#6FEC06] rounded-full animate-bounce"
+                style={{ animationDelay: "150ms" }}
+              />
+              <span
+                className="w-2 h-2 bg-[#6FEC06] rounded-full animate-bounce"
+                style={{ animationDelay: "300ms" }}
+              />
             </div>
           </div>
         </div>
@@ -167,7 +209,7 @@ export default function DashboardLayout({
         <div className="fixed inset-0 bg-grid opacity-30 pointer-events-none" />
         <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-[#6FEC06]/10 rounded-full blur-[120px] pointer-events-none" />
         <div className="fixed bottom-0 right-0 w-[600px] h-[400px] bg-[#120557]/30 rounded-full blur-[100px] pointer-events-none" />
-        
+
         <div className="text-center relative z-10 px-4">
           <div className="relative w-20 h-20 mx-auto mb-6">
             <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-[#6FEC06]/30 to-[#120557]/30 blur-xl" />
@@ -175,22 +217,26 @@ export default function DashboardLayout({
               <Building2 className="w-10 h-10 text-[#6FEC06]" />
             </div>
           </div>
-          
+
           <h1 className="text-3xl font-bold mb-3">Welcome to Agent Inc.</h1>
           <p className="text-white/60 mb-8 max-w-md">
-            Log in to access your dashboard, create AI agents, and incorporate your AI-powered startups.
+            Log in to access your dashboard, create AI agents, and incorporate
+            your AI-powered startups.
           </p>
-          
+
           <button
             onClick={login}
             className="px-8 py-3 bg-gradient-to-r from-[#6FEC06] to-[#4a9f10] rounded-xl text-black font-semibold hover:opacity-90 transition-all hover:scale-105 hover:shadow-lg hover:shadow-[#6FEC06]/25"
           >
             Log In to Continue
           </button>
-          
+
           <p className="mt-6 text-sm text-white/40">
             Don&apos;t have an account?{" "}
-            <button onClick={login} className="text-[#6FEC06] hover:text-[#9FF24A]">
+            <button
+              onClick={login}
+              className="text-[#6FEC06] hover:text-[#9FF24A]"
+            >
               Sign up for free
             </button>
           </p>
@@ -206,18 +252,16 @@ export default function DashboardLayout({
       <div className="fixed inset-0 bg-grid opacity-30 pointer-events-none" />
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-[#6FEC06]/5 rounded-full blur-[120px] pointer-events-none" />
       <div className="fixed bottom-0 right-0 w-[600px] h-[400px] bg-[#120557]/20 rounded-full blur-[100px] pointer-events-none" />
-      
+
       {/* Sidebar */}
       <Sidebar />
-      
+
       {/* Main content */}
       <main className="flex-1 relative min-h-screen lg:ml-0">
         {/* Mobile top padding for hamburger */}
         <div className="lg:hidden h-16" />
-        
-        <div className="relative z-10">
-          {children}
-        </div>
+
+        <div className="relative z-10">{children}</div>
       </main>
     </div>
   );

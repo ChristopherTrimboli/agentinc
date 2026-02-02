@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { BagsSDK } from "@bagsfm/bags-sdk";
 import { Connection, PublicKey } from "@solana/web3.js";
 
-const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || "https://mainnet.helius-rpc.com";
+const SOLANA_RPC_URL =
+  process.env.SOLANA_RPC_URL || "https://mainnet.helius-rpc.com";
 
 // POST /api/incorporate/fee-share - Create fee share config on Bags
 export async function POST(request: Request) {
@@ -12,7 +13,7 @@ export async function POST(request: Request) {
     if (!apiKey) {
       return NextResponse.json(
         { error: "Bags API key not configured" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -27,7 +28,7 @@ export async function POST(request: Request) {
     if (!wallet || !tokenMint) {
       return NextResponse.json(
         { error: "Missing required fields: wallet, tokenMint" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -62,7 +63,8 @@ export async function POST(request: Request) {
     }
 
     // Create fee share config using SDK
-    const configResult = await sdk.config.createBagsFeeShareConfig(configOptions);
+    const configResult =
+      await sdk.config.createBagsFeeShareConfig(configOptions);
 
     // Convert transactions to base64 for frontend signing
     const transactions = (configResult.transactions || []).map((tx) => ({
@@ -72,7 +74,7 @@ export async function POST(request: Request) {
     const bundles = (configResult.bundles || []).map((bundle) =>
       bundle.map((tx) => ({
         transaction: Buffer.from(tx.serialize()).toString("base64"),
-      }))
+      })),
     );
 
     return NextResponse.json({
@@ -84,10 +86,10 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("Error creating fee share config:", error);
-    const errorMessage = error instanceof Error ? error.message : "Failed to create fee share config";
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "Failed to create fee share config";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

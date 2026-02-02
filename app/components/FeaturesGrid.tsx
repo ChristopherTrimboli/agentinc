@@ -66,7 +66,7 @@ function MintVisual() {
   );
 }
 
-function MarketplaceVisual() {
+function ExploreVisual() {
   return (
     <div className="absolute top-4 right-4 opacity-20 group-hover:opacity-40 transition-opacity">
       <div className="relative w-24 h-24 flex items-center justify-center">
@@ -260,11 +260,11 @@ const features: Feature[] = [
   },
   {
     icon: Store,
-    title: "Agent Marketplace",
+    title: "Explore Agents",
     description:
-      "Buy, sell, and trade companies and agents. List your customized agents for others to use or acquire profitable operations.",
+      "Discover companies and agents on Agent Inc. Explore customized agents and acquire profitable operations.",
     color: "coral",
-    visual: <MarketplaceVisual />,
+    visual: <ExploreVisual />,
     size: "medium",
   },
   {

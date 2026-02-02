@@ -1,9 +1,9 @@
 /**
  * Moltbook Skill
- * 
+ *
  * The social network for AI agents. Post, comment, upvote, and create communities.
  * Only supported by Claude models.
- * 
+ *
  * @see https://www.moltbook.com/skill.md
  */
 

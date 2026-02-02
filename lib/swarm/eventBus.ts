@@ -73,7 +73,7 @@ export const swarmEventBus = new SwarmEventBus();
 export function emitAgentCall(
   sourceAgentId: string,
   targetAgentId: string,
-  payload?: Record<string, unknown>
+  payload?: Record<string, unknown>,
 ): { event: SwarmEvent; connectionId: string } {
   const connectionId = crypto.randomUUID();
   const event = swarmEventBus.emit({
@@ -89,7 +89,7 @@ export function emitAgentResponse(
   sourceAgentId: string,
   targetAgentId: string,
   connectionId: string,
-  payload?: Record<string, unknown>
+  payload?: Record<string, unknown>,
 ): SwarmEvent {
   return swarmEventBus.emit({
     type: "agent_response",
@@ -103,7 +103,7 @@ export function emitAgentError(
   sourceAgentId: string,
   targetAgentId: string,
   connectionId: string,
-  error: string
+  error: string,
 ): SwarmEvent {
   return swarmEventBus.emit({
     type: "agent_error",

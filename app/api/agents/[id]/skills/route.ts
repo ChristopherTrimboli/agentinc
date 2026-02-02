@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PrivyClient } from "@privy-io/node";
 import prisma from "@/lib/prisma";
-import { skillRegistry, AVAILABLE_SKILLS, type AvailableSkill } from "@/lib/skills";
+import {
+  skillRegistry,
+  AVAILABLE_SKILLS,
+  type AvailableSkill,
+} from "@/lib/skills";
 
 const privy = new PrivyClient({
   appId: process.env.NEXT_PUBLIC_PRIVY_APP_ID!,
@@ -14,7 +18,7 @@ const privy = new PrivyClient({
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const idToken = req.headers.get("privy-id-token");
 
@@ -54,7 +58,7 @@ export async function GET(
 
     // Get available skills with their metadata
     const availableSkills = skillRegistry.listSkills();
-    
+
     // Mark which skills are enabled
     const skillsWithStatus = availableSkills.map((skill) => ({
       ...skill,
@@ -71,7 +75,7 @@ export async function GET(
     console.error("Failed to get agent skills:", error);
     return NextResponse.json(
       { error: "Failed to get agent skills" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -82,7 +86,7 @@ export async function GET(
  */
 export async function PUT(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const idToken = req.headers.get("privy-id-token");
 
@@ -103,7 +107,7 @@ export async function PUT(
 
   // Validate skill IDs
   const invalidSkills = enabledSkills.filter(
-    (skillId) => !AVAILABLE_SKILLS.includes(skillId as AvailableSkill)
+    (skillId) => !AVAILABLE_SKILLS.includes(skillId as AvailableSkill),
   );
 
   if (invalidSkills.length > 0) {
@@ -112,7 +116,7 @@ export async function PUT(
         error: `Invalid skill IDs: ${invalidSkills.join(", ")}`,
         availableSkills: AVAILABLE_SKILLS,
       },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -148,7 +152,7 @@ export async function PUT(
     console.error("Failed to update agent skills:", error);
     return NextResponse.json(
       { error: "Failed to update agent skills" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -159,7 +163,7 @@ export async function PUT(
  */
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const idToken = req.headers.get("privy-id-token");
 
@@ -176,7 +180,8 @@ export async function PATCH(
   }
 
   const { id: agentId } = await params;
-  const { skillId, enabled }: { skillId: string; enabled: boolean } = await req.json();
+  const { skillId, enabled }: { skillId: string; enabled: boolean } =
+    await req.json();
 
   if (!AVAILABLE_SKILLS.includes(skillId as AvailableSkill)) {
     return NextResponse.json(
@@ -184,7 +189,7 @@ export async function PATCH(
         error: `Invalid skill ID: ${skillId}`,
         availableSkills: AVAILABLE_SKILLS,
       },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -222,14 +227,16 @@ export async function PATCH(
     });
 
     return NextResponse.json({
-      message: enabled ? `Skill "${skillId}" enabled` : `Skill "${skillId}" disabled`,
+      message: enabled
+        ? `Skill "${skillId}" enabled`
+        : `Skill "${skillId}" disabled`,
       agent: updatedAgent,
     });
   } catch (error) {
     console.error("Failed to toggle skill:", error);
     return NextResponse.json(
       { error: "Failed to toggle skill" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

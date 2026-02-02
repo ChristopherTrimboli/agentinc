@@ -1,7 +1,12 @@
 "use client";
 
 import { createContext, useContext, useRef, useSyncExternalStore } from "react";
-import type { SwarmAgent, SwarmConnection, SwarmEvent, Corporation } from "./types";
+import type {
+  SwarmAgent,
+  SwarmConnection,
+  SwarmEvent,
+  Corporation,
+} from "./types";
 import { getAgentColor } from "./types";
 import { PhysicsSimulation } from "./physics";
 import { swarmEventBus } from "./eventBus";
@@ -17,17 +22,21 @@ export interface SwarmStore {
   addAgent: (agent: Omit<SwarmAgent, "x" | "y">) => void;
   removeAgent: (id: string) => void;
   updateAgent: (id: string, updates: Partial<SwarmAgent>) => void;
-  
+
   addCorporation: (corp: Omit<Corporation, "x" | "y">) => void;
   updateCorporation: (id: string, updates: Partial<Corporation>) => void;
-  
-  addConnection: (fromId: string, toId: string, type?: SwarmConnection["type"]) => string;
+
+  addConnection: (
+    fromId: string,
+    toId: string,
+    type?: SwarmConnection["type"],
+  ) => string;
   updateConnection: (id: string, updates: Partial<SwarmConnection>) => void;
   removeConnection: (id: string) => void;
-  
+
   initPhysics: (width: number, height: number) => void;
   tickPhysics: () => void;
-  
+
   subscribe: (callback: () => void) => () => void;
   getSnapshot: () => SwarmStore;
 }
@@ -69,21 +78,21 @@ function createSwarmStore(): SwarmStore {
       };
       corporations = new Map(corporations);
       corporations.set(corp.id, corp);
-      
+
       // Reinitialize positions to spread out corporations properly
       if (physics) {
         physics.initializePositions(agents, corporations);
         // Force a new Map reference to trigger React updates
         corporations = new Map(corporations);
       }
-      
+
       notify();
     },
 
     updateCorporation: (id, updates) => {
       const corp = corporations.get(id);
       if (!corp) return;
-      
+
       corporations = new Map(corporations);
       corporations.set(id, { ...corp, ...updates });
       notify();
@@ -93,18 +102,18 @@ function createSwarmStore(): SwarmStore {
       // Calculate proper initial position
       let x: number;
       let y: number;
-      
+
       if (physics && agentData.corporationId) {
         // If physics exists and agent has a corporation, position it in orbit
         const corp = corporations.get(agentData.corporationId);
         if (corp) {
           // Count how many agents already belong to this corporation
           const corpAgents = Array.from(agents.values()).filter(
-            a => a.corporationId === agentData.corporationId
+            (a) => a.corporationId === agentData.corporationId,
           );
           const index = corpAgents.length;
           const totalAgents = index + 1;
-          
+
           // Position in circular orbit around corporation
           const radius = 220; // Increased from 180 for better spacing
           const angleIncrement = (Math.PI * 2) / totalAgents;
@@ -126,7 +135,7 @@ function createSwarmStore(): SwarmStore {
         x = Math.random() * 800;
         y = Math.random() * 600;
       }
-      
+
       const agent: SwarmAgent = {
         ...agentData,
         x,
@@ -135,13 +144,13 @@ function createSwarmStore(): SwarmStore {
       };
       agents = new Map(agents);
       agents.set(agent.id, agent);
-      
+
       // Recalculate positions for all agents in the same corporation to rebalance
       if (physics && agentData.corporationId) {
         const corp = corporations.get(agentData.corporationId);
         if (corp) {
           const corpAgents = Array.from(agents.values()).filter(
-            a => a.corporationId === agentData.corporationId
+            (a) => a.corporationId === agentData.corporationId,
           );
           const radius = 220; // Increased from 180 for better spacing
           const angleIncrement = (Math.PI * 2) / corpAgents.length;
@@ -153,19 +162,19 @@ function createSwarmStore(): SwarmStore {
           });
         }
       }
-      
+
       swarmEventBus.emit({
         type: "agent_register",
         sourceAgentId: agent.id,
       });
-      
+
       notify();
     },
 
     removeAgent: (id) => {
       agents = new Map(agents);
       agents.delete(id);
-      
+
       // Remove connections involving this agent
       connections = new Map(connections);
       for (const [connId, conn] of connections) {
@@ -173,19 +182,19 @@ function createSwarmStore(): SwarmStore {
           connections.delete(connId);
         }
       }
-      
+
       swarmEventBus.emit({
         type: "agent_unregister",
         sourceAgentId: id,
       });
-      
+
       notify();
     },
 
     updateAgent: (id, updates) => {
       const agent = agents.get(id);
       if (!agent) return;
-      
+
       agents = new Map(agents);
       agents.set(id, { ...agent, ...updates });
       notify();
@@ -202,21 +211,21 @@ function createSwarmStore(): SwarmStore {
         startedAt: Date.now(),
         progress: 0,
       };
-      
+
       connections = new Map(connections);
       connections.set(id, connection);
-      
+
       // Update agent statuses
       store.updateAgent(fromId, { status: "calling" });
       store.updateAgent(toId, { status: "busy" });
-      
+
       swarmEventBus.emit({
         type: "agent_call",
         sourceAgentId: fromId,
         targetAgentId: toId,
         payload: { connectionId: id },
       });
-      
+
       notify();
       return id;
     },
@@ -224,7 +233,7 @@ function createSwarmStore(): SwarmStore {
     updateConnection: (id, updates) => {
       const conn = connections.get(id);
       if (!conn) return;
-      
+
       connections = new Map(connections);
       connections.set(id, { ...conn, ...updates });
       notify();
@@ -233,21 +242,22 @@ function createSwarmStore(): SwarmStore {
     removeConnection: (id) => {
       const conn = connections.get(id);
       if (!conn) return;
-      
+
       connections = new Map(connections);
       connections.delete(id);
-      
+
       // Reset agent statuses if no other active connections
       const fromHasOther = Array.from(connections.values()).some(
-        (c) => c.fromAgentId === conn.fromAgentId && c.status === "active"
+        (c) => c.fromAgentId === conn.fromAgentId && c.status === "active",
       );
       const toHasOther = Array.from(connections.values()).some(
-        (c) => c.toAgentId === conn.toAgentId && c.status === "active"
+        (c) => c.toAgentId === conn.toAgentId && c.status === "active",
       );
-      
-      if (!fromHasOther) store.updateAgent(conn.fromAgentId, { status: "idle" });
+
+      if (!fromHasOther)
+        store.updateAgent(conn.fromAgentId, { status: "idle" });
       if (!toHasOther) store.updateAgent(conn.toAgentId, { status: "idle" });
-      
+
       notify();
     },
 
@@ -262,7 +272,7 @@ function createSwarmStore(): SwarmStore {
     tickPhysics: () => {
       if (!physics) return;
       physics.tick(agents, connections, corporations);
-      
+
       // Update connection progress
       connections = new Map(connections);
       for (const [id, conn] of connections) {
@@ -271,7 +281,7 @@ function createSwarmStore(): SwarmStore {
           connections.set(id, { ...conn, progress: newProgress });
         }
       }
-      
+
       notify();
     },
 
@@ -310,7 +320,7 @@ export function useSwarmStore(): SwarmStore {
   return useSyncExternalStore(
     store.subscribe,
     store.getSnapshot,
-    store.getSnapshot
+    store.getSnapshot,
   );
 }
 
@@ -319,7 +329,7 @@ export function useSwarmActions() {
   if (!store) {
     throw new Error("useSwarmActions must be used within SwarmProvider");
   }
-  
+
   return {
     addAgent: store.addAgent,
     removeAgent: store.removeAgent,

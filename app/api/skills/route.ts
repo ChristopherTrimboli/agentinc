@@ -18,9 +18,10 @@ export async function GET() {
     homepage: skill.metadata.homepage,
     tags: skill.metadata.tags,
     requiredEnvVars: skill.metadata.requiredEnvVars,
-    configured: skill.metadata.requiredEnvVars?.every(
-      (envVar) => !!process.env[envVar]
-    ) ?? true,
+    configured:
+      skill.metadata.requiredEnvVars?.every(
+        (envVar) => !!process.env[envVar],
+      ) ?? true,
     type: "skill" as const,
   }));
 

@@ -4,20 +4,17 @@ import prisma from "@/lib/prisma";
 // GET /api/swarm/agents/[id] - Get a single swarm agent
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
-    
+
     const agent = await prisma.swarmAgent.findUnique({
       where: { id },
     });
 
     if (!agent) {
-      return NextResponse.json(
-        { error: "Agent not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Agent not found" }, { status: 404 });
     }
 
     return NextResponse.json({ agent });
@@ -25,7 +22,7 @@ export async function GET(
     console.error("Error fetching swarm agent:", error);
     return NextResponse.json(
       { error: "Failed to fetch agent" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -33,7 +30,7 @@ export async function GET(
 // PATCH /api/swarm/agents/[id] - Update a swarm agent
 export async function PATCH(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
@@ -56,7 +53,7 @@ export async function PATCH(
     console.error("Error updating swarm agent:", error);
     return NextResponse.json(
       { error: "Failed to update agent" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -64,7 +61,7 @@ export async function PATCH(
 // DELETE /api/swarm/agents/[id] - Delete a swarm agent
 export async function DELETE(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
@@ -78,7 +75,7 @@ export async function DELETE(
     console.error("Error deleting swarm agent:", error);
     return NextResponse.json(
       { error: "Failed to delete agent" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

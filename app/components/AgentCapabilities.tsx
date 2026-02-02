@@ -124,10 +124,14 @@ function CapabilityCard({
   const [isHovered, setIsHovered] = useState(false);
 
   const getColorClasses = (color: string) => {
-    if (color.includes("blue")) return { bg: "bg-[#3b82f6]/20", text: "text-[#3b82f6]", glow: "#3b82f6" };
-    if (color.includes("coral")) return { bg: "bg-[#6FEC06]/20", text: "text-[#6FEC06]", glow: "#6FEC06" };
-    if (color.includes("indigo")) return { bg: "bg-[#120557]/40", text: "text-[#4a3ab0]", glow: "#4a3ab0" };
-    if (color.includes("green")) return { bg: "bg-[#10b981]/20", text: "text-[#10b981]", glow: "#10b981" };
+    if (color.includes("blue"))
+      return { bg: "bg-[#3b82f6]/20", text: "text-[#3b82f6]", glow: "#3b82f6" };
+    if (color.includes("coral"))
+      return { bg: "bg-[#6FEC06]/20", text: "text-[#6FEC06]", glow: "#6FEC06" };
+    if (color.includes("indigo"))
+      return { bg: "bg-[#120557]/40", text: "text-[#4a3ab0]", glow: "#4a3ab0" };
+    if (color.includes("green"))
+      return { bg: "bg-[#10b981]/20", text: "text-[#10b981]", glow: "#10b981" };
     return { bg: "bg-[#6FEC06]/20", text: "text-[#6FEC06]", glow: "#6FEC06" };
   };
 
@@ -359,9 +363,7 @@ export default function AgentCapabilities() {
             </h2>
             <p className="text-xl text-white/60 max-w-2xl mx-auto">
               Real capabilities, real execution, real results.{" "}
-              <span className="text-[#6FEC06]">
-                24/7 autonomous operations
-              </span>{" "}
+              <span className="text-[#6FEC06]">24/7 autonomous operations</span>{" "}
               that drive actual business value.
             </p>
           </div>

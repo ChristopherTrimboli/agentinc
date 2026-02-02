@@ -43,7 +43,7 @@ export type AttachmentVariant = "grid" | "inline" | "list";
 // ============================================================================
 
 export const getMediaCategory = (
-  data: AttachmentData
+  data: AttachmentData,
 ): AttachmentMediaCategory => {
   if (data.type === "source-document") {
     return "source";
@@ -133,7 +133,7 @@ export const Attachments = ({
           "flex items-start",
           variant === "list" ? "flex-col gap-2" : "flex-wrap gap-2",
           variant === "grid" && "ml-auto w-fit",
-          className
+          className,
         )}
         {...props}
       >
@@ -164,7 +164,7 @@ export const Attachment = ({
 
   const contextValue = useMemo<AttachmentContextValue>(
     () => ({ data, mediaCategory, onRemove, variant }),
-    [data, mediaCategory, onRemove, variant]
+    [data, mediaCategory, onRemove, variant],
   );
 
   return (
@@ -172,7 +172,8 @@ export const Attachment = ({
       <div
         className={cn(
           "group relative transition-all",
-          variant === "grid" && "size-24 overflow-hidden rounded-lg shadow-md hover:shadow-lg hover:ring-2 hover:ring-ring/50",
+          variant === "grid" &&
+            "size-24 overflow-hidden rounded-lg shadow-md hover:shadow-lg hover:ring-2 hover:ring-ring/50",
           variant === "inline" && [
             "flex h-8 cursor-pointer select-none items-center gap-1.5",
             "rounded-md border border-border px-1.5",
@@ -183,7 +184,7 @@ export const Attachment = ({
             "flex w-full items-center gap-3 rounded-lg border p-3",
             "hover:bg-accent/50",
           ],
-          className
+          className,
         )}
         {...props}
       >
@@ -213,7 +214,7 @@ export const AttachmentPreview = ({
   const renderImage = (
     url: string,
     filename: string | undefined,
-    isGrid: boolean
+    isGrid: boolean,
   ) =>
     isGrid ? (
       <img
@@ -266,7 +267,7 @@ export const AttachmentPreview = ({
         variant === "grid" && "size-full bg-muted/50",
         variant === "inline" && "size-5 rounded bg-background",
         variant === "list" && "size-12 rounded bg-muted/50",
-        className
+        className,
       )}
       {...props}
     >
@@ -345,7 +346,7 @@ export const AttachmentRemove = ({
           "[&>svg]:size-2.5",
         ],
         variant === "list" && ["size-8 shrink-0 rounded p-0", "[&>svg]:size-4"],
-        className
+        className,
       )}
       onClick={(e) => {
         e.stopPropagation();
@@ -380,7 +381,7 @@ export type AttachmentHoverCardTriggerProps = ComponentProps<
 >;
 
 export const AttachmentHoverCardTrigger = (
-  props: AttachmentHoverCardTriggerProps
+  props: AttachmentHoverCardTriggerProps,
 ) => <HoverCardTrigger {...props} />;
 
 export type AttachmentHoverCardContentProps = ComponentProps<
@@ -413,7 +414,7 @@ export const AttachmentEmpty = ({
   <div
     className={cn(
       "flex items-center justify-center p-4 text-muted-foreground text-sm",
-      className
+      className,
     )}
     {...props}
   >

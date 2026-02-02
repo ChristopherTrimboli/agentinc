@@ -56,7 +56,10 @@ async function sendViaJito(base58Tx: string): Promise<string | null> {
         return data.result;
       }
     } catch (err) {
-      console.log(`[Jito] ${jitoEndpoint} failed:`, err instanceof Error ? err.message : "Unknown error");
+      console.log(
+        `[Jito] ${jitoEndpoint} failed:`,
+        err instanceof Error ? err.message : "Unknown error",
+      );
       continue;
     }
   }
@@ -109,7 +112,10 @@ async function sendViaRpc(base58Tx: string): Promise<string | null> {
       if (err instanceof Error && err.message.includes("insufficient")) {
         throw err;
       }
-      console.log(`[RPC] ${rpcUrl} failed:`, err instanceof Error ? err.message : "Unknown error");
+      console.log(
+        `[RPC] ${rpcUrl} failed:`,
+        err instanceof Error ? err.message : "Unknown error",
+      );
       continue;
     }
   }
@@ -125,7 +131,7 @@ export async function POST(request: Request) {
     if (!signedTransaction) {
       return NextResponse.json(
         { error: "Missing signedTransaction" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -139,7 +145,7 @@ export async function POST(request: Request) {
     if (useJito) {
       console.log("[Send] Attempting Jito submission for priority landing...");
       signature = await sendViaJito(base58Tx);
-      
+
       if (signature) {
         return NextResponse.json({
           signature,
@@ -161,14 +167,12 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       { error: "Failed to send transaction via all endpoints" },
-      { status: 500 }
+      { status: 500 },
     );
   } catch (error) {
     console.error("Error sending transaction:", error);
-    const errorMessage = error instanceof Error ? error.message : "Failed to send transaction";
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    const errorMessage =
+      error instanceof Error ? error.message : "Failed to send transaction";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

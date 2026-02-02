@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { BagsSDK } from "@bagsfm/bags-sdk";
 import { Connection, PublicKey } from "@solana/web3.js";
 
-const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || "https://mainnet.helius-rpc.com";
+const SOLANA_RPC_URL =
+  process.env.SOLANA_RPC_URL || "https://mainnet.helius-rpc.com";
 
 // POST /api/incorporate/launch - Create token launch transaction
 export async function POST(request: Request) {
@@ -12,18 +13,22 @@ export async function POST(request: Request) {
     if (!apiKey) {
       return NextResponse.json(
         { error: "Bags API key not configured" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
     const body = await request.json();
-    const { tokenMint, metadataUrl, wallet, initialBuyLamports, configKey } = body;
+    const { tokenMint, metadataUrl, wallet, initialBuyLamports, configKey } =
+      body;
 
     // Validate required fields
     if (!tokenMint || !metadataUrl || !wallet || !configKey) {
       return NextResponse.json(
-        { error: "Missing required fields: tokenMint, metadataUrl, wallet, configKey" },
-        { status: 400 }
+        {
+          error:
+            "Missing required fields: tokenMint, metadataUrl, wallet, configKey",
+        },
+        { status: 400 },
       );
     }
 
@@ -46,17 +51,19 @@ export async function POST(request: Request) {
     });
 
     // Serialize the transaction to base64 for frontend signing
-    const transactionBase64 = Buffer.from(launchTransaction.serialize()).toString("base64");
+    const transactionBase64 = Buffer.from(
+      launchTransaction.serialize(),
+    ).toString("base64");
 
     return NextResponse.json({
       transaction: transactionBase64,
     });
   } catch (error) {
     console.error("Error creating launch transaction:", error);
-    const errorMessage = error instanceof Error ? error.message : "Failed to create launch transaction";
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "Failed to create launch transaction";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

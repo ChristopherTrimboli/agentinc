@@ -28,7 +28,9 @@ export default function SwarmControls({
           <div className="text-xs text-gray-500">Agents</div>
         </div>
         <div className="text-center">
-          <div className="text-lg font-bold text-cyan-400">{connectionCount}</div>
+          <div className="text-lg font-bold text-cyan-400">
+            {connectionCount}
+          </div>
           <div className="text-xs text-gray-500">Active</div>
         </div>
       </div>

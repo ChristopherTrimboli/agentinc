@@ -25,22 +25,22 @@ export class PhysicsSimulation {
   tick(
     agents: Map<string, SwarmAgent>,
     connections: Map<string, SwarmConnection>,
-    corporations: Map<string, Corporation> = new Map()
+    corporations: Map<string, Corporation> = new Map(),
   ): void {
     const corpArray = Array.from(corporations.values());
-    const agentInc = corpArray.find(c => c.name === "Agent Inc.");
-    
+    const agentInc = corpArray.find((c) => c.name === "Agent Inc.");
+
     // Position corporations in fixed positions
     const corpRadius = 550; // Distance from center to other corporations
-    
+
     // Keep "Agent Inc." at center
     if (agentInc) {
       agentInc.x = this.centerX;
       agentInc.y = this.centerY;
     }
-    
+
     // Position other corporations in orbit
-    const otherCorps = corpArray.filter(c => c.name !== "Agent Inc.");
+    const otherCorps = corpArray.filter((c) => c.name !== "Agent Inc.");
     otherCorps.forEach((corp, i) => {
       const angle = (i / otherCorps.length) * Math.PI * 2 - Math.PI / 2;
       corp.x = this.centerX + Math.cos(angle) * corpRadius;
@@ -60,7 +60,7 @@ export class PhysicsSimulation {
     for (const [corpId, corpAgents] of agentsByCorp) {
       let cx = this.centerX;
       let cy = this.centerY;
-      
+
       if (corpId) {
         const corp = corporations.get(corpId);
         if (corp) {
@@ -72,7 +72,7 @@ export class PhysicsSimulation {
       const agentOrbitRadius = 220;
       const angleIncrement = (Math.PI * 2) / corpAgents.length;
       const angleOffset = angleIncrement / 2;
-      
+
       corpAgents.forEach((agent, i) => {
         const angle = i * angleIncrement - Math.PI / 2 + angleOffset;
         agent.x = cx + Math.cos(angle) * agentOrbitRadius;
@@ -81,11 +81,10 @@ export class PhysicsSimulation {
     }
   }
 
-
   // Initialize positions - same logic as tick
   initializePositions(
     agents: Map<string, SwarmAgent>,
-    corporations: Map<string, Corporation> = new Map()
+    corporations: Map<string, Corporation> = new Map(),
   ): void {
     this.tick(agents, new Map(), corporations);
   }

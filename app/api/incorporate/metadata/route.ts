@@ -10,39 +10,42 @@ export async function POST(request: Request) {
     if (!apiKey) {
       return NextResponse.json(
         { error: "Bags API key not configured" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
     const body = await request.json();
-    const { name, symbol, description, imageUrl, twitter, website, telegram } = body;
+    const { name, symbol, description, imageUrl, twitter, website, telegram } =
+      body;
 
     // Validate required fields
     if (!name || !symbol || !description || !imageUrl) {
       return NextResponse.json(
-        { error: "Missing required fields: name, symbol, description, imageUrl" },
-        { status: 400 }
+        {
+          error: "Missing required fields: name, symbol, description, imageUrl",
+        },
+        { status: 400 },
       );
     }
 
     if (name.length > 32) {
       return NextResponse.json(
         { error: "Name must be 32 characters or less" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (symbol.length > 10) {
       return NextResponse.json(
         { error: "Symbol must be 10 characters or less" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (description.length > 1000) {
       return NextResponse.json(
         { error: "Description must be 1000 characters or less" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -52,26 +55,29 @@ export async function POST(request: Request) {
     formData.append("symbol", symbol.toUpperCase().replace("$", ""));
     formData.append("description", description);
     formData.append("imageUrl", imageUrl);
-    
+
     if (twitter) formData.append("twitter", twitter);
     if (website) formData.append("website", website);
     if (telegram) formData.append("telegram", telegram);
 
     // Call Bags API to create token info
-    const response = await fetch(`${BAGS_API_BASE}/token-launch/create-token-info`, {
-      method: "POST",
-      headers: {
-        "x-api-key": apiKey,
+    const response = await fetch(
+      `${BAGS_API_BASE}/token-launch/create-token-info`,
+      {
+        method: "POST",
+        headers: {
+          "x-api-key": apiKey,
+        },
+        body: formData,
       },
-      body: formData,
-    });
+    );
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       console.error("Bags API error:", errorData);
       return NextResponse.json(
         { error: errorData.error || "Failed to create token metadata" },
-        { status: response.status }
+        { status: response.status },
       );
     }
 
@@ -80,7 +86,7 @@ export async function POST(request: Request) {
     if (!data.success || !data.response) {
       return NextResponse.json(
         { error: "Invalid response from Bags API" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -93,7 +99,7 @@ export async function POST(request: Request) {
     console.error("Error creating token metadata:", error);
     return NextResponse.json(
       { error: "Failed to create token metadata" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

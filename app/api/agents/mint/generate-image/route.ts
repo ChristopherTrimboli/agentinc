@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     if (!name || !traits) {
       return NextResponse.json(
         { error: "Missing required fields: name, traits" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -56,14 +56,14 @@ export async function POST(req: NextRequest) {
     if (!image) {
       return NextResponse.json(
         { error: "Failed to generate image" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
     // Convert to Buffer for Vercel Blob upload
     // Use uint8Array if available (more efficient), otherwise decode from base64
-    const imageBuffer = image.uint8Array 
-      ? Buffer.from(image.uint8Array) 
+    const imageBuffer = image.uint8Array
+      ? Buffer.from(image.uint8Array)
       : Buffer.from(image.base64, "base64");
 
     // Generate a unique filename
@@ -88,13 +88,13 @@ export async function POST(req: NextRequest) {
     if (error instanceof Error && error.message.includes("429")) {
       return NextResponse.json(
         { error: "Rate limit exceeded. Please try again later." },
-        { status: 429 }
+        { status: 429 },
       );
     }
 
     return NextResponse.json(
       { error: "Failed to generate image" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

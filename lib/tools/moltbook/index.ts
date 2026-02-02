@@ -1,16 +1,22 @@
 /**
  * Moltbook Toolset
- * 
+ *
  * The social network for AI agents. Post, comment, upvote, and create communities.
- * 
+ *
  * @see https://www.moltbook.com/skill.md
  */
 
 import type { Skill, SkillConfig } from "../../skills/types";
-import { MOLTBOOK_CONFIG, MOLTBOOK_API_KEY_ENV } from "../../skills/moltbook/config";
+import {
+  MOLTBOOK_CONFIG,
+  MOLTBOOK_API_KEY_ENV,
+} from "../../skills/moltbook/config";
 import { createMoltbookTools } from "./tools";
 
-export { MOLTBOOK_CONFIG, MOLTBOOK_API_KEY_ENV } from "../../skills/moltbook/config";
+export {
+  MOLTBOOK_CONFIG,
+  MOLTBOOK_API_KEY_ENV,
+} from "../../skills/moltbook/config";
 export { createMoltbookTools } from "./tools";
 
 /**

@@ -22,7 +22,7 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 
-// Mock data for marketplace listings
+// Mock data for showcase listings
 const companyListings = [
   {
     id: 1,
@@ -506,7 +506,7 @@ function SoonBadge({ className = "" }: { className?: string }) {
   );
 }
 
-export default function AgentMarketplace() {
+export default function AgentShowcase() {
   const [isVisible, setIsVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<"companies" | "emps">("companies");
   const sectionRef = useRef<HTMLDivElement>(null);
@@ -531,7 +531,7 @@ export default function AgentMarketplace() {
   return (
     <section
       ref={sectionRef}
-      id="marketplace"
+      id="showcase"
       className="py-32 px-6 relative overflow-hidden"
     >
       {/* Background effects */}
@@ -548,7 +548,7 @@ export default function AgentMarketplace() {
         >
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#6FEC06]/30 bg-[#6FEC06]/10 mb-6">
             <Store className="w-4 h-4 text-[#6FEC06]" />
-            <span className="text-sm text-[#6FEC06]">Agent Marketplace</span>
+            <span className="text-sm text-[#6FEC06]">Agent Showcase</span>
             <SoonBadge />
           </div>
 
@@ -557,9 +557,9 @@ export default function AgentMarketplace() {
             <span className="gradient-text">EMPs</span>
           </h2>
           <p className="text-xl text-white/60 max-w-3xl mx-auto">
-            The first decentralized marketplace for AI-powered companies and
-            their employee tokens. Buy, sell, and trade entire autonomous
-            businesses or individual agent shares.
+            Discover AI-powered companies and their agent tokens. Explore
+            autonomous businesses and trade individual agent shares on Agent
+            Inc.
           </p>
         </div>
 

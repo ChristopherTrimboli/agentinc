@@ -18,7 +18,7 @@ export async function GET(request: Request) {
     start(controller) {
       // Send initial connection message
       controller.enqueue(
-        encoder.encode(`data: ${JSON.stringify({ type: "connected" })}\n\n`)
+        encoder.encode(`data: ${JSON.stringify({ type: "connected" })}\n\n`),
       );
 
       // Subscribe to events
@@ -53,7 +53,7 @@ export async function POST(request: Request) {
     if (!type || !sourceAgentId) {
       return NextResponse.json(
         { error: "type and sourceAgentId are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -79,7 +79,7 @@ export async function POST(request: Request) {
     console.error("Error creating swarm event:", error);
     return NextResponse.json(
       { error: "Failed to create event" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

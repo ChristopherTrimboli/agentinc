@@ -30,14 +30,14 @@ export interface SkillMetadata {
  * Skill categories for organization
  */
 export type SkillCategory =
-  | "social"       // Social networks, communication
-  | "blockchain"   // Web3, crypto, DeFi
-  | "data"         // Analytics, databases, storage
-  | "development"  // Code, GitHub, CI/CD
-  | "ai"           // ML models, image gen, etc.
+  | "social" // Social networks, communication
+  | "blockchain" // Web3, crypto, DeFi
+  | "data" // Analytics, databases, storage
+  | "development" // Code, GitHub, CI/CD
+  | "ai" // ML models, image gen, etc.
   | "productivity" // Calendar, email, docs
-  | "search"       // Web search, knowledge bases
-  | "custom";      // User-defined
+  | "search" // Web search, knowledge bases
+  | "custom"; // User-defined
 
 /**
  * Configuration for a skill instance
@@ -60,7 +60,7 @@ export interface SkillConfig {
 export interface Skill {
   /** Skill metadata */
   metadata: SkillMetadata;
-  
+
   /**
    * Create tools for this skill
    * @param config - Configuration for the skill instance
@@ -68,14 +68,14 @@ export interface Skill {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   createTools(config: SkillConfig): Record<string, Tool<any, any>>;
-  
+
   /**
    * Check if the skill is properly configured
    * @param config - Configuration to validate
    * @returns true if valid, or an error message
    */
   validate(config: SkillConfig): true | string;
-  
+
   /**
    * Optional system prompt addition for agents using this skill
    */
@@ -87,27 +87,29 @@ export interface Skill {
  */
 export async function skillFetch<T = unknown>(
   url: string,
-  options: RequestInit & { apiKey?: string } = {}
-): Promise<{ success: true; data: T } | { success: false; error: string; hint?: string }> {
+  options: RequestInit & { apiKey?: string } = {},
+): Promise<
+  { success: true; data: T } | { success: false; error: string; hint?: string }
+> {
   const { apiKey, ...fetchOptions } = options;
-  
+
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(fetchOptions.headers as Record<string, string>),
   };
-  
+
   if (apiKey) {
     headers["Authorization"] = `Bearer ${apiKey}`;
   }
-  
+
   try {
     const response = await fetch(url, {
       ...fetchOptions,
       headers,
     });
-    
+
     const data = await response.json();
-    
+
     if (!response.ok) {
       return {
         success: false,
@@ -115,7 +117,7 @@ export async function skillFetch<T = unknown>(
         hint: data.hint,
       };
     }
-    
+
     return { success: true, data: data as T };
   } catch (error) {
     return {

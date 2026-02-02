@@ -94,7 +94,7 @@ function TraitPill({
 // Rarity badge component
 function RarityBadge({ rarity }: { rarity: keyof typeof RARITIES }) {
   const config = RARITIES[rarity];
-  
+
   return (
     <div
       className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wider"
@@ -293,9 +293,15 @@ function SlotMachine({
   items: readonly { id: string; name: string; icon: string }[];
   selectedId: string;
   isSpinning: boolean;
-  renderItem: (item: { id: string; name: string; icon: string }) => React.ReactNode;
+  renderItem: (item: {
+    id: string;
+    name: string;
+    icon: string;
+  }) => React.ReactNode;
 }) {
-  const [displayItems, setDisplayItems] = useState<typeof items[number][]>([]);
+  const [displayItems, setDisplayItems] = useState<(typeof items)[number][]>(
+    [],
+  );
 
   useEffect(() => {
     if (isSpinning) {
@@ -357,7 +363,9 @@ function StepIndicator({
               {isActive && (
                 <div className="absolute inset-0 rounded-full bg-purple-500/20 blur-lg -z-10" />
               )}
-              <div className={`w-5 h-5 flex items-center justify-center ${isActive ? "scale-110" : ""}`}>
+              <div
+                className={`w-5 h-5 flex items-center justify-center ${isActive ? "scale-110" : ""}`}
+              >
                 {isComplete ? <Check className="w-4 h-4" /> : step.icon}
               </div>
               <span className="text-xs font-semibold tracking-wide hidden sm:inline">
@@ -418,9 +426,11 @@ export default function MintAgentPage() {
 
   const walletAddress = useMemo(() => {
     const solanaWallet = user?.linkedAccounts?.find(
-      (account) => account.type === "wallet" && account.chainType === "solana"
+      (account) => account.type === "wallet" && account.chainType === "solana",
     );
-    return solanaWallet && "address" in solanaWallet ? solanaWallet.address : null;
+    return solanaWallet && "address" in solanaWallet
+      ? solanaWallet.address
+      : null;
   }, [user?.linkedAccounts]);
 
   // Initialize with random agent
@@ -447,26 +457,28 @@ export default function MintAgentPage() {
   // Randomize agent
   const randomizeAgent = useCallback(() => {
     setIsRandomizing(true);
-    
+
     // Animate for a bit before settling
     setTimeout(() => {
       const newTraits = generateRandomAgent();
-      
+
       // Keep locked traits
       if (agentTraits) {
-        if (lockedTraits.has("personality")) newTraits.personality = agentTraits.personality;
-        if (lockedTraits.has("specialAbility")) newTraits.specialAbility = agentTraits.specialAbility;
+        if (lockedTraits.has("personality"))
+          newTraits.personality = agentTraits.personality;
+        if (lockedTraits.has("specialAbility"))
+          newTraits.specialAbility = agentTraits.specialAbility;
         // For arrays, keep locked items
         if (lockedTraits.has("traits")) newTraits.traits = agentTraits.traits;
         if (lockedTraits.has("skills")) newTraits.skills = agentTraits.skills;
         if (lockedTraits.has("tools")) newTraits.tools = agentTraits.tools;
       }
-      
+
       if (!lockedTraits.has("name")) {
         setAgentName(generateAgentName());
         setTokenSymbol(""); // Reset symbol to regenerate
       }
-      
+
       setAgentTraits(newTraits);
       setIsRandomizing(false);
     }, 800);
@@ -513,7 +525,7 @@ export default function MintAgentPage() {
     } catch (error) {
       console.error("Image generation error:", error);
       setLaunchError(
-        error instanceof Error ? error.message : "Failed to generate image"
+        error instanceof Error ? error.message : "Failed to generate image",
       );
     } finally {
       setIsGeneratingImage(false);
@@ -521,9 +533,15 @@ export default function MintAgentPage() {
   };
 
   // Update launch step
-  const updateStep = (stepId: string, status: LaunchStep["status"], error?: string) => {
+  const updateStep = (
+    stepId: string,
+    status: LaunchStep["status"],
+    error?: string,
+  ) => {
     setLaunchSteps((prev) =>
-      prev.map((step) => (step.id === stepId ? { ...step, status, error } : step))
+      prev.map((step) =>
+        step.id === stepId ? { ...step, status, error } : step,
+      ),
     );
   };
 
@@ -532,7 +550,13 @@ export default function MintAgentPage() {
     setLaunchError("");
     setLaunchResult(null);
 
-    if (!identityToken || !embeddedWallet || !walletAddress || !agentTraits || !imageUrl) {
+    if (
+      !identityToken ||
+      !embeddedWallet ||
+      !walletAddress ||
+      !agentTraits ||
+      !imageUrl
+    ) {
       setLaunchError("Please complete all steps before launching");
       return;
     }
@@ -546,7 +570,11 @@ export default function MintAgentPage() {
     const requiredSol = initialBuy + ESTIMATED_TX_FEES;
 
     setLaunchSteps([
-      { id: "balance", label: `Verifying ${requiredSol.toFixed(3)} SOL`, status: "pending" },
+      {
+        id: "balance",
+        label: `Verifying ${requiredSol.toFixed(3)} SOL`,
+        status: "pending",
+      },
       { id: "metadata", label: "Creating metadata", status: "pending" },
       { id: "feeShare", label: "Fee config", status: "pending" },
       { id: "sign", label: "Signing", status: "pending" },
@@ -559,11 +587,11 @@ export default function MintAgentPage() {
     try {
       // Step 0: Check wallet balance before proceeding
       updateStep("balance", "loading");
-      
+
       // Fetch balance via backend API (avoids CORS issues)
       const balanceResponse = await fetch("/api/agents/mint/balance", {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
           "privy-id-token": identityToken,
         },
@@ -579,7 +607,7 @@ export default function MintAgentPage() {
 
       if (balanceSol < requiredSol) {
         throw new Error(
-          `Insufficient balance. You have ${balanceSol.toFixed(4)} SOL but need at least ${requiredSol.toFixed(4)} SOL (${initialBuy} SOL initial buy + ~${ESTIMATED_TX_FEES} SOL for fees)`
+          `Insufficient balance. You have ${balanceSol.toFixed(4)} SOL but need at least ${requiredSol.toFixed(4)} SOL (${initialBuy} SOL initial buy + ~${ESTIMATED_TX_FEES} SOL for fees)`,
         );
       }
 
@@ -596,13 +624,17 @@ export default function MintAgentPage() {
         body: JSON.stringify({
           name: agentName.trim(),
           symbol: tokenSymbol.trim().toUpperCase(),
-          description: description.trim() || `${agentName} - A ${agentTraits.rarity} AI Agent`,
+          description:
+            description.trim() ||
+            `${agentName} - A ${agentTraits.rarity} AI Agent`,
           imageUrl: imageUrl,
         }),
       });
 
       if (!metadataResponse.ok) {
-        throw new Error((await metadataResponse.json()).error || "Failed to create metadata");
+        throw new Error(
+          (await metadataResponse.json()).error || "Failed to create metadata",
+        );
       }
       const metadataData = await metadataResponse.json();
       updateStep("metadata", "complete");
@@ -615,26 +647,46 @@ export default function MintAgentPage() {
           "Content-Type": "application/json",
           "privy-id-token": identityToken,
         },
-        body: JSON.stringify({ wallet: walletAddress, tokenMint: metadataData.tokenMint }),
+        body: JSON.stringify({
+          wallet: walletAddress,
+          tokenMint: metadataData.tokenMint,
+        }),
       });
 
       if (!feeShareResponse.ok) {
-        throw new Error((await feeShareResponse.json()).error || "Failed to create fee config");
+        throw new Error(
+          (await feeShareResponse.json()).error ||
+            "Failed to create fee config",
+        );
       }
       const feeShareData = await feeShareResponse.json();
 
       // Handle LUT transactions if needed (for >15 fee claimers)
       if (feeShareData.lutTransactions?.length > 0) {
-        console.log(`[Mint] Processing ${feeShareData.lutTransactions.length} LUT transactions...`);
-        
+        console.log(
+          `[Mint] Processing ${feeShareData.lutTransactions.length} LUT transactions...`,
+        );
+
         for (const lutTx of feeShareData.lutTransactions) {
-          const txBytes = Uint8Array.from(atob(lutTx.transaction), (c) => c.charCodeAt(0));
-          const signResult = await signTransaction({ transaction: txBytes, wallet: embeddedWallet });
-          const signedTxBase64 = btoa(String.fromCharCode(...new Uint8Array(signResult.signedTransaction)));
-          
+          const txBytes = Uint8Array.from(atob(lutTx.transaction), (c) =>
+            c.charCodeAt(0),
+          );
+          const signResult = await signTransaction({
+            transaction: txBytes,
+            wallet: embeddedWallet,
+          });
+          const signedTxBase64 = btoa(
+            String.fromCharCode(
+              ...new Uint8Array(signResult.signedTransaction),
+            ),
+          );
+
           await fetch("/api/agents/mint/send-transaction", {
             method: "POST",
-            headers: { "Content-Type": "application/json", "privy-id-token": identityToken },
+            headers: {
+              "Content-Type": "application/json",
+              "privy-id-token": identityToken,
+            },
             body: JSON.stringify({ signedTransaction: signedTxBase64 }),
           });
 
@@ -649,12 +701,24 @@ export default function MintAgentPage() {
       // Sign any fee share transactions
       if (feeShareData.transactions?.length > 0) {
         for (const txData of feeShareData.transactions) {
-          const txBytes = Uint8Array.from(atob(txData.transaction), (c) => c.charCodeAt(0));
-          const signResult = await signTransaction({ transaction: txBytes, wallet: embeddedWallet });
-          const signedTxBase64 = btoa(String.fromCharCode(...new Uint8Array(signResult.signedTransaction)));
+          const txBytes = Uint8Array.from(atob(txData.transaction), (c) =>
+            c.charCodeAt(0),
+          );
+          const signResult = await signTransaction({
+            transaction: txBytes,
+            wallet: embeddedWallet,
+          });
+          const signedTxBase64 = btoa(
+            String.fromCharCode(
+              ...new Uint8Array(signResult.signedTransaction),
+            ),
+          );
           await fetch("/api/agents/mint/send-transaction", {
             method: "POST",
-            headers: { "Content-Type": "application/json", "privy-id-token": identityToken },
+            headers: {
+              "Content-Type": "application/json",
+              "privy-id-token": identityToken,
+            },
             body: JSON.stringify({ signedTransaction: signedTxBase64 }),
           });
         }
@@ -665,30 +729,49 @@ export default function MintAgentPage() {
         for (const bundle of feeShareData.bundles) {
           // Sign all bundle transactions (tip transaction is first if present)
           const signedBundleTxs: string[] = [];
-          
+
           for (const txData of bundle) {
-            const txBytes = Uint8Array.from(atob(txData.transaction), (c) => c.charCodeAt(0));
-            const signResult = await signTransaction({ transaction: txBytes, wallet: embeddedWallet });
-            signedBundleTxs.push(btoa(String.fromCharCode(...new Uint8Array(signResult.signedTransaction))));
+            const txBytes = Uint8Array.from(atob(txData.transaction), (c) =>
+              c.charCodeAt(0),
+            );
+            const signResult = await signTransaction({
+              transaction: txBytes,
+              wallet: embeddedWallet,
+            });
+            signedBundleTxs.push(
+              btoa(
+                String.fromCharCode(
+                  ...new Uint8Array(signResult.signedTransaction),
+                ),
+              ),
+            );
           }
 
           // Send bundle via Jito
           const bundleResponse = await fetch("/api/agents/mint/send-bundle", {
             method: "POST",
-            headers: { "Content-Type": "application/json", "privy-id-token": identityToken },
+            headers: {
+              "Content-Type": "application/json",
+              "privy-id-token": identityToken,
+            },
             body: JSON.stringify({ signedTransactions: signedBundleTxs }),
           });
 
           if (!bundleResponse.ok) {
             // Fallback to sending individually if bundle fails (skip tip transaction)
-            console.log("[Mint] Bundle submission failed, falling back to individual transactions...");
+            console.log(
+              "[Mint] Bundle submission failed, falling back to individual transactions...",
+            );
             for (let i = 0; i < bundle.length; i++) {
               // Skip tip transaction in fallback mode
               if (bundle[i].isTip) continue;
-              
+
               await fetch("/api/agents/mint/send-transaction", {
                 method: "POST",
-                headers: { "Content-Type": "application/json", "privy-id-token": identityToken },
+                headers: {
+                  "Content-Type": "application/json",
+                  "privy-id-token": identityToken,
+                },
                 body: JSON.stringify({ signedTransaction: signedBundleTxs[i] }),
               });
             }
@@ -701,7 +784,10 @@ export default function MintAgentPage() {
       updateStep("sign", "loading");
       const launchTxResponse = await fetch("/api/agents/mint/launch", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "privy-id-token": identityToken },
+        headers: {
+          "Content-Type": "application/json",
+          "privy-id-token": identityToken,
+        },
         body: JSON.stringify({
           tokenMint: metadataData.tokenMint,
           metadataUrl: metadataData.tokenMetadata,
@@ -712,24 +798,43 @@ export default function MintAgentPage() {
       });
 
       if (!launchTxResponse.ok) {
-        throw new Error((await launchTxResponse.json()).error || "Failed to create transaction");
+        throw new Error(
+          (await launchTxResponse.json()).error ||
+            "Failed to create transaction",
+        );
       }
       const launchTxData = await launchTxResponse.json();
-      const launchTxBytes = Uint8Array.from(atob(launchTxData.transaction), (c) => c.charCodeAt(0));
-      const signResult = await signTransaction({ transaction: launchTxBytes, wallet: embeddedWallet });
-      const signedLaunchTxBase64 = btoa(String.fromCharCode(...new Uint8Array(signResult.signedTransaction)));
+      const launchTxBytes = Uint8Array.from(
+        atob(launchTxData.transaction),
+        (c) => c.charCodeAt(0),
+      );
+      const signResult = await signTransaction({
+        transaction: launchTxBytes,
+        wallet: embeddedWallet,
+      });
+      const signedLaunchTxBase64 = btoa(
+        String.fromCharCode(...new Uint8Array(signResult.signedTransaction)),
+      );
       updateStep("sign", "complete");
 
       // Step 4: Broadcast
       updateStep("broadcast", "loading");
-      const broadcastResponse = await fetch("/api/agents/mint/send-transaction", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "privy-id-token": identityToken },
-        body: JSON.stringify({ signedTransaction: signedLaunchTxBase64 }),
-      });
+      const broadcastResponse = await fetch(
+        "/api/agents/mint/send-transaction",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "privy-id-token": identityToken,
+          },
+          body: JSON.stringify({ signedTransaction: signedLaunchTxBase64 }),
+        },
+      );
 
       if (!broadcastResponse.ok) {
-        throw new Error((await broadcastResponse.json()).error || "Failed to broadcast");
+        throw new Error(
+          (await broadcastResponse.json()).error || "Failed to broadcast",
+        );
       }
       const broadcastData = await broadcastResponse.json();
       updateStep("broadcast", "complete");
@@ -738,7 +843,10 @@ export default function MintAgentPage() {
       updateStep("save", "loading");
       const saveResponse = await fetch("/api/agents/mint/save", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "privy-id-token": identityToken },
+        headers: {
+          "Content-Type": "application/json",
+          "privy-id-token": identityToken,
+        },
         body: JSON.stringify({
           name: agentName.trim(),
           description: description.trim() || null,
@@ -753,7 +861,9 @@ export default function MintAgentPage() {
       });
 
       if (!saveResponse.ok) {
-        throw new Error((await saveResponse.json()).error || "Failed to save agent");
+        throw new Error(
+          (await saveResponse.json()).error || "Failed to save agent",
+        );
       }
       const saveData = await saveResponse.json();
       updateStep("save", "complete");
@@ -768,8 +878,10 @@ export default function MintAgentPage() {
       setLaunchError(errorMessage);
       setLaunchSteps((prev) =>
         prev.map((step) =>
-          step.status === "loading" ? { ...step, status: "error", error: errorMessage } : step
-        )
+          step.status === "loading"
+            ? { ...step, status: "error", error: errorMessage }
+            : step,
+        ),
       );
     } finally {
       setIsLaunching(false);
@@ -779,7 +891,8 @@ export default function MintAgentPage() {
   // Validation
   const canProceedToStep1 = agentTraits !== null && agentName.trim().length > 0;
   const canProceedToStep2 = canProceedToStep1 && imageUrl.length > 0;
-  const canLaunch = canProceedToStep2 && tokenSymbol.trim().length > 0 && walletAddress;
+  const canLaunch =
+    canProceedToStep2 && tokenSymbol.trim().length > 0 && walletAddress;
 
   // Steps config
   const steps = [
@@ -804,9 +917,12 @@ export default function MintAgentPage() {
                 <Sparkles className="w-12 h-12 text-purple-400" />
               </div>
             </div>
-            <h1 className="text-4xl font-bold mb-3 tracking-tight">Mint Your Agent</h1>
+            <h1 className="text-4xl font-bold mb-3 tracking-tight">
+              Mint Your Agent
+            </h1>
             <p className="text-gray-400 mb-8 text-base max-w-md mx-auto">
-              Create a unique AI agent with randomized traits and launch its token on Solana
+              Create a unique AI agent with randomized traits and launch its
+              token on Solana
             </p>
             <button
               onClick={login}
@@ -839,8 +955,11 @@ export default function MintAgentPage() {
 
             <h1 className="text-4xl font-bold mb-3">Agent Minted!</h1>
             <p className="text-gray-400 mb-8 text-lg">
-              <span className="text-white font-semibold">{agentName}</span> is now live on Solana with{" "}
-              <span className="text-emerald-400 font-mono font-semibold">${tokenSymbol.toUpperCase()}</span>
+              <span className="text-white font-semibold">{agentName}</span> is
+              now live on Solana with{" "}
+              <span className="text-emerald-400 font-mono font-semibold">
+                ${tokenSymbol.toUpperCase()}
+              </span>
             </p>
 
             {/* Agent card */}
@@ -885,7 +1004,9 @@ export default function MintAgentPage() {
                 View on Bags <ExternalLink className="w-4 h-4" />
               </a>
               <button
-                onClick={() => router.push(`/chat?agent=${launchResult.agentId}`)}
+                onClick={() =>
+                  router.push(`/chat?agent=${launchResult.agentId}`)
+                }
                 className="px-6 py-3 bg-gray-800/80 hover:bg-gray-700/80 border border-gray-700/60 rounded-xl font-semibold transition-all hover:scale-105"
               >
                 Chat with Agent
@@ -928,7 +1049,8 @@ export default function MintAgentPage() {
               Mint Your <span className="gradient-text">AI Agent</span>
             </h1>
             <p className="text-gray-400 text-sm md:text-base mb-4 max-w-2xl mx-auto">
-              Randomize traits, generate a unique AI image, and launch your agent&apos;s token on Solana
+              Randomize traits, generate a unique AI image, and launch your
+              agent&apos;s token on Solana
             </p>
             <StepIndicator currentStep={currentStep} steps={steps} />
           </div>
@@ -1043,7 +1165,9 @@ export default function MintAgentPage() {
                           <Shuffle className="w-4 h-4 text-purple-400" />
                         </div>
                         <div>
-                          <h2 className="font-semibold text-sm">Randomize Traits</h2>
+                          <h2 className="font-semibold text-sm">
+                            Randomize Traits
+                          </h2>
                           <p className="text-[10px] text-gray-500">
                             Roll for unique attributes
                           </p>
@@ -1128,7 +1252,9 @@ export default function MintAgentPage() {
                             }`}
                           >
                             {(() => {
-                              const p = getPersonalityById(agentTraits.personality);
+                              const p = getPersonalityById(
+                                agentTraits.personality,
+                              );
                               return p ? (
                                 <div
                                   className="flex items-center gap-2 px-3 py-2 rounded-lg border"
@@ -1186,7 +1312,12 @@ export default function MintAgentPage() {
                             {agentTraits.traits.map((id) => {
                               const t = getTraitById(id);
                               return t ? (
-                                <TraitPill key={id} icon={t.icon} name={t.name} size="sm" />
+                                <TraitPill
+                                  key={id}
+                                  icon={t.icon}
+                                  name={t.name}
+                                  size="sm"
+                                />
                               ) : null;
                             })}
                           </div>
@@ -1223,7 +1354,12 @@ export default function MintAgentPage() {
                             {agentTraits.skills.map((id) => {
                               const s = getSkillById(id);
                               return s ? (
-                                <TraitPill key={id} icon={s.icon} name={s.name} size="sm" />
+                                <TraitPill
+                                  key={id}
+                                  icon={s.icon}
+                                  name={s.name}
+                                  size="sm"
+                                />
                               ) : null;
                             })}
                           </div>
@@ -1260,7 +1396,12 @@ export default function MintAgentPage() {
                             {agentTraits.tools.map((id) => {
                               const t = getToolById(id);
                               return t ? (
-                                <TraitPill key={id} icon={t.icon} name={t.name} size="sm" />
+                                <TraitPill
+                                  key={id}
+                                  icon={t.icon}
+                                  name={t.name}
+                                  size="sm"
+                                />
                               ) : null;
                             })}
                           </div>
@@ -1289,13 +1430,16 @@ export default function MintAgentPage() {
                           </div>
                           <div
                             className={`transition-all duration-300 ${
-                              isRandomizing && !lockedTraits.has("specialAbility")
+                              isRandomizing &&
+                              !lockedTraits.has("specialAbility")
                                 ? "opacity-50 blur-sm"
                                 : ""
                             }`}
                           >
                             {(() => {
-                              const a = getSpecialAbilityById(agentTraits.specialAbility);
+                              const a = getSpecialAbilityById(
+                                agentTraits.specialAbility,
+                              );
                               const rarity = RARITIES[agentTraits.rarity];
                               return a ? (
                                 <div
@@ -1348,7 +1492,9 @@ export default function MintAgentPage() {
                         <Wand2 className="w-4 h-4 text-purple-400" />
                       </div>
                       <div>
-                        <h2 className="font-semibold text-sm">Generate AI Image</h2>
+                        <h2 className="font-semibold text-sm">
+                          Generate AI Image
+                        </h2>
                         <p className="text-[10px] text-gray-500">
                           Create a unique profile picture
                         </p>
@@ -1406,7 +1552,6 @@ export default function MintAgentPage() {
                         </div>
                       )}
                     </div>
-
                   </div>
 
                   {/* Navigation */}
@@ -1437,7 +1582,9 @@ export default function MintAgentPage() {
                         <Coins className="w-4 h-4 text-purple-400" />
                       </div>
                       <div>
-                        <h2 className="font-semibold text-sm">Configure Token</h2>
+                        <h2 className="font-semibold text-sm">
+                          Configure Token
+                        </h2>
                         <p className="text-[10px] text-gray-500">
                           Set up token details
                         </p>
@@ -1448,7 +1595,8 @@ export default function MintAgentPage() {
                       {/* Token Symbol */}
                       <div>
                         <label className="block text-[10px] uppercase tracking-wider text-gray-500 mb-1.5 font-semibold">
-                          Token Symbol <span className="text-purple-400">*</span>
+                          Token Symbol{" "}
+                          <span className="text-purple-400">*</span>
                         </label>
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-medium text-sm">
@@ -1458,7 +1606,9 @@ export default function MintAgentPage() {
                             type="text"
                             value={tokenSymbol}
                             onChange={(e) =>
-                              setTokenSymbol(e.target.value.toUpperCase().slice(0, 10))
+                              setTokenSymbol(
+                                e.target.value.toUpperCase().slice(0, 10),
+                              )
                             }
                             className="w-full pl-7 pr-3 py-2 bg-gray-800/70 border border-gray-700/50 rounded-lg text-white text-sm font-mono uppercase placeholder-gray-600 focus:outline-none focus:border-purple-500/50"
                             placeholder="AGENT"
@@ -1470,7 +1620,8 @@ export default function MintAgentPage() {
                       {/* Description */}
                       <div>
                         <label className="block text-[10px] uppercase tracking-wider text-gray-500 mb-1.5 font-semibold">
-                          Description <span className="text-gray-600">(optional)</span>
+                          Description{" "}
+                          <span className="text-gray-600">(optional)</span>
                         </label>
                         <textarea
                           value={description}
@@ -1491,7 +1642,9 @@ export default function MintAgentPage() {
                           <input
                             type="number"
                             value={initialBuyAmount}
-                            onChange={(e) => setInitialBuyAmount(e.target.value)}
+                            onChange={(e) =>
+                              setInitialBuyAmount(e.target.value)
+                            }
                             className="w-full px-3 py-2 bg-gray-800/70 border border-gray-700/50 rounded-lg text-white text-sm placeholder-gray-600 focus:outline-none focus:border-purple-500/50"
                             placeholder="0.01"
                             min="0"
@@ -1512,7 +1665,8 @@ export default function MintAgentPage() {
                           <div className="flex items-center gap-2 px-3 py-2 bg-gray-800/70 border border-gray-700/50 rounded-lg">
                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                             <span className="font-mono text-xs text-gray-300">
-                              {walletAddress.slice(0, 6)}...{walletAddress.slice(-6)}
+                              {walletAddress.slice(0, 6)}...
+                              {walletAddress.slice(-6)}
                             </span>
                           </div>
                         </div>
@@ -1558,21 +1712,31 @@ export default function MintAgentPage() {
                     {/* Summary */}
                     <div className="space-y-2 mb-4">
                       <div className="flex justify-between items-center py-2 border-b border-gray-800/50">
-                        <span className="text-gray-400 text-xs">Agent Name</span>
-                        <span className="font-semibold text-sm">{agentName}</span>
+                        <span className="text-gray-400 text-xs">
+                          Agent Name
+                        </span>
+                        <span className="font-semibold text-sm">
+                          {agentName}
+                        </span>
                       </div>
                       <div className="flex justify-between items-center py-2 border-b border-gray-800/50">
-                        <span className="text-gray-400 text-xs">Token Symbol</span>
+                        <span className="text-gray-400 text-xs">
+                          Token Symbol
+                        </span>
                         <span className="font-mono font-semibold text-sm text-purple-400">
                           ${tokenSymbol}
                         </span>
                       </div>
                       <div className="flex justify-between items-center py-2 border-b border-gray-800/50">
                         <span className="text-gray-400 text-xs">Rarity</span>
-                        {agentTraits && <RarityBadge rarity={agentTraits.rarity} />}
+                        {agentTraits && (
+                          <RarityBadge rarity={agentTraits.rarity} />
+                        )}
                       </div>
                       <div className="flex justify-between items-center py-2 border-b border-gray-800/50">
-                        <span className="text-gray-400 text-xs">Initial Buy</span>
+                        <span className="text-gray-400 text-xs">
+                          Initial Buy
+                        </span>
                         <span className="font-semibold text-sm">
                           {parseFloat(initialBuyAmount) > 0
                             ? `${initialBuyAmount} SOL`

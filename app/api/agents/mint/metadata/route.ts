@@ -4,7 +4,8 @@ import { BagsSDK } from "@bagsfm/bags-sdk";
 import { Connection } from "@solana/web3.js";
 import { put } from "@vercel/blob";
 
-const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || "https://mainnet.helius-rpc.com";
+const SOLANA_RPC_URL =
+  process.env.SOLANA_RPC_URL || "https://mainnet.helius-rpc.com";
 
 const privy = new PrivyClient({
   appId: process.env.NEXT_PUBLIC_PRIVY_APP_ID!,
@@ -38,70 +39,73 @@ export async function POST(req: NextRequest) {
     if (!apiKey) {
       return NextResponse.json(
         { error: "Bags API key not configured" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
     const body = await req.json();
-    const { name, symbol, description, imageUrl, twitter, website, telegram } = body;
+    const { name, symbol, description, imageUrl, twitter, website, telegram } =
+      body;
 
     // Validate required fields
     if (!name || !symbol || !description || !imageUrl) {
       return NextResponse.json(
-        { error: "Missing required fields: name, symbol, description, imageUrl" },
-        { status: 400 }
+        {
+          error: "Missing required fields: name, symbol, description, imageUrl",
+        },
+        { status: 400 },
       );
     }
 
     if (name.length > 32) {
       return NextResponse.json(
         { error: "Name must be 32 characters or less" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (symbol.length > 10) {
       return NextResponse.json(
         { error: "Symbol must be 10 characters or less" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (description.length > 1000) {
       return NextResponse.json(
         { error: "Description must be 1000 characters or less" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     // Handle image - if it's a base64 data URL, upload to Vercel Blob first
     let publicImageUrl = imageUrl;
-    
+
     if (imageUrl.startsWith("data:")) {
       // Extract base64 data and mime type from data URL
       const matches = imageUrl.match(/^data:([^;]+);base64,(.+)$/);
       if (!matches) {
         return NextResponse.json(
           { error: "Invalid image data URL format" },
-          { status: 400 }
+          { status: 400 },
         );
       }
       const mimeType = matches[1];
       const base64Data = matches[2];
-      
+
       // Convert base64 to buffer
       const imageBuffer = Buffer.from(base64Data, "base64");
-      
+
       // Determine file extension from mime type
       const ext = mimeType.split("/")[1] || "png";
       const filename = `agents/${Date.now()}-${symbol.toLowerCase()}.${ext}`;
-      
+
       // Upload to Vercel Blob
       const { url } = await put(filename, imageBuffer, {
         access: "public",
         contentType: mimeType,
       });
-      
+
       publicImageUrl = url;
       console.log(`[Metadata] Uploaded image to Vercel Blob: ${url}`);
     }
@@ -133,10 +137,10 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error("Error creating token metadata:", error);
-    const errorMessage = error instanceof Error ? error.message : "Failed to create token metadata";
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "Failed to create token metadata";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

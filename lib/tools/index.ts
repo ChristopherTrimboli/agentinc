@@ -1,24 +1,24 @@
 /**
  * Agent Tools
- * 
+ *
  * Simple utility tools that work with any AI model.
  * For complex integrations requiring API keys, use skills instead (lib/skills/).
- * 
+ *
  * Usage:
  * ```typescript
  * import { weatherTools, getAllTools } from "@/lib/tools";
  * import { streamText } from "ai";
- * 
+ *
  * // Use specific tools
  * const result = streamText({
  *   model: "anthropic/claude-haiku-4-5",
  *   tools: weatherTools,
  *   messages,
  * });
- * 
+ *
  * // Or get all available tools
  * const result = streamText({
- *   model: "anthropic/claude-haiku-4-5", 
+ *   model: "anthropic/claude-haiku-4-5",
  *   tools: getAllTools(),
  *   messages,
  * });
@@ -41,7 +41,7 @@ export { getWeather, getForecast, weatherTools } from "./weather";
 export function getAllTools(): Record<string, Tool<any, any>> {
   // Import tools dynamically to avoid circular deps
   const { weatherTools } = require("./weather");
-  
+
   return {
     ...weatherTools,
     // Add more tool modules here as they're created

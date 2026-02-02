@@ -3,7 +3,16 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
-import { ArrowLeft, Bot, MessageSquare, RefreshCcw, Copy, Brain, ChevronDown, Wrench } from "lucide-react";
+import {
+  ArrowLeft,
+  Bot,
+  MessageSquare,
+  RefreshCcw,
+  Copy,
+  Brain,
+  ChevronDown,
+  Wrench,
+} from "lucide-react";
 import { useState, useMemo, Suspense, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { useIdentityToken } from "@privy-io/react-auth";
@@ -63,9 +72,9 @@ interface AgentInfo {
 // Component to display attachment previews within PromptInput context
 function AttachmentsPreview() {
   const { files, remove } = usePromptInputAttachments();
-  
+
   if (files.length === 0) return null;
-  
+
   return (
     <PromptInputHeader>
       <Attachments variant="grid" className="gap-2">
@@ -95,29 +104,31 @@ function StreamingCursor() {
 }
 
 // Collapsible reasoning block
-function ReasoningBlock({ 
-  text, 
-  isStreaming 
-}: { 
-  text: string; 
+function ReasoningBlock({
+  text,
+  isStreaming,
+}: {
+  text: string;
   isStreaming: boolean;
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
-  
+
   return (
     <div className="rounded-lg bg-indigo/20 border border-indigo/30 overflow-hidden">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-indigo/10 transition-colors"
       >
-        <Brain className={`w-4 h-4 text-coral ${isStreaming ? 'animate-pulse' : ''}`} />
+        <Brain
+          className={`w-4 h-4 text-coral ${isStreaming ? "animate-pulse" : ""}`}
+        />
         <span className="text-xs uppercase tracking-wider text-coral/70 font-medium">
-          {isStreaming ? 'Thinking...' : 'Reasoning'}
+          {isStreaming ? "Thinking..." : "Reasoning"}
         </span>
-        <ChevronDown 
+        <ChevronDown
           className={`w-4 h-4 text-muted-foreground ml-auto transition-transform ${
-            isExpanded ? 'rotate-180' : ''
-          }`} 
+            isExpanded ? "rotate-180" : ""
+          }`}
         />
       </button>
       {isExpanded && (
@@ -131,54 +142,64 @@ function ReasoningBlock({
 }
 
 // Tool call display
-function ToolCallBlock({ 
-  toolName, 
-  args, 
+function ToolCallBlock({
+  toolName,
+  args,
   result,
-  state 
-}: { 
+  state,
+}: {
   toolName: string;
   args: Record<string, unknown>;
   result?: unknown;
-  state: 'call' | 'result' | 'partial-call';
+  state: "call" | "result" | "partial-call";
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const isRunning = state === 'call' || state === 'partial-call';
-  
+  const isRunning = state === "call" || state === "partial-call";
+
   return (
     <div className="rounded-lg bg-surface-light border border-border overflow-hidden text-sm">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-surface-lighter transition-colors"
       >
-        <Wrench className={`w-4 h-4 text-coral ${isRunning ? 'animate-spin' : ''}`} />
+        <Wrench
+          className={`w-4 h-4 text-coral ${isRunning ? "animate-spin" : ""}`}
+        />
         <span className="font-medium text-foreground">{toolName}</span>
-        <span className={`text-xs px-2 py-0.5 rounded-full ml-auto ${
-          isRunning 
-            ? 'bg-coral/20 text-coral' 
-            : 'bg-green-500/20 text-green-400'
-        }`}>
-          {isRunning ? 'Running...' : 'Complete'}
+        <span
+          className={`text-xs px-2 py-0.5 rounded-full ml-auto ${
+            isRunning
+              ? "bg-coral/20 text-coral"
+              : "bg-green-500/20 text-green-400"
+          }`}
+        >
+          {isRunning ? "Running..." : "Complete"}
         </span>
-        <ChevronDown 
+        <ChevronDown
           className={`w-4 h-4 text-muted-foreground transition-transform ${
-            isExpanded ? 'rotate-180' : ''
-          }`} 
+            isExpanded ? "rotate-180" : ""
+          }`}
         />
       </button>
       {isExpanded && (
         <div className="px-3 pb-3 border-t border-border pt-2 space-y-2">
           <div>
-            <span className="text-xs text-muted-foreground block mb-1">Input:</span>
+            <span className="text-xs text-muted-foreground block mb-1">
+              Input:
+            </span>
             <pre className="text-xs bg-surface p-2 rounded overflow-x-auto">
               {JSON.stringify(args, null, 2)}
             </pre>
           </div>
           {result !== undefined && (
             <div>
-              <span className="text-xs text-muted-foreground block mb-1">Output:</span>
+              <span className="text-xs text-muted-foreground block mb-1">
+                Output:
+              </span>
               <pre className="text-xs bg-surface p-2 rounded overflow-x-auto">
-                {typeof result === 'string' ? result : JSON.stringify(result, null, 2)}
+                {typeof result === "string"
+                  ? result
+                  : JSON.stringify(result, null, 2)}
               </pre>
             </div>
           )}
@@ -250,7 +271,7 @@ function ChatContent() {
 
   const handleSubmit = (message: PromptInputMessage) => {
     if (!message.text?.trim() && !message.files?.length) return;
-    
+
     sendMessage({
       text: message.text || "Sent with attachments",
       files: message.files,
@@ -295,9 +316,13 @@ function ChatContent() {
               {agentLoading ? (
                 <div className="h-5 w-32 bg-surface-light rounded animate-pulse" />
               ) : (
-                <h1 className="font-semibold font-display text-lg">{displayName}</h1>
+                <h1 className="font-semibold font-display text-lg">
+                  {displayName}
+                </h1>
               )}
-              <p className="text-sm text-muted-foreground line-clamp-1">{displayDescription}</p>
+              <p className="text-sm text-muted-foreground line-clamp-1">
+                {displayDescription}
+              </p>
             </div>
           </div>
         </div>
@@ -347,7 +372,7 @@ function ChatContent() {
               messages.map((message, messageIndex) => {
                 const isLastMessage = messageIndex === messages.length - 1;
                 const sourceParts = message.parts.filter(
-                  (part) => part.type === "source-url"
+                  (part) => part.type === "source-url",
                 );
 
                 return (
@@ -355,7 +380,10 @@ function ChatContent() {
                     {/* Sources display for assistant messages */}
                     {message.role === "assistant" && sourceParts.length > 0 && (
                       <Sources className="mb-2">
-                        <SourcesTrigger count={sourceParts.length} className="text-coral" />
+                        <SourcesTrigger
+                          count={sourceParts.length}
+                          className="text-coral"
+                        />
                         {sourceParts.map((part, i) => (
                           <SourcesContent key={`${message.id}-source-${i}`}>
                             {part.type === "source-url" && (
@@ -402,16 +430,20 @@ function ChatContent() {
                       <MessageContent>
                         {message.parts.map((part, i) => {
                           const isLastPart = i === message.parts.length - 1;
-                          const isActivelyStreaming = isLastMessage && status === "streaming";
-                          
+                          const isActivelyStreaming =
+                            isLastMessage && status === "streaming";
+
                           switch (part.type) {
                             case "text":
                               return (
-                                <div key={`${message.id}-${i}`} className="relative">
-                                  <MessageResponse>
-                                    {part.text}
-                                  </MessageResponse>
-                                  {isLastPart && isActivelyStreaming && <StreamingCursor />}
+                                <div
+                                  key={`${message.id}-${i}`}
+                                  className="relative"
+                                >
+                                  <MessageResponse>{part.text}</MessageResponse>
+                                  {isLastPart && isActivelyStreaming && (
+                                    <StreamingCursor />
+                                  )}
                                 </div>
                               );
                             case "reasoning":
@@ -419,14 +451,16 @@ function ChatContent() {
                                 <ReasoningBlock
                                   key={`${message.id}-${i}`}
                                   text={part.text}
-                                  isStreaming={isLastPart && isActivelyStreaming}
+                                  isStreaming={
+                                    isLastPart && isActivelyStreaming
+                                  }
                                 />
                               );
                             default:
                               // Handle tool calls - type starts with "tool-"
-                              if (part.type.startsWith('tool-')) {
-                                const toolPart = part as { 
-                                  type: string; 
+                              if (part.type.startsWith("tool-")) {
+                                const toolPart = part as {
+                                  type: string;
                                   toolCallId: string;
                                   title?: string;
                                   state: string;
@@ -436,10 +470,23 @@ function ChatContent() {
                                 return (
                                   <ToolCallBlock
                                     key={`${message.id}-${i}`}
-                                    toolName={toolPart.title || toolPart.type.replace('tool-', '')}
-                                    args={(toolPart.input as Record<string, unknown>) || {}}
+                                    toolName={
+                                      toolPart.title ||
+                                      toolPart.type.replace("tool-", "")
+                                    }
+                                    args={
+                                      (toolPart.input as Record<
+                                        string,
+                                        unknown
+                                      >) || {}
+                                    }
                                     result={toolPart.output}
-                                    state={toolPart.state as 'call' | 'result' | 'partial-call'}
+                                    state={
+                                      toolPart.state as
+                                        | "call"
+                                        | "result"
+                                        | "partial-call"
+                                    }
                                   />
                                 );
                               }
@@ -449,33 +496,35 @@ function ChatContent() {
                       </MessageContent>
 
                       {/* Message actions for last assistant message */}
-                      {message.role === "assistant" && isLastMessage && status === "ready" && (
-                        <MessageActions className="mt-2">
-                          <MessageAction
-                            onClick={() => regenerate()}
-                            label="Regenerate"
-                            tooltip="Regenerate response"
-                            className="text-muted-foreground hover:text-coral hover:bg-coral/10"
-                          >
-                            <RefreshCcw className="size-3" />
-                          </MessageAction>
-                          <MessageAction
-                            onClick={() => {
-                              const textPart = message.parts.find(
-                                (p) => p.type === "text"
-                              );
-                              if (textPart && textPart.type === "text") {
-                                copyToClipboard(textPart.text);
-                              }
-                            }}
-                            label="Copy"
-                            tooltip="Copy to clipboard"
-                            className="text-muted-foreground hover:text-coral hover:bg-coral/10"
-                          >
-                            <Copy className="size-3" />
-                          </MessageAction>
-                        </MessageActions>
-                      )}
+                      {message.role === "assistant" &&
+                        isLastMessage &&
+                        status === "ready" && (
+                          <MessageActions className="mt-2">
+                            <MessageAction
+                              onClick={() => regenerate()}
+                              label="Regenerate"
+                              tooltip="Regenerate response"
+                              className="text-muted-foreground hover:text-coral hover:bg-coral/10"
+                            >
+                              <RefreshCcw className="size-3" />
+                            </MessageAction>
+                            <MessageAction
+                              onClick={() => {
+                                const textPart = message.parts.find(
+                                  (p) => p.type === "text",
+                                );
+                                if (textPart && textPart.type === "text") {
+                                  copyToClipboard(textPart.text);
+                                }
+                              }}
+                              label="Copy"
+                              tooltip="Copy to clipboard"
+                              className="text-muted-foreground hover:text-coral hover:bg-coral/10"
+                            >
+                              <Copy className="size-3" />
+                            </MessageAction>
+                          </MessageActions>
+                        )}
                     </Message>
                   </div>
                 );

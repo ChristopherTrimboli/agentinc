@@ -4,7 +4,11 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import SwarmCanvas from "../../components/swarm/SwarmCanvas";
 import SwarmControls from "../../components/swarm/SwarmControls";
 import AgentDetails from "../../components/swarm/AgentDetails";
-import { SwarmProvider, useSwarmStore, useSwarmActions } from "@/lib/swarm/store";
+import {
+  SwarmProvider,
+  useSwarmStore,
+  useSwarmActions,
+} from "@/lib/swarm/store";
 import { createMockSimulation } from "@/lib/swarm/mockData";
 import type { SwarmAgent } from "@/lib/swarm/types";
 
@@ -30,11 +34,13 @@ interface DBAgent {
 function SwarmVisualization() {
   const store = useSwarmStore();
   const actions = useSwarmActions();
-  
+
   const [selectedAgent, setSelectedAgent] = useState<SwarmAgent | null>(null);
   const [hoveredAgent, setHoveredAgent] = useState<SwarmAgent | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const simulationRef = useRef<{ start: () => void; stop: () => void } | null>(null);
+  const simulationRef = useRef<{ start: () => void; stop: () => void } | null>(
+    null,
+  );
   const physicsInitialized = useRef(false);
   const simulationStarted = useRef(false);
 
@@ -55,7 +61,7 @@ function SwarmVisualization() {
         // Fetch corporations first
         const corpResponse = await fetch("/api/swarm/corporations");
         const corpData = await corpResponse.json();
-        
+
         if (corpData.corporations && corpData.corporations.length > 0) {
           corpData.corporations.forEach((corp: DBCorporation) => {
             actions.addCorporation({
@@ -72,7 +78,7 @@ function SwarmVisualization() {
         // Then fetch agents
         const agentResponse = await fetch("/api/swarm/agents");
         const agentData = await agentResponse.json();
-        
+
         if (agentData.agents && agentData.agents.length > 0) {
           agentData.agents.forEach((agent: DBAgent) => {
             actions.addAgent({
@@ -95,12 +101,21 @@ function SwarmVisualization() {
     };
 
     // Only fetch data once physics is initialized
-    if (physicsInitialized.current && store.agents.size === 0 && store.corporations.size === 0) {
+    if (
+      physicsInitialized.current &&
+      store.agents.size === 0 &&
+      store.corporations.size === 0
+    ) {
       fetchData();
     } else if (store.agents.size > 0 || store.corporations.size > 0) {
       setIsLoading(false);
     }
-  }, [physicsInitialized.current, actions, store.agents.size, store.corporations.size]);
+  }, [
+    physicsInitialized.current,
+    actions,
+    store.agents.size,
+    store.corporations.size,
+  ]);
 
   // Create simulation and auto-start it
   useEffect(() => {
@@ -108,7 +123,7 @@ function SwarmVisualization() {
       actions.addConnection,
       actions.updateConnection,
       actions.removeConnection,
-      () => Array.from(store.agents.keys())
+      () => Array.from(store.agents.keys()),
     );
 
     return () => {
@@ -146,7 +161,7 @@ function SwarmVisualization() {
   }, [actions]);
 
   const activeConnections = Array.from(store.connections.values()).filter(
-    (c) => c.status === "active"
+    (c) => c.status === "active",
   ).length;
 
   return (
@@ -177,11 +192,23 @@ function SwarmVisualization() {
         <div className="absolute inset-0 flex items-center justify-center z-20">
           <div className="text-center max-w-md px-4">
             <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[#6FEC06]/10 flex items-center justify-center border border-[#6FEC06]/30">
-              <svg className="w-8 h-8 text-[#6FEC06]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              <svg
+                className="w-8 h-8 text-[#6FEC06]"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M13 10V3L4 14h7v7l9-11h-7z"
+                />
               </svg>
             </div>
-            <h3 className="text-lg font-semibold text-white mb-2">No Agents Yet</h3>
+            <h3 className="text-lg font-semibold text-white mb-2">
+              No Agents Yet
+            </h3>
             <p className="text-white/50 text-sm mb-4">
               Create agents to see them interact in the swarm visualization.
             </p>

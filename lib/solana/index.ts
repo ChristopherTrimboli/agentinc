@@ -3,7 +3,8 @@ import { Connection } from "@solana/web3.js";
 import bs58 from "bs58";
 
 // Server-side Solana RPC (not exposed to client)
-const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
+const SOLANA_RPC_URL =
+  process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
 
 // Jito block engine endpoints for priority transaction landing
 const JITO_ENDPOINTS = [
@@ -15,10 +16,7 @@ const JITO_ENDPOINTS = [
 ];
 
 // Fallback RPC endpoints
-const FALLBACK_RPC_URLS = [
-  SOLANA_RPC_URL,
-  "https://rpc.ankr.com/solana",
-];
+const FALLBACK_RPC_URLS = [SOLANA_RPC_URL, "https://rpc.ankr.com/solana"];
 
 // Singleton Privy client
 let _privyClient: PrivyClient | null = null;
@@ -44,13 +42,13 @@ export async function signTransaction(
   transaction: string, // base64 encoded unsigned transaction
 ): Promise<string> {
   const privy = getPrivyClient();
-  
+
   console.log("[Solana] Signing transaction with wallet:", walletId);
-  
+
   const response = await privy.wallets().solana().signTransaction(walletId, {
     transaction,
   });
-  
+
   // Response type uses snake_case
   const data = response as unknown as { signed_transaction: string };
   return data.signed_transaction;
@@ -63,14 +61,17 @@ export async function signAndSendTransaction(
   transaction: string, // base64 encoded unsigned transaction
 ): Promise<{ signature: string }> {
   const privy = getPrivyClient();
-  
+
   // caip2 is the Chain Agnostic Improvement Proposal 2 identifier
   // For Solana mainnet: solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp
-  const response = await privy.wallets().solana().signAndSendTransaction(walletId, {
-    transaction,
-    caip2: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", // Solana mainnet
-  });
-  
+  const response = await privy
+    .wallets()
+    .solana()
+    .signAndSendTransaction(walletId, {
+      transaction,
+      caip2: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", // Solana mainnet
+    });
+
   const data = response as unknown as { signature: string };
   return {
     signature: data.signature,
@@ -166,7 +167,7 @@ async function sendViaRpc(base58Tx: string): Promise<string | null> {
 // Send a signed transaction (base64) with Jito priority + RPC fallback
 export async function sendSignedTransaction(
   signedTransaction: string, // base64 encoded signed transaction
-  options: { useJito?: boolean } = { useJito: true }
+  options: { useJito?: boolean } = { useJito: true },
 ): Promise<{ signature: string; method: "jito" | "rpc" }> {
   const txBytes = Buffer.from(signedTransaction, "base64");
   const base58Tx = bs58.encode(txBytes);
@@ -192,7 +193,7 @@ export async function sendSignedTransaction(
 export async function serverSignAndSend(
   walletId: string,
   transaction: string, // base64 encoded unsigned transaction
-  options: { useJito?: boolean } = { useJito: true }
+  options: { useJito?: boolean } = { useJito: true },
 ): Promise<{ signature: string; method: "jito" | "rpc" | "privy" }> {
   if (!walletId) {
     throw new Error("Wallet ID is required for server-side signing");
@@ -203,44 +204,52 @@ export async function serverSignAndSend(
 
   // Send with Jito priority
   const result = await sendSignedTransaction(signedTransaction, options);
-  
+
   return result;
 }
 
 // Verify auth from request headers
 export async function verifyAuth(
-  idToken: string | null
+  idToken: string | null,
 ): Promise<{ userId: string; walletAddress: string; walletId: string } | null> {
   if (!idToken) return null;
 
   const privy = getPrivyClient();
-  
+
   try {
     const user = await privy.users().get({ id_token: idToken });
-    
+
     // Find the Solana embedded wallet - check multiple possible property names
     const solanaWallet = user.linked_accounts?.find((account) => {
       if (account.type !== "wallet") return false;
-      
-      const wallet = account as { 
-        chain_type?: string; 
+
+      const wallet = account as {
+        chain_type?: string;
         chainType?: string;
         chain?: string;
       };
-      
-      return wallet.chain_type === "solana" ||
-             wallet.chainType === "solana" ||
-             wallet.chain === "solana";
+
+      return (
+        wallet.chain_type === "solana" ||
+        wallet.chainType === "solana" ||
+        wallet.chain === "solana"
+      );
     });
-    
+
     if (!solanaWallet) {
-      console.error("[Solana] No Solana wallet found. Available accounts:", 
-        JSON.stringify(user.linked_accounts?.filter(a => a.type === "wallet"), null, 2));
+      console.error(
+        "[Solana] No Solana wallet found. Available accounts:",
+        JSON.stringify(
+          user.linked_accounts?.filter((a) => a.type === "wallet"),
+          null,
+          2,
+        ),
+      );
       return null;
     }
-    
+
     const walletData = solanaWallet as { id: string; address: string };
-    
+
     return {
       userId: user.id,
       walletAddress: walletData.address,

@@ -32,7 +32,10 @@ interface Agent {
 }
 
 // Rarity colors matching the design system
-const rarityColors: Record<string, { border: string; bg: string; text: string; glow: string }> = {
+const rarityColors: Record<
+  string,
+  { border: string; bg: string; text: string; glow: string }
+> = {
   legendary: {
     border: "border-[#FFD700]",
     bg: "bg-[#FFD700]/10",
@@ -143,7 +146,9 @@ export default function AgentsPage() {
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#6FEC06]/30 bg-[#6FEC06]/10 mb-4">
             <Sparkles className="w-3.5 h-3.5 text-[#6FEC06]" />
-            <span className="text-xs font-medium text-[#6FEC06]">Your Collection</span>
+            <span className="text-xs font-medium text-[#6FEC06]">
+              Your Collection
+            </span>
           </div>
           <h1 className="text-3xl md:text-4xl font-bold mb-3 font-display">
             Your <span className="gradient-text-shimmer">AI Agents</span>
@@ -183,9 +188,12 @@ export default function AgentsPage() {
           <div className="w-24 h-24 mx-auto mb-8 rounded-2xl bg-gradient-to-br from-[#120557] to-[#6FEC06]/20 flex items-center justify-center border border-[#6FEC06]/30 shadow-lg shadow-[#6FEC06]/10">
             <Bot className="w-12 h-12 text-[#6FEC06]" />
           </div>
-          <h2 className="text-2xl font-bold mb-3 font-display">No agents yet</h2>
+          <h2 className="text-2xl font-bold mb-3 font-display">
+            No agents yet
+          </h2>
           <p className="text-white/50 mb-8 max-w-md mx-auto text-lg">
-            Create your first AI agent to get started. Customize its personality, knowledge, and capabilities.
+            Create your first AI agent to get started. Customize its
+            personality, knowledge, and capabilities.
           </p>
           <Link
             href="/dashboard/mint"
@@ -224,13 +232,15 @@ export default function AgentsPage() {
                       </div>
                     </div>
                   )}
-                  
+
                   {/* Gradient overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-[#0a0520] via-transparent to-transparent" />
-                  
+
                   {/* Rarity badge */}
                   {agent.rarity && agent.rarity !== "common" && (
-                    <div className={`absolute top-3 right-3 px-2.5 py-1 rounded-full ${rarityStyle.bg} ${rarityStyle.text} text-xs font-semibold uppercase tracking-wider backdrop-blur-sm border ${rarityStyle.border}`}>
+                    <div
+                      className={`absolute top-3 right-3 px-2.5 py-1 rounded-full ${rarityStyle.bg} ${rarityStyle.text} text-xs font-semibold uppercase tracking-wider backdrop-blur-sm border ${rarityStyle.border}`}
+                    >
                       {agent.rarity}
                     </div>
                   )}
@@ -248,7 +258,16 @@ export default function AgentsPage() {
                     disabled={deletingId === agent.id}
                     className="absolute top-3 right-3 p-2 text-white/60 hover:text-red-400 hover:bg-red-500/20 rounded-lg transition-all opacity-0 group-hover:opacity-100 backdrop-blur-sm"
                     title="Delete agent"
-                    style={{ right: agent.rarity && agent.rarity !== "common" ? "auto" : undefined, left: agent.rarity && agent.rarity !== "common" ? "12px" : undefined }}
+                    style={{
+                      right:
+                        agent.rarity && agent.rarity !== "common"
+                          ? "auto"
+                          : undefined,
+                      left:
+                        agent.rarity && agent.rarity !== "common"
+                          ? "12px"
+                          : undefined,
+                    }}
                   >
                     {deletingId === agent.id ? (
                       <div className="w-4 h-4 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
@@ -262,9 +281,13 @@ export default function AgentsPage() {
                 <div className="p-5">
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-lg truncate font-display">{agent.name}</h3>
+                      <h3 className="font-bold text-lg truncate font-display">
+                        {agent.name}
+                      </h3>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className={`flex items-center gap-1 text-xs ${agent.isPublic ? "text-[#6FEC06]" : "text-white/40"}`}>
+                        <span
+                          className={`flex items-center gap-1 text-xs ${agent.isPublic ? "text-[#6FEC06]" : "text-white/40"}`}
+                        >
                           {agent.isPublic ? (
                             <>
                               <Globe className="w-3 h-3" />
@@ -280,7 +303,9 @@ export default function AgentsPage() {
                         {agent.personality && (
                           <>
                             <span className="text-white/20">·</span>
-                            <span className="text-xs text-white/40 capitalize">{agent.personality}</span>
+                            <span className="text-xs text-white/40 capitalize">
+                              {agent.personality}
+                            </span>
                           </>
                         )}
                       </div>

@@ -54,10 +54,17 @@ export async function POST(req: NextRequest) {
     };
 
     // Validate required fields
-    if (!name || !traits || !tokenMint || !tokenSymbol || !launchWallet || !launchSignature) {
+    if (
+      !name ||
+      !traits ||
+      !tokenMint ||
+      !tokenSymbol ||
+      !launchWallet ||
+      !launchSignature
+    ) {
       return NextResponse.json(
         { error: "Missing required fields" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -69,7 +76,7 @@ export async function POST(req: NextRequest) {
     if (existingAgent) {
       return NextResponse.json(
         { error: "Agent with this token mint already exists" },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
@@ -85,7 +92,7 @@ export async function POST(req: NextRequest) {
         imageUrl: imageUrl || null,
         isPublic: true, // Minted agents are public by default
         isMinted: true,
-        
+
         // Traits
         personality: traits.personality,
         traits: traits.traits,
@@ -93,7 +100,7 @@ export async function POST(req: NextRequest) {
         tools: traits.tools,
         specialAbility: traits.specialAbility,
         rarity: traits.rarity,
-        
+
         // Token launch fields
         tokenMint,
         tokenSymbol,
@@ -101,7 +108,7 @@ export async function POST(req: NextRequest) {
         launchWallet,
         launchSignature,
         launchedAt: new Date(),
-        
+
         // Creator
         createdById: userId,
       },
@@ -112,7 +119,7 @@ export async function POST(req: NextRequest) {
     console.error("Error saving minted agent:", error);
     return NextResponse.json(
       { error: "Failed to save minted agent" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -19,7 +19,7 @@ import StatsCounter from "./components/StatsCounter";
 import AgentArenaChart from "./components/AgentArenaChart";
 import FeaturesGrid from "./components/FeaturesGrid";
 import AgentExecutives from "./components/AgentExecutives";
-import AgentMarketplace from "./components/AgentMarketplace";
+import AgentShowcase from "./components/AgentShowcase";
 import CorporateNetwork from "./components/CorporateNetwork";
 import AgentCapabilities from "./components/AgentCapabilities";
 import HowItWorks from "./components/HowItWorks";
@@ -128,8 +128,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Agent Marketplace Section */}
-      <AgentMarketplace />
+      {/* Agent Showcase Section */}
+      <AgentShowcase />
 
       {/* Agent Arena Section */}
       <section id="arena" className="py-32 px-6 relative overflow-hidden">
@@ -309,9 +309,9 @@ export default function Home() {
                 <Image
                   src="/agentinc.svg"
                   alt="Agent Inc."
-                  width={240}
-                  height={64}
-                  className="h-12 w-auto"
+                  width={180}
+                  height={48}
+                  className="h-8 w-auto"
                 />
               </div>
               <p className="text-white/60 max-w-sm mb-6">
@@ -373,7 +373,7 @@ export default function Home() {
                   <SoonBadge />
                 </li>
                 <li className="flex items-center gap-2">
-                  <span className="text-white/40">Marketplace</span>
+                  <span className="text-white/40">Explore</span>
                   <SoonBadge />
                 </li>
                 <li>

@@ -13,21 +13,45 @@ function apiUrl(endpoint: string, baseUrl?: string): string {
 
 // Define schemas separately for type inference
 const createPostSchema = z.object({
-  submolt: z.string().describe('The submolt (community) to post in, e.g., "general"'),
+  submolt: z
+    .string()
+    .describe('The submolt (community) to post in, e.g., "general"'),
   title: z.string().describe("The title of the post"),
-  content: z.string().optional().describe("The text content of the post (for text posts)"),
+  content: z
+    .string()
+    .optional()
+    .describe("The text content of the post (for text posts)"),
   url: z.string().url().optional().describe("URL to share (for link posts)"),
 });
 
 const getFeedSchema = z.object({
-  sort: z.enum(["hot", "new", "top", "rising"]).default("hot").describe("How to sort posts"),
-  limit: z.number().min(1).max(50).default(25).describe("Number of posts to return"),
-  submolt: z.string().optional().describe("Filter to a specific submolt (community)"),
+  sort: z
+    .enum(["hot", "new", "top", "rising"])
+    .default("hot")
+    .describe("How to sort posts"),
+  limit: z
+    .number()
+    .min(1)
+    .max(50)
+    .default(25)
+    .describe("Number of posts to return"),
+  submolt: z
+    .string()
+    .optional()
+    .describe("Filter to a specific submolt (community)"),
 });
 
 const getPersonalizedFeedSchema = z.object({
-  sort: z.enum(["hot", "new", "top"]).default("hot").describe("How to sort posts"),
-  limit: z.number().min(1).max(50).default(25).describe("Number of posts to return"),
+  sort: z
+    .enum(["hot", "new", "top"])
+    .default("hot")
+    .describe("How to sort posts"),
+  limit: z
+    .number()
+    .min(1)
+    .max(50)
+    .default(25)
+    .describe("Number of posts to return"),
 });
 
 const postIdSchema = z.object({
@@ -37,12 +61,18 @@ const postIdSchema = z.object({
 const createCommentSchema = z.object({
   postId: z.string().describe("The ID of the post to comment on"),
   content: z.string().describe("The content of your comment"),
-  parentId: z.string().optional().describe("The ID of the comment to reply to (for nested replies)"),
+  parentId: z
+    .string()
+    .optional()
+    .describe("The ID of the comment to reply to (for nested replies)"),
 });
 
 const getCommentsSchema = z.object({
   postId: z.string().describe("The ID of the post"),
-  sort: z.enum(["top", "new", "controversial"]).default("top").describe("How to sort comments"),
+  sort: z
+    .enum(["top", "new", "controversial"])
+    .default("top")
+    .describe("How to sort comments"),
 });
 
 const commentIdSchema = z.object({
@@ -54,9 +84,13 @@ const submoltNameSchema = z.object({
 });
 
 const createSubmoltSchema = z.object({
-  name: z.string().describe("The unique name for the submolt (lowercase, no spaces)"),
+  name: z
+    .string()
+    .describe("The unique name for the submolt (lowercase, no spaces)"),
   displayName: z.string().describe("The display name for the submolt"),
-  description: z.string().describe("A description of what this submolt is about"),
+  description: z
+    .string()
+    .describe("A description of what this submolt is about"),
 });
 
 const moltyNameSchema = z.object({
@@ -68,9 +102,22 @@ const updateProfileSchema = z.object({
 });
 
 const searchSchema = z.object({
-  query: z.string().max(500).describe('Natural language search query, e.g., "how do agents handle memory?"'),
-  type: z.enum(["posts", "comments", "all"]).default("all").describe("What to search: posts, comments, or all"),
-  limit: z.number().min(1).max(50).default(20).describe("Maximum number of results"),
+  query: z
+    .string()
+    .max(500)
+    .describe(
+      'Natural language search query, e.g., "how do agents handle memory?"',
+    ),
+  type: z
+    .enum(["posts", "comments", "all"])
+    .default("all")
+    .describe("What to search: posts, comments, or all"),
+  limit: z
+    .number()
+    .min(1)
+    .max(50)
+    .default(20)
+    .describe("Maximum number of results"),
 });
 
 const registerSchema = z.object({
@@ -89,10 +136,14 @@ export function createMoltbookTools(config: SkillConfig) {
   // ============================================
 
   const createPost = tool({
-    description: "Create a new post on Moltbook. Posts can be text posts (with content) or link posts (with url). Each agent can only post once every 30 minutes.",
+    description:
+      "Create a new post on Moltbook. Posts can be text posts (with content) or link posts (with url). Each agent can only post once every 30 minutes.",
     inputSchema: createPostSchema,
     execute: async (input: z.infer<typeof createPostSchema>) => {
-      const body: Record<string, string> = { submolt: input.submolt, title: input.title };
+      const body: Record<string, string> = {
+        submolt: input.submolt,
+        title: input.title,
+      };
       if (input.content) body.content = input.content;
       if (input.url) body.url = input.url;
 
@@ -105,7 +156,8 @@ export function createMoltbookTools(config: SkillConfig) {
   });
 
   const getFeed = tool({
-    description: "Get the Moltbook feed. Returns posts sorted by the specified method. Use this to see what other agents are posting about.",
+    description:
+      "Get the Moltbook feed. Returns posts sorted by the specified method. Use this to see what other agents are posting about.",
     inputSchema: getFeedSchema,
     execute: async (input: z.infer<typeof getFeedSchema>) => {
       const params = new URLSearchParams({
@@ -122,7 +174,8 @@ export function createMoltbookTools(config: SkillConfig) {
   });
 
   const getPersonalizedFeed = tool({
-    description: "Get your personalized feed with posts from submolts you subscribe to and moltys (agents) you follow.",
+    description:
+      "Get your personalized feed with posts from submolts you subscribe to and moltys (agents) you follow.",
     inputSchema: getPersonalizedFeedSchema,
     execute: async (input: z.infer<typeof getPersonalizedFeedSchema>) => {
       const params = new URLSearchParams({
@@ -164,7 +217,8 @@ export function createMoltbookTools(config: SkillConfig) {
   // ============================================
 
   const createComment = tool({
-    description: "Add a comment to a post. You can also reply to other comments by providing a parent_id.",
+    description:
+      "Add a comment to a post. You can also reply to other comments by providing a parent_id.",
     inputSchema: createCommentSchema,
     execute: async (input: z.infer<typeof createCommentSchema>) => {
       const body: Record<string, string> = { content: input.content };
@@ -184,10 +238,13 @@ export function createMoltbookTools(config: SkillConfig) {
     execute: async (input: z.infer<typeof getCommentsSchema>) => {
       const params = new URLSearchParams({ sort: input.sort });
 
-      return skillFetch(apiUrl(`/posts/${input.postId}/comments?${params}`, baseUrl), {
-        method: "GET",
-        apiKey,
-      });
+      return skillFetch(
+        apiUrl(`/posts/${input.postId}/comments?${params}`, baseUrl),
+        {
+          method: "GET",
+          apiKey,
+        },
+      );
     },
   });
 
@@ -221,10 +278,13 @@ export function createMoltbookTools(config: SkillConfig) {
     description: "Upvote a comment.",
     inputSchema: commentIdSchema,
     execute: async (input: z.infer<typeof commentIdSchema>) => {
-      return skillFetch(apiUrl(`/comments/${input.commentId}/upvote`, baseUrl), {
-        method: "POST",
-        apiKey,
-      });
+      return skillFetch(
+        apiUrl(`/comments/${input.commentId}/upvote`, baseUrl),
+        {
+          method: "POST",
+          apiKey,
+        },
+      );
     },
   });
 
@@ -271,7 +331,8 @@ export function createMoltbookTools(config: SkillConfig) {
   });
 
   const subscribeSubmolt = tool({
-    description: "Subscribe to a submolt to see its posts in your personalized feed.",
+    description:
+      "Subscribe to a submolt to see its posts in your personalized feed.",
     inputSchema: submoltNameSchema,
     execute: async (input: z.infer<typeof submoltNameSchema>) => {
       return skillFetch(apiUrl(`/submolts/${input.name}/subscribe`, baseUrl), {
@@ -297,7 +358,8 @@ export function createMoltbookTools(config: SkillConfig) {
   // ============================================
 
   const followMolty = tool({
-    description: "Follow another agent (molty) to see their posts in your personalized feed. Only follow agents whose content you consistently find valuable.",
+    description:
+      "Follow another agent (molty) to see their posts in your personalized feed. Only follow agents whose content you consistently find valuable.",
     inputSchema: moltyNameSchema,
     execute: async (input: z.infer<typeof moltyNameSchema>) => {
       return skillFetch(apiUrl(`/agents/${input.moltyName}/follow`, baseUrl), {
@@ -373,7 +435,8 @@ export function createMoltbookTools(config: SkillConfig) {
   // ============================================
 
   const semanticSearch = tool({
-    description: "Search Moltbook using semantic (AI-powered) search. Finds posts and comments by meaning, not just keywords. Use natural language questions for best results.",
+    description:
+      "Search Moltbook using semantic (AI-powered) search. Finds posts and comments by meaning, not just keywords. Use natural language questions for best results.",
     inputSchema: searchSchema,
     execute: async (input: z.infer<typeof searchSchema>) => {
       const params = new URLSearchParams({
@@ -394,13 +457,17 @@ export function createMoltbookTools(config: SkillConfig) {
   // ============================================
 
   const register = tool({
-    description: "Register a new agent on Moltbook. Returns an API key and claim URL. The human must claim the agent via Twitter to activate it.",
+    description:
+      "Register a new agent on Moltbook. Returns an API key and claim URL. The human must claim the agent via Twitter to activate it.",
     inputSchema: registerSchema,
     execute: async (input: z.infer<typeof registerSchema>) => {
       // Registration doesn't require an API key
       return skillFetch(apiUrl("/agents/register", baseUrl), {
         method: "POST",
-        body: JSON.stringify({ name: input.name, description: input.description }),
+        body: JSON.stringify({
+          name: input.name,
+          description: input.description,
+        }),
       });
     },
   });

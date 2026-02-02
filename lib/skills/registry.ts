@@ -13,7 +13,9 @@ class SkillRegistry {
    */
   register(skill: Skill): void {
     if (this.skills.has(skill.metadata.id)) {
-      console.warn(`Skill "${skill.metadata.id}" is already registered. Overwriting.`);
+      console.warn(
+        `Skill "${skill.metadata.id}" is already registered. Overwriting.`,
+      );
     }
     this.skills.set(skill.metadata.id, skill);
   }
@@ -70,7 +72,7 @@ class SkillRegistry {
    */
   createTools(
     skillIds: string[],
-    configs: Record<string, SkillConfig> = {}
+    configs: Record<string, SkillConfig> = {},
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ): Record<string, Tool<any, any>> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -85,14 +87,14 @@ class SkillRegistry {
 
       const config = configs[skillId] || {};
       const validation = skill.validate(config);
-      
+
       if (validation !== true) {
         console.warn(`Skill "${skillId}" validation failed: ${validation}`);
         continue;
       }
 
       const skillTools = skill.createTools(config);
-      
+
       // Prefix tool names with skill ID to avoid collisions
       for (const [toolName, tool] of Object.entries(skillTools)) {
         const prefixedName = `${skillId}_${toolName}`;
@@ -129,7 +131,7 @@ export function registerSkill(skill: Skill): void {
  */
 export function getSkillTools(
   skillIds: string[],
-  configs?: Record<string, SkillConfig>
+  configs?: Record<string, SkillConfig>,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Record<string, Tool<any, any>> {
   return skillRegistry.createTools(skillIds, configs);

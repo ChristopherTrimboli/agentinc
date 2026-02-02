@@ -41,7 +41,7 @@ export async function GET(request: Request) {
     console.error("Error fetching swarm events:", error);
     return NextResponse.json(
       { error: "Failed to fetch events" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -55,7 +55,7 @@ export async function DELETE() {
     console.error("Error clearing swarm events:", error);
     return NextResponse.json(
       { error: "Failed to clear events" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

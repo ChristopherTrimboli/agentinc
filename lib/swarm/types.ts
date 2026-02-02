@@ -42,7 +42,12 @@ export interface SwarmConnection {
 
 export interface SwarmEvent {
   id: string;
-  type: "agent_call" | "agent_response" | "agent_error" | "agent_register" | "agent_unregister";
+  type:
+    | "agent_call"
+    | "agent_response"
+    | "agent_error"
+    | "agent_register"
+    | "agent_unregister";
   sourceAgentId: string;
   targetAgentId?: string;
   payload?: Record<string, unknown>;

@@ -16,7 +16,7 @@ export async function GET() {
     console.error("Error fetching swarm agents:", error);
     return NextResponse.json(
       { error: "Failed to fetch agents" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -28,10 +28,7 @@ export async function POST(request: Request) {
     const { name, description, capabilities, color, size } = body;
 
     if (!name) {
-      return NextResponse.json(
-        { error: "Name is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
 
     const agent = await prisma.swarmAgent.create({
@@ -49,7 +46,7 @@ export async function POST(request: Request) {
     console.error("Error creating swarm agent:", error);
     return NextResponse.json(
       { error: "Failed to create agent" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -65,7 +62,7 @@ export async function DELETE() {
     console.error("Error deleting swarm agents:", error);
     return NextResponse.json(
       { error: "Failed to delete agents" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

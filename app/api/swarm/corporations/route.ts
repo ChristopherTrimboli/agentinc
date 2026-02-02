@@ -16,7 +16,7 @@ export async function GET() {
     console.error("Error fetching corporations:", error);
     return NextResponse.json(
       { error: "Failed to fetch corporations" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -28,10 +28,7 @@ export async function POST(request: Request) {
     const { name, description, logo, color, size } = body;
 
     if (!name) {
-      return NextResponse.json(
-        { error: "Name is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
 
     const corporation = await prisma.corporation.create({
@@ -49,7 +46,7 @@ export async function POST(request: Request) {
     console.error("Error creating corporation:", error);
     return NextResponse.json(
       { error: "Failed to create corporation" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

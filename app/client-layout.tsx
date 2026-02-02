@@ -2,10 +2,7 @@
 
 import { PrivyProvider } from "@privy-io/react-auth";
 import { toSolanaWalletConnectors } from "@privy-io/react-auth/solana";
-import {
-  createSolanaRpc,
-  createSolanaRpcSubscriptions,
-} from "@solana/kit";
+import { createSolanaRpc, createSolanaRpcSubscriptions } from "@solana/kit";
 import UserSync from "./components/UserSync";
 
 // Configure Solana connectors (required even if not using external wallets)
@@ -48,11 +45,12 @@ export default function ClientLayout({
         solana: {
           rpcs: {
             "solana:mainnet": {
-              rpc: createSolanaRpc(
-                process.env.NEXT_PUBLIC_SOLANA_RPC_URL!
-              ),
+              rpc: createSolanaRpc(process.env.NEXT_PUBLIC_SOLANA_RPC_URL!),
               rpcSubscriptions: createSolanaRpcSubscriptions(
-                process.env.NEXT_PUBLIC_SOLANA_RPC_URL!.replace("https://", "wss://")
+                process.env.NEXT_PUBLIC_SOLANA_RPC_URL!.replace(
+                  "https://",
+                  "wss://",
+                ),
               ),
             },
           },

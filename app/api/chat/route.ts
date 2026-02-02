@@ -1,7 +1,16 @@
-import { streamText, convertToModelMessages, stepCountIs, type UIMessage } from "ai";
+import {
+  streamText,
+  convertToModelMessages,
+  stepCountIs,
+  type UIMessage,
+} from "ai";
 import { PrivyClient } from "@privy-io/node";
 import prisma from "@/lib/prisma";
-import { getSkillTools, getSkillConfigsFromEnv, skillRegistry } from "@/lib/skills";
+import {
+  getSkillTools,
+  getSkillConfigsFromEnv,
+  skillRegistry,
+} from "@/lib/skills";
 import { getAllTools } from "@/lib/tools";
 import type { AvailableSkill } from "@/lib/skills";
 
@@ -40,8 +49,13 @@ export async function POST(req: Request) {
     });
   }
 
-  const { messages, agentId, enabledSkills, includeTools = true }: { 
-    messages: UIMessage[]; 
+  const {
+    messages,
+    agentId,
+    enabledSkills,
+    includeTools = true,
+  }: {
+    messages: UIMessage[];
     agentId?: string;
     enabledSkills?: AvailableSkill[];
     includeTools?: boolean;
@@ -78,7 +92,7 @@ export async function POST(req: Request) {
         }
         systemPrompt = agent.systemPrompt;
         agentName = agent.name;
-        
+
         // Get enabled skills from agent config
         if (agent.enabledSkills && agent.enabledSkills.length > 0) {
           agentSkills = agent.enabledSkills;
@@ -91,16 +105,16 @@ export async function POST(req: Request) {
 
   // Determine which skills to enable
   const skillsToEnable = enabledSkills || agentSkills;
-  
+
   // Build tools from enabled skills
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let tools: Record<string, any> = {};
-  
+
   // Add skill tools if any skills are enabled
   if (skillsToEnable.length > 0) {
     const configs = getSkillConfigsFromEnv();
     tools = { ...tools, ...getSkillTools(skillsToEnable, configs) };
-    
+
     // Append skill-specific system prompts
     const skillPrompts = skillRegistry.getSystemPrompts(skillsToEnable);
     if (skillPrompts) {

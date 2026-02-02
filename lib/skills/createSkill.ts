@@ -3,7 +3,7 @@ import type { Tool } from "ai";
 
 /**
  * Helper to create a skill with a simpler API
- * 
+ *
  * @example
  * ```typescript
  * const mySkill = createSkill({
@@ -13,12 +13,12 @@ import type { Tool } from "ai";
  *   description: "Does something cool",
  *   category: "custom",
  *   icon: "🎉",
- *   
+ *
  *   validate: (config) => {
  *     if (!config.apiKey) return "API key required";
  *     return true;
  *   },
- *   
+ *
  *   createTools: (config) => ({
  *     doSomething: tool({
  *       description: "Does something",
@@ -38,17 +38,17 @@ export interface CreateSkillOptions {
   version: string;
   description: string;
   category: SkillCategory;
-  
+
   // Optional metadata
   icon?: string;
   homepage?: string;
   requiredEnvVars?: string[];
   tags?: string[];
-  
+
   // Required methods
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   createTools: (config: SkillConfig) => Record<string, Tool<any, any>>;
-  
+
   // Optional validation (defaults to always valid)
   validate?: (config: SkillConfig) => true | string;
 }
@@ -71,14 +71,14 @@ export function createSkill(options: CreateSkillOptions): Skill {
 
   return {
     metadata,
-    
+
     validate(config: SkillConfig): true | string {
       if (options.validate) {
         return options.validate(config);
       }
       return true;
     },
-    
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     createTools(config: SkillConfig): Record<string, Tool<any, any>> {
       return options.createTools(config);

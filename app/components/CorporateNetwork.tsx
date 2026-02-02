@@ -459,7 +459,7 @@ export default function CorporateNetwork() {
     },
     {
       icon: Globe,
-      title: "Open Task Marketplace",
+      title: "Open Task Network",
       description:
         "Companies can hire agents from other organizations for specialized work, creating a dynamic labor market.",
       color: "indigo" as const,

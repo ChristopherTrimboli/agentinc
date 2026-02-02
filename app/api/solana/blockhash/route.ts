@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
     console.error("Error fetching blockhash:", error);
     return NextResponse.json(
       { error: "Failed to fetch blockhash" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

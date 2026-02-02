@@ -3,7 +3,8 @@ import { PrivyClient } from "@privy-io/node";
 import { BagsSDK } from "@bagsfm/bags-sdk";
 import { Connection, PublicKey } from "@solana/web3.js";
 
-const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || "https://mainnet.helius-rpc.com";
+const SOLANA_RPC_URL =
+  process.env.SOLANA_RPC_URL || "https://mainnet.helius-rpc.com";
 
 const privy = new PrivyClient({
   appId: process.env.NEXT_PUBLIC_PRIVY_APP_ID!,
@@ -37,18 +38,22 @@ export async function POST(req: NextRequest) {
     if (!apiKey) {
       return NextResponse.json(
         { error: "Bags API key not configured" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
     const body = await req.json();
-    const { tokenMint, metadataUrl, wallet, initialBuyLamports, configKey } = body;
+    const { tokenMint, metadataUrl, wallet, initialBuyLamports, configKey } =
+      body;
 
     // Validate required fields
     if (!tokenMint || !metadataUrl || !wallet || !configKey) {
       return NextResponse.json(
-        { error: "Missing required fields: tokenMint, metadataUrl, wallet, configKey" },
-        { status: 400 }
+        {
+          error:
+            "Missing required fields: tokenMint, metadataUrl, wallet, configKey",
+        },
+        { status: 400 },
       );
     }
 
@@ -75,31 +80,38 @@ export async function POST(req: NextRequest) {
     console.log("[Launch] Transaction created successfully");
 
     // Serialize the transaction to base64 for frontend signing
-    const transactionBase64 = Buffer.from(launchTransaction.serialize()).toString("base64");
+    const transactionBase64 = Buffer.from(
+      launchTransaction.serialize(),
+    ).toString("base64");
 
     return NextResponse.json({
       transaction: transactionBase64,
     });
   } catch (error) {
     console.error("Error creating launch transaction:", error);
-    
+
     // Extract detailed error info from SDK errors
     let errorMessage = "Failed to create launch transaction";
     if (error && typeof error === "object") {
-      const err = error as { message?: string; data?: unknown; status?: number };
+      const err = error as {
+        message?: string;
+        data?: unknown;
+        status?: number;
+      };
       if (err.data) {
-        console.error("[Launch] API Error data:", JSON.stringify(err.data, null, 2));
+        console.error(
+          "[Launch] API Error data:",
+          JSON.stringify(err.data, null, 2),
+        );
         // Try to extract message from nested error data
         const data = err.data as { error?: string; message?: string };
-        errorMessage = data.error || data.message || err.message || errorMessage;
+        errorMessage =
+          data.error || data.message || err.message || errorMessage;
       } else if (err.message) {
         errorMessage = err.message;
       }
     }
-    
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

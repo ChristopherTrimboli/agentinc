@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { PrivyClient } from "@privy-io/node";
 import { Connection, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 
-const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || "https://mainnet.helius-rpc.com";
+const SOLANA_RPC_URL =
+  process.env.SOLANA_RPC_URL || "https://mainnet.helius-rpc.com";
 
 const privy = new PrivyClient({
   appId: process.env.NEXT_PUBLIC_PRIVY_APP_ID!,
@@ -37,7 +38,7 @@ export async function POST(req: NextRequest) {
     if (!wallet) {
       return NextResponse.json(
         { error: "Missing wallet address" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -53,10 +54,8 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error("Error checking balance:", error);
-    const errorMessage = error instanceof Error ? error.message : "Failed to check balance";
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    const errorMessage =
+      error instanceof Error ? error.message : "Failed to check balance";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
