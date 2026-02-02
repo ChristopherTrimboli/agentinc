@@ -58,6 +58,11 @@ export function useMintAgent({ user }: UseMintAgentOptions) {
   const [initialBuyAmount, setInitialBuyAmount] = useState("0.01");
   const [twitterHandle, setTwitterHandle] = useState("");
 
+  // Image configuration
+  const [imageMode, setImageMode] = useState<"generate" | "upload">("generate");
+  const [customImagePrompt, setCustomImagePrompt] = useState("");
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+
   // Pre-generated agent ID for consistent website URL in token metadata
   const [agentId] = useState(() => nanoid(21));
 
@@ -206,7 +211,11 @@ export function useMintAgent({ user }: UseMintAgentOptions) {
           "Content-Type": "application/json",
           "privy-id-token": identityToken,
         },
-        body: JSON.stringify({ name: agentName, traits: agentTraits }),
+        body: JSON.stringify({
+          name: agentName,
+          traits: agentTraits,
+          customPrompt: customImagePrompt.trim() || undefined,
+        }),
       });
       const data = await response.json();
       if (!response.ok)
@@ -219,7 +228,62 @@ export function useMintAgent({ user }: UseMintAgentOptions) {
     } finally {
       setIsGeneratingImage(false);
     }
-  }, [identityToken, agentTraits, agentName]);
+  }, [identityToken, agentTraits, agentName, customImagePrompt]);
+
+  // Upload image manually
+  const uploadImage = useCallback(
+    async (file: File) => {
+      if (!identityToken) return;
+      setIsUploadingImage(true);
+      try {
+        // Validate file type
+        if (!file.type.startsWith("image/")) {
+          throw new Error("Please select an image file");
+        }
+        // Validate file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+          throw new Error("Image must be less than 5MB");
+        }
+
+        // Convert to base64
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = reader.result as string;
+            // Remove the data URL prefix to get just the base64
+            const base64Data = result.split(",")[1];
+            resolve(base64Data);
+          };
+          reader.onerror = () => reject(new Error("Failed to read file"));
+          reader.readAsDataURL(file);
+        });
+
+        const response = await fetch("/api/agents/mint/generate-image", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "privy-id-token": identityToken,
+          },
+          body: JSON.stringify({
+            name: agentName,
+            uploadedImage: base64,
+            contentType: file.type,
+          }),
+        });
+        const data = await response.json();
+        if (!response.ok)
+          throw new Error(data.error || "Failed to upload image");
+        setImageUrl(data.imageUrl);
+      } catch (error) {
+        setLaunchError(
+          error instanceof Error ? error.message : "Failed to upload image",
+        );
+      } finally {
+        setIsUploadingImage(false);
+      }
+    },
+    [identityToken, agentName],
+  );
 
   // Update a specific launch step
   const updateStep = useCallback(
@@ -522,6 +586,8 @@ export function useMintAgent({ user }: UseMintAgentOptions) {
     setTwitterHandle("");
     setLaunchError("");
     setLaunchSteps([]);
+    setImageMode("generate");
+    setCustomImagePrompt("");
   }, []);
 
   // Validation helpers
@@ -559,6 +625,9 @@ export function useMintAgent({ user }: UseMintAgentOptions) {
     launchResult,
     walletBalance,
     walletAddress,
+    imageMode,
+    customImagePrompt,
+    isUploadingImage,
 
     // Computed
     requiredBalance,
@@ -575,11 +644,15 @@ export function useMintAgent({ user }: UseMintAgentOptions) {
     setInitialBuyAmount,
     setTwitterHandle,
     setLaunchError,
+    setImageMode,
+    setCustomImagePrompt,
+    setImageUrl,
 
     // Actions
     randomizeAgent,
     toggleLock,
     generateImage,
+    uploadImage,
     handleLaunch,
     resetMint,
     fetchBalance,

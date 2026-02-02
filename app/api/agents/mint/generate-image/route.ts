@@ -18,6 +18,14 @@ async function verifyAuth(req: NextRequest): Promise<string | null> {
   }
 }
 
+interface GenerateImageBody {
+  name: string;
+  traits?: AgentTraitData;
+  customPrompt?: string;
+  uploadedImage?: string; // base64 encoded
+  contentType?: string;
+}
+
 export async function POST(req: NextRequest) {
   const userId = await verifyAuth(req);
 
@@ -26,18 +34,67 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const body = await req.json();
-    const { name, traits } = body as { name: string; traits: AgentTraitData };
+    const body = (await req.json()) as GenerateImageBody;
+    const { name, traits, customPrompt, uploadedImage, contentType } = body;
 
-    if (!name || !traits) {
+    if (!name) {
       return NextResponse.json(
-        { error: "Missing required fields: name, traits" },
+        { error: "Missing required field: name" },
         { status: 400 },
       );
     }
 
-    // Generate the image prompt based on agent traits
-    const prompt = generateImagePrompt(name, traits);
+    // Generate a unique filename
+    const timestamp = Date.now();
+    const sanitizedName = name.toLowerCase().replace(/[^a-z0-9]/g, "-");
+
+    // Handle manual image upload
+    if (uploadedImage) {
+      // Validate content type
+      const allowedTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"];
+      if (!contentType || !allowedTypes.includes(contentType)) {
+        return NextResponse.json(
+          { error: "Invalid image type. Allowed: PNG, JPEG, WebP, GIF" },
+          { status: 400 },
+        );
+      }
+
+      // Decode base64 and upload
+      const imageBuffer = Buffer.from(uploadedImage, "base64");
+
+      // Validate size (max 5MB)
+      if (imageBuffer.length > 5 * 1024 * 1024) {
+        return NextResponse.json(
+          { error: "Image must be less than 5MB" },
+          { status: 400 },
+        );
+      }
+
+      const extension = contentType.split("/")[1] || "png";
+      const filename = `agents/${sanitizedName}-${timestamp}.${extension}`;
+
+      const blob = await put(filename, imageBuffer, {
+        access: "public",
+        contentType,
+      });
+
+      return NextResponse.json({
+        imageUrl: blob.url,
+        prompt: null,
+        uploaded: true,
+      });
+    }
+
+    // For image generation, we need traits (unless using custom prompt)
+    if (!customPrompt && !traits) {
+      return NextResponse.json(
+        { error: "Missing required fields: traits (or provide customPrompt)" },
+        { status: 400 },
+      );
+    }
+
+    // Use custom prompt or generate from traits
+    const prompt = customPrompt || generateImagePrompt(name, traits!);
 
     // Generate image using AI SDK with gateway provider
     const result = await generateImage({
@@ -62,9 +119,6 @@ export async function POST(req: NextRequest) {
       ? Buffer.from(image.uint8Array)
       : Buffer.from(image.base64, "base64");
 
-    // Generate a unique filename
-    const timestamp = Date.now();
-    const sanitizedName = name.toLowerCase().replace(/[^a-z0-9]/g, "-");
     const filename = `agents/${sanitizedName}-${timestamp}.png`;
 
     // Upload to Vercel Blob
@@ -76,6 +130,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       imageUrl: blob.url,
       prompt,
+      uploaded: false,
     });
   } catch (error) {
     console.error("Error generating image:", error);
