@@ -76,9 +76,9 @@ function SidebarSkeleton() {
 // Skeleton dashboard content (explore style)
 function DashboardSkeleton() {
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden">
       {/* Ticker skeleton */}
-      <div className="bg-[#0a0520]/80 border-b border-white/10 py-2">
+      <div className="bg-[#0a0520]/80 border-b border-white/10 py-2 w-full max-w-full overflow-hidden">
         <div className="flex gap-8 px-4 overflow-hidden">
           {Array(8)
             .fill(0)
@@ -166,11 +166,11 @@ export default function DashboardLayout({
         <div className="fixed bottom-0 right-0 w-[600px] h-[400px] bg-[#120557]/20 rounded-full blur-[100px] pointer-events-none" />
 
         {/* Skeleton layout with blur */}
-        <div className="flex w-full filter blur-[2px] opacity-60">
+        <div className="flex w-full filter blur-[2px] opacity-60 overflow-hidden">
           <SidebarSkeleton />
-          <main className="flex-1 relative min-h-screen lg:ml-0">
+          <main className="flex-1 relative min-h-screen lg:ml-0 min-w-0 overflow-x-hidden">
             <div className="lg:hidden h-16" />
-            <div className="relative z-10">
+            <div className="relative z-10 overflow-x-hidden">
               <DashboardSkeleton />
             </div>
           </main>
@@ -247,7 +247,7 @@ export default function DashboardLayout({
 
   // Authenticated - show dashboard with sidebar
   return (
-    <div className="min-h-screen bg-[#000028] text-white flex">
+    <div className="min-h-screen bg-[#000028] text-white flex overflow-hidden">
       {/* Background effects */}
       <div className="fixed inset-0 bg-grid opacity-30 pointer-events-none" />
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-[#6FEC06]/5 rounded-full blur-[120px] pointer-events-none" />
@@ -257,11 +257,11 @@ export default function DashboardLayout({
       <Sidebar />
 
       {/* Main content */}
-      <main className="flex-1 relative min-h-screen lg:ml-0">
+      <main className="flex-1 relative min-h-screen lg:ml-0 min-w-0 overflow-x-hidden">
         {/* Mobile top padding for hamburger */}
         <div className="lg:hidden h-16" />
 
-        <div className="relative z-10">{children}</div>
+        <div className="relative z-10 overflow-x-hidden">{children}</div>
       </main>
     </div>
   );

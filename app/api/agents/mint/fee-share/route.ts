@@ -1,41 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrivyClient } from "@privy-io/node";
-import {
-  BagsSDK,
-  BAGS_FEE_SHARE_V2_MAX_CLAIMERS_NON_LUT,
-  createTipTransaction,
-} from "@bagsfm/bags-sdk";
+import { BagsSDK, createTipTransaction } from "@bagsfm/bags-sdk";
 import { Connection, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
 
 const SOLANA_RPC_URL =
   process.env.SOLANA_RPC_URL || "https://mainnet.helius-rpc.com";
 const FALLBACK_JITO_TIP_LAMPORTS = 0.015 * LAMPORTS_PER_SOL;
 
-const privy = new PrivyClient({
-  appId: process.env.NEXT_PUBLIC_PRIVY_APP_ID!,
-  appSecret: process.env.PRIVY_APP_SECRET!,
-});
-
-// Helper to verify auth
-async function verifyAuth(req: NextRequest): Promise<string | null> {
-  const idToken = req.headers.get("privy-id-token");
-  if (!idToken) return null;
-
-  try {
-    const privyUser = await privy.users().get({ id_token: idToken });
-    return privyUser.id;
-  } catch {
-    return null;
-  }
-}
-
 // POST /api/agents/mint/fee-share - Create fee share config for agent token
 export async function POST(req: NextRequest) {
-  const userId = await verifyAuth(req);
-
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await requireAuth(req);
+  if (!isAuthResult(auth)) return auth;
 
   try {
     // Get API key from environment
@@ -70,52 +45,8 @@ export async function POST(req: NextRequest) {
     const walletPubkey = new PublicKey(wallet);
     const tokenMintPubkey = new PublicKey(tokenMint);
 
-    // Creator gets 100% of fees
+    // Creator gets 100% of fees (single claimer, no LUT needed)
     const feeClaimers = [{ user: walletPubkey, userBps: 10000 }];
-
-    // Check if lookup tables are needed (when there are more than MAX_CLAIMERS_NON_LUT claimers)
-    // Currently we only support single fee claimer, but this is here for future multi-claimer support
-    const lutTransactions: Array<{ transaction: string; type: string }> = [];
-    let additionalLookupTables: PublicKey[] | undefined;
-
-    if (feeClaimers.length > BAGS_FEE_SHARE_V2_MAX_CLAIMERS_NON_LUT) {
-      console.log(
-        `[Fee Share] Creating lookup tables for ${feeClaimers.length} fee claimers (exceeds ${BAGS_FEE_SHARE_V2_MAX_CLAIMERS_NON_LUT} limit)...`,
-      );
-
-      // Get LUT creation transactions
-      const lutResult =
-        await sdk.config.getConfigCreationLookupTableTransactions({
-          payer: walletPubkey,
-          baseMint: tokenMintPubkey,
-          feeClaimers: feeClaimers,
-        });
-
-      if (!lutResult) {
-        throw new Error("Failed to create lookup table transactions");
-      }
-
-      // Add creation transaction
-      lutTransactions.push({
-        transaction: Buffer.from(
-          lutResult.creationTransaction.serialize(),
-        ).toString("base64"),
-        type: "lut_creation",
-      });
-
-      // Add extend transactions
-      for (const extendTx of lutResult.extendTransactions) {
-        lutTransactions.push({
-          transaction: Buffer.from(extendTx.serialize()).toString("base64"),
-          type: "lut_extend",
-        });
-      }
-
-      additionalLookupTables = lutResult.lutAddresses;
-      console.log(
-        `[Fee Share] LUT transactions created: ${lutTransactions.length}`,
-      );
-    }
 
     // Build config options
     const configOptions: {
@@ -124,12 +55,10 @@ export async function POST(req: NextRequest) {
       feeClaimers: Array<{ user: PublicKey; userBps: number }>;
       partner?: PublicKey;
       partnerConfig?: PublicKey;
-      additionalLookupTables?: PublicKey[];
     } = {
       payer: walletPubkey,
       baseMint: tokenMintPubkey,
       feeClaimers,
-      additionalLookupTables,
     };
 
     // Add partner configuration if both are set
@@ -232,14 +161,9 @@ export async function POST(req: NextRequest) {
     );
 
     return NextResponse.json({
-      needsCreation:
-        transactions.length > 0 ||
-        bundles.length > 0 ||
-        lutTransactions.length > 0,
-      needsLutSetup: lutTransactions.length > 0,
+      needsCreation: transactions.length > 0 || bundles.length > 0,
       feeShareAuthority: walletPubkey.toString(),
       meteoraConfigKey: configResult.meteoraConfigKey.toString(),
-      lutTransactions, // LUT transactions must be sent first, with a slot wait between creation and extend
       transactions,
       bundles,
     });

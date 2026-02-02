@@ -24,13 +24,14 @@ type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
-// GET /api/agents/[id] - Get a specific agent
+// GET /api/agents/[id] - Get a specific agent (supports both database ID and tokenMint)
 export async function GET(req: NextRequest, context: RouteContext) {
   const { id } = await context.params;
   const userId = await verifyAuth(req);
 
   try {
-    const agent = await prisma.agent.findUnique({
+    // Try to find by database ID first, then by tokenMint
+    let agent = await prisma.agent.findUnique({
       where: { id },
       include: {
         createdBy: {
@@ -49,6 +50,29 @@ export async function GET(req: NextRequest, context: RouteContext) {
         },
       },
     });
+
+    // If not found by ID, try by tokenMint (for agents accessed via tokenMint URL)
+    if (!agent) {
+      agent = await prisma.agent.findUnique({
+        where: { tokenMint: id },
+        include: {
+          createdBy: {
+            select: { id: true, email: true },
+          },
+          corporation: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              logo: true,
+              color: true,
+              tokenMint: true,
+              tokenSymbol: true,
+            },
+          },
+        },
+      });
+    }
 
     if (!agent) {
       return NextResponse.json({ error: "Agent not found" }, { status: 404 });

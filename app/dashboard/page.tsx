@@ -180,8 +180,8 @@ function PriceTicker({
   if (topMovers.length === 0) return null;
 
   return (
-    <div className="relative overflow-hidden bg-[#0a0520]/80 border-b border-white/10 py-2">
-      <div className="animate-ticker flex gap-8 whitespace-nowrap">
+    <div className="relative overflow-hidden bg-[#0a0520]/80 border-b border-white/10 py-2 h-10">
+      <div className="absolute left-0 top-1/2 -translate-y-1/2 animate-ticker flex gap-8 whitespace-nowrap">
         {[...topMovers, ...topMovers, ...topMovers].map((item, i) => {
           const priceData = prices[item.tokenMint!];
           const isPositive = (priceData?.priceChange24h || 0) >= 0;
@@ -285,8 +285,8 @@ function SkeletonRow({ index }: { index: number }) {
 // Table skeleton component
 function TableSkeleton() {
   return (
-    <div className="flex-1 flex flex-col min-h-0 rounded-2xl bg-[#0a0520]/50 border border-white/10 overflow-hidden">
-      <div className="flex-1 overflow-hidden">
+    <div className="flex-1 flex flex-col min-h-0 min-w-0 rounded-2xl bg-[#0a0520]/50 border border-white/10 overflow-hidden">
+      <div className="flex-1 overflow-hidden min-w-0">
         <table className="w-full">
           <thead className="bg-[#0a0520]">
             <tr className="border-b border-white/10 text-left text-sm text-white/40">
@@ -1037,11 +1037,11 @@ export default function ExplorePage() {
   const paginatedRows = table.getRowModel().rows;
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden">
+    <div className="h-screen flex flex-col overflow-hidden w-full max-w-full">
       {/* Price ticker */}
       <PriceTicker items={items} prices={prices} />
 
-      <div className="flex-1 flex flex-col p-6 lg:p-8 max-w-7xl mx-auto w-full overflow-hidden">
+      <div className="flex-1 flex flex-col p-6 lg:p-8 max-w-7xl mx-auto w-full overflow-hidden min-w-0">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
@@ -1342,8 +1342,8 @@ export default function ExplorePage() {
 
         {/* Table view */}
         {!isLoading && filteredRows.length > 0 && view === "table" && (
-          <div className="flex-1 flex flex-col min-h-0 rounded-2xl bg-[#0a0520]/50 border border-white/10 overflow-hidden">
-            <div className="flex-1 overflow-auto">
+          <div className="flex-1 flex flex-col min-h-0 min-w-0 rounded-2xl bg-[#0a0520]/50 border border-white/10 overflow-hidden">
+            <div className="flex-1 overflow-auto min-w-0">
               <table className="w-full">
                 <thead className="sticky top-0 bg-[#0a0520] z-10">
                   {table.getHeaderGroups().map((headerGroup) => (

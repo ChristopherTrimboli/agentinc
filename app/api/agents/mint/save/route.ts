@@ -1,37 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrivyClient } from "@privy-io/node";
 import prisma from "@/lib/prisma";
 import { generateSystemPrompt, AgentTraitData } from "@/lib/agentTraits";
-
-const privy = new PrivyClient({
-  appId: process.env.NEXT_PUBLIC_PRIVY_APP_ID!,
-  appSecret: process.env.PRIVY_APP_SECRET!,
-});
-
-// Helper to verify auth
-async function verifyAuth(req: NextRequest): Promise<string | null> {
-  const idToken = req.headers.get("privy-id-token");
-  if (!idToken) return null;
-
-  try {
-    const privyUser = await privy.users().get({ id_token: idToken });
-    return privyUser.id;
-  } catch {
-    return null;
-  }
-}
+import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
 
 // POST /api/agents/mint/save - Save minted agent to database
 export async function POST(req: NextRequest) {
-  const userId = await verifyAuth(req);
-
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await requireAuth(req);
+  if (!isAuthResult(auth)) return auth;
 
   try {
     const body = await req.json();
     const {
+      agentId,
       name,
       description,
       imageUrl,
@@ -42,6 +22,7 @@ export async function POST(req: NextRequest) {
       launchWallet,
       launchSignature,
     } = body as {
+      agentId?: string;
       name: string;
       description: string;
       imageUrl: string;
@@ -68,6 +49,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // If agentId provided, check it doesn't already exist
+    if (agentId) {
+      const existingById = await prisma.agent.findUnique({
+        where: { id: agentId },
+      });
+      if (existingById) {
+        return NextResponse.json(
+          { error: "Agent with this ID already exists" },
+          { status: 409 },
+        );
+      }
+    }
+
     // Check if token mint already exists
     const existingAgent = await prisma.agent.findUnique({
       where: { tokenMint },
@@ -83,9 +77,10 @@ export async function POST(req: NextRequest) {
     // Generate system prompt from traits
     const systemPrompt = generateSystemPrompt(traits);
 
-    // Create the agent
+    // Create the agent (use provided agentId if available for consistent website URL)
     const agent = await prisma.agent.create({
       data: {
+        ...(agentId && { id: agentId }), // Use pre-generated ID if provided
         name,
         description: description || null,
         systemPrompt,
@@ -110,7 +105,7 @@ export async function POST(req: NextRequest) {
         launchedAt: new Date(),
 
         // Creator
-        createdById: userId,
+        createdById: auth.userId,
       },
     });
 

@@ -135,8 +135,8 @@ function PriceTicker({
   if (topMovers.length === 0) return null;
 
   return (
-    <div className="relative overflow-hidden bg-[#0a0520]/80 border-b border-white/10 py-2">
-      <div className="animate-ticker flex gap-8 whitespace-nowrap">
+    <div className="relative overflow-hidden bg-[#0a0520]/80 border-b border-white/10 py-2 h-10">
+      <div className="absolute left-0 top-1/2 -translate-y-1/2 animate-ticker flex gap-8 whitespace-nowrap">
         {[...topMovers, ...topMovers, ...topMovers].map((item, i) => {
           const priceData = prices[item.tokenMint!];
           const isPositive = (priceData?.priceChange24h || 0) >= 0;
@@ -645,11 +645,11 @@ export default function MarketplacePage() {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden">
       {/* Price ticker */}
       <PriceTicker items={items} prices={prices} />
 
-      <div className="p-6 lg:p-8 max-w-7xl mx-auto">
+      <div className="p-6 lg:p-8 max-w-7xl mx-auto w-full">
         {/* Header */}
         <div className="mb-8">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#6FEC06]/30 bg-[#6FEC06]/10 mb-4">

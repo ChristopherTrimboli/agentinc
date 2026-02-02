@@ -1,36 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrivyClient } from "@privy-io/node";
 import { BagsSDK } from "@bagsfm/bags-sdk";
 import { Connection, PublicKey } from "@solana/web3.js";
+import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
 
 const SOLANA_RPC_URL =
   process.env.SOLANA_RPC_URL || "https://mainnet.helius-rpc.com";
 
-const privy = new PrivyClient({
-  appId: process.env.NEXT_PUBLIC_PRIVY_APP_ID!,
-  appSecret: process.env.PRIVY_APP_SECRET!,
-});
-
-// Helper to verify auth
-async function verifyAuth(req: NextRequest): Promise<string | null> {
-  const idToken = req.headers.get("privy-id-token");
-  if (!idToken) return null;
-
-  try {
-    const privyUser = await privy.users().get({ id_token: idToken });
-    return privyUser.id;
-  } catch {
-    return null;
-  }
-}
-
 // POST /api/agents/mint/launch - Create token launch transaction for agent
 export async function POST(req: NextRequest) {
-  const userId = await verifyAuth(req);
-
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await requireAuth(req);
+  if (!isAuthResult(auth)) return auth;
 
   try {
     // Get API key from environment
