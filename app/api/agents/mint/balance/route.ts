@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Connection, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { Connection, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
-
-const SOLANA_RPC_URL =
-  process.env.SOLANA_RPC_URL || "https://mainnet.helius-rpc.com";
+import { SOLANA_RPC_URL } from "@/lib/constants/solana";
+import { isValidPublicKey, validatePublicKey } from "@/lib/utils/validation";
 
 // POST /api/agents/mint/balance - Check wallet SOL balance
 export async function POST(req: NextRequest) {
@@ -14,15 +13,23 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { wallet } = body;
 
-    if (!wallet) {
+    if (!wallet || typeof wallet !== "string") {
       return NextResponse.json(
         { error: "Missing wallet address" },
         { status: 400 },
       );
     }
 
+    // Validate PublicKey before use
+    if (!isValidPublicKey(wallet)) {
+      return NextResponse.json(
+        { error: "Invalid wallet address: not a valid Solana public key" },
+        { status: 400 },
+      );
+    }
+
     const connection = new Connection(SOLANA_RPC_URL);
-    const walletPubkey = new PublicKey(wallet);
+    const walletPubkey = validatePublicKey(wallet, "wallet");
 
     const balanceLamports = await connection.getBalance(walletPubkey);
     const balanceSol = balanceLamports / LAMPORTS_PER_SOL;

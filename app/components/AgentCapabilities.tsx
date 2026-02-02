@@ -20,8 +20,6 @@ import {
   Cpu,
 } from "lucide-react";
 
-// Note: Sparkles, Zap, TrendingUp, CheckCircle2 are used in capability cards
-
 // Terminal lines defined outside component to prevent recreation on each render
 const terminalLines = [
   { text: "$ agent execute --task='post_twitter'", type: "command" as const },

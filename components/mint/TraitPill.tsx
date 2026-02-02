@@ -7,7 +7,12 @@ interface TraitPillProps {
   className?: string;
 }
 
-export function TraitPill({ icon, name, size = "sm", className = "" }: TraitPillProps) {
+export function TraitPill({
+  icon,
+  name,
+  size = "sm",
+  className = "",
+}: TraitPillProps) {
   const sizeClasses = {
     sm: "px-2 py-1 text-xs",
     md: "px-3 py-1.5 text-sm",

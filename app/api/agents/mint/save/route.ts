@@ -8,8 +8,14 @@ export async function POST(req: NextRequest) {
   const auth = await requireAuth(req);
   if (!isAuthResult(auth)) return auth;
 
+  let body;
   try {
-    const body = await req.json();
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  try {
     const {
       agentId,
       name,
@@ -21,7 +27,7 @@ export async function POST(req: NextRequest) {
       tokenMetadata,
       launchWallet,
       launchSignature,
-    } = body as {
+    } = body as unknown as {
       agentId?: string;
       name: string;
       description: string;
@@ -49,69 +55,75 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // If agentId provided, check it doesn't already exist
-    if (agentId) {
-      const existingById = await prisma.agent.findUnique({
-        where: { id: agentId },
-      });
-      if (existingById) {
-        return NextResponse.json(
-          { error: "Agent with this ID already exists" },
-          { status: 409 },
-        );
-      }
-    }
-
-    // Check if token mint already exists
-    const existingAgent = await prisma.agent.findUnique({
-      where: { tokenMint },
-    });
-
-    if (existingAgent) {
-      return NextResponse.json(
-        { error: "Agent with this token mint already exists" },
-        { status: 409 },
-      );
-    }
-
     // Generate system prompt from traits
     const systemPrompt = generateSystemPrompt(traits);
 
-    // Create the agent (use provided agentId if available for consistent website URL)
-    const agent = await prisma.agent.create({
-      data: {
-        ...(agentId && { id: agentId }), // Use pre-generated ID if provided
-        name,
-        description: description || null,
-        systemPrompt,
-        imageUrl: imageUrl || null,
-        isPublic: true, // Minted agents are public by default
-        isMinted: true,
+    // Use a transaction to prevent race conditions
+    const agent = await prisma.$transaction(async (tx) => {
+      // Check if agentId already exists (within transaction)
+      if (agentId) {
+        const existingById = await tx.agent.findUnique({
+          where: { id: agentId },
+        });
+        if (existingById) {
+          throw new Error("CONFLICT:Agent with this ID already exists");
+        }
+      }
 
-        // Traits
-        personality: traits.personality,
-        traits: traits.traits,
-        skills: traits.skills,
-        tools: traits.tools,
-        specialAbility: traits.specialAbility,
-        rarity: traits.rarity,
+      // Check if token mint already exists (within transaction)
+      const existingAgent = await tx.agent.findUnique({
+        where: { tokenMint },
+      });
 
-        // Token launch fields
-        tokenMint,
-        tokenSymbol,
-        tokenMetadata,
-        launchWallet,
-        launchSignature,
-        launchedAt: new Date(),
+      if (existingAgent) {
+        throw new Error("CONFLICT:Agent with this token mint already exists");
+      }
 
-        // Creator
-        createdById: auth.userId,
-      },
+      // Create the agent (use provided agentId if available for consistent website URL)
+      return tx.agent.create({
+        data: {
+          ...(agentId && { id: agentId }), // Use pre-generated ID if provided
+          name,
+          description: description || null,
+          systemPrompt,
+          imageUrl: imageUrl || null,
+          isPublic: true, // Minted agents are public by default
+          isMinted: true,
+
+          // Traits
+          personality: traits.personality,
+          traits: traits.traits,
+          skills: traits.skills,
+          tools: traits.tools,
+          specialAbility: traits.specialAbility,
+          rarity: traits.rarity,
+
+          // Token launch fields
+          tokenMint,
+          tokenSymbol,
+          tokenMetadata,
+          launchWallet,
+          launchSignature,
+          launchedAt: new Date(),
+
+          // Creator
+          createdById: auth.userId,
+        },
+      });
     });
 
     return NextResponse.json({ agent }, { status: 201 });
   } catch (error) {
     console.error("Error saving minted agent:", error);
+
+    // Handle conflict errors from transaction
+    if (error instanceof Error && error.message.startsWith("CONFLICT:")) {
+      return NextResponse.json(
+        { error: error.message.replace("CONFLICT:", "") },
+        { status: 409 },
+      );
+    }
+
     return NextResponse.json(
       { error: "Failed to save minted agent" },
       { status: 500 },

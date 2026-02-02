@@ -28,6 +28,7 @@ import {
 import { APP_BASE_URL, MINT_TX_FEE_ESTIMATE } from "@/lib/constants/mint";
 import { UseMintAgentReturn } from "@/lib/hooks/useMintAgent";
 import { TraitPill } from "./TraitPill";
+import { EXTERNAL_APIS } from "@/lib/constants/urls";
 import { RarityBadge } from "./RarityBadge";
 import { AgentPreviewCard } from "./AgentPreviewCard";
 import { StepIndicator } from "./StepIndicator";
@@ -152,7 +153,9 @@ export function MintWizard({ mint, chatPath }: MintWizardProps) {
                       <Shuffle className="w-4 h-4 text-[#6FEC06]" />
                     </div>
                     <div>
-                      <h2 className="font-semibold text-sm">Randomize Traits</h2>
+                      <h2 className="font-semibold text-sm">
+                        Randomize Traits
+                      </h2>
                       <p className="text-[10px] text-white/40">
                         Roll for unique attributes
                       </p>
@@ -350,7 +353,9 @@ export function MintWizard({ mint, chatPath }: MintWizardProps) {
                       </button>
                     </div>
                     {(() => {
-                      const a = getSpecialAbilityById(agentTraits.specialAbility);
+                      const a = getSpecialAbilityById(
+                        agentTraits.specialAbility,
+                      );
                       const rarity = RARITIES[agentTraits.rarity];
                       return a ? (
                         <div
@@ -435,7 +440,9 @@ export function MintWizard({ mint, chatPath }: MintWizardProps) {
                         {isGeneratingImage ? (
                           <div className="text-center">
                             <Loader2 className="w-10 h-10 text-[#6FEC06] animate-spin mx-auto mb-2" />
-                            <p className="text-xs text-white/50">Generating...</p>
+                            <p className="text-xs text-white/50">
+                              Generating...
+                            </p>
                           </div>
                         ) : (
                           <ImageIcon className="w-12 h-12 text-white/20" />
@@ -486,7 +493,9 @@ export function MintWizard({ mint, chatPath }: MintWizardProps) {
                   </div>
                   <div>
                     <h2 className="font-semibold text-sm">Configure Token</h2>
-                    <p className="text-[10px] text-white/40">Set up token details</p>
+                    <p className="text-[10px] text-white/40">
+                      Set up token details
+                    </p>
                   </div>
                 </div>
 
@@ -503,7 +512,9 @@ export function MintWizard({ mint, chatPath }: MintWizardProps) {
                         type="text"
                         value={tokenSymbol}
                         onChange={(e) =>
-                          setTokenSymbol(e.target.value.toUpperCase().slice(0, 10))
+                          setTokenSymbol(
+                            e.target.value.toUpperCase().slice(0, 10),
+                          )
                         }
                         className="w-full pl-7 pr-3 py-2 bg-[#120557]/50 border border-[#6FEC06]/20 rounded-lg text-white text-sm font-mono uppercase placeholder-white/30 focus:outline-none focus:border-[#6FEC06]/50"
                         placeholder="AGENT"
@@ -513,7 +524,8 @@ export function MintWizard({ mint, chatPath }: MintWizardProps) {
                   </div>
                   <div>
                     <label className="block text-[10px] uppercase tracking-wider text-white/40 mb-1.5 font-semibold">
-                      Description <span className="text-white/20">(optional)</span>
+                      Description{" "}
+                      <span className="text-white/20">(optional)</span>
                     </label>
                     <textarea
                       value={description}
@@ -528,7 +540,8 @@ export function MintWizard({ mint, chatPath }: MintWizardProps) {
                   {/* Social Links Section */}
                   <div className="pt-2 border-t border-white/10">
                     <p className="text-[10px] uppercase tracking-wider text-white/40 mb-3 font-semibold">
-                      Social Links <span className="text-white/20">(optional)</span>
+                      Social Links{" "}
+                      <span className="text-white/20">(optional)</span>
                     </p>
 
                     {/* Website - Auto-generated */}
@@ -562,7 +575,9 @@ export function MintWizard({ mint, chatPath }: MintWizardProps) {
                           value={twitterHandle}
                           onChange={(e) =>
                             setTwitterHandle(
-                              e.target.value.replace(/^@/, "").replace(/\s/g, "")
+                              e.target.value
+                                .replace(/^@/, "")
+                                .replace(/\s/g, ""),
                             )
                           }
                           className="w-full pl-7 pr-3 py-2 bg-[#120557]/50 border border-[#6FEC06]/20 rounded-lg text-white text-sm placeholder-white/30 focus:outline-none focus:border-[#6FEC06]/50"
@@ -631,14 +646,15 @@ export function MintWizard({ mint, chatPath }: MintWizardProps) {
                           )}
                         </div>
                       </div>
-                      {walletBalance !== null && walletBalance < requiredBalance && (
-                        <p className="mt-1.5 text-[10px] text-red-400 flex items-center gap-1">
-                          <AlertCircle className="w-3 h-3" />
-                          Need at least {requiredBalance.toFixed(4)} SOL (
-                          {(parseFloat(initialBuyAmount) || 0).toFixed(2)} + ~
-                          {MINT_TX_FEE_ESTIMATE} fees)
-                        </p>
-                      )}
+                      {walletBalance !== null &&
+                        walletBalance < requiredBalance && (
+                          <p className="mt-1.5 text-[10px] text-red-400 flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3" />
+                            Need at least {requiredBalance.toFixed(4)} SOL (
+                            {(parseFloat(initialBuyAmount) || 0).toFixed(2)} + ~
+                            {MINT_TX_FEE_ESTIMATE} fees)
+                          </p>
+                        )}
                     </div>
                   )}
                 </div>
@@ -730,7 +746,7 @@ export function MintWizard({ mint, chatPath }: MintWizardProps) {
                 <p className="text-[10px] text-white/40 text-center mt-3">
                   Token launched on{" "}
                   <a
-                    href="https://bags.fm"
+                    href={EXTERNAL_APIS.bagsFm}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[#6FEC06] hover:underline"

@@ -4,11 +4,21 @@ import { PrivyClient } from "@privy-io/node";
 // Singleton Privy client
 let _privyClient: PrivyClient | null = null;
 
-function getPrivyClient(): PrivyClient {
+/**
+ * Get the singleton Privy client instance.
+ * Use this instead of creating new PrivyClient instances in routes.
+ */
+export function getPrivyClient(): PrivyClient {
   if (!_privyClient) {
+    if (
+      !process.env.NEXT_PUBLIC_PRIVY_APP_ID ||
+      !process.env.PRIVY_APP_SECRET
+    ) {
+      throw new Error("Privy environment variables not configured");
+    }
     _privyClient = new PrivyClient({
-      appId: process.env.NEXT_PUBLIC_PRIVY_APP_ID!,
-      appSecret: process.env.PRIVY_APP_SECRET!,
+      appId: process.env.NEXT_PUBLIC_PRIVY_APP_ID,
+      appSecret: process.env.PRIVY_APP_SECRET,
     });
   }
   return _privyClient;
@@ -24,9 +34,7 @@ export interface AuthResult {
  * Verify authentication from request headers.
  * Returns user info if authenticated, null otherwise.
  */
-export async function verifyAuth(
-  req: NextRequest
-): Promise<AuthResult | null> {
+export async function verifyAuth(req: NextRequest): Promise<AuthResult | null> {
   const idToken = req.headers.get("privy-id-token");
   if (!idToken) return null;
 
@@ -72,7 +80,7 @@ export async function verifyAuth(
  * Use this to reduce boilerplate in API routes.
  */
 export async function requireAuth(
-  req: NextRequest
+  req: NextRequest,
 ): Promise<AuthResult | NextResponse> {
   const auth = await verifyAuth(req);
 
@@ -87,7 +95,7 @@ export async function requireAuth(
  * Type guard to check if the result is an auth object or a response.
  */
 export function isAuthResult(
-  result: AuthResult | NextResponse
+  result: AuthResult | NextResponse,
 ): result is AuthResult {
   return "userId" in result;
 }

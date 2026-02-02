@@ -21,6 +21,7 @@ import {
   Building2,
   Code,
 } from "lucide-react";
+import { getBagsFmUrl, getDexScreenerUrl } from "@/lib/constants/urls";
 
 interface Corporation {
   id: string;
@@ -101,9 +102,9 @@ const rarityColors: Record<
 
 // Chart/DEX links for Solana tokens
 const getChartLinks = (tokenMint: string) => ({
-  bags: `https://bags.fm/${tokenMint}`,
-  dexscreener: `https://dexscreener.com/solana/${tokenMint}`,
-  dexscreenerEmbed: `https://dexscreener.com/solana/${tokenMint}?embed=1&theme=dark&trades=0&info=0`,
+  bags: getBagsFmUrl(tokenMint),
+  dexscreener: getDexScreenerUrl(tokenMint),
+  dexscreenerEmbed: `${getDexScreenerUrl(tokenMint)}?embed=1&theme=dark&trades=0&info=0`,
 });
 
 export default function AgentProfilePage({
@@ -503,7 +504,7 @@ export default function AgentProfilePage({
                 {agent.corporation.tokenMint && (
                   <div className="mt-4 flex flex-wrap gap-2">
                     <a
-                      href={`https://bags.fm/${agent.corporation.tokenMint}`}
+                      href={getBagsFmUrl(agent.corporation.tokenMint)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-2 px-4 py-2 bg-[#A855F7]/10 border border-[#A855F7]/30 rounded-xl text-[#A855F7] text-sm font-medium hover:bg-[#A855F7]/20 transition-all"
@@ -513,7 +514,7 @@ export default function AgentProfilePage({
                       <ExternalLink className="w-3 h-3" />
                     </a>
                     <a
-                      href={`https://dexscreener.com/solana/${agent.corporation.tokenMint}`}
+                      href={getDexScreenerUrl(agent.corporation.tokenMint)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white/70 text-sm font-medium hover:bg-white/10 transition-all"

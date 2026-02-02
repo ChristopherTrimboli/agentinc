@@ -186,12 +186,14 @@ export const MessageBranchContent = ({
   const { currentBranch, setBranches, branches } = useMessageBranch();
   const childrenArray = Array.isArray(children) ? children : [children];
 
-  // Use useEffect to update branches when they change
+  // Use useEffect to update branches when children change
+  // Only depend on childrenArray.length to avoid infinite loops
   useEffect(() => {
     if (branches.length !== childrenArray.length) {
       setBranches(childrenArray);
     }
-  }, [childrenArray, branches, setBranches]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [childrenArray.length]);
 
   return childrenArray.map((branch, index) => (
     <div

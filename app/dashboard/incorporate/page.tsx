@@ -24,6 +24,7 @@ import {
   Plus,
 } from "lucide-react";
 import { RARITIES } from "@/lib/agentTraits";
+import { getBagsFmUrl, EXTERNAL_APIS } from "@/lib/constants/urls";
 
 interface UserAgent {
   id: string;
@@ -659,7 +660,7 @@ export default function IncorporatePage() {
 
           <div className="flex gap-3 justify-center">
             <a
-              href={`https://bags.fm/${launchResult.tokenMint}`}
+              href={getBagsFmUrl(launchResult.tokenMint)}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#6FEC06] to-[#4a9f10] rounded-xl text-black font-semibold transition-all hover:scale-105 shadow-lg shadow-[#6FEC06]/20"
@@ -694,7 +695,7 @@ export default function IncorporatePage() {
         <p className="text-white/50 text-sm md:text-base mb-6 max-w-2xl mx-auto">
           Combine your minted AI agents into a corporation and launch a token on{" "}
           <a
-            href="https://bags.fm"
+            href={EXTERNAL_APIS.bagsFm}
             target="_blank"
             rel="noopener noreferrer"
             className="text-[#6FEC06] hover:underline font-semibold"

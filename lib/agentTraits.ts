@@ -605,6 +605,12 @@ function getRandomAbility(
   const eligibleAbilities = SPECIAL_ABILITIES.filter((a) =>
     allowedTiers.includes(a.tier),
   );
+
+  // Fallback to first ability if no eligible abilities found (should never happen)
+  if (eligibleAbilities.length === 0) {
+    return SPECIAL_ABILITIES[0];
+  }
+
   return eligibleAbilities[
     Math.floor(Math.random() * eligibleAbilities.length)
   ];

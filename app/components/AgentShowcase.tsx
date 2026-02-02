@@ -19,7 +19,6 @@ import {
   Activity,
   Filter,
   Search,
-  ChevronRight,
   ArrowUpRight,
   ArrowRight,
 } from "lucide-react";

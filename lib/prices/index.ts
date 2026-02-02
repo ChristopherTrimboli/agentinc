@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
-interface PriceData {
+export interface PriceData {
   price: number;
   priceChange24h?: number;
   marketCap?: number;
@@ -16,14 +16,20 @@ interface CacheEntry {
 
 // In-memory cache for prices (30 second TTL)
 const priceCache = new Map<string, CacheEntry>();
-const CACHE_TTL_MS = 30 * 1000; // 30 seconds
+const CACHE_TTL_MS = 30 * 1000;
 
 // Longer cache for earnings (5 minutes) since it changes less frequently
 const earningsCache = new Map<
   string,
   { earnings: number; timestamp: number }
 >();
-const EARNINGS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const EARNINGS_CACHE_TTL_MS = 5 * 60 * 1000;
+
+// Max mints per request
+const MAX_MINTS = 100;
+
+// Max cache size before eviction
+const MAX_CACHE_SIZE = 100;
 
 function getCacheKey(mints: string[]): string {
   return mints.sort().join(",");
@@ -48,7 +54,7 @@ function setCache(mints: string[], prices: Record<string, PriceData>): void {
   const key = getCacheKey(mints);
   priceCache.set(key, { prices, timestamp: Date.now() });
 
-  if (priceCache.size > 100) {
+  if (priceCache.size > MAX_CACHE_SIZE) {
     const oldestKey = priceCache.keys().next().value;
     if (oldestKey) priceCache.delete(oldestKey);
   }
@@ -97,18 +103,18 @@ async function fetchEarningsFromBags(
       }
     }
   } catch (error) {
-    console.error(`Error fetching earnings for ${tokenMint}:`, error);
+    console.error(`[Prices] Error fetching earnings for ${tokenMint}:`, error);
   }
 
   return undefined;
 }
 
-// GET /api/marketplace/prices - Get prices from DexScreener and earnings from Bags
-export async function GET(req: NextRequest) {
+/**
+ * Fetch prices from DexScreener and earnings from Bags API.
+ * Used by /api/explore/prices.
+ */
+export async function fetchPrices(mints: string | null): Promise<NextResponse> {
   try {
-    const { searchParams } = new URL(req.url);
-    const mints = searchParams.get("mints");
-
     if (!mints) {
       return NextResponse.json({
         prices: {},
@@ -117,7 +123,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const mintList = mints.split(",").filter(Boolean).slice(0, 100);
+    const mintList = mints.split(",").filter(Boolean).slice(0, MAX_MINTS);
 
     if (mintList.length === 0) {
       return NextResponse.json({
@@ -182,7 +188,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Fetch earnings from Bags API in parallel (limit concurrency)
+    // Fetch earnings from Bags API in parallel
     const earningsPromises = mintList.map(async (mint) => {
       const earnings = await fetchEarningsFromBags(mint);
       return { mint, earnings };
@@ -216,7 +222,7 @@ export async function GET(req: NextRequest) {
 
     return jsonResponse;
   } catch (error) {
-    console.error("Error fetching prices:", error);
+    console.error("[Prices] Error fetching prices:", error);
     return NextResponse.json({
       prices: {},
       timestamp: Date.now(),

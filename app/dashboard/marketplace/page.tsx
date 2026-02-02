@@ -12,7 +12,6 @@ import {
   LayoutList,
   Search,
   Sparkles,
-  Users,
   ExternalLink,
   ArrowUpRight,
   ChevronUp,
@@ -20,6 +19,7 @@ import {
   RefreshCw,
   Zap,
 } from "lucide-react";
+import { getSolscanUrl } from "@/lib/constants/urls";
 
 // Types
 interface MarketplaceAgent {
@@ -345,7 +345,7 @@ function TableRow({
           </Link>
           {item.tokenMint && (
             <a
-              href={`https://solscan.io/token/${item.tokenMint}`}
+              href={getSolscanUrl("token", item.tokenMint)}
               target="_blank"
               rel="noopener noreferrer"
               className="p-2 rounded-lg bg-white/5 hover:bg-[#6FEC06]/20 hover:text-[#6FEC06] transition-colors"
@@ -523,12 +523,12 @@ export default function MarketplacePage() {
   const [sortField, setSortField] = useState<SortField>("launchedAt");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
-  // Fetch marketplace data
+  // Fetch marketplace data (using explore API)
   const fetchData = useCallback(async (showRefreshIndicator = false) => {
     if (showRefreshIndicator) setIsRefreshing(true);
 
     try {
-      const res = await fetch("/api/marketplace");
+      const res = await fetch("/api/explore");
       if (!res.ok) throw new Error("Failed to fetch marketplace data");
 
       const data = await res.json();
@@ -538,7 +538,7 @@ export default function MarketplacePage() {
       // Fetch prices if we have token mints
       if (data.tokenMints && data.tokenMints.length > 0) {
         const priceRes = await fetch(
-          `/api/marketplace/prices?mints=${data.tokenMints.join(",")}`,
+          `/api/explore/prices?mints=${data.tokenMints.join(",")}`,
         );
         if (priceRes.ok) {
           const priceData = await priceRes.json();
@@ -563,7 +563,7 @@ export default function MarketplacePage() {
     const interval = setInterval(() => {
       const mints = items.filter((i) => i.tokenMint).map((i) => i.tokenMint!);
       if (mints.length > 0) {
-        fetch(`/api/marketplace/prices?mints=${mints.join(",")}`)
+        fetch(`/api/explore/prices?mints=${mints.join(",")}`)
           .then((res) => res.json())
           .then((data) => setPrices(data.prices || {}))
           .catch(console.error);

@@ -1,12 +1,25 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { BagsSDK } from "@bagsfm/bags-sdk";
 import { Connection, PublicKey } from "@solana/web3.js";
+import { SOLANA_RPC_URL } from "@/lib/constants/solana";
+import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
 
-const SOLANA_RPC_URL =
-  process.env.SOLANA_RPC_URL || "https://mainnet.helius-rpc.com";
+// Helper to safely create PublicKey
+function isValidPublicKey(value: string): boolean {
+  try {
+    new PublicKey(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 // POST /api/incorporate/fee-share - Create fee share config on Bags
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  // Require authentication
+  const auth = await requireAuth(request);
+  if (!isAuthResult(auth)) return auth;
+
   try {
     // Get API key from environment
     const apiKey = process.env.BAGS_API_KEY;
@@ -21,7 +34,12 @@ export async function POST(request: Request) {
     const partnerWallet = process.env.BAGS_PARTNER_WALLET;
     const partnerConfig = process.env.BAGS_PARTNER_KEY;
 
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
     const { wallet, tokenMint } = body;
 
     // Validate required fields
@@ -32,11 +50,25 @@ export async function POST(request: Request) {
       );
     }
 
+    // Validate PublicKey formats
+    if (!isValidPublicKey(wallet)) {
+      return NextResponse.json(
+        { error: "Invalid wallet address" },
+        { status: 400 },
+      );
+    }
+    if (!isValidPublicKey(tokenMint)) {
+      return NextResponse.json(
+        { error: "Invalid tokenMint address" },
+        { status: 400 },
+      );
+    }
+
     // Initialize Bags SDK
     const connection = new Connection(SOLANA_RPC_URL);
     const sdk = new BagsSDK(apiKey, connection, "confirmed");
 
-    // Convert to PublicKeys
+    // Convert to PublicKeys (safe after validation)
     const walletPubkey = new PublicKey(wallet);
     const tokenMintPubkey = new PublicKey(tokenMint);
 

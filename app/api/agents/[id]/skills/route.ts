@@ -1,16 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrivyClient } from "@privy-io/node";
 import prisma from "@/lib/prisma";
 import {
   skillRegistry,
   AVAILABLE_SKILLS,
   type AvailableSkill,
 } from "@/lib/skills";
-
-const privy = new PrivyClient({
-  appId: process.env.NEXT_PUBLIC_PRIVY_APP_ID!,
-  appSecret: process.env.PRIVY_APP_SECRET!,
-});
+import { getPrivyClient } from "@/lib/auth/verifyRequest";
 
 /**
  * GET /api/agents/[id]/skills
@@ -28,6 +23,7 @@ export async function GET(
 
   let userId: string;
   try {
+    const privy = getPrivyClient();
     const privyUser = await privy.users().get({ id_token: idToken });
     userId = privyUser.id;
   } catch {
@@ -96,6 +92,7 @@ export async function PUT(
 
   let userId: string;
   try {
+    const privy = getPrivyClient();
     const privyUser = await privy.users().get({ id_token: idToken });
     userId = privyUser.id;
   } catch {
@@ -103,7 +100,30 @@ export async function PUT(
   }
 
   const { id: agentId } = await params;
-  const { enabledSkills }: { enabledSkills: string[] } = await req.json();
+
+  let body;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const { enabledSkills } = body;
+
+  // Validate enabledSkills is an array of strings
+  if (!Array.isArray(enabledSkills)) {
+    return NextResponse.json(
+      { error: "enabledSkills must be an array" },
+      { status: 400 },
+    );
+  }
+
+  if (!enabledSkills.every((s: unknown) => typeof s === "string")) {
+    return NextResponse.json(
+      { error: "enabledSkills must contain only strings" },
+      { status: 400 },
+    );
+  }
 
   // Validate skill IDs
   const invalidSkills = enabledSkills.filter(
@@ -173,6 +193,7 @@ export async function PATCH(
 
   let userId: string;
   try {
+    const privy = getPrivyClient();
     const privyUser = await privy.users().get({ id_token: idToken });
     userId = privyUser.id;
   } catch {
@@ -180,8 +201,30 @@ export async function PATCH(
   }
 
   const { id: agentId } = await params;
-  const { skillId, enabled }: { skillId: string; enabled: boolean } =
-    await req.json();
+
+  let body;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  const { skillId, enabled } = body;
+
+  // Validate required fields
+  if (typeof skillId !== "string" || skillId.trim() === "") {
+    return NextResponse.json(
+      { error: "skillId is required and must be a non-empty string" },
+      { status: 400 },
+    );
+  }
+
+  if (typeof enabled !== "boolean") {
+    return NextResponse.json(
+      { error: "enabled is required and must be a boolean" },
+      { status: 400 },
+    );
+  }
 
   if (!AVAILABLE_SKILLS.includes(skillId as AvailableSkill)) {
     return NextResponse.json(

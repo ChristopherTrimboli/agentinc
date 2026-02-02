@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Twitter,
   Sparkles,
@@ -6,7 +8,6 @@ import {
   BarChart3,
   Target,
   Code,
-  Building2,
   TrendingUp,
   Globe,
   ArrowRight,

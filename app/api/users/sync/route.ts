@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrivyClient } from "@privy-io/node";
 import prisma from "@/lib/prisma";
-
-const privy = new PrivyClient({
-  appId: process.env.NEXT_PUBLIC_PRIVY_APP_ID!,
-  appSecret: process.env.PRIVY_APP_SECRET!,
-});
+import { getPrivyClient } from "@/lib/auth/verifyRequest";
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,6 +14,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify identity token and get user data (email comes from verified token)
+    const privy = getPrivyClient();
     const privyUser = await privy.users().get({ id_token: idToken });
 
     // Extract email from linked_accounts

@@ -50,11 +50,14 @@ export default function MintAgentPage() {
       <div className="fixed inset-0 bg-grid opacity-20 pointer-events-none" />
       <div className="fixed top-1/4 left-1/2 -translate-x-1/2 w-[900px] h-[600px] bg-purple-500/6 rounded-full blur-[150px] pointer-events-none" />
       <div className="fixed bottom-0 right-1/4 w-[500px] h-[400px] bg-cyan-500/4 rounded-full blur-[120px] pointer-events-none" />
-      
+
       <Navigation />
-      
+
       <main className="pt-[72px]">
-        <MintWizard mint={mint} chatPath={`/chat?agent=${mint.launchResult?.agentId || ""}`} />
+        <MintWizard
+          mint={mint}
+          chatPath={`/chat?agent=${mint.launchResult?.agentId || ""}`}
+        />
       </main>
     </div>
   );

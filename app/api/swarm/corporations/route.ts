@@ -1,17 +1,50 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
 
-// GET /api/swarm/corporations - List all corporations with their agents
-export async function GET() {
+const DEFAULT_PAGE_SIZE = 50;
+const MAX_PAGE_SIZE = 100;
+
+// GET /api/swarm/corporations - List all corporations with their agents (paginated)
+export async function GET(req: NextRequest) {
   try {
-    const corporations = await prisma.corporation.findMany({
-      include: {
-        agents: true,
-      },
-      orderBy: { createdAt: "asc" },
-    });
+    const { searchParams } = new URL(req.url);
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
+    const limit = Math.min(
+      MAX_PAGE_SIZE,
+      Math.max(
+        1,
+        parseInt(searchParams.get("limit") || String(DEFAULT_PAGE_SIZE)),
+      ),
+    );
+    const offset = (page - 1) * limit;
 
-    return NextResponse.json({ corporations });
+    // Cache public corporation data: 30s TTL with 60s SWR
+    const cacheStrategy = { ttl: 30, swr: 60 };
+
+    const [corporations, total] = await Promise.all([
+      prisma.corporation.findMany({
+        include: {
+          agents: true,
+          _count: { select: { agents: true } },
+        },
+        orderBy: { createdAt: "asc" },
+        take: limit,
+        skip: offset,
+        cacheStrategy,
+      }),
+      prisma.corporation.count({ cacheStrategy }),
+    ]);
+
+    return NextResponse.json({
+      corporations,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
   } catch (error) {
     console.error("Error fetching corporations:", error);
     return NextResponse.json(
@@ -21,23 +54,32 @@ export async function GET() {
   }
 }
 
-// POST /api/swarm/corporations - Create a new corporation
-export async function POST(request: Request) {
+// POST /api/swarm/corporations - Create a new corporation (requires auth)
+export async function POST(req: NextRequest) {
+  const auth = await requireAuth(req);
+  if (!isAuthResult(auth)) return auth;
+
+  let body;
   try {
-    const body = await request.json();
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  try {
     const { name, description, logo, color, size } = body;
 
-    if (!name) {
+    if (!name || typeof name !== "string" || name.trim().length === 0) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
 
     const corporation = await prisma.corporation.create({
       data: {
-        name,
-        description,
-        logo,
-        color,
-        size: size || 60,
+        name: name.trim(),
+        description: description?.trim() || null,
+        logo: logo || null,
+        color: color || null,
+        size: typeof size === "number" ? size : 60,
       },
     });
 

@@ -1,44 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrivyClient } from "@privy-io/node";
 import { BagsSDK } from "@bagsfm/bags-sdk";
-import { Connection, PublicKey } from "@solana/web3.js";
-
-const SOLANA_RPC_URL =
-  process.env.SOLANA_RPC_URL || "https://mainnet.helius-rpc.com";
-
-const privy = new PrivyClient({
-  appId: process.env.NEXT_PUBLIC_PRIVY_APP_ID!,
-  appSecret: process.env.PRIVY_APP_SECRET!,
-});
-
-// Helper to verify auth
-async function verifyAuth(req: NextRequest): Promise<string | null> {
-  const idToken = req.headers.get("privy-id-token");
-  if (!idToken) return null;
-
-  try {
-    const privyUser = await privy.users().get({ id_token: idToken });
-    return privyUser.id;
-  } catch {
-    return null;
-  }
-}
+import { Connection } from "@solana/web3.js";
+import { SOLANA_RPC_URL } from "@/lib/constants/solana";
+import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
+import { isValidPublicKey, validatePublicKey } from "@/lib/utils/validation";
 
 // POST /api/earnings/claim - Generate claim transactions for all positions or specific token
 export async function POST(req: NextRequest) {
-  const userId = await verifyAuth(req);
-
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await requireAuth(req);
+  if (!isAuthResult(auth)) return auth;
 
   try {
     const body = await req.json();
     const { wallet, tokenMint } = body; // wallet required, tokenMint optional
 
-    if (!wallet) {
+    if (!wallet || typeof wallet !== "string") {
       return NextResponse.json(
         { error: "Missing wallet address" },
+        { status: 400 },
+      );
+    }
+
+    // Validate wallet PublicKey
+    if (!isValidPublicKey(wallet)) {
+      return NextResponse.json(
+        { error: "Invalid wallet address: not a valid Solana public key" },
+        { status: 400 },
+      );
+    }
+
+    // Validate tokenMint if provided
+    if (tokenMint && !isValidPublicKey(tokenMint)) {
+      return NextResponse.json(
+        { error: "Invalid tokenMint: not a valid Solana public key" },
         { status: 400 },
       );
     }
@@ -56,7 +50,7 @@ export async function POST(req: NextRequest) {
     const sdk = new BagsSDK(apiKey, connection, "confirmed");
 
     // Get all claimable positions for the wallet
-    const walletPubkey = new PublicKey(wallet);
+    const walletPubkey = validatePublicKey(wallet, "wallet");
     const allPositions = await sdk.fee.getAllClaimablePositions(walletPubkey);
 
     if (allPositions.length === 0) {
@@ -100,7 +94,10 @@ export async function POST(req: NextRequest) {
             // Serialize without requiring signatures - user will sign on frontend
             allTransactions.push({
               transaction: Buffer.from(
-                tx.serialize({ requireAllSignatures: false, verifySignatures: false })
+                tx.serialize({
+                  requireAllSignatures: false,
+                  verifySignatures: false,
+                }),
               ).toString("base64"),
               tokenMint: position.baseMint,
             });

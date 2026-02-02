@@ -26,8 +26,8 @@ import {
   Calendar,
   User,
   Droplets,
-  Users,
 } from "lucide-react";
+import { getSolscanUrl } from "@/lib/constants/urls";
 import {
   useReactTable,
   getCoreRowModel,
@@ -869,7 +869,7 @@ export default function ExplorePage() {
           const truncated = `${wallet.slice(0, 4)}...${wallet.slice(-4)}`;
           return (
             <a
-              href={`https://solscan.io/account/${wallet}`}
+              href={getSolscanUrl("account", wallet)}
               target="_blank"
               rel="noopener noreferrer"
               className="font-mono text-xs text-white/60 hover:text-[#6FEC06] transition-colors"

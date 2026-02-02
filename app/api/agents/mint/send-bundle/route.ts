@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { BagsSDK, sendBundleAndConfirm } from "@bagsfm/bags-sdk";
 import { Connection, VersionedTransaction } from "@solana/web3.js";
 import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
-
-const SOLANA_RPC_URL =
-  process.env.SOLANA_RPC_URL || "https://mainnet.helius-rpc.com";
+import { SOLANA_RPC_URL } from "@/lib/constants/solana";
 
 // POST /api/agents/mint/send-bundle - Send a signed bundle via Jito using SDK
 export async function POST(req: NextRequest) {
@@ -45,14 +43,8 @@ export async function POST(req: NextRequest) {
       },
     );
 
-    console.log(
-      `[Send Bundle] Sending ${transactions.length} transactions via Jito...`,
-    );
-
     // Send bundle using SDK helper
     const bundleId = await sendBundleAndConfirm(transactions, sdk);
-
-    console.log(`[Send Bundle] Bundle confirmed! Bundle ID: ${bundleId}`);
 
     return NextResponse.json({
       bundleId,

@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { BagsSDK, createTipTransaction } from "@bagsfm/bags-sdk";
 import { Connection, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
+import { SOLANA_RPC_URL } from "@/lib/constants/solana";
+import { isValidPublicKey, validatePublicKey } from "@/lib/utils/validation";
 
-const SOLANA_RPC_URL =
-  process.env.SOLANA_RPC_URL || "https://mainnet.helius-rpc.com";
 const FALLBACK_JITO_TIP_LAMPORTS = 0.015 * LAMPORTS_PER_SOL;
 
 // POST /api/agents/mint/fee-share - Create fee share config for agent token
@@ -37,13 +37,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Validate PublicKeys before use
+    if (!isValidPublicKey(wallet)) {
+      return NextResponse.json(
+        { error: "Invalid wallet address: not a valid Solana public key" },
+        { status: 400 },
+      );
+    }
+    if (!isValidPublicKey(tokenMint)) {
+      return NextResponse.json(
+        { error: "Invalid tokenMint: not a valid Solana public key" },
+        { status: 400 },
+      );
+    }
+
     // Initialize Bags SDK
     const connection = new Connection(SOLANA_RPC_URL);
     const sdk = new BagsSDK(apiKey, connection, "confirmed");
 
-    // Convert to PublicKeys
-    const walletPubkey = new PublicKey(wallet);
-    const tokenMintPubkey = new PublicKey(tokenMint);
+    // Convert to PublicKeys (validated above)
+    const walletPubkey = validatePublicKey(wallet, "wallet");
+    const tokenMintPubkey = validatePublicKey(tokenMint, "tokenMint");
 
     // Creator gets 100% of fees (single claimer, no LUT needed)
     const feeClaimers = [{ user: walletPubkey, userBps: 10000 }];
@@ -65,14 +79,11 @@ export async function POST(req: NextRequest) {
     if (partnerWallet && partnerConfig) {
       configOptions.partner = new PublicKey(partnerWallet);
       configOptions.partnerConfig = new PublicKey(partnerConfig);
-      console.log(`[Fee Share] Using partner config: ${partnerConfig}`);
     }
 
     // Create fee share config using SDK
     let configResult;
 
-    console.log("[Fee Share] Creating config with SDK...");
-    console.log("[Fee Share] Config options:", { configOptions });
     try {
       configResult = await sdk.config.createBagsFeeShareConfig(configOptions);
     } catch (sdkError: unknown) {
@@ -86,12 +97,6 @@ export async function POST(req: NextRequest) {
       }
       throw sdkError;
     }
-
-    console.log("[Fee Share] Config created successfully");
-    console.log(
-      "[Fee Share] Meteora config key:",
-      configResult.meteoraConfigKey.toString(),
-    );
 
     // Convert transactions to base64 for frontend signing
     const transactions = (configResult.transactions || []).map((tx) => ({
@@ -108,7 +113,7 @@ export async function POST(req: NextRequest) {
         );
       }
     } catch {
-      console.log("[Fee Share] Using fallback Jito tip");
+      // Use fallback tip amount
     }
 
     // Convert bundles to base64 and include tip transactions

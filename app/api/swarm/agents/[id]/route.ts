@@ -1,16 +1,22 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
 
 // GET /api/swarm/agents/[id] - Get a single swarm agent
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
 
+    if (!id || typeof id !== "string") {
+      return NextResponse.json({ error: "Invalid agent ID" }, { status: 400 });
+    }
+
     const agent = await prisma.swarmAgent.findUnique({
       where: { id },
+      include: { corporation: true },
     });
 
     if (!agent) {
@@ -27,24 +33,52 @@ export async function GET(
   }
 }
 
-// PATCH /api/swarm/agents/[id] - Update a swarm agent
+// PATCH /api/swarm/agents/[id] - Update a swarm agent (requires auth)
 export async function PATCH(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const auth = await requireAuth(request);
+  if (!isAuthResult(auth)) return auth;
+
   try {
     const { id } = await params;
+
+    if (!id || typeof id !== "string") {
+      return NextResponse.json({ error: "Invalid agent ID" }, { status: 400 });
+    }
+
     const body = await request.json();
     const { name, description, capabilities, color, size } = body;
+
+    // Validate capabilities if provided
+    if (
+      capabilities &&
+      (!Array.isArray(capabilities) ||
+        !capabilities.every((c: unknown) => typeof c === "string"))
+    ) {
+      return NextResponse.json(
+        { error: "Capabilities must be an array of strings" },
+        { status: 400 },
+      );
+    }
+
+    // Check if agent exists
+    const existing = await prisma.swarmAgent.findUnique({ where: { id } });
+    if (!existing) {
+      return NextResponse.json({ error: "Agent not found" }, { status: 404 });
+    }
 
     const agent = await prisma.swarmAgent.update({
       where: { id },
       data: {
-        ...(name && { name }),
-        ...(description !== undefined && { description }),
+        ...(name && { name: name.trim() }),
+        ...(description !== undefined && {
+          description: description?.trim() || null,
+        }),
         ...(capabilities && { capabilities }),
         ...(color && { color }),
-        ...(size && { size }),
+        ...(typeof size === "number" && { size }),
       },
     });
 
@@ -58,17 +92,36 @@ export async function PATCH(
   }
 }
 
-// DELETE /api/swarm/agents/[id] - Delete a swarm agent
+// DELETE /api/swarm/agents/[id] - Delete a swarm agent (requires auth)
 export async function DELETE(
-  request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const auth = await requireAuth(request);
+  if (!isAuthResult(auth)) return auth;
+
   try {
     const { id } = await params;
 
-    await prisma.swarmAgent.delete({
-      where: { id },
-    });
+    if (!id || typeof id !== "string") {
+      return NextResponse.json({ error: "Invalid agent ID" }, { status: 400 });
+    }
+
+    // Check if agent exists
+    const existing = await prisma.swarmAgent.findUnique({ where: { id } });
+    if (!existing) {
+      return NextResponse.json({ error: "Agent not found" }, { status: 404 });
+    }
+
+    // Delete related events first, then the agent
+    await prisma.$transaction([
+      prisma.swarmEvent.deleteMany({
+        where: {
+          OR: [{ sourceAgentId: id }, { targetAgentId: id }],
+        },
+      }),
+      prisma.swarmAgent.delete({ where: { id } }),
+    ]);
 
     return NextResponse.json({ success: true });
   } catch (error) {

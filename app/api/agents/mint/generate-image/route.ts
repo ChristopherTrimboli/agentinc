@@ -1,13 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateImage } from "ai";
 import { put } from "@vercel/blob";
-import { PrivyClient } from "@privy-io/node";
 import { generateImagePrompt, AgentTraitData } from "@/lib/agentTraits";
-
-const privy = new PrivyClient({
-  appId: process.env.NEXT_PUBLIC_PRIVY_APP_ID!,
-  appSecret: process.env.PRIVY_APP_SECRET!,
-});
+import { getPrivyClient } from "@/lib/auth/verifyRequest";
 
 // Helper to verify auth
 async function verifyAuth(req: NextRequest): Promise<string | null> {
@@ -15,6 +10,7 @@ async function verifyAuth(req: NextRequest): Promise<string | null> {
   if (!idToken) return null;
 
   try {
+    const privy = getPrivyClient();
     const privyUser = await privy.users().get({ id_token: idToken });
     return privyUser.id;
   } catch {

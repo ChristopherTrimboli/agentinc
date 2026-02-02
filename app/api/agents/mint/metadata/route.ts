@@ -3,9 +3,7 @@ import { BagsSDK } from "@bagsfm/bags-sdk";
 import { Connection } from "@solana/web3.js";
 import { put } from "@vercel/blob";
 import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
-
-const SOLANA_RPC_URL =
-  process.env.SOLANA_RPC_URL || "https://mainnet.helius-rpc.com";
+import { SOLANA_RPC_URL } from "@/lib/constants/solana";
 
 // POST /api/agents/mint/metadata - Create token info and metadata on Bags for agent
 export async function POST(req: NextRequest) {
@@ -86,14 +84,11 @@ export async function POST(req: NextRequest) {
       });
 
       publicImageUrl = url;
-      console.log(`[Metadata] Uploaded image to Vercel Blob: ${url}`);
     }
 
     // Initialize Bags SDK
     const connection = new Connection(SOLANA_RPC_URL);
     const sdk = new BagsSDK(apiKey, connection, "confirmed");
-
-    console.log("[Metadata] Creating token info with SDK...");
 
     // Create token info and metadata using SDK
     const tokenInfoResponse = await sdk.tokenLaunch.createTokenInfoAndMetadata({
@@ -105,9 +100,6 @@ export async function POST(req: NextRequest) {
       website: website || undefined,
       telegram: telegram || undefined,
     });
-
-    console.log("[Metadata] Token created successfully");
-    console.log("[Metadata] Token mint:", tokenInfoResponse.tokenMint);
 
     return NextResponse.json({
       tokenMint: tokenInfoResponse.tokenMint,

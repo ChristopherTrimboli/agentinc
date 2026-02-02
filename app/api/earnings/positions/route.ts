@@ -1,44 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrivyClient } from "@privy-io/node";
 import { BagsSDK } from "@bagsfm/bags-sdk";
-import { Connection, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
-
-const SOLANA_RPC_URL =
-  process.env.SOLANA_RPC_URL || "https://mainnet.helius-rpc.com";
-
-const privy = new PrivyClient({
-  appId: process.env.NEXT_PUBLIC_PRIVY_APP_ID!,
-  appSecret: process.env.PRIVY_APP_SECRET!,
-});
-
-// Helper to verify auth
-async function verifyAuth(req: NextRequest): Promise<string | null> {
-  const idToken = req.headers.get("privy-id-token");
-  if (!idToken) return null;
-
-  try {
-    const privyUser = await privy.users().get({ id_token: idToken });
-    return privyUser.id;
-  } catch {
-    return null;
-  }
-}
+import { Connection, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { SOLANA_RPC_URL } from "@/lib/constants/solana";
+import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
+import { isValidPublicKey, validatePublicKey } from "@/lib/utils/validation";
 
 // POST /api/earnings/positions - Get claimable fee positions for user's wallet
 export async function POST(req: NextRequest) {
-  const userId = await verifyAuth(req);
-
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await requireAuth(req);
+  if (!isAuthResult(auth)) return auth;
 
   try {
     const body = await req.json();
     const { wallet } = body;
 
-    if (!wallet) {
+    if (!wallet || typeof wallet !== "string") {
       return NextResponse.json(
         { error: "Missing wallet address" },
+        { status: 400 },
+      );
+    }
+
+    // Validate wallet PublicKey
+    if (!isValidPublicKey(wallet)) {
+      return NextResponse.json(
+        { error: "Invalid wallet address: not a valid Solana public key" },
         { status: 400 },
       );
     }
@@ -56,36 +42,28 @@ export async function POST(req: NextRequest) {
     const sdk = new BagsSDK(apiKey, connection, "confirmed");
 
     // Get all claimable positions for the wallet
-    const walletPubkey = new PublicKey(wallet);
+    const walletPubkey = validatePublicKey(wallet, "wallet");
     const positions = await sdk.fee.getAllClaimablePositions(walletPubkey);
 
     // Calculate total claimable amount in SOL
     let totalClaimableLamports = 0;
     const formattedPositions = positions.map((position) => {
-      // Sum up all claimable amounts
-      const virtualPoolAmount = Number(
-        position.virtualPoolClaimableLamportsUserShare ||
-          position.virtualPoolClaimableAmount ||
-          0,
+      // Use totalClaimableLamportsUserShare from SDK
+      const positionTotal = Number(
+        position.totalClaimableLamportsUserShare || 0,
       );
-      const dammPoolAmount = Number(
-        position.dammPoolClaimableLamportsUserShare ||
-          position.dammPoolClaimableAmount ||
-          0,
-      );
-
-      const positionTotal = virtualPoolAmount + dammPoolAmount;
       totalClaimableLamports += positionTotal;
+
+      // Extract optional properties safely
+      const pos = position as Record<string, unknown>;
 
       return {
         baseMint: position.baseMint,
-        virtualPoolAddress: position.virtualPoolAddress,
-        dammPoolAddress: position.dammPoolAddress,
-        virtualPoolClaimable: virtualPoolAmount / LAMPORTS_PER_SOL,
-        dammPoolClaimable: dammPoolAmount / LAMPORTS_PER_SOL,
+        virtualPoolAddress: pos.virtualPoolAddress as string | undefined,
+        dammPoolAddress: pos.dammPoolAddress as string | undefined,
         totalClaimable: positionTotal / LAMPORTS_PER_SOL,
-        isCustomFeeVault: position.isCustomFeeVault,
-        isMigrated: position.isMigrated,
+        isCustomFeeVault: pos.isCustomFeeVault as boolean | undefined,
+        isMigrated: pos.isMigrated as boolean | undefined,
       };
     });
 

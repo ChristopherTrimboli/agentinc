@@ -22,7 +22,7 @@ model User {
 
 model Agent {
   id           String   @id @default(cuid())
-  name         String
+  name         String   @db.VarChar(32) // Token metadata limit
   systemPrompt String   @db.Text
   description  String?  @db.Text
   isPublic     Boolean  @default(false)
@@ -53,7 +53,7 @@ model Agent {
   
   // Token launch fields (Bags API)
   tokenMint       String?  @unique // Solana token mint address
-  tokenSymbol     String?  // Token symbol (e.g., "$AGNT")
+  tokenSymbol     String?  @db.VarChar(10) // Token symbol (e.g., "$AGNT")
   tokenMetadata   String?  // IPFS metadata URL
   launchWallet    String?  // Wallet that launched the token
   launchSignature String?  // Transaction signature
@@ -67,6 +67,9 @@ model Agent {
   @@index([tokenMint])
   @@index([isMinted])
   @@index([corporationId])
+  @@index([createdAt])
+  @@index([isMinted, launchedAt])
+  @@index([createdById, createdAt])
 }
 
 // Swarm visualization models
@@ -74,7 +77,7 @@ model Agent {
 // Corporation - a company/organization that agents belong to
 model Corporation {
   id          String   @id @default(cuid())
-  name        String
+  name        String   @db.VarChar(32) // Token metadata limit
   description String?  @db.Text
   logo        String?  // URL or emoji
   color       String?  // Brand color
@@ -84,7 +87,7 @@ model Corporation {
 
   // Token launch fields (Bags API)
   tokenMint       String?  @unique // Solana token mint address
-  tokenSymbol     String?  // Token symbol (e.g., "AGNT")
+  tokenSymbol     String?  @db.VarChar(10) // Token symbol (e.g., "AGNT")
   tokenMetadata   String?  // IPFS metadata URL
   launchWallet    String?  // Wallet that launched the token
   launchSignature String?  // Transaction signature
@@ -96,11 +99,12 @@ model Corporation {
 
   @@index([name])
   @@index([tokenMint])
+  @@index([createdAt])
 }
 
 model SwarmAgent {
   id           String   @id @default(cuid())
-  name         String
+  name         String   @db.VarChar(255)
   description  String?  @db.Text
   capabilities String[] // Array of capability strings
   color        String?
@@ -118,6 +122,7 @@ model SwarmAgent {
 
   @@index([name])
   @@index([corporationId])
+  @@index([createdAt])
 }
 
 model SwarmEvent {
@@ -138,4 +143,6 @@ model SwarmEvent {
   @@index([targetAgentId])
   @@index([timestamp])
   @@index([type])
+  @@index([type, timestamp])
+  @@index([sourceAgentId, timestamp])
 }

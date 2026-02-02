@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
 
 // In-memory event subscribers for SSE
 const subscribers = new Set<(event: string) => void>();
@@ -11,7 +12,7 @@ export function broadcastSwarmEvent(event: object) {
 }
 
 // GET /api/swarm/events - SSE stream for real-time events
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
@@ -23,7 +24,12 @@ export async function GET(request: Request) {
 
       // Subscribe to events
       const send = (data: string) => {
-        controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+        try {
+          controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+        } catch {
+          // Controller may be closed, remove subscriber
+          subscribers.delete(send);
+        }
       };
 
       subscribers.add(send);
@@ -44,17 +50,57 @@ export async function GET(request: Request) {
   });
 }
 
-// POST /api/swarm/events - Create a new event and broadcast it
-export async function POST(request: Request) {
+// POST /api/swarm/events - Create a new event and broadcast it (requires auth)
+export async function POST(req: NextRequest) {
+  const auth = await requireAuth(req);
+  if (!isAuthResult(auth)) return auth;
+
+  let body;
   try {
-    const body = await request.json();
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  try {
     const { type, sourceAgentId, targetAgentId, payload } = body;
 
-    if (!type || !sourceAgentId) {
+    if (!type || typeof type !== "string") {
       return NextResponse.json(
-        { error: "type and sourceAgentId are required" },
+        { error: "type is required and must be a string" },
         { status: 400 },
       );
+    }
+
+    if (!sourceAgentId || typeof sourceAgentId !== "string") {
+      return NextResponse.json(
+        { error: "sourceAgentId is required and must be a string" },
+        { status: 400 },
+      );
+    }
+
+    // Verify source agent exists
+    const sourceAgent = await prisma.swarmAgent.findUnique({
+      where: { id: sourceAgentId },
+    });
+    if (!sourceAgent) {
+      return NextResponse.json(
+        { error: "Source agent not found" },
+        { status: 404 },
+      );
+    }
+
+    // Verify target agent exists if provided
+    if (targetAgentId) {
+      const targetAgent = await prisma.swarmAgent.findUnique({
+        where: { id: targetAgentId },
+      });
+      if (!targetAgent) {
+        return NextResponse.json(
+          { error: "Target agent not found" },
+          { status: 404 },
+        );
+      }
     }
 
     // Persist the event
@@ -62,8 +108,8 @@ export async function POST(request: Request) {
       data: {
         type,
         sourceAgentId,
-        targetAgentId,
-        payload,
+        targetAgentId: targetAgentId || null,
+        payload: payload || null,
       },
       include: {
         sourceAgent: true,

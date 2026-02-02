@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AgentTraitData } from "@/lib/agentTraits";
 import { AgentPreviewCard } from "./AgentPreviewCard";
 import { LaunchResult } from "@/lib/hooks/useMintAgent";
+import { getBagsFmUrl } from "@/lib/constants/urls";
 
 interface MintSuccessScreenProps {
   launchResult: LaunchResult;
@@ -76,7 +77,7 @@ export function MintSuccessScreen({
 
         <div className="flex gap-4 justify-center flex-wrap">
           <a
-            href={`https://bags.fm/${launchResult.tokenMint}`}
+            href={getBagsFmUrl(launchResult.tokenMint)}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#6FEC06] to-[#4a9f10] rounded-xl text-black font-semibold transition-all hover:scale-105 shadow-lg shadow-[#6FEC06]/20"

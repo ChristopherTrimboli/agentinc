@@ -27,6 +27,7 @@ import {
   Coins,
 } from "lucide-react";
 import Navigation from "../components/Navigation";
+import { getBagsFmUrl, EXTERNAL_APIS } from "@/lib/constants/urls";
 
 interface SwarmAgent {
   id: string;
@@ -799,7 +800,7 @@ export default function IncorporatePage() {
             <p className="text-gray-400 mb-8 text-sm max-w-sm mx-auto leading-relaxed">
               Launch your AI Corporation with{" "}
               <a
-                href="https://bags.fm"
+                href={EXTERNAL_APIS.bagsFm}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-purple-400 hover:text-purple-300 font-medium underline underline-offset-2 decoration-purple-400/50 hover:decoration-purple-300 transition-colors"
@@ -872,7 +873,7 @@ export default function IncorporatePage() {
             {/* Action buttons */}
             <div className="flex gap-3 justify-center">
               <a
-                href={`https://bags.fm/${launchResult.tokenMint}`}
+                href={getBagsFmUrl(launchResult.tokenMint)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group relative flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-xl text-white font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-purple-500/25"
@@ -917,7 +918,7 @@ export default function IncorporatePage() {
             <p className="text-gray-400 text-base md:text-lg mb-8 max-w-2xl mx-auto leading-relaxed font-medium">
               Launch your AI Corporation with{" "}
               <a
-                href="https://bags.fm"
+                href={EXTERNAL_APIS.bagsFm}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-purple-400 hover:text-purple-300 font-semibold transition-colors"

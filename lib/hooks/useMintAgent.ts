@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useIdentityToken } from "@privy-io/react-auth";
 import { useWallets, useSignTransaction } from "@privy-io/react-auth/solana";
 import { nanoid } from "nanoid";
@@ -29,7 +29,13 @@ export interface LaunchResult {
 }
 
 export interface UseMintAgentOptions {
-  user: { linkedAccounts?: Array<{ type: string; chainType?: string; address?: string }> } | null;
+  user: {
+    linkedAccounts?: Array<{
+      type: string;
+      chainType?: string;
+      address?: string;
+    }>;
+  } | null;
 }
 
 export function useMintAgent({ user }: UseMintAgentOptions) {
@@ -67,15 +73,30 @@ export function useMintAgent({ user }: UseMintAgentOptions) {
   const [launchResult, setLaunchResult] = useState<LaunchResult | null>(null);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
 
+  // Refs for cleanup
+  const randomizeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isMountedRef = useRef(true);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      if (randomizeTimeoutRef.current) {
+        clearTimeout(randomizeTimeoutRef.current);
+      }
+    };
+  }, []);
+
   // Get the embedded Privy wallet for signing
   const embeddedWallet = useMemo(
     () => wallets.find((w) => w.standardWallet?.name === "Privy"),
-    [wallets]
+    [wallets],
   );
 
   const walletAddress = useMemo(() => {
     const solanaWallet = user?.linkedAccounts?.find(
-      (account) => account.type === "wallet" && account.chainType === "solana"
+      (account) => account.type === "wallet" && account.chainType === "solana",
     );
     return solanaWallet && "address" in solanaWallet
       ? solanaWallet.address
@@ -134,8 +155,16 @@ export function useMintAgent({ user }: UseMintAgentOptions) {
 
   // Randomize agent traits
   const randomizeAgent = useCallback(() => {
+    // Clear any existing timeout
+    if (randomizeTimeoutRef.current) {
+      clearTimeout(randomizeTimeoutRef.current);
+    }
+
     setIsRandomizing(true);
-    setTimeout(() => {
+    randomizeTimeoutRef.current = setTimeout(() => {
+      // Check if still mounted before updating state
+      if (!isMountedRef.current) return;
+
       const newTraits = generateRandomAgent();
       if (agentTraits) {
         if (lockedTraits.has("personality"))
@@ -152,6 +181,7 @@ export function useMintAgent({ user }: UseMintAgentOptions) {
       }
       setAgentTraits(newTraits);
       setIsRandomizing(false);
+      randomizeTimeoutRef.current = null;
     }, 800);
   }, [agentTraits, lockedTraits]);
 
@@ -184,7 +214,7 @@ export function useMintAgent({ user }: UseMintAgentOptions) {
       setImageUrl(data.imageUrl);
     } catch (error) {
       setLaunchError(
-        error instanceof Error ? error.message : "Failed to generate image"
+        error instanceof Error ? error.message : "Failed to generate image",
       );
     } finally {
       setIsGeneratingImage(false);
@@ -196,11 +226,11 @@ export function useMintAgent({ user }: UseMintAgentOptions) {
     (stepId: string, status: LaunchStep["status"], error?: string) => {
       setLaunchSteps((prev) =>
         prev.map((step) =>
-          step.id === stepId ? { ...step, status, error } : step
-        )
+          step.id === stepId ? { ...step, status, error } : step,
+        ),
       );
     },
-    []
+    [],
   );
 
   // Main launch function
@@ -229,7 +259,7 @@ export function useMintAgent({ user }: UseMintAgentOptions) {
     const requiredBalance = initialBuy + MINT_TX_FEE_ESTIMATE;
     if (walletBalance !== null && walletBalance < requiredBalance) {
       setLaunchError(
-        `Insufficient balance. You need at least ${requiredBalance.toFixed(4)} SOL (${initialBuy} SOL initial buy + ~${MINT_TX_FEE_ESTIMATE} SOL for fees). Current balance: ${walletBalance.toFixed(4)} SOL`
+        `Insufficient balance. You need at least ${requiredBalance.toFixed(4)} SOL (${initialBuy} SOL initial buy + ~${MINT_TX_FEE_ESTIMATE} SOL for fees). Current balance: ${walletBalance.toFixed(4)} SOL`,
       );
       return;
     }
@@ -239,7 +269,7 @@ export function useMintAgent({ user }: UseMintAgentOptions) {
       DEFAULT_LAUNCH_STEPS.map((step) => ({
         ...step,
         status: "pending" as const,
-      }))
+      })),
     );
     setIsLaunching(true);
 
@@ -302,17 +332,24 @@ export function useMintAgent({ user }: UseMintAgentOptions) {
         for (let i = 0; i < feeShareData.transactions.length; i++) {
           try {
             const txData = feeShareData.transactions[i];
-            const txBytes = Uint8Array.from(atob(txData.transaction), (c) =>
-              c.charCodeAt(0)
-            );
+            let txBytes: Uint8Array;
+            try {
+              txBytes = Uint8Array.from(atob(txData.transaction), (c) =>
+                c.charCodeAt(0),
+              );
+            } catch {
+              throw new Error(
+                `Invalid transaction data for fee config ${i + 1}`,
+              );
+            }
             const signResult = await signTransaction({
               transaction: txBytes,
               wallet: embeddedWallet,
             });
             const signedTxBase64 = btoa(
               String.fromCharCode(
-                ...new Uint8Array(signResult.signedTransaction)
-              )
+                ...new Uint8Array(signResult.signedTransaction),
+              ),
             );
 
             const sendResponse = await fetch(
@@ -324,19 +361,19 @@ export function useMintAgent({ user }: UseMintAgentOptions) {
                   "privy-id-token": identityToken,
                 },
                 body: JSON.stringify({ signedTransaction: signedTxBase64 }),
-              }
+              },
             );
 
             if (!sendResponse.ok) {
               const errorData = await sendResponse.json().catch(() => ({}));
               throw new Error(
                 errorData.error ||
-                  `Failed to send fee config transaction ${i + 1}`
+                  `Failed to send fee config transaction ${i + 1}`,
               );
             }
           } catch (error) {
             throw new Error(
-              `Fee config transaction ${i + 1} failed: ${error instanceof Error ? error.message : "Unknown error"}`
+              `Fee config transaction ${i + 1} failed: ${error instanceof Error ? error.message : "Unknown error"}`,
             );
           }
         }
@@ -363,34 +400,43 @@ export function useMintAgent({ user }: UseMintAgentOptions) {
 
       if (!launchTxResponse.ok) {
         const errorData = await launchTxResponse.json().catch(() => ({}));
-        throw new Error(errorData.error || "Failed to create launch transaction");
+        throw new Error(
+          errorData.error || "Failed to create launch transaction",
+        );
       }
       const launchTxData = await launchTxResponse.json();
 
-      const launchTxBytes = Uint8Array.from(
-        atob(launchTxData.transaction),
-        (c) => c.charCodeAt(0)
-      );
+      let launchTxBytes: Uint8Array;
+      try {
+        launchTxBytes = Uint8Array.from(atob(launchTxData.transaction), (c) =>
+          c.charCodeAt(0),
+        );
+      } catch {
+        throw new Error("Invalid launch transaction data");
+      }
       const signResult = await signTransaction({
         transaction: launchTxBytes,
         wallet: embeddedWallet,
       });
       const signedLaunchTxBase64 = btoa(
-        String.fromCharCode(...new Uint8Array(signResult.signedTransaction))
+        String.fromCharCode(...new Uint8Array(signResult.signedTransaction)),
       );
       updateStep("sign", "complete");
 
       // Step 4: Broadcast
       updateStep("broadcast", "loading");
 
-      const broadcastResponse = await fetch("/api/agents/mint/send-transaction", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "privy-id-token": identityToken,
+      const broadcastResponse = await fetch(
+        "/api/agents/mint/send-transaction",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "privy-id-token": identityToken,
+          },
+          body: JSON.stringify({ signedTransaction: signedLaunchTxBase64 }),
         },
-        body: JSON.stringify({ signedTransaction: signedLaunchTxBase64 }),
-      });
+      );
 
       if (!broadcastResponse.ok) {
         const errorData = await broadcastResponse.json().catch(() => ({}));
@@ -441,8 +487,8 @@ export function useMintAgent({ user }: UseMintAgentOptions) {
         prev.map((step) =>
           step.status === "loading"
             ? { ...step, status: "error", error: errorMessage }
-            : step
-        )
+            : step,
+        ),
       );
     } finally {
       setIsLaunching(false);

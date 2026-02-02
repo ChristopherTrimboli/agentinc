@@ -8,5 +8,10 @@ export default function DashboardMintPage() {
   const { user } = usePrivy();
   const mint = useMintAgent({ user });
 
-  return <MintWizard mint={mint} chatPath={`/dashboard/chat?agent=${mint.launchResult?.agentId || ""}`} />;
+  return (
+    <MintWizard
+      mint={mint}
+      chatPath={`/dashboard/chat?agent=${mint.launchResult?.agentId || ""}`}
+    />
+  );
 }

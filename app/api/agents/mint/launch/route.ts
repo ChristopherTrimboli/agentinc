@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { BagsSDK } from "@bagsfm/bags-sdk";
-import { Connection, PublicKey } from "@solana/web3.js";
+import { Connection } from "@solana/web3.js";
 import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
-
-const SOLANA_RPC_URL =
-  process.env.SOLANA_RPC_URL || "https://mainnet.helius-rpc.com";
+import { SOLANA_RPC_URL } from "@/lib/constants/solana";
+import { isValidPublicKey, validatePublicKey } from "@/lib/utils/validation";
 
 // POST /api/agents/mint/launch - Create token launch transaction for agent
 export async function POST(req: NextRequest) {
@@ -36,16 +35,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Validate PublicKeys before use
+    const invalidKeys: string[] = [];
+    if (!isValidPublicKey(tokenMint)) invalidKeys.push("tokenMint");
+    if (!isValidPublicKey(wallet)) invalidKeys.push("wallet");
+    if (!isValidPublicKey(configKey)) invalidKeys.push("configKey");
+
+    if (invalidKeys.length > 0) {
+      return NextResponse.json(
+        { error: `Invalid Solana public key(s): ${invalidKeys.join(", ")}` },
+        { status: 400 },
+      );
+    }
+
     // Initialize Bags SDK
     const connection = new Connection(SOLANA_RPC_URL);
     const sdk = new BagsSDK(apiKey, connection, "confirmed");
 
-    // Convert to PublicKeys
-    const tokenMintPubkey = new PublicKey(tokenMint);
-    const walletPubkey = new PublicKey(wallet);
-    const configKeyPubkey = new PublicKey(configKey);
-
-    console.log("[Launch] Creating launch transaction with SDK...");
+    // Convert to PublicKeys (validated above)
+    const tokenMintPubkey = validatePublicKey(tokenMint, "tokenMint");
+    const walletPubkey = validatePublicKey(wallet, "wallet");
+    const configKeyPubkey = validatePublicKey(configKey, "configKey");
 
     // Create launch transaction using SDK
     const launchTransaction = await sdk.tokenLaunch.createLaunchTransaction({
@@ -55,8 +65,6 @@ export async function POST(req: NextRequest) {
       initialBuyLamports: initialBuyLamports || 0,
       configKey: configKeyPubkey,
     });
-
-    console.log("[Launch] Transaction created successfully");
 
     // Serialize the transaction to base64 for frontend signing
     const transactionBase64 = Buffer.from(

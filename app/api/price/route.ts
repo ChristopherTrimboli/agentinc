@@ -1,10 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrivyClient } from "@privy-io/node";
-
-const privy = new PrivyClient({
-  appId: process.env.NEXT_PUBLIC_PRIVY_APP_ID!,
-  appSecret: process.env.PRIVY_APP_SECRET!,
-});
+import { getPrivyClient } from "@/lib/auth/verifyRequest";
 
 // SOL mint address
 const SOL_MINT = "So11111111111111111111111111111111111111112";
@@ -49,6 +44,7 @@ async function verifyAuth(req: NextRequest): Promise<string | null> {
   if (!idToken) return null;
 
   try {
+    const privy = getPrivyClient();
     const privyUser = await privy.users().get({ id_token: idToken });
     return privyUser.id;
   } catch {

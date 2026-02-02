@@ -1,22 +1,11 @@
 import { PrivyClient } from "@privy-io/node";
-import { Connection } from "@solana/web3.js";
 import bs58 from "bs58";
-
-// Server-side Solana RPC (not exposed to client)
-const SOLANA_RPC_URL =
-  process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
-
-// Jito block engine endpoints for priority transaction landing
-const JITO_ENDPOINTS = [
-  "https://mainnet.block-engine.jito.wtf/api/v1/transactions",
-  "https://amsterdam.mainnet.block-engine.jito.wtf/api/v1/transactions",
-  "https://frankfurt.mainnet.block-engine.jito.wtf/api/v1/transactions",
-  "https://ny.mainnet.block-engine.jito.wtf/api/v1/transactions",
-  "https://tokyo.mainnet.block-engine.jito.wtf/api/v1/transactions",
-];
-
-// Fallback RPC endpoints
-const FALLBACK_RPC_URLS = [SOLANA_RPC_URL, "https://rpc.ankr.com/solana"];
+import {
+  SOLANA_RPC_URL,
+  JITO_ENDPOINTS,
+  FALLBACK_RPC_URLS,
+  getConnection,
+} from "@/lib/constants/solana";
 
 // Singleton Privy client
 let _privyClient: PrivyClient | null = null;
@@ -31,10 +20,8 @@ export function getPrivyClient(): PrivyClient {
   return _privyClient;
 }
 
-// Get Solana connection
-export function getConnection(): Connection {
-  return new Connection(SOLANA_RPC_URL, "confirmed");
-}
+// Re-export getConnection from constants
+export { getConnection };
 
 // Sign a transaction server-side using Privy embedded wallet
 export async function signTransaction(
@@ -43,8 +30,6 @@ export async function signTransaction(
 ): Promise<string> {
   const privy = getPrivyClient();
 
-  console.log("[Solana] Signing transaction with wallet:", walletId);
-
   const response = await privy.wallets().solana().signTransaction(walletId, {
     transaction,
   });
@@ -52,30 +37,6 @@ export async function signTransaction(
   // Response type uses snake_case
   const data = response as unknown as { signed_transaction: string };
   return data.signed_transaction;
-}
-
-// Sign and send transaction in one call (Privy handles sending)
-// Note: We don't use this - we sign then send via Jito for priority
-export async function signAndSendTransaction(
-  walletId: string,
-  transaction: string, // base64 encoded unsigned transaction
-): Promise<{ signature: string }> {
-  const privy = getPrivyClient();
-
-  // caip2 is the Chain Agnostic Improvement Proposal 2 identifier
-  // For Solana mainnet: solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp
-  const response = await privy
-    .wallets()
-    .solana()
-    .signAndSendTransaction(walletId, {
-      transaction,
-      caip2: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", // Solana mainnet
-    });
-
-  const data = response as unknown as { signature: string };
-  return {
-    signature: data.signature,
-  };
 }
 
 // Send via Jito for priority landing
@@ -106,11 +67,11 @@ async function sendViaJito(base58Tx: string): Promise<string | null> {
       if (data.error) continue;
 
       if (data.result) {
-        console.log(`[Jito] Transaction sent via ${jitoEndpoint}`);
         return data.result;
       }
-    } catch {
-      continue;
+    } catch (error) {
+      // Log and continue to next endpoint
+      console.error(`[Jito] Failed to send via ${jitoEndpoint}:`, error);
     }
   }
   return null;
@@ -151,14 +112,15 @@ async function sendViaRpc(base58Tx: string): Promise<string | null> {
       }
 
       if (data.result) {
-        console.log(`[RPC] Transaction sent via ${rpcUrl}`);
         return data.result;
       }
     } catch (err) {
+      // Re-throw insufficient funds errors
       if (err instanceof Error && err.message.includes("insufficient")) {
         throw err;
       }
-      continue;
+      // Log and continue to next endpoint
+      console.error(`[RPC] Failed to send via ${rpcUrl}:`, err);
     }
   }
   return null;

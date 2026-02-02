@@ -1,9 +1,13 @@
-import { NextResponse } from "next/server";
-
-const BAGS_API_BASE = "https://public-api-v2.bags.fm/api/v1";
+import { NextRequest, NextResponse } from "next/server";
+import { EXTERNAL_APIS } from "@/lib/constants/urls";
+import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
 
 // POST /api/incorporate/metadata - Create token info and metadata on Bags
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  // Require authentication
+  const auth = await requireAuth(request);
+  if (!isAuthResult(auth)) return auth;
+
   try {
     // Get API key from environment
     const apiKey = process.env.BAGS_API_KEY;
@@ -14,7 +18,12 @@ export async function POST(request: Request) {
       );
     }
 
-    const body = await request.json();
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
     const { name, symbol, description, imageUrl, twitter, website, telegram } =
       body;
 
@@ -62,7 +71,7 @@ export async function POST(request: Request) {
 
     // Call Bags API to create token info
     const response = await fetch(
-      `${BAGS_API_BASE}/token-launch/create-token-info`,
+      `${EXTERNAL_APIS.bagsApi}/token-launch/create-token-info`,
       {
         method: "POST",
         headers: {

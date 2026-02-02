@@ -1,54 +1,68 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrivyClient } from "@privy-io/node";
 import prisma from "@/lib/prisma";
+import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
 
-const privy = new PrivyClient({
-  appId: process.env.NEXT_PUBLIC_PRIVY_APP_ID!,
-  appSecret: process.env.PRIVY_APP_SECRET!,
-});
+const DEFAULT_PAGE_SIZE = 20;
+const MAX_PAGE_SIZE = 100;
 
-// Helper to verify auth and get user ID
-async function verifyAuth(req: NextRequest): Promise<string | null> {
-  const idToken = req.headers.get("privy-id-token");
-  if (!idToken) return null;
-
-  try {
-    const privyUser = await privy.users().get({ id_token: idToken });
-    return privyUser.id;
-  } catch {
-    return null;
-  }
-}
-
-// GET /api/agents - List user's agents
+// GET /api/agents - List user's agents (paginated)
 export async function GET(req: NextRequest) {
-  const userId = await verifyAuth(req);
-
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await requireAuth(req);
+  if (!isAuthResult(auth)) return auth;
 
   try {
-    const agents = await prisma.agent.findMany({
-      where: { createdById: userId },
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        isPublic: true,
-        imageUrl: true,
-        rarity: true,
-        personality: true,
-        traits: true,
-        isMinted: true,
-        tokenSymbol: true,
-        createdAt: true,
-        updatedAt: true,
+    const { searchParams } = new URL(req.url);
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
+    const limit = Math.min(
+      MAX_PAGE_SIZE,
+      Math.max(
+        1,
+        parseInt(searchParams.get("limit") || String(DEFAULT_PAGE_SIZE)),
+      ),
+    );
+    const offset = (page - 1) * limit;
+
+    // Short cache for user's agents: 10s TTL with 30s SWR
+    // Balances freshness with performance for authenticated user data
+    const cacheStrategy = { ttl: 10, swr: 30 };
+
+    const [agents, total] = await Promise.all([
+      prisma.agent.findMany({
+        where: { createdById: auth.userId },
+        orderBy: { createdAt: "desc" },
+        take: limit,
+        skip: offset,
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          isPublic: true,
+          imageUrl: true,
+          rarity: true,
+          personality: true,
+          traits: true,
+          isMinted: true,
+          tokenSymbol: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+        cacheStrategy,
+      }),
+      prisma.agent.count({
+        where: { createdById: auth.userId },
+        cacheStrategy,
+      }),
+    ]);
+
+    return NextResponse.json({
+      agents,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
       },
     });
-
-    return NextResponse.json({ agents });
   } catch (error) {
     console.error("Failed to fetch agents:", error);
     return NextResponse.json(
@@ -60,11 +74,8 @@ export async function GET(req: NextRequest) {
 
 // POST /api/agents - Create a new agent
 export async function POST(req: NextRequest) {
-  const userId = await verifyAuth(req);
-
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const auth = await requireAuth(req);
+  if (!isAuthResult(auth)) return auth;
 
   try {
     const body = await req.json();
@@ -95,7 +106,7 @@ export async function POST(req: NextRequest) {
         systemPrompt: systemPrompt.trim(),
         description: description?.trim() || null,
         isPublic: Boolean(isPublic),
-        createdById: userId,
+        createdById: auth.userId,
       },
     });
 

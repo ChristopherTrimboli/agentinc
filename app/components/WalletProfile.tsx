@@ -1,7 +1,11 @@
 "use client";
 
 import { usePrivy, useIdentityToken } from "@privy-io/react-auth";
-import { useExportWallet, useWallets as useSolanaWallets, useSignTransaction } from "@privy-io/react-auth/solana";
+import {
+  useExportWallet,
+  useWallets as useSolanaWallets,
+  useSignTransaction,
+} from "@privy-io/react-auth/solana";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import {
   Wallet,
@@ -19,6 +23,7 @@ import {
 } from "lucide-react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import WalletModal from "./WalletModal";
+import { getSolscanUrl } from "@/lib/constants/urls";
 
 interface ClaimablePosition {
   baseMint: string;
@@ -51,7 +56,9 @@ export default function WalletProfile({
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   const [solPrice, setSolPrice] = useState<number | null>(null);
   const [earnings, setEarnings] = useState<number | null>(null);
-  const [earningsPositions, setEarningsPositions] = useState<ClaimablePosition[]>([]);
+  const [earningsPositions, setEarningsPositions] = useState<
+    ClaimablePosition[]
+  >([]);
   const [isLoadingEarnings, setIsLoadingEarnings] = useState(false);
   const [isClaiming, setIsClaiming] = useState(false);
   const [claimSuccess, setClaimSuccess] = useState(false);
@@ -230,10 +237,16 @@ export default function WalletProfile({
       );
 
       // Fallback: find wallet matching our address
-      const walletToUse = embeddedWallet || solanaWallets.find((w) => w.address === walletAddress) || solanaWallets[0];
+      const walletToUse =
+        embeddedWallet ||
+        solanaWallets.find((w) => w.address === walletAddress) ||
+        solanaWallets[0];
 
       if (!walletToUse) {
-        console.error("[Claim] No Solana wallet found. Available wallets:", solanaWallets);
+        console.error(
+          "[Claim] No Solana wallet found. Available wallets:",
+          solanaWallets,
+        );
         throw new Error("No Solana wallet found. Please try again.");
       }
 
@@ -262,7 +275,9 @@ export default function WalletProfile({
 
       // Sign and send each transaction using Privy's signTransaction hook
       for (const txData of transactions) {
-        const txBytes = new Uint8Array(Buffer.from(txData.transaction, "base64"));
+        const txBytes = new Uint8Array(
+          Buffer.from(txData.transaction, "base64"),
+        );
 
         // Sign transaction using Privy's hook
         const { signedTransaction: signedTxBytes } = await signTransaction({
@@ -302,7 +317,15 @@ export default function WalletProfile({
     } finally {
       setIsClaiming(false);
     }
-  }, [identityToken, walletAddress, earnings, solanaWallets, signTransaction, fetchBalance, fetchEarnings]);
+  }, [
+    identityToken,
+    walletAddress,
+    earnings,
+    solanaWallets,
+    signTransaction,
+    fetchBalance,
+    fetchEarnings,
+  ]);
 
   // Manual refresh handler
   const refreshBalance = () => {
@@ -344,7 +367,10 @@ export default function WalletProfile({
       const embeddedWallet = solanaWallets.find(
         (w) => w.standardWallet?.name === "Privy",
       );
-      const walletToUse = embeddedWallet || solanaWallets.find((w) => w.address === walletAddress) || solanaWallets[0];
+      const walletToUse =
+        embeddedWallet ||
+        solanaWallets.find((w) => w.address === walletAddress) ||
+        solanaWallets[0];
 
       if (!walletToUse) {
         throw new Error("No Solana wallet found. Please try again.");
@@ -383,7 +409,9 @@ export default function WalletProfile({
         transaction.feePayer = fromPubkey;
 
         // Serialize transaction for signing
-        const txBytes = new Uint8Array(transaction.serialize({ requireAllSignatures: false }));
+        const txBytes = new Uint8Array(
+          transaction.serialize({ requireAllSignatures: false }),
+        );
 
         // Sign transaction using Privy's hook
         const { signedTransaction: signedTxBytes } = await signTransaction({
@@ -419,7 +447,13 @@ export default function WalletProfile({
         throw error;
       }
     },
-    [solanaWallets, walletAddress, identityToken, signTransaction, fetchBalance],
+    [
+      solanaWallets,
+      walletAddress,
+      identityToken,
+      signTransaction,
+      fetchBalance,
+    ],
   );
 
   // Copy address to clipboard
@@ -625,7 +659,8 @@ export default function WalletProfile({
                       )}
                       {earningsPositions.length > 0 && (
                         <p className="text-[10px] text-white/30 mt-0.5">
-                          {earningsPositions.length} position{earningsPositions.length !== 1 ? "s" : ""}
+                          {earningsPositions.length} position
+                          {earningsPositions.length !== 1 ? "s" : ""}
                         </p>
                       )}
                     </div>
@@ -713,7 +748,7 @@ export default function WalletProfile({
               {walletAddress && (
                 <DropdownMenu.Item asChild>
                   <a
-                    href={`https://solscan.io/account/${walletAddress}`}
+                    href={getSolscanUrl("account", walletAddress)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-2.5 px-3 py-2 hover:bg-[#120557]/40 rounded-lg transition-all duration-150 group outline-none cursor-pointer"

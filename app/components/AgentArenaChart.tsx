@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 
 interface AgentData {
   id: string;
@@ -95,35 +95,52 @@ export default function AgentArenaChart() {
   const chartHeight = 300;
   const padding = 40;
 
-  // Calculate chart bounds
-  const allPrices = agents.flatMap((a) => a.priceHistory);
-  const minPrice = Math.min(...allPrices) * 0.9;
-  const maxPrice = Math.max(...allPrices) * 1.1;
+  // Memoize expensive calculations
+  const { minPrice, maxPrice } = useMemo(() => {
+    const allPrices = agents.flatMap((a) => a.priceHistory);
+    return {
+      minPrice: Math.min(...allPrices) * 0.9,
+      maxPrice: Math.max(...allPrices) * 1.1,
+    };
+  }, [agents]);
 
-  const getX = (index: number) =>
-    padding + (index / 11) * (chartWidth - padding * 2);
-  const getY = (price: number) =>
-    chartHeight -
-    padding -
-    ((price - minPrice) / (maxPrice - minPrice)) * (chartHeight - padding * 2);
+  const getX = useCallback(
+    (index: number) => padding + (index / 11) * (chartWidth - padding * 2),
+    [],
+  );
 
-  const createPath = (prices: number[]) => {
-    return prices
-      .map((price, i) => {
-        const x = getX(i);
-        const y = getY(price);
-        return `${i === 0 ? "M" : "L"} ${x} ${y}`;
-      })
-      .join(" ");
-  };
+  const getY = useCallback(
+    (price: number) =>
+      chartHeight -
+      padding -
+      ((price - minPrice) / (maxPrice - minPrice)) *
+        (chartHeight - padding * 2),
+    [minPrice, maxPrice],
+  );
+
+  const createPath = useCallback(
+    (prices: number[]) => {
+      return prices
+        .map((price, i) => {
+          const x = getX(i);
+          const y = getY(price);
+          return `${i === 0 ? "M" : "L"} ${x} ${y}`;
+        })
+        .join(" ");
+    },
+    [getX, getY],
+  );
 
   // Create smooth area path for gradient fill
-  const createAreaPath = (prices: number[]) => {
-    const linePath = createPath(prices);
-    const lastX = getX(prices.length - 1);
-    const firstX = getX(0);
-    return `${linePath} L ${lastX} ${chartHeight - padding} L ${firstX} ${chartHeight - padding} Z`;
-  };
+  const createAreaPath = useCallback(
+    (prices: number[]) => {
+      const linePath = createPath(prices);
+      const lastX = getX(prices.length - 1);
+      const firstX = getX(0);
+      return `${linePath} L ${lastX} ${chartHeight - padding} L ${firstX} ${chartHeight - padding} Z`;
+    },
+    [createPath, getX],
+  );
 
   return (
     <div className="relative">

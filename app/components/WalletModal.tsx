@@ -13,6 +13,7 @@ import {
   Loader2,
   AlertCircle,
 } from "lucide-react";
+import { getSolscanUrl } from "@/lib/constants/urls";
 
 interface WalletModalProps {
   isOpen: boolean;
@@ -265,7 +266,7 @@ export default function WalletModal({
 
                 {/* View on Explorer */}
                 <a
-                  href={`https://solscan.io/account/${walletAddress}`}
+                  href={getSolscanUrl("account", walletAddress)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 py-2.5 text-sm text-white/60 hover:text-white transition-colors"
@@ -286,7 +287,7 @@ export default function WalletModal({
                           Transaction sent!
                         </p>
                         <a
-                          href={`https://solscan.io/tx/${sendSuccess}`}
+                          href={getSolscanUrl("tx", sendSuccess)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-xs text-[#10b981]/80 hover:text-[#10b981] underline break-all"

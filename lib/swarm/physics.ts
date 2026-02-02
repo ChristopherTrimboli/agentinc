@@ -69,6 +69,9 @@ export class PhysicsSimulation {
         }
       }
 
+      // Skip if no agents to position
+      if (corpAgents.length === 0) continue;
+
       const agentOrbitRadius = 220;
       const angleIncrement = (Math.PI * 2) / corpAgents.length;
       const angleOffset = angleIncrement / 2;

@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrivyClient } from "@privy-io/node";
 import prisma from "@/lib/prisma";
-
-const privy = new PrivyClient({
-  appId: process.env.NEXT_PUBLIC_PRIVY_APP_ID!,
-  appSecret: process.env.PRIVY_APP_SECRET!,
-});
+import { getPrivyClient } from "@/lib/auth/verifyRequest";
 
 // Helper to verify auth and get user ID
 async function verifyAuth(req: NextRequest): Promise<string | null> {
@@ -13,6 +8,7 @@ async function verifyAuth(req: NextRequest): Promise<string | null> {
   if (!idToken) return null;
 
   try {
+    const privy = getPrivyClient();
     const privyUser = await privy.users().get({ id_token: idToken });
     return privyUser.id;
   } catch {
@@ -30,12 +26,15 @@ export async function GET(req: NextRequest, context: RouteContext) {
   const userId = await verifyAuth(req);
 
   try {
+    // Cache agent lookups: 30s TTL with 60s SWR for public agent pages
+    const cacheStrategy = { ttl: 30, swr: 60 };
+
     // Try to find by database ID first, then by tokenMint
     let agent = await prisma.agent.findUnique({
       where: { id },
       include: {
         createdBy: {
-          select: { id: true, email: true },
+          select: { id: true },
         },
         corporation: {
           select: {
@@ -49,6 +48,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
           },
         },
       },
+      cacheStrategy,
     });
 
     // If not found by ID, try by tokenMint (for agents accessed via tokenMint URL)
@@ -57,7 +57,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
         where: { tokenMint: id },
         include: {
           createdBy: {
-            select: { id: true, email: true },
+            select: { id: true },
           },
           corporation: {
             select: {
@@ -71,6 +71,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
             },
           },
         },
+        cacheStrategy,
       });
     }
 
@@ -116,7 +117,12 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    const body = await req.json();
+    let body;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
     const { name, systemPrompt, description, isPublic } = body;
 
     const updateData: {

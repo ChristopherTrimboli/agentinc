@@ -81,53 +81,18 @@ async function checkWebGPUSupport(): Promise<{
 }> {
   try {
     if (!navigator.gpu) {
-      console.log("[Swarm] WebGPU not available in this browser");
       return { supported: false, adapter: null };
     }
 
     const adapter = await navigator.gpu.requestAdapter();
     if (!adapter) {
-      console.log("[Swarm] WebGPU adapter not available");
       return { supported: false, adapter: null };
     }
 
-    console.log("[Swarm] WebGPU supported");
     return { supported: true, adapter };
   } catch (err) {
     console.error("[Swarm] WebGPU check failed:", err);
     return { supported: false, adapter: null };
-  }
-}
-
-// Check WebGL support with detailed logging (fallback)
-function checkWebGLSupport(): {
-  supported: boolean;
-  version: string;
-  error?: string;
-} {
-  try {
-    const canvas = document.createElement("canvas");
-
-    // Try WebGL2 first
-    const gl2 = canvas.getContext("webgl2");
-    if (gl2) {
-      console.log("[Swarm] WebGL2 supported");
-      return { supported: true, version: "webgl2" };
-    }
-
-    // Fall back to WebGL1
-    const gl1 =
-      canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
-    if (gl1) {
-      console.log("[Swarm] WebGL1 supported");
-      return { supported: true, version: "webgl1" };
-    }
-
-    console.warn("[Swarm] No WebGL context available");
-    return { supported: false, version: "none", error: "No WebGL context" };
-  } catch (err) {
-    console.error("[Swarm] WebGL check failed:", err);
-    return { supported: false, version: "none", error: String(err) };
   }
 }
 
@@ -365,19 +330,12 @@ export default function SwarmCanvas({
     const init = async () => {
       // Check WebGPU support first, then fall back to WebGL
       const webgpuCheck = await checkWebGPUSupport();
-      console.log("[Swarm] WebGPU check result:", webgpuCheck);
-
-      const webglCheck = checkWebGLSupport();
-      console.log("[Swarm] WebGL check result:", webglCheck);
 
       const app = new Application();
 
       try {
         // Prefer WebGPU if available, fall back to WebGL
         const preference = webgpuCheck.supported ? "webgpu" : "webgl";
-        console.log(
-          `[Swarm] Initializing PixiJS with ${preference} renderer...`,
-        );
 
         await app.init({
           background: 0x030712,
@@ -387,9 +345,6 @@ export default function SwarmCanvas({
           autoDensity: true,
           preference: preference,
         });
-        console.log(
-          `[Swarm] PixiJS initialized successfully with ${preference}`,
-        );
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : String(err);
         console.error("[Swarm] Failed to initialize PixiJS:", errorMsg);
@@ -482,7 +437,11 @@ export default function SwarmCanvas({
     const app = appRef.current;
     if (!app) return;
 
-    const existingIds = new Set(corporationGraphicsRef.current.keys());
+    // Store current refs for cleanup
+    const currentCorpGraphics = corporationGraphicsRef.current;
+    const currentWorld = worldRef.current;
+
+    const existingIds = new Set(currentCorpGraphics.keys());
     const newIds = new Set(corporations.keys());
 
     // Remove corporations that no longer exist
@@ -579,6 +538,15 @@ export default function SwarmCanvas({
         circle.fill({ color, alpha: 0.9 });
       }
     }
+
+    // Cleanup function to remove graphics on unmount
+    return () => {
+      for (const container of currentCorpGraphics.values()) {
+        currentWorld?.removeChild(container);
+        container.destroy({ children: true });
+      }
+      currentCorpGraphics.clear();
+    };
   }, [corporations]);
 
   // Create/update agent graphics
@@ -586,7 +554,11 @@ export default function SwarmCanvas({
     const app = appRef.current;
     if (!app) return;
 
-    const existingIds = new Set(agentGraphicsRef.current.keys());
+    // Store current refs for cleanup
+    const currentAgentGraphics = agentGraphicsRef.current;
+    const currentWorld = worldRef.current;
+
+    const existingIds = new Set(currentAgentGraphics.keys());
     const newIds = new Set(agents.keys());
 
     // Remove agents that no longer exist
@@ -698,6 +670,15 @@ export default function SwarmCanvas({
         }
       }
     }
+
+    // Cleanup function to remove graphics on unmount
+    return () => {
+      for (const container of currentAgentGraphics.values()) {
+        currentWorld?.removeChild(container);
+        container.destroy({ children: true });
+      }
+      currentAgentGraphics.clear();
+    };
   }, [agents, onAgentClick, onAgentHover]);
 
   // Handle zoom

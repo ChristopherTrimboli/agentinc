@@ -27,7 +27,13 @@ export async function POST(req: NextRequest) {
 
     // Server-side signing flow (preferred)
     if (transaction) {
-      const result = await serverSignAndSend(auth.userId, transaction);
+      if (!auth.walletId) {
+        return NextResponse.json(
+          { error: "No wallet found for server-side signing" },
+          { status: 400 },
+        );
+      }
+      const result = await serverSignAndSend(auth.walletId, transaction);
       signature = result.signature;
     } else if (signedTransaction) {
       // Backwards compatibility

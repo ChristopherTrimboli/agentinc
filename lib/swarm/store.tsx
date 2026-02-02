@@ -71,10 +71,16 @@ function createSwarmStore(): SwarmStore {
     },
 
     addCorporation: (corpData) => {
+      // SSR-safe fallback for window dimensions
+      const fallbackX =
+        typeof window !== "undefined" ? window.innerWidth / 2 : 400;
+      const fallbackY =
+        typeof window !== "undefined" ? window.innerHeight / 2 : 300;
+
       const corp: Corporation = {
         ...corpData,
-        x: physics ? physics.centerX : window.innerWidth / 2,
-        y: physics ? physics.centerY : window.innerHeight / 2,
+        x: physics ? physics.centerX : fallbackX,
+        y: physics ? physics.centerY : fallbackY,
       };
       corporations = new Map(corporations);
       corporations.set(corp.id, corp);

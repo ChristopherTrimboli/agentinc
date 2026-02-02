@@ -1,21 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import bs58 from "bs58";
-
-// Jito block engine endpoints for priority transaction landing
-const JITO_ENDPOINTS = [
-  "https://mainnet.block-engine.jito.wtf/api/v1/transactions",
-  "https://amsterdam.mainnet.block-engine.jito.wtf/api/v1/transactions",
-  "https://frankfurt.mainnet.block-engine.jito.wtf/api/v1/transactions",
-  "https://ny.mainnet.block-engine.jito.wtf/api/v1/transactions",
-  "https://tokyo.mainnet.block-engine.jito.wtf/api/v1/transactions",
-];
-
-// Fallback RPC endpoints
-const SOLANA_RPC_URLS = [
-  process.env.SOLANA_RPC_URL || "https://mainnet.helius-rpc.com",
-  "https://rpc.ankr.com/solana",
-  "https://solana-mainnet.g.alchemy.com/v2/demo",
-];
+import { JITO_ENDPOINTS, FALLBACK_RPC_URLS } from "@/lib/constants/solana";
+import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
 
 // Send transaction via Jito for priority landing
 async function sendViaJito(base58Tx: string): Promise<string | null> {
@@ -39,27 +25,16 @@ async function sendViaJito(base58Tx: string): Promise<string | null> {
         }),
       });
 
-      if (!response.ok) {
-        console.log(`[Jito] ${jitoEndpoint} returned ${response.status}`);
-        continue;
-      }
+      if (!response.ok) continue;
 
       const data = await response.json();
 
-      if (data.error) {
-        console.log(`[Jito] ${jitoEndpoint} error:`, data.error.message);
-        continue;
-      }
+      if (data.error) continue;
 
       if (data.result) {
-        console.log(`[Jito] Transaction sent successfully via ${jitoEndpoint}`);
         return data.result;
       }
-    } catch (err) {
-      console.log(
-        `[Jito] ${jitoEndpoint} failed:`,
-        err instanceof Error ? err.message : "Unknown error",
-      );
+    } catch {
       continue;
     }
   }
@@ -68,7 +43,7 @@ async function sendViaJito(base58Tx: string): Promise<string | null> {
 
 // Send transaction via standard RPC as fallback
 async function sendViaRpc(base58Tx: string): Promise<string | null> {
-  for (const rpcUrl of SOLANA_RPC_URLS) {
+  for (const rpcUrl of FALLBACK_RPC_URLS) {
     try {
       const response = await fetch(rpcUrl, {
         method: "POST",
@@ -89,15 +64,11 @@ async function sendViaRpc(base58Tx: string): Promise<string | null> {
         }),
       });
 
-      if (!response.ok) {
-        console.log(`[RPC] ${rpcUrl} returned ${response.status}`);
-        continue;
-      }
+      if (!response.ok) continue;
 
       const data = await response.json();
 
       if (data.error) {
-        console.log(`[RPC] ${rpcUrl} error:`, data.error.message);
         if (data.error.message?.includes("insufficient")) {
           throw new Error(data.error.message);
         }
@@ -105,17 +76,12 @@ async function sendViaRpc(base58Tx: string): Promise<string | null> {
       }
 
       if (data.result) {
-        console.log(`[RPC] Transaction sent successfully via ${rpcUrl}`);
         return data.result;
       }
     } catch (err) {
       if (err instanceof Error && err.message.includes("insufficient")) {
         throw err;
       }
-      console.log(
-        `[RPC] ${rpcUrl} failed:`,
-        err instanceof Error ? err.message : "Unknown error",
-      );
       continue;
     }
   }
@@ -123,7 +89,11 @@ async function sendViaRpc(base58Tx: string): Promise<string | null> {
 }
 
 // POST /api/incorporate/send-transaction - Send a signed transaction to Solana
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  // Require authentication
+  const auth = await requireAuth(request);
+  if (!isAuthResult(auth)) return auth;
+
   try {
     const body = await request.json();
     const { signedTransaction, useJito = true } = body;
@@ -143,7 +113,6 @@ export async function POST(request: Request) {
 
     // Try Jito first for priority landing (if enabled)
     if (useJito) {
-      console.log("[Send] Attempting Jito submission for priority landing...");
       signature = await sendViaJito(base58Tx);
 
       if (signature) {
@@ -152,7 +121,6 @@ export async function POST(request: Request) {
           method: "jito",
         });
       }
-      console.log("[Send] Jito failed, falling back to standard RPC...");
     }
 
     // Fallback to standard RPC
