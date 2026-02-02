@@ -80,8 +80,9 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16 animate-fade-in-up animate-delay-300">
             <Link
               href="/dashboard"
-              className="group w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-[#6FEC06] to-[#4a9f10] rounded-full font-semibold text-lg text-black flex items-center justify-center gap-3 hover:opacity-90 transition-all backdrop-blur-sm shadow-lg shadow-[#6FEC06]/25 hover:shadow-[#6FEC06]/40"
+              className="btn-cta-primary group w-full sm:w-auto px-8 py-4 rounded-full font-semibold text-lg text-black flex items-center justify-center gap-3"
             >
+              <span className="btn-shine-sweep" />
               Enter App
               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </Link>
@@ -118,13 +119,14 @@ export default function Home() {
         <AgentExecutives />
         {/* CTA */}
         <div className="text-center mt-12">
-          <button
-            disabled
-            className="inline-flex items-center gap-3 px-8 py-4 bg-[#120557]/50 rounded-full font-semibold cursor-not-allowed opacity-60"
+          <Link
+            href="/dashboard"
+            className="btn-cta-primary group inline-flex items-center gap-3 px-8 py-4 rounded-full font-semibold text-black"
           >
+            <span className="btn-shine-sweep" />
             Browse All Agents
-            <SoonBadge />
-          </button>
+            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+          </Link>
         </div>
       </section>
 
@@ -364,25 +366,37 @@ export default function Home() {
             <div>
               <h4 className="font-semibold mb-4">Product</h4>
               <ul className="space-y-3 text-white/60">
-                <li className="flex items-center gap-2">
-                  <span className="text-white/40">Explore Agents</span>
-                  <SoonBadge />
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-white/40">Mint Company</span>
-                  <SoonBadge />
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="text-white/40">Explore</span>
-                  <SoonBadge />
+                <li>
+                  <Link
+                    href="/dashboard"
+                    className="hover:text-white transition-colors"
+                  >
+                    Explore Agents
+                  </Link>
                 </li>
                 <li>
-                  <a
+                  <Link
+                    href="/incorporate"
+                    className="hover:text-white transition-colors"
+                  >
+                    Mint Company
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/dashboard"
+                    className="hover:text-white transition-colors"
+                  >
+                    Dashboard
+                  </Link>
+                </li>
+                <li>
+                  <Link
                     href="/tokenomics"
                     className="hover:text-white transition-colors"
                   >
                     Tokenomics
-                  </a>
+                  </Link>
                 </li>
               </ul>
             </div>
@@ -442,12 +456,18 @@ export default function Home() {
           <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4 text-white/60 text-sm">
             <div>© 2026 Agent Inc. All rights reserved.</div>
             <div className="flex items-center gap-6">
-              <span className="text-white/40 flex items-center gap-2">
-                Privacy Policy <SoonBadge />
-              </span>
-              <span className="text-white/40 flex items-center gap-2">
-                Terms of Service <SoonBadge />
-              </span>
+              <Link
+                href="/privacy"
+                className="hover:text-white transition-colors"
+              >
+                Privacy Policy
+              </Link>
+              <Link
+                href="/terms"
+                className="hover:text-white transition-colors"
+              >
+                Terms of Service
+              </Link>
             </div>
           </div>
         </div>

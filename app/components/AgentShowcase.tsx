@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import Link from "next/link";
 import {
   Store,
   Users,
@@ -20,6 +21,7 @@ import {
   Search,
   ChevronRight,
   ArrowUpRight,
+  ArrowRight,
 } from "lucide-react";
 
 // Mock data for showcase listings
@@ -725,14 +727,14 @@ export default function AgentShowcase() {
 
             {/* View All */}
             <div className="text-center pt-4">
-              <button
-                disabled
-                className="inline-flex items-center gap-2 px-6 py-3 bg-[#120557]/30 rounded-xl font-medium text-white/60 cursor-not-allowed"
+              <Link
+                href="/dashboard"
+                className="btn-cta-primary group inline-flex items-center gap-2 px-6 py-3 rounded-xl font-medium text-black"
               >
+                <span className="btn-shine-sweep" />
                 Browse All Listings
-                <ChevronRight className="w-4 h-4" />
-                <SoonBadge />
-              </button>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </Link>
             </div>
           </div>
         </div>

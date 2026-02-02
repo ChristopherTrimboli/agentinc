@@ -779,3 +779,232 @@ h6,
 .skeleton-row {
   animation: skeleton-fade-in 0.3s ease-out forwards;
 }
+
+/* AAA Premium CTA Button */
+.btn-cta-primary {
+  position: relative;
+  background: linear-gradient(
+    135deg,
+    #6fec06 0%,
+    #5ad005 25%,
+    #6fec06 50%,
+    #7fff20 75%,
+    #6fec06 100%
+  );
+  background-size: 300% 300%;
+  animation: btn-idle-gradient 8s ease infinite;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1;
+  box-shadow:
+    0 4px 20px rgba(111, 236, 6, 0.25),
+    0 0 40px rgba(111, 236, 6, 0.1);
+}
+
+/* Idle gradient animation */
+@keyframes btn-idle-gradient {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  25% {
+    background-position: 50% 100%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  75% {
+    background-position: 50% 0%;
+  }
+}
+
+/* Sparkle overlay - idle state */
+.btn-cta-primary::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      circle at 20% 50%,
+      rgba(255, 255, 255, 0.4) 0%,
+      transparent 8%
+    ),
+    radial-gradient(
+      circle at 80% 30%,
+      rgba(255, 255, 255, 0.3) 0%,
+      transparent 6%
+    ),
+    radial-gradient(
+      circle at 60% 70%,
+      rgba(255, 255, 255, 0.35) 0%,
+      transparent 7%
+    ),
+    radial-gradient(
+      circle at 40% 20%,
+      rgba(255, 255, 255, 0.25) 0%,
+      transparent 5%
+    );
+  opacity: 0;
+  animation: btn-sparkle-idle 4s ease-in-out infinite;
+  z-index: 1;
+  pointer-events: none;
+}
+
+@keyframes btn-sparkle-idle {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  25% {
+    opacity: 0.6;
+    transform: scale(1.02);
+  }
+  50% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  75% {
+    opacity: 0.4;
+    transform: scale(0.98);
+  }
+}
+
+/* Outer glow layer - subtle idle pulse */
+.btn-cta-primary::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  background: linear-gradient(
+    135deg,
+    #6fec06 0%,
+    #9ff24a 25%,
+    #6fec06 50%,
+    #9ff24a 75%,
+    #6fec06 100%
+  );
+  background-size: 400% 400%;
+  border-radius: inherit;
+  filter: blur(12px);
+  opacity: 0.3;
+  animation: btn-idle-glow 6s ease-in-out infinite;
+  z-index: -1;
+}
+
+@keyframes btn-idle-glow {
+  0%,
+  100% {
+    opacity: 0.2;
+    filter: blur(12px);
+  }
+  50% {
+    opacity: 0.4;
+    filter: blur(18px);
+  }
+}
+
+/* Hover state - intensify everything */
+.btn-cta-primary:hover {
+  transform: translateY(-2px) scale(1.02);
+  animation: btn-hover-gradient 3s ease infinite;
+  box-shadow:
+    0 10px 40px rgba(111, 236, 6, 0.5),
+    0 0 80px rgba(111, 236, 6, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+@keyframes btn-hover-gradient {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.btn-cta-primary:hover::before {
+  animation: btn-sparkle-hover 2s ease-in-out infinite;
+}
+
+@keyframes btn-sparkle-hover {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.btn-cta-primary:hover::after {
+  opacity: 0.6;
+  animation: btn-glow-pulse 2s ease-in-out infinite;
+}
+
+/* Glow pulse animation */
+@keyframes btn-glow-pulse {
+  0%,
+  100% {
+    filter: blur(15px);
+    opacity: 0.4;
+  }
+  50% {
+    filter: blur(25px);
+    opacity: 0.7;
+  }
+}
+
+/* Active/pressed state */
+.btn-cta-primary:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* Inner shine sweep */
+.btn-cta-primary .btn-shine-sweep {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.3) 45%,
+    rgba(255, 255, 255, 0.5) 50%,
+    rgba(255, 255, 255, 0.3) 55%,
+    transparent 60%
+  );
+  animation: btn-shine-idle 6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes btn-shine-idle {
+  0%,
+  100% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  40% {
+    transform: translateX(100%);
+    opacity: 1;
+  }
+  50%,
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+.btn-cta-primary:hover .btn-shine-sweep {
+  animation: btn-shine-hover 1.5s ease-in-out infinite;
+}
+
+@keyframes btn-shine-hover {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
