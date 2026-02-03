@@ -1,6 +1,22 @@
 import type { Tool } from "ai";
 
 /**
+ * API Key configuration for user-configurable skills
+ */
+export interface ApiKeyConfig {
+  /** Environment variable name (for server-side fallback) */
+  envVar: string;
+  /** User-friendly label for the input field */
+  label: string;
+  /** Help text explaining where to get the key */
+  helpText?: string;
+  /** URL where user can get the API key */
+  helpUrl?: string;
+  /** Placeholder text for the input */
+  placeholder?: string;
+}
+
+/**
  * Skill metadata - describes a skill for the registry
  * Skills are complex integrations that typically require API keys and
  * provide multiple related tools. Only supported by Claude models.
@@ -20,8 +36,10 @@ export interface SkillMetadata {
   homepage?: string;
   /** Optional icon emoji */
   icon?: string;
-  /** Required environment variables */
+  /** Required environment variables (deprecated, use apiKeyConfig) */
   requiredEnvVars?: string[];
+  /** API key configuration for user-configurable keys */
+  apiKeyConfig?: ApiKeyConfig;
   /** Optional tags for discovery */
   tags?: string[];
 }

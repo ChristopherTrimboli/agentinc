@@ -247,7 +247,7 @@ export default function DashboardLayout({
 
   // Authenticated - show dashboard with sidebar
   return (
-    <div className="min-h-screen bg-[#000028] text-white flex overflow-hidden">
+    <div className="h-screen bg-[#000028] text-white flex overflow-hidden">
       {/* Background effects */}
       <div className="fixed inset-0 bg-grid opacity-30 pointer-events-none" />
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-[#6FEC06]/5 rounded-full blur-[120px] pointer-events-none" />
@@ -257,11 +257,13 @@ export default function DashboardLayout({
       <Sidebar />
 
       {/* Main content */}
-      <main className="flex-1 relative min-h-screen lg:ml-0 min-w-0 overflow-x-hidden">
+      <main className="flex-1 relative h-full lg:ml-0 min-w-0 overflow-hidden flex flex-col">
         {/* Mobile top padding for hamburger */}
-        <div className="lg:hidden h-16" />
+        <div className="lg:hidden h-16 shrink-0" />
 
-        <div className="relative z-10 overflow-x-hidden">{children}</div>
+        <div className="relative z-10 flex-1 min-h-0 overflow-hidden">
+          {children}
+        </div>
       </main>
     </div>
   );

@@ -1,42 +1,53 @@
 import { NextResponse } from "next/server";
-import { skillRegistry } from "@/lib/skills";
-import { AVAILABLE_TOOLS } from "@/lib/tools";
+import {
+  skillRegistry,
+  AVAILABLE_SKILLS,
+  getSkillConfigsFromEnv,
+} from "@/lib/skills";
 
 /**
  * GET /api/skills
- * List all available skills and tools
+ * List all available skills
  */
 export async function GET() {
-  // Get skills (complex integrations, Claude only)
-  const skills = skillRegistry.getAll().map((skill) => ({
-    id: skill.metadata.id,
-    name: skill.metadata.name,
-    description: skill.metadata.description,
-    version: skill.metadata.version,
-    category: skill.metadata.category,
-    icon: skill.metadata.icon,
-    homepage: skill.metadata.homepage,
-    tags: skill.metadata.tags,
-    requiredEnvVars: skill.metadata.requiredEnvVars,
-    configured:
-      skill.metadata.requiredEnvVars?.every(
-        (envVar) => !!process.env[envVar],
-      ) ?? true,
-    type: "skill" as const,
-  }));
+  // Get skill configs to check which have API keys configured (server-side)
+  const skillConfigs = getSkillConfigsFromEnv();
 
-  // Get tools (simple utilities, any model)
-  const tools = AVAILABLE_TOOLS.map((toolName) => ({
-    id: toolName,
-    name: toolName,
-    description: `Built-in ${toolName} tool`,
-    type: "tool" as const,
-  }));
+  const skills = AVAILABLE_SKILLS.map((skillId) => {
+    const skill = skillRegistry.get(skillId);
+    if (!skill) return null;
+
+    const config = skillConfigs[skillId] || {};
+    const validation = skill.validate(config);
+    const isConfigured = validation === true;
+
+    // Include API key config so users can configure their own keys
+    const apiKeyConfig = skill.metadata.apiKeyConfig
+      ? {
+          label: skill.metadata.apiKeyConfig.label,
+          helpText: skill.metadata.apiKeyConfig.helpText,
+          helpUrl: skill.metadata.apiKeyConfig.helpUrl,
+          placeholder: skill.metadata.apiKeyConfig.placeholder,
+        }
+      : null;
+
+    return {
+      id: skill.metadata.id,
+      name: skill.metadata.name,
+      description: skill.metadata.description,
+      version: skill.metadata.version,
+      category: skill.metadata.category,
+      icon: skill.metadata.icon || "⚡",
+      homepage: skill.metadata.homepage,
+      tags: skill.metadata.tags,
+      isConfigured,
+      requiresApiKey: !!skill.metadata.apiKeyConfig,
+      apiKeyConfig,
+    };
+  }).filter(Boolean);
 
   return NextResponse.json({
     skills,
-    tools,
-    skillCount: skills.length,
-    toolCount: tools.length,
+    count: skills.length,
   });
 }

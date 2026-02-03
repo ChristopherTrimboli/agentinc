@@ -10,7 +10,7 @@ import {
   getSkillConfigsFromEnv,
   skillRegistry,
 } from "@/lib/skills";
-import { getAllTools } from "@/lib/tools";
+import { getToolsForGroups } from "@/lib/tools";
 import type { AvailableSkill } from "@/lib/skills";
 import { getPrivyClient } from "@/lib/auth/verifyRequest";
 
@@ -21,6 +21,36 @@ export const maxDuration = 30;
 const DEFAULT_SYSTEM_PROMPT = `You are a helpful AI assistant for Agent Inc., a platform for AI-powered autonomous startups on chain. 
 You help users understand the platform, answer questions about AI agents, blockchain technology, and the ERC-8041 standard.
 Be concise, friendly, and helpful.`;
+
+// Tool usage guidelines that are ALWAYS appended
+const TOOL_USAGE_GUIDELINES = `
+## CRITICAL: Tool Usage Rules
+
+You have access to real tools that execute actions. You MUST follow these rules:
+
+1. **ALWAYS use tools when available** - If a user asks for information that a tool can provide, CALL THE TOOL. Do not explain what you could do or write code examples.
+
+2. **NEVER generate code instead of using tools** - If asked "what time is it" and you have getCurrentTime tool, CALL IT. Do not write Python/JavaScript datetime code.
+
+3. **Tools provide REAL data** - Tool results are actual live data (real time, real weather, real prices). Use them.
+
+4. **Call tools immediately** - Don't ask for confirmation. If the user's intent matches a tool's purpose, execute it.
+
+5. **After tool results** - Present the data clearly to the user. Don't just dump JSON - format it nicely.
+
+### Common mistakes to AVOID:
+- ❌ Writing "import datetime; datetime.now()" when asked for time
+- ❌ Saying "I would use the getCurrentTime tool" without actually calling it  
+- ❌ Generating code examples instead of calling tools
+- ✅ Actually calling getCurrentTime and showing the result
+
+### Image Generation Guidelines:
+When the user asks to generate, create, draw, or make an image/picture/illustration:
+- IMMEDIATELY call the generateImage tool with a detailed prompt
+- Enhance the user's description with artistic details for better results
+- Choose an appropriate aspect ratio (1:1 for square, 16:9 for landscape, 9:16 for portrait)
+- After the image is generated, briefly describe what you created
+- Examples of triggers: "make me an image of...", "draw a...", "generate a picture of...", "create an illustration of..."`;
 
 export async function POST(req: Request) {
   // Verify authentication
@@ -58,16 +88,26 @@ export async function POST(req: Request) {
   const {
     messages,
     agentId,
-    enabledSkills,
-    includeTools = true,
+    enabledSkills = [],
+    enabledToolGroups = [],
+    skillApiKeys = {},
   }: {
     messages: UIMessage[];
     agentId?: string;
     enabledSkills?: AvailableSkill[];
-    includeTools?: boolean;
+    enabledToolGroups?: string[];
+    skillApiKeys?: Record<string, string>; // User-provided API keys
   } = requestBody;
 
-  let systemPrompt = DEFAULT_SYSTEM_PROMPT;
+  console.log("[Chat API] Request:", {
+    agentId,
+    enabledSkills,
+    enabledToolGroups,
+    hasUserApiKeys: Object.keys(skillApiKeys).length > 0,
+    messageCount: messages?.length,
+  });
+
+  let baseSystemPrompt = DEFAULT_SYSTEM_PROMPT;
   let agentName = "Agent Inc. Assistant";
   let agentSkills: string[] = [];
 
@@ -96,7 +136,7 @@ export async function POST(req: Request) {
             },
           );
         }
-        systemPrompt = agent.systemPrompt;
+        baseSystemPrompt = agent.systemPrompt;
         agentName = agent.name;
 
         // Get enabled skills from agent config
@@ -109,6 +149,9 @@ export async function POST(req: Request) {
     }
   }
 
+  // Start building the final system prompt
+  let systemPrompt = baseSystemPrompt;
+
   // Determine which skills to enable
   const skillsToEnable = enabledSkills || agentSkills;
 
@@ -118,23 +161,95 @@ export async function POST(req: Request) {
 
   // Add skill tools if any skills are enabled
   if (skillsToEnable.length > 0) {
-    const configs = getSkillConfigsFromEnv();
-    tools = { ...tools, ...getSkillTools(skillsToEnable, configs) };
+    // Get server-side configs from environment
+    const serverConfigs = getSkillConfigsFromEnv();
+
+    // Merge with user-provided API keys (user keys take precedence if server not configured)
+    const mergedConfigs: Record<string, { apiKey?: string }> = {};
+    for (const skillId of skillsToEnable) {
+      const serverConfig = serverConfigs[skillId] || {};
+      const userApiKey = skillApiKeys[skillId];
+
+      // Use server config if available, otherwise use user-provided key
+      mergedConfigs[skillId] = {
+        apiKey: serverConfig.apiKey || userApiKey,
+      };
+    }
+
+    // Log which skills are being enabled for debugging
+    console.log("[Chat API] Enabling skills:", skillsToEnable);
+    console.log(
+      "[Chat API] Skills with server config:",
+      Object.keys(serverConfigs).filter((k) => serverConfigs[k]?.apiKey),
+    );
+    console.log(
+      "[Chat API] Skills with user config:",
+      Object.keys(skillApiKeys),
+    );
+
+    const skillTools = getSkillTools(skillsToEnable, mergedConfigs);
+    const skillToolNames = Object.keys(skillTools);
+
+    if (skillToolNames.length > 0) {
+      console.log("[Chat API] Registered skill tools:", skillToolNames);
+      tools = { ...tools, ...skillTools };
+    } else {
+      console.warn(
+        "[Chat API] No skill tools were created. Check if API keys are configured.",
+      );
+    }
 
     // Append skill-specific system prompts
     const skillPrompts = skillRegistry.getSystemPrompts(skillsToEnable);
     if (skillPrompts) {
       systemPrompt = `${systemPrompt}\n\n${skillPrompts}`;
+      console.log("[Chat API] Added skill prompts to system prompt");
     }
   }
 
-  // Add basic tools (weather, etc.) if requested
-  if (includeTools) {
-    tools = { ...tools, ...getAllTools() };
+  // Add tools from enabled tool groups - only add what's explicitly enabled
+  if (enabledToolGroups.length > 0) {
+    const groupTools = getToolsForGroups(enabledToolGroups);
+    console.log(
+      "[Chat API] Adding tools from groups:",
+      enabledToolGroups,
+      Object.keys(groupTools),
+    );
+    tools = { ...tools, ...groupTools };
+  }
+
+  // Log final tool count
+  const toolNames = Object.keys(tools);
+  console.log(
+    `[Chat API] Total tools available: ${toolNames.length}`,
+    toolNames,
+  );
+
+  // ALWAYS append tool usage guidelines if tools are available
+  if (toolNames.length > 0) {
+    // Build a human-readable list of available tools
+    const toolDescriptions = toolNames
+      .map((name) => {
+        const tool = tools[name];
+        const desc = tool?.description || "No description";
+        // Truncate long descriptions
+        const shortDesc = desc.length > 100 ? desc.slice(0, 100) + "..." : desc;
+        return `- **${name}**: ${shortDesc}`;
+      })
+      .join("\n");
+
+    systemPrompt = `${systemPrompt}
+
+${TOOL_USAGE_GUIDELINES}
+
+### Your Available Tools:
+${toolDescriptions}
+
+Remember: CALL these tools, don't write code about them!`;
   }
 
   const result = streamText({
-    model: "anthropic/claude-haiku-4-5",
+    model: "anthropic/claude-3-5-haiku",
     system: systemPrompt,
     messages: await convertToModelMessages(messages),
     tools: Object.keys(tools).length > 0 ? tools : undefined,

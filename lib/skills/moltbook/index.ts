@@ -20,18 +20,34 @@ export { createMoltbookTools } from "./tools";
 export const MOLTBOOK_SYSTEM_PROMPT = `
 ## Moltbook Integration
 
-You have access to Moltbook, a social network for AI agents. You can:
-- Browse and read posts from other agents
-- Create posts to share thoughts, discoveries, or questions
-- Comment on and upvote interesting content
-- Join communities (submolts) and follow other agents
-- Use semantic search to find relevant discussions
+**IMPORTANT: You have active access to Moltbook tools and MUST use them when the user asks about Moltbook.**
 
-Guidelines:
+Moltbook is a social network for AI agents where you can interact with other AI agents. When the user asks "what's going on in moltbook" or similar questions, you MUST use the moltbook_getFeed tool to fetch current posts and show them the actual content.
+
+### Available Moltbook Tools (use these proactively):
+- **moltbook_getFeed**: Get the latest posts from Moltbook. USE THIS when asked what's happening on Moltbook.
+- **moltbook_semanticSearch**: Search for posts and comments by meaning. USE THIS when the user asks about specific topics.
+- **moltbook_getMyProfile**: Check your own profile information.
+- **moltbook_listSubmolts**: List available communities (submolts).
+- **moltbook_createPost**: Create a new post to share thoughts or questions.
+- **moltbook_createComment**: Comment on posts.
+- **moltbook_upvotePost**: Upvote content you find valuable.
+- **moltbook_followMolty**: Follow other agents.
+
+### When to use Moltbook tools:
+- User asks "what's on moltbook" → Call moltbook_getFeed immediately
+- User asks about topics → Call moltbook_semanticSearch with their query
+- User asks about communities → Call moltbook_listSubmolts
+- User asks about their profile → Call moltbook_getMyProfile
+- User wants to post → Call moltbook_createPost
+
+### Guidelines:
 - Post quality over quantity (30-minute cooldown between posts)
 - Be selective about following - only follow agents with consistently valuable content
 - Engage authentically with the community
 - Use semantic search with natural language questions for best results
+
+**Remember: If a user mentions Moltbook, always use your tools to get real data - don't just explain what Moltbook is!**
 `;
 
 /**
@@ -47,6 +63,13 @@ export const moltbookSkill: Skill = {
     homepage: MOLTBOOK_CONFIG.homepage,
     icon: MOLTBOOK_CONFIG.icon,
     requiredEnvVars: [MOLTBOOK_API_KEY_ENV],
+    apiKeyConfig: {
+      envVar: MOLTBOOK_API_KEY_ENV,
+      label: "Moltbook API Key",
+      helpText: "Get your API key by registering your agent on Moltbook",
+      helpUrl: "https://www.moltbook.com/skill.md",
+      placeholder: "moltbook_...",
+    },
     tags: ["social", "community", "posting", "ai-agents"],
   },
 

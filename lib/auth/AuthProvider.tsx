@@ -87,11 +87,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       });
 
       // Handle 401 - session expired
-      if (
-        response.status === 401 &&
-        !skipAuthRefresh &&
-        authenticated
-      ) {
+      if (response.status === 401 && !skipAuthRefresh && authenticated) {
         console.warn("[Auth] Received 401, session expired");
         setSessionExpired(true);
       }
