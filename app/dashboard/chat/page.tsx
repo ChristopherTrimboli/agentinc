@@ -331,11 +331,12 @@ function AgentSelector() {
       {/* Grid */}
       <div className="p-4 sm:p-6">
         {isLoading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 skeleton-fade-in">
             {Array.from({ length: 10 }).map((_, i) => (
               <div
                 key={i}
-                className="aspect-square rounded-xl sm:rounded-2xl bg-white/5 animate-pulse"
+                className="aspect-square rounded-xl sm:rounded-2xl skeleton-glow skeleton-item"
+                style={{ animationDelay: `${i * 0.05}s` }}
               />
             ))}
           </div>
@@ -350,7 +351,7 @@ function AgentSelector() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 content-fade-in">
             {filteredAgents.map((agent, index) => (
               <AgentCard key={agent.id} agent={agent} index={index} />
             ))}
@@ -548,6 +549,80 @@ function ReasoningBlock({
   );
 }
 
+// Chat Skeleton Loading Component
+function ChatSkeleton() {
+  return (
+    <div className="h-full flex bg-[#000020] overflow-hidden skeleton-fade-in">
+      {/* Chat Area */}
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+        {/* Header Skeleton */}
+        <header className="relative z-20 h-[52px] sm:h-[60px] shrink-0 flex items-center justify-between px-3 sm:px-4 md:px-6 border-b border-white/[0.06] bg-[#000020]/80 backdrop-blur-xl">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
+            {/* Back button skeleton */}
+            <div className="w-9 h-9 rounded-xl bg-white/5 skeleton-pulse skeleton-item shrink-0" />
+
+            {/* Avatar skeleton */}
+            <div className="relative w-9 h-9 sm:w-11 sm:h-11 rounded-xl skeleton-glow skeleton-item shrink-0" />
+
+            {/* Name and info skeleton */}
+            <div className="min-w-0 flex-1 space-y-1.5">
+              <div className="h-4 sm:h-5 w-24 sm:w-32 bg-white/10 rounded-lg skeleton-pulse skeleton-item" />
+              <div className="h-3 sm:h-3.5 w-16 sm:w-20 bg-white/5 rounded skeleton-pulse skeleton-item" />
+            </div>
+          </div>
+        </header>
+
+        {/* Messages container skeleton */}
+        <div className="flex-1 min-h-0 relative flex flex-col overflow-hidden">
+          <div className="flex-1 flex flex-col items-center justify-center px-3 sm:px-4 md:px-6">
+            {/* Large agent avatar skeleton */}
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl skeleton-glow skeleton-item mb-3 sm:mb-4" />
+
+            {/* Title skeleton */}
+            <div className="h-6 sm:h-7 w-40 sm:w-48 bg-white/10 rounded-lg skeleton-pulse skeleton-item mb-3" />
+
+            {/* Description skeleton */}
+            <div className="space-y-2 mb-4 sm:mb-5 w-full max-w-sm">
+              <div className="h-3 sm:h-4 w-full bg-white/5 rounded skeleton-pulse skeleton-item" />
+              <div className="h-3 sm:h-4 w-3/4 mx-auto bg-white/5 rounded skeleton-pulse skeleton-item" />
+            </div>
+
+            {/* Quick suggestions skeleton */}
+            <div className="flex flex-wrap justify-center gap-2">
+              <div className="h-9 w-32 rounded-xl bg-white/5 skeleton-pulse skeleton-item" />
+              <div className="h-9 w-28 rounded-xl bg-white/5 skeleton-pulse skeleton-item" />
+              <div className="h-9 w-16 rounded-xl bg-white/5 skeleton-pulse skeleton-item" />
+            </div>
+          </div>
+        </div>
+
+        {/* Input Area Skeleton */}
+        <div className="shrink-0 z-20 px-3 sm:px-4 md:px-6 pb-3 sm:pb-4 pt-2 sm:pt-3 bg-[#000020]">
+          <div className="max-w-3xl mx-auto">
+            <div className="h-[52px] sm:h-[56px] rounded-xl bg-white/5 border border-white/[0.08] skeleton-pulse skeleton-item" />
+            <div className="hidden sm:block h-4 w-56 mx-auto mt-2.5 bg-white/5 rounded skeleton-pulse skeleton-item" />
+          </div>
+        </div>
+      </div>
+
+      {/* Tool Panel Skeleton - Hidden on mobile */}
+      <div className="hidden lg:flex w-[280px] shrink-0 border-l border-white/[0.06] bg-[#000020]/60 flex-col">
+        <div className="p-4 border-b border-white/[0.06]">
+          <div className="h-5 w-24 bg-white/10 rounded skeleton-pulse skeleton-item" />
+        </div>
+        <div className="p-4 space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-12 rounded-lg bg-white/5 skeleton-pulse skeleton-item"
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Chat Interface Component
 function ChatInterface({ agentId }: { agentId: string }) {
   const router = useRouter();
@@ -566,9 +641,11 @@ function ChatInterface({ agentId }: { agentId: string }) {
 
   // Voice settings state
   const [voiceSettings, setVoiceSettings] = useState<VoiceSettings>(() =>
-    getVoiceSettings()
+    getVoiceSettings(),
   );
-  const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
+  const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(
+    null,
+  );
 
   // Voice input hook (STT)
   const voiceInput = useVoiceInput({
@@ -625,7 +702,7 @@ function ChatInterface({ agentId }: { agentId: string }) {
         speechSynthesis.speak(text);
       }
     },
-    [speakingMessageId, speechSynthesis]
+    [speakingMessageId, speechSynthesis],
   );
 
   // Track last message ID for auto-speak
@@ -781,7 +858,11 @@ function ChatInterface({ agentId }: { agentId: string }) {
 
   // Auto-speak new assistant messages when streaming completes
   useEffect(() => {
-    if (!voiceSettings.autoSpeak || status !== "ready" || messages.length === 0) {
+    if (
+      !voiceSettings.autoSpeak ||
+      status !== "ready" ||
+      messages.length === 0
+    ) {
       return;
     }
 
@@ -848,8 +929,13 @@ function ChatInterface({ agentId }: { agentId: string }) {
   // Quick suggestions
   const suggestions = ["Tell me about yourself", "What can you do?", "Hi!"];
 
+  // Show skeleton while loading agent info
+  if (agentLoading) {
+    return <ChatSkeleton />;
+  }
+
   return (
-    <div className="h-full flex bg-[#000020] overflow-hidden">
+    <div className="h-full flex bg-[#000020] overflow-hidden content-fade-in">
       {/* Chat Area */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]">
         {/* Header */}
@@ -882,35 +968,26 @@ function ChatInterface({ agentId }: { agentId: string }) {
             </div>
 
             <div className="min-w-0 flex-1">
-              {agentLoading ? (
-                <div className="space-y-1.5">
-                  <div className="h-4 sm:h-5 w-20 sm:w-28 bg-white/10 rounded-lg animate-pulse" />
-                  <div className="h-3 sm:h-3.5 w-16 sm:w-20 bg-white/5 rounded animate-pulse" />
-                </div>
-              ) : (
-                <>
-                  <h1 className="font-semibold text-white text-sm sm:text-base truncate">
-                    {displayName}
-                  </h1>
-                  <div className="flex items-center gap-2 text-[10px] sm:text-xs text-white/40">
-                    <span className="flex items-center gap-1">
-                      <Zap className="w-3 h-3 text-[#6FEC06]" />
-                      <span className="hidden xs:inline">
-                        {enabledToolsCount} tools
-                      </span>
-                      <span className="xs:hidden">{enabledToolsCount}</span>
+              <h1 className="font-semibold text-white text-sm sm:text-base truncate">
+                {displayName}
+              </h1>
+              <div className="flex items-center gap-2 text-[10px] sm:text-xs text-white/40">
+                <span className="flex items-center gap-1">
+                  <Zap className="w-3 h-3 text-[#6FEC06]" />
+                  <span className="hidden xs:inline">
+                    {enabledToolsCount} tools
+                  </span>
+                  <span className="xs:hidden">{enabledToolsCount}</span>
+                </span>
+                {agentInfo?.tokenSymbol && (
+                  <>
+                    <span className="w-1 h-1 rounded-full bg-white/20" />
+                    <span className="text-[#6FEC06] font-medium">
+                      ${agentInfo.tokenSymbol}
                     </span>
-                    {agentInfo?.tokenSymbol && (
-                      <>
-                        <span className="w-1 h-1 rounded-full bg-white/20" />
-                        <span className="text-[#6FEC06] font-medium">
-                          ${agentInfo.tokenSymbol}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                </>
-              )}
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
@@ -1287,90 +1364,95 @@ function ChatInterface({ agentId }: { agentId: string }) {
         <div className="shrink-0 z-20 px-3 sm:px-4 md:px-6 pb-3 sm:pb-4 pt-2 sm:pt-3 bg-[#000020]">
           <div className="max-w-3xl mx-auto">
             {/* Glowing border wrapper - hidden when busy */}
-            <div className={`voice-glow-container ${
-              status === "streaming" || status === "submitted" || speechSynthesis.isPlaying || speechSynthesis.isLoading
-                ? "voice-glow-hidden"
-                : ""
-            }`}>
-            <PromptInput
-              onSubmit={handleSubmit}
-              accept="image/*"
-              multiple
-              globalDrop
-              className="[&_[data-slot=input-group]]:bg-[#0a0a1f]/90 [&_[data-slot=input-group]]:backdrop-blur-xl [&_[data-slot=input-group]]:!rounded-xl [&_[data-slot=input-group]]:border [&_[data-slot=input-group]]:border-white/[0.08] [&_[data-slot=input-group]]:shadow-[0_4px_20px_rgba(0,0,0,0.3)] [&_[data-slot=input-group]]:transition-all [&_[data-slot=input-group]:focus-within]:border-[#6FEC06]/30 [&_[data-slot=input-group]:focus-within]:shadow-[0_4px_20px_rgba(111,236,6,0.1)] [&_[data-slot=input-group]:focus-within]:ring-0"
+            <div
+              className={`voice-glow-container ${
+                status === "streaming" ||
+                status === "submitted" ||
+                speechSynthesis.isPlaying ||
+                speechSynthesis.isLoading
+                  ? "voice-glow-hidden"
+                  : ""
+              }`}
             >
-              <AttachmentsPreview />
-              <PromptInputBody>
-                <PromptInputTextarea
-                  ref={inputRef}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder={`Message ${displayName}...`}
-                  className="bg-transparent border-0 !rounded-xl focus:ring-0 focus-visible:ring-0 text-white placeholder:text-white/30 min-h-[48px] sm:min-h-[52px] max-h-[150px] sm:max-h-[180px] text-sm sm:text-[15px] leading-relaxed shadow-none"
-                />
-              </PromptInputBody>
-              <PromptInputFooter>
-                <PromptInputTools>
-                  <PromptInputActionMenu>
-                    <PromptInputActionMenuTrigger className="text-white/40 hover:text-white hover:bg-white/[0.08]">
-                      <Paperclip className="w-4 h-4" />
-                    </PromptInputActionMenuTrigger>
-                    <PromptInputActionMenuContent className="bg-[#0a0520] border-white/10">
-                      <PromptInputActionAddAttachments className="hover:bg-[#6FEC06]/10 hover:text-[#6FEC06]" />
-                    </PromptInputActionMenuContent>
-                  </PromptInputActionMenu>
+              <PromptInput
+                onSubmit={handleSubmit}
+                accept="image/*"
+                multiple
+                globalDrop
+                className="[&_[data-slot=input-group]]:bg-[#0a0a1f]/90 [&_[data-slot=input-group]]:backdrop-blur-xl [&_[data-slot=input-group]]:!rounded-xl [&_[data-slot=input-group]]:border [&_[data-slot=input-group]]:border-white/[0.08] [&_[data-slot=input-group]]:shadow-[0_4px_20px_rgba(0,0,0,0.3)] [&_[data-slot=input-group]]:transition-all [&_[data-slot=input-group]:focus-within]:border-[#6FEC06]/30 [&_[data-slot=input-group]:focus-within]:shadow-[0_4px_20px_rgba(111,236,6,0.1)] [&_[data-slot=input-group]:focus-within]:ring-0"
+              >
+                <AttachmentsPreview />
+                <PromptInputBody>
+                  <PromptInputTextarea
+                    ref={inputRef}
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder={`Message ${displayName}...`}
+                    className="bg-transparent border-0 !rounded-xl focus:ring-0 focus-visible:ring-0 text-white placeholder:text-white/30 min-h-[48px] sm:min-h-[52px] max-h-[150px] sm:max-h-[180px] text-sm sm:text-[15px] leading-relaxed shadow-none"
+                  />
+                </PromptInputBody>
+                <PromptInputFooter>
+                  <PromptInputTools>
+                    <PromptInputActionMenu>
+                      <PromptInputActionMenuTrigger className="text-white/40 hover:text-white hover:bg-white/[0.08]">
+                        <Paperclip className="w-4 h-4" />
+                      </PromptInputActionMenuTrigger>
+                      <PromptInputActionMenuContent className="bg-[#0a0520] border-white/10">
+                        <PromptInputActionAddAttachments className="hover:bg-[#6FEC06]/10 hover:text-[#6FEC06]" />
+                      </PromptInputActionMenuContent>
+                    </PromptInputActionMenu>
 
-                  {/* Voice Input Button */}
-                  <button
-                    type="button"
-                    onClick={voiceInput.toggleRecording}
-                    disabled={voiceInput.isTranscribing}
-                    className={`relative p-2 rounded-lg transition-all duration-200 ${
-                      voiceInput.isRecording
-                        ? "bg-red-500/20 text-red-400 hover:bg-red-500/30"
-                        : voiceInput.isTranscribing
-                          ? "bg-white/5 text-white/30 cursor-not-allowed"
-                          : "text-white/40 hover:text-white hover:bg-white/[0.08]"
-                    }`}
-                    title={
-                      voiceInput.isRecording
-                        ? "Stop recording"
-                        : voiceInput.isTranscribing
-                          ? "Transcribing..."
-                          : "Voice input"
-                    }
+                    {/* Voice Input Button */}
+                    <button
+                      type="button"
+                      onClick={voiceInput.toggleRecording}
+                      disabled={voiceInput.isTranscribing}
+                      className={`relative p-2 rounded-lg transition-all duration-200 ${
+                        voiceInput.isRecording
+                          ? "bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                          : voiceInput.isTranscribing
+                            ? "bg-white/5 text-white/30 cursor-not-allowed"
+                            : "text-white/40 hover:text-white hover:bg-white/[0.08]"
+                      }`}
+                      title={
+                        voiceInput.isRecording
+                          ? "Stop recording"
+                          : voiceInput.isTranscribing
+                            ? "Transcribing..."
+                            : "Voice input"
+                      }
+                    >
+                      {voiceInput.isTranscribing ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : voiceInput.isRecording ? (
+                        <>
+                          <MicOff className="w-4 h-4" />
+                          {/* Recording indicator pulse */}
+                          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                          {/* Audio level indicator */}
+                          <span
+                            className="absolute inset-0 rounded-lg bg-red-400/20 transition-transform duration-75"
+                            style={{
+                              transform: `scale(${1 + voiceInput.audioLevel * 0.3})`,
+                              opacity: voiceInput.audioLevel,
+                            }}
+                          />
+                        </>
+                      ) : (
+                        <Mic className="w-4 h-4" />
+                      )}
+                    </button>
+                  </PromptInputTools>
+                  <PromptInputSubmit
+                    status={status}
+                    onStop={stop}
+                    disabled={!input.trim() && status === "ready"}
+                    className="!rounded-lg bg-[#6FEC06] text-black hover:bg-[#5ad005] disabled:opacity-30 disabled:hover:bg-[#6FEC06] shadow-[0_2px_8px_rgba(111,236,6,0.3)]"
                   >
-                    {voiceInput.isTranscribing ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : voiceInput.isRecording ? (
-                      <>
-                        <MicOff className="w-4 h-4" />
-                        {/* Recording indicator pulse */}
-                        <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                        {/* Audio level indicator */}
-                        <span
-                          className="absolute inset-0 rounded-lg bg-red-400/20 transition-transform duration-75"
-                          style={{
-                            transform: `scale(${1 + voiceInput.audioLevel * 0.3})`,
-                            opacity: voiceInput.audioLevel,
-                          }}
-                        />
-                      </>
-                    ) : (
-                      <Mic className="w-4 h-4" />
-                    )}
-                  </button>
-                </PromptInputTools>
-                <PromptInputSubmit
-                  status={status}
-                  onStop={stop}
-                  disabled={!input.trim() && status === "ready"}
-                  className="!rounded-lg bg-[#6FEC06] text-black hover:bg-[#5ad005] disabled:opacity-30 disabled:hover:bg-[#6FEC06] shadow-[0_2px_8px_rgba(111,236,6,0.3)]"
-                >
-                  <Send className="w-4 h-4" />
-                </PromptInputSubmit>
-              </PromptInputFooter>
-            </PromptInput>
+                    <Send className="w-4 h-4" />
+                  </PromptInputSubmit>
+                </PromptInputFooter>
+              </PromptInput>
             </div>
 
             {/* Keyboard hint - hidden on mobile */}

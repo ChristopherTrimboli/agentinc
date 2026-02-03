@@ -39,9 +39,7 @@ function formatDuration(ms: number): string {
 /**
  * Check if the result contains an image
  */
-function isImageResult(
-  result: unknown,
-): result is {
+function isImageResult(result: unknown): result is {
   success: boolean;
   image: { url: string; mediaType: string };
   prompt: string;

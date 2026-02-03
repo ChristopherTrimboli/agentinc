@@ -85,7 +85,11 @@ export function useVoiceInput(options: VoiceInputOptions = {}) {
     async (audioBlob: Blob) => {
       if (!identityToken) {
         const errorMsg = "Not authenticated";
-        setState((prev) => ({ ...prev, error: errorMsg, isTranscribing: false }));
+        setState((prev) => ({
+          ...prev,
+          error: errorMsg,
+          isTranscribing: false,
+        }));
         onError?.(errorMsg);
         return;
       }
@@ -110,7 +114,7 @@ export function useVoiceInput(options: VoiceInputOptions = {}) {
         }
 
         const result = await response.json();
-        
+
         if (result.text && result.text.trim()) {
           onTranscript?.(result.text.trim());
         } else {
@@ -119,12 +123,17 @@ export function useVoiceInput(options: VoiceInputOptions = {}) {
 
         setState((prev) => ({ ...prev, isTranscribing: false }));
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : "Transcription failed";
-        setState((prev) => ({ ...prev, error: errorMsg, isTranscribing: false }));
+        const errorMsg =
+          error instanceof Error ? error.message : "Transcription failed";
+        setState((prev) => ({
+          ...prev,
+          error: errorMsg,
+          isTranscribing: false,
+        }));
         onError?.(errorMsg);
       }
     },
-    [identityToken, onTranscript, onError]
+    [identityToken, onTranscript, onError],
   );
 
   // Start recording
@@ -191,7 +200,10 @@ export function useVoiceInput(options: VoiceInputOptions = {}) {
 
       // Set max duration timeout
       timeoutRef.current = setTimeout(() => {
-        if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+        if (
+          mediaRecorderRef.current &&
+          mediaRecorderRef.current.state === "recording"
+        ) {
           stopRecording();
         }
       }, maxDuration * 1000);
@@ -215,7 +227,10 @@ export function useVoiceInput(options: VoiceInputOptions = {}) {
       timeoutRef.current = null;
     }
 
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
+    if (
+      mediaRecorderRef.current &&
+      mediaRecorderRef.current.state === "recording"
+    ) {
       mediaRecorderRef.current.stop();
     }
 

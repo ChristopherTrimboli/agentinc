@@ -68,11 +68,13 @@ export async function POST(req: Request) {
   // Validate text length (OpenAI has a limit of ~4096 characters)
   if (text.length > 4096) {
     return new Response(
-      JSON.stringify({ error: "Text exceeds maximum length of 4096 characters" }),
+      JSON.stringify({
+        error: "Text exceeds maximum length of 4096 characters",
+      }),
       {
         status: 400,
         headers: { "Content-Type": "application/json" },
-      }
+      },
     );
   }
 
@@ -85,7 +87,7 @@ export async function POST(req: Request) {
       {
         status: 400,
         headers: { "Content-Type": "application/json" },
-      }
+      },
     );
   }
 
@@ -96,7 +98,7 @@ export async function POST(req: Request) {
       {
         status: 400,
         headers: { "Content-Type": "application/json" },
-      }
+      },
     );
   }
 
@@ -137,7 +139,7 @@ export async function POST(req: Request) {
       {
         status: 500,
         headers: { "Content-Type": "application/json" },
-      }
+      },
     );
   }
 }
@@ -165,7 +167,7 @@ export async function GET(req: Request) {
     {
       status: 200,
       headers: { "Content-Type": "application/json" },
-    }
+    },
   );
 }
 

@@ -192,7 +192,7 @@ export function useSpeechSynthesis(options: SpeechSynthesisOptions = {}) {
         onError?.(errorMsg);
       }
     },
-    [identityToken, voice, speed, onStart, onEnd, onError]
+    [identityToken, voice, speed, onStart, onEnd, onError],
   );
 
   // Pause playback
@@ -279,7 +279,9 @@ export function getVoiceSettings(): VoiceSettings {
   if (typeof window === "undefined") return DEFAULT_SETTINGS;
   try {
     const stored = localStorage.getItem(VOICE_SETTINGS_KEY);
-    return stored ? { ...DEFAULT_SETTINGS, ...JSON.parse(stored) } : DEFAULT_SETTINGS;
+    return stored
+      ? { ...DEFAULT_SETTINGS, ...JSON.parse(stored) }
+      : DEFAULT_SETTINGS;
   } catch {
     return DEFAULT_SETTINGS;
   }

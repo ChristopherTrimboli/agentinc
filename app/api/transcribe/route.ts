@@ -55,7 +55,7 @@ export async function POST(req: Request) {
           {
             status: 400,
             headers: { "Content-Type": "application/json" },
-          }
+          },
         );
       }
 
@@ -71,33 +71,37 @@ export async function POST(req: Request) {
     const normalizedType = audioType.toLowerCase();
     const isSupported = SUPPORTED_FORMATS.some(
       (format) =>
-        normalizedType.includes(format) || normalizedType.includes(format.split("/")[1])
+        normalizedType.includes(format) ||
+        normalizedType.includes(format.split("/")[1]),
     );
 
     if (!isSupported && audioData.byteLength > 0) {
-      console.log("[Transcribe API] Audio type:", audioType, "- allowing anyway");
+      console.log(
+        "[Transcribe API] Audio type:",
+        audioType,
+        "- allowing anyway",
+      );
     }
 
     // Check file size (max 25MB for Whisper)
     const maxSize = 25 * 1024 * 1024; // 25MB
     if (audioData.byteLength > maxSize) {
       return new Response(
-        JSON.stringify({ error: "Audio file too large. Maximum size is 25MB." }),
+        JSON.stringify({
+          error: "Audio file too large. Maximum size is 25MB.",
+        }),
         {
           status: 400,
           headers: { "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
     if (audioData.byteLength === 0) {
-      return new Response(
-        JSON.stringify({ error: "Empty audio file" }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
+      return new Response(JSON.stringify({ error: "Empty audio file" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     console.log("[Transcribe API] Transcribing audio:", {
@@ -126,7 +130,7 @@ export async function POST(req: Request) {
       {
         status: 200,
         headers: { "Content-Type": "application/json" },
-      }
+      },
     );
   } catch (error) {
     console.error("[Transcribe API] Error transcribing audio:", error);
@@ -138,7 +142,7 @@ export async function POST(req: Request) {
       {
         status: 500,
         headers: { "Content-Type": "application/json" },
-      }
+      },
     );
   }
 }

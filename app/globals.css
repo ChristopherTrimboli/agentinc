@@ -792,6 +792,136 @@ h6,
   animation: skeleton-fade-in 0.3s ease-out forwards;
 }
 
+/* ============================================
+   SKELETON LOADING ANIMATIONS
+   ============================================ */
+
+/* Smooth fade-in for skeleton containers */
+@keyframes skeleton-container-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Skeleton container with fade-in */
+.skeleton-fade-in {
+  animation: skeleton-container-in 0.4s ease-out forwards;
+}
+
+/* Individual skeleton element fade-in with stagger */
+@keyframes skeleton-element-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.skeleton-item {
+  animation: skeleton-element-in 0.35s ease-out forwards;
+}
+
+/* Staggered delays for skeleton items */
+.skeleton-item:nth-child(1) {
+  animation-delay: 0.05s;
+  opacity: 0;
+}
+.skeleton-item:nth-child(2) {
+  animation-delay: 0.1s;
+  opacity: 0;
+}
+.skeleton-item:nth-child(3) {
+  animation-delay: 0.15s;
+  opacity: 0;
+}
+.skeleton-item:nth-child(4) {
+  animation-delay: 0.2s;
+  opacity: 0;
+}
+.skeleton-item:nth-child(5) {
+  animation-delay: 0.25s;
+  opacity: 0;
+}
+.skeleton-item:nth-child(6) {
+  animation-delay: 0.3s;
+  opacity: 0;
+}
+.skeleton-item:nth-child(n + 7) {
+  animation-delay: 0.35s;
+  opacity: 0;
+}
+
+/* Content fade-in when skeleton is replaced */
+@keyframes content-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.content-fade-in {
+  animation: content-reveal 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Enhanced pulse animation for skeleton blocks */
+@keyframes skeleton-pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.skeleton-pulse {
+  animation: skeleton-pulse 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Combined shimmer + pulse for premium feel */
+.skeleton-glow {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03) 0%,
+    rgba(255, 255, 255, 0.08) 20%,
+    rgba(111, 236, 6, 0.06) 50%,
+    rgba(255, 255, 255, 0.08) 80%,
+    rgba(255, 255, 255, 0.03) 100%
+  );
+  background-size: 200% 100%;
+  animation:
+    skeleton-shimmer 2s ease-in-out infinite,
+    skeleton-pulse 1.8s ease-in-out infinite;
+}
+
+/* Reduce motion preference for skeletons */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-fade-in,
+  .skeleton-item,
+  .content-fade-in {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .skeleton-pulse,
+  .skeleton-glow,
+  .skeleton-shimmer {
+    animation: none !important;
+    opacity: 0.5 !important;
+  }
+}
+
 /* AAA Premium CTA Button */
 .btn-cta-primary {
   position: relative;
@@ -1384,13 +1514,16 @@ h6,
 }
 
 .voice-glow-container.voice-active::after {
-  animation: voice-glow-rotate 4s linear infinite, voice-glow-pulse 0.8s ease-in-out infinite;
+  animation:
+    voice-glow-rotate 4s linear infinite,
+    voice-glow-pulse 0.8s ease-in-out infinite;
   filter: blur(12px);
 }
 
 /* Pulse animation for active state */
 @keyframes voice-glow-pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.6;
     transform: scale(1);
   }
@@ -1425,7 +1558,9 @@ h6,
 }
 
 .voice-glow-container.voice-recording::after {
-  animation: voice-glow-rotate 3s linear infinite, voice-recording-pulse 0.5s ease-in-out infinite;
+  animation:
+    voice-glow-rotate 3s linear infinite,
+    voice-recording-pulse 0.5s ease-in-out infinite;
   filter: blur(14px);
   background: conic-gradient(
     from var(--glow-angle, 0deg),
@@ -1440,7 +1575,8 @@ h6,
 
 /* Faster pulse for recording */
 @keyframes voice-recording-pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.7;
     transform: scale(1);
     filter: blur(16px);
@@ -1477,7 +1613,9 @@ h6,
 }
 
 .voice-glow-container.voice-speaking::after {
-  animation: voice-glow-rotate 4s linear infinite, voice-speaking-wave 1.5s ease-in-out infinite;
+  animation:
+    voice-glow-rotate 4s linear infinite,
+    voice-speaking-wave 1.5s ease-in-out infinite;
   filter: blur(12px);
   background: conic-gradient(
     from var(--glow-angle, 0deg),
@@ -1492,7 +1630,8 @@ h6,
 
 /* Wave animation for speaking */
 @keyframes voice-speaking-wave {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.6;
     transform: scale(1);
   }
@@ -1517,13 +1656,17 @@ h6,
 }
 
 /* Hover state enhancement */
-.voice-glow-container:hover:not(.voice-active):not(.voice-recording):not(.voice-speaking):not(.voice-glow-hidden) {
+.voice-glow-container:hover:not(.voice-active):not(.voice-recording):not(
+    .voice-speaking
+  ):not(.voice-glow-hidden) {
   --glow-base-opacity: 0.8;
   --glow-outer-opacity: 0.7;
 }
 
 /* Focus-within enhancement */
-.voice-glow-container:focus-within:not(.voice-active):not(.voice-recording):not(.voice-speaking) {
+.voice-glow-container:focus-within:not(.voice-active):not(.voice-recording):not(
+    .voice-speaking
+  ) {
   --glow-base-opacity: 0.9;
   --glow-outer-opacity: 0.75;
 }
@@ -1548,7 +1691,7 @@ h6,
     animation: none !important;
     opacity: 0.5;
   }
-  
+
   .voice-glow-container.voice-active::before,
   .voice-glow-container.voice-active::after,
   .voice-glow-container.voice-recording::before,

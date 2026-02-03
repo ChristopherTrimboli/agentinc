@@ -32,7 +32,35 @@ export * from "./types";
 
 // Export individual tool modules
 export { getWeather, getForecast, weatherTools } from "./weather";
-export { getCryptoPrice, getMultipleCryptoPrices, cryptoTools } from "./crypto";
+export {
+  // Price tools
+  getCryptoPrice,
+  getMultipleCryptoPrices,
+  // Trending & search
+  getTrendingCoins,
+  searchCrypto,
+  // Global market data
+  getGlobalMarketData,
+  getDeFiGlobalData,
+  // Coin details & history
+  getTopCoins,
+  getCoinDetails,
+  getCoinHistory,
+  getCoinOHLC,
+  // Categories
+  getCategories,
+  // Exchanges
+  getExchanges,
+  getExchangeRates,
+  // Onchain DEX (GeckoTerminal)
+  getTrendingPools,
+  getNewPools,
+  getTokenByContract,
+  searchPools,
+  getPoolTrades,
+  // All tools
+  cryptoTools,
+} from "./crypto";
 export {
   geolocateIP,
   batchGeolocateIPs,
@@ -89,13 +117,13 @@ export const TOOL_GROUPS: ToolGroup[] = [
       },
     ],
   },
-  // Crypto Tools
+  // Crypto Price Tools
   {
     id: "crypto",
-    name: "CoinGecko",
-    description: "Real-time cryptocurrency prices",
+    name: "Crypto Prices",
+    description: "Real-time cryptocurrency prices and market data",
     icon: "💰",
-    source: "Crypto",
+    source: "CoinGecko",
     functions: [
       {
         id: "getCryptoPrice",
@@ -106,6 +134,116 @@ export const TOOL_GROUPS: ToolGroup[] = [
         id: "getMultipleCryptoPrices",
         name: "Multiple Prices",
         description: "Get prices for multiple coins at once",
+      },
+      {
+        id: "getTopCoins",
+        name: "Top Coins",
+        description: "Top coins ranked by market cap",
+      },
+      {
+        id: "getCoinDetails",
+        name: "Coin Details",
+        description: "Full details, links, and socials for a coin",
+      },
+      {
+        id: "getCoinHistory",
+        name: "Price History",
+        description: "Historical price data for charting",
+      },
+      {
+        id: "getCoinOHLC",
+        name: "OHLC Data",
+        description: "Candlestick data for technical analysis",
+      },
+    ],
+  },
+  // Trending & Search
+  {
+    id: "cryptoTrending",
+    name: "Trending & Search",
+    description: "Discover trending coins and search crypto",
+    icon: "🔥",
+    source: "CoinGecko",
+    functions: [
+      {
+        id: "getTrendingCoins",
+        name: "Trending Coins",
+        description: "What's hot in the last 24 hours",
+      },
+      {
+        id: "searchCrypto",
+        name: "Search",
+        description: "Search coins, exchanges, categories",
+      },
+      {
+        id: "getCategories",
+        name: "Categories",
+        description: "DeFi, Gaming, Layer 1, Meme coins, etc.",
+      },
+    ],
+  },
+  // Global Market Data
+  {
+    id: "cryptoGlobal",
+    name: "Market Overview",
+    description: "Global crypto market statistics",
+    icon: "🌍",
+    source: "CoinGecko",
+    functions: [
+      {
+        id: "getGlobalMarketData",
+        name: "Global Data",
+        description: "Total market cap, BTC dominance, etc.",
+      },
+      {
+        id: "getDeFiGlobalData",
+        name: "DeFi Data",
+        description: "DeFi market cap and volume",
+      },
+      {
+        id: "getExchanges",
+        name: "Exchanges",
+        description: "Top exchanges by volume",
+      },
+      {
+        id: "getExchangeRates",
+        name: "Exchange Rates",
+        description: "BTC rates to 60+ currencies",
+      },
+    ],
+  },
+  // Onchain DEX Tools
+  {
+    id: "onchainDEX",
+    name: "Onchain DEX",
+    description: "DEX pools, trades, and token data",
+    icon: "⛓️",
+    source: "GeckoTerminal",
+    functions: [
+      {
+        id: "getTrendingPools",
+        name: "Trending Pools",
+        description: "Hot liquidity pools across chains",
+      },
+      {
+        id: "getNewPools",
+        name: "New Pools",
+        description: "Recently created pools & launches",
+      },
+      {
+        id: "getTokenByContract",
+        name: "Token Lookup",
+        description: "Look up token by contract address",
+      },
+      {
+        id: "searchPools",
+        name: "Search Pools",
+        description: "Find pools by token name or address",
+      },
+      {
+        id: "getPoolTrades",
+        name: "Pool Trades",
+        description: "Recent trades for a pool",
       },
     ],
   },
@@ -235,7 +373,11 @@ export function getToolsForGroups(
     () => Record<string, Tool<unknown, unknown>>
   > = {
     weather: () => require("./weather").weatherTools,
+    // All crypto-related groups use the same cryptoTools (they're all in one file)
     crypto: () => require("./crypto").cryptoTools,
+    cryptoTrending: () => require("./crypto").cryptoTools,
+    cryptoGlobal: () => require("./crypto").cryptoTools,
+    onchainDEX: () => require("./crypto").cryptoTools,
     geolocation: () => require("./geolocation").geolocationTools,
     wikipedia: () => require("./wikipedia").wikipediaTools,
     datetime: () => require("./datetime").datetimeTools,
