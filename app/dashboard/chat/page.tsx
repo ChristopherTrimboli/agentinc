@@ -22,6 +22,12 @@ import {
   Download,
   ExternalLink,
   ImageIcon,
+  Mic,
+  MicOff,
+  Volume2,
+  VolumeX,
+  Square,
+  Loader2,
 } from "lucide-react";
 import {
   useState,
@@ -77,6 +83,15 @@ import {
   ToolExecution,
   ToolState,
 } from "@/components/chat";
+import { useVoiceInput } from "@/lib/hooks/useVoiceInput";
+import {
+  useSpeechSynthesis,
+  getVoiceSettings,
+  saveVoiceSettings,
+  VOICES,
+  type Voice,
+  type VoiceSettings,
+} from "@/lib/hooks/useSpeechSynthesis";
 
 interface AgentInfo {
   id: string;
@@ -549,6 +564,73 @@ function ChatInterface({ agentId }: { agentId: string }) {
   const [skills, setSkills] = useState<SkillConfig[]>([]);
   const [toolsLoading, setToolsLoading] = useState(true);
 
+  // Voice settings state
+  const [voiceSettings, setVoiceSettings] = useState<VoiceSettings>(() =>
+    getVoiceSettings()
+  );
+  const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
+
+  // Voice input hook (STT)
+  const voiceInput = useVoiceInput({
+    identityToken,
+    onTranscript: (text) => {
+      setInput((prev) => (prev ? `${prev} ${text}` : text));
+      inputRef.current?.focus();
+    },
+    onError: (error) => {
+      console.error("Voice input error:", error);
+    },
+  });
+
+  // Voice synthesis hook (TTS)
+  const speechSynthesis = useSpeechSynthesis({
+    voice: voiceSettings.voice,
+    speed: voiceSettings.speed,
+    identityToken,
+    onEnd: () => {
+      setSpeakingMessageId(null);
+    },
+    onError: (error) => {
+      console.error("Speech synthesis error:", error);
+      setSpeakingMessageId(null);
+    },
+  });
+
+  // Voice settings handlers
+  const handleVoiceChange = useCallback((voice: Voice) => {
+    setVoiceSettings((prev) => ({ ...prev, voice }));
+    saveVoiceSettings({ voice });
+  }, []);
+
+  const handleSpeedChange = useCallback((speed: number) => {
+    setVoiceSettings((prev) => ({ ...prev, speed }));
+    saveVoiceSettings({ speed });
+  }, []);
+
+  const handleAutoSpeakChange = useCallback((autoSpeak: boolean) => {
+    setVoiceSettings((prev) => ({ ...prev, autoSpeak }));
+    saveVoiceSettings({ autoSpeak });
+  }, []);
+
+  // Speak message handler
+  const speakMessage = useCallback(
+    (messageId: string, text: string) => {
+      if (speakingMessageId === messageId) {
+        // Toggle off
+        speechSynthesis.stop();
+        setSpeakingMessageId(null);
+      } else {
+        // Start speaking
+        setSpeakingMessageId(messageId);
+        speechSynthesis.speak(text);
+      }
+    },
+    [speakingMessageId, speechSynthesis]
+  );
+
+  // Track last message ID for auto-speak
+  const lastAutoSpokenRef = useRef<string | null>(null);
+
   // Fetch available tools and skills from separate endpoints
   useEffect(() => {
     async function fetchToolsAndSkills() {
@@ -696,6 +778,27 @@ function ChatInterface({ agentId }: { agentId: string }) {
 
   const { messages, sendMessage, status, regenerate, stop, setMessages } =
     useChat({ transport });
+
+  // Auto-speak new assistant messages when streaming completes
+  useEffect(() => {
+    if (!voiceSettings.autoSpeak || status !== "ready" || messages.length === 0) {
+      return;
+    }
+
+    const lastMessage = messages[messages.length - 1];
+    if (
+      lastMessage.role === "assistant" &&
+      lastMessage.id !== lastAutoSpokenRef.current
+    ) {
+      // Find the text content of the message
+      const textPart = lastMessage.parts.find((p) => p.type === "text");
+      if (textPart && textPart.type === "text" && textPart.text.trim()) {
+        lastAutoSpokenRef.current = lastMessage.id;
+        setSpeakingMessageId(lastMessage.id);
+        speechSynthesis.speak(textPart.text);
+      }
+    }
+  }, [messages, status, voiceSettings.autoSpeak, speechSynthesis]);
 
   // Fetch agent info
   useEffect(() => {
@@ -1093,6 +1196,43 @@ function ChatInterface({ agentId }: { agentId: string }) {
                                   <Copy className="size-3.5" />
                                 )}
                               </MessageAction>
+                              {/* TTS Speak Button */}
+                              <MessageAction
+                                onClick={() => {
+                                  const textPart = message.parts.find(
+                                    (p) => p.type === "text",
+                                  );
+                                  if (textPart && textPart.type === "text") {
+                                    speakMessage(message.id, textPart.text);
+                                  }
+                                }}
+                                label={
+                                  speakingMessageId === message.id
+                                    ? speechSynthesis.isLoading
+                                      ? "Loading..."
+                                      : "Stop"
+                                    : "Speak"
+                                }
+                                tooltip={
+                                  speakingMessageId === message.id
+                                    ? "Stop speaking"
+                                    : "Read aloud"
+                                }
+                                className={`rounded-lg transition-all duration-200 ${
+                                  speakingMessageId === message.id
+                                    ? "text-[#6FEC06] bg-[#6FEC06]/10"
+                                    : "text-white/30 hover:text-[#6FEC06] hover:bg-[#6FEC06]/10"
+                                }`}
+                              >
+                                {speechSynthesis.isLoading &&
+                                speakingMessageId === message.id ? (
+                                  <Loader2 className="size-3.5 animate-spin" />
+                                ) : speakingMessageId === message.id ? (
+                                  <VolumeX className="size-3.5" />
+                                ) : (
+                                  <Volume2 className="size-3.5" />
+                                )}
+                              </MessageAction>
                             </MessageActions>
                           )}
                       </Message>
@@ -1146,6 +1286,12 @@ function ChatInterface({ agentId }: { agentId: string }) {
         {/* Input Area - Fixed at bottom */}
         <div className="shrink-0 z-20 px-3 sm:px-4 md:px-6 pb-3 sm:pb-4 pt-2 sm:pt-3 bg-[#000020]">
           <div className="max-w-3xl mx-auto">
+            {/* Glowing border wrapper - hidden when busy */}
+            <div className={`voice-glow-container ${
+              status === "streaming" || status === "submitted" || speechSynthesis.isPlaying || speechSynthesis.isLoading
+                ? "voice-glow-hidden"
+                : ""
+            }`}>
             <PromptInput
               onSubmit={handleSubmit}
               accept="image/*"
@@ -1173,6 +1319,47 @@ function ChatInterface({ agentId }: { agentId: string }) {
                       <PromptInputActionAddAttachments className="hover:bg-[#6FEC06]/10 hover:text-[#6FEC06]" />
                     </PromptInputActionMenuContent>
                   </PromptInputActionMenu>
+
+                  {/* Voice Input Button */}
+                  <button
+                    type="button"
+                    onClick={voiceInput.toggleRecording}
+                    disabled={voiceInput.isTranscribing}
+                    className={`relative p-2 rounded-lg transition-all duration-200 ${
+                      voiceInput.isRecording
+                        ? "bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                        : voiceInput.isTranscribing
+                          ? "bg-white/5 text-white/30 cursor-not-allowed"
+                          : "text-white/40 hover:text-white hover:bg-white/[0.08]"
+                    }`}
+                    title={
+                      voiceInput.isRecording
+                        ? "Stop recording"
+                        : voiceInput.isTranscribing
+                          ? "Transcribing..."
+                          : "Voice input"
+                    }
+                  >
+                    {voiceInput.isTranscribing ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : voiceInput.isRecording ? (
+                      <>
+                        <MicOff className="w-4 h-4" />
+                        {/* Recording indicator pulse */}
+                        <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                        {/* Audio level indicator */}
+                        <span
+                          className="absolute inset-0 rounded-lg bg-red-400/20 transition-transform duration-75"
+                          style={{
+                            transform: `scale(${1 + voiceInput.audioLevel * 0.3})`,
+                            opacity: voiceInput.audioLevel,
+                          }}
+                        />
+                      </>
+                    ) : (
+                      <Mic className="w-4 h-4" />
+                    )}
+                  </button>
                 </PromptInputTools>
                 <PromptInputSubmit
                   status={status}
@@ -1184,6 +1371,7 @@ function ChatInterface({ agentId }: { agentId: string }) {
                 </PromptInputSubmit>
               </PromptInputFooter>
             </PromptInput>
+            </div>
 
             {/* Keyboard hint - hidden on mobile */}
             <p className="hidden sm:block text-center text-[11px] text-white/25 mt-2.5">
@@ -1213,6 +1401,10 @@ function ChatInterface({ agentId }: { agentId: string }) {
         loading={toolsLoading}
         mobileOpen={mobileToolPanelOpen}
         onMobileClose={() => setMobileToolPanelOpen(false)}
+        voiceSettings={voiceSettings}
+        onVoiceChange={handleVoiceChange}
+        onSpeedChange={handleSpeedChange}
+        onAutoSpeakChange={handleAutoSpeakChange}
       />
     </div>
   );

@@ -1291,3 +1291,270 @@ h6,
 [data-stick-to-bottom-scroll] {
   scrollbar-gutter: auto !important;
 }
+
+/* ============================================
+   VOICE-REACTIVE GLOWING INPUT BORDER
+   ============================================ */
+
+/* Container for the glowing input effect */
+.voice-glow-container {
+  position: relative;
+  border-radius: 0.75rem;
+  isolation: isolate;
+}
+
+/* Animated border gradient that moves around - single spinner with soft edges */
+.voice-glow-container::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  padding: 2px;
+  background: conic-gradient(
+    from var(--glow-angle, 0deg),
+    transparent 0%,
+    rgba(111, 236, 6, 0.08) 3%,
+    rgba(111, 236, 6, 0.2) 6%,
+    rgba(111, 236, 6, var(--glow-opacity-peak, 0.45)) 10%,
+    rgba(111, 236, 6, 0.2) 14%,
+    rgba(111, 236, 6, 0.08) 17%,
+    transparent 22%,
+    transparent 100%
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: voice-glow-rotate 6s linear infinite;
+  z-index: -1;
+  opacity: var(--glow-base-opacity, 0.8);
+  transition: opacity 0.3s ease;
+}
+
+/* Outer glow effect - single soft glow */
+.voice-glow-container::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--glow-angle, 0deg),
+    transparent 0%,
+    rgba(111, 236, 6, 0.05) 4%,
+    rgba(111, 236, 6, 0.15) 10%,
+    rgba(111, 236, 6, 0.05) 16%,
+    transparent 22%,
+    transparent 100%
+  );
+  filter: blur(10px);
+  animation: voice-glow-rotate 6s linear infinite;
+  z-index: -2;
+  opacity: var(--glow-outer-opacity, 0.7);
+  transition: all 0.3s ease;
+}
+
+/* Animation for rotating the gradient */
+@keyframes voice-glow-rotate {
+  0% {
+    --glow-angle: 0deg;
+  }
+  100% {
+    --glow-angle: 360deg;
+  }
+}
+
+/* Use property for animation */
+@property --glow-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+/* Active state - when voice is active (recording or playing) */
+.voice-glow-container.voice-active {
+  --glow-opacity: 0.6;
+  --glow-opacity-peak: 1;
+  --glow-base-opacity: 1;
+  --glow-outer-opacity: 0.8;
+}
+
+.voice-glow-container.voice-active::before {
+  animation: voice-glow-rotate 4s linear infinite;
+}
+
+.voice-glow-container.voice-active::after {
+  animation: voice-glow-rotate 4s linear infinite, voice-glow-pulse 0.8s ease-in-out infinite;
+  filter: blur(12px);
+}
+
+/* Pulse animation for active state */
+@keyframes voice-glow-pulse {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+}
+
+/* Recording state - pulsing with audio level */
+.voice-glow-container.voice-recording {
+  --glow-opacity: 0.7;
+  --glow-opacity-peak: 1;
+  --glow-base-opacity: 1;
+  --glow-outer-opacity: 1;
+}
+
+.voice-glow-container.voice-recording::before {
+  animation: voice-glow-rotate 3s linear infinite;
+  background: conic-gradient(
+    from var(--glow-angle, 0deg),
+    transparent 0%,
+    rgba(111, 236, 6, 0.15) 3%,
+    rgba(111, 236, 6, 0.4) 7%,
+    rgba(111, 236, 6, 0.8) 12%,
+    rgba(159, 242, 74, 0.8) 16%,
+    rgba(111, 236, 6, 0.4) 20%,
+    rgba(111, 236, 6, 0.15) 24%,
+    transparent 30%,
+    transparent 100%
+  );
+}
+
+.voice-glow-container.voice-recording::after {
+  animation: voice-glow-rotate 3s linear infinite, voice-recording-pulse 0.5s ease-in-out infinite;
+  filter: blur(14px);
+  background: conic-gradient(
+    from var(--glow-angle, 0deg),
+    transparent 0%,
+    rgba(111, 236, 6, 0.1) 5%,
+    rgba(111, 236, 6, 0.35) 12%,
+    rgba(111, 236, 6, 0.1) 20%,
+    transparent 28%,
+    transparent 100%
+  );
+}
+
+/* Faster pulse for recording */
+@keyframes voice-recording-pulse {
+  0%, 100% {
+    opacity: 0.7;
+    transform: scale(1);
+    filter: blur(16px);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+    filter: blur(20px);
+  }
+}
+
+/* Speaking state - smooth wave-like animation */
+.voice-glow-container.voice-speaking {
+  --glow-opacity: 0.6;
+  --glow-opacity-peak: 0.9;
+  --glow-base-opacity: 1;
+  --glow-outer-opacity: 0.9;
+}
+
+.voice-glow-container.voice-speaking::before {
+  animation: voice-glow-rotate 4s linear infinite;
+  background: conic-gradient(
+    from var(--glow-angle, 0deg),
+    transparent 0%,
+    rgba(111, 236, 6, 0.12) 4%,
+    rgba(111, 236, 6, 0.35) 8%,
+    rgba(111, 236, 6, 0.65) 13%,
+    rgba(127, 255, 32, 0.65) 17%,
+    rgba(111, 236, 6, 0.35) 22%,
+    rgba(111, 236, 6, 0.12) 26%,
+    transparent 32%,
+    transparent 100%
+  );
+}
+
+.voice-glow-container.voice-speaking::after {
+  animation: voice-glow-rotate 4s linear infinite, voice-speaking-wave 1.5s ease-in-out infinite;
+  filter: blur(12px);
+  background: conic-gradient(
+    from var(--glow-angle, 0deg),
+    transparent 0%,
+    rgba(111, 236, 6, 0.08) 6%,
+    rgba(111, 236, 6, 0.25) 14%,
+    rgba(111, 236, 6, 0.08) 22%,
+    transparent 30%,
+    transparent 100%
+  );
+}
+
+/* Wave animation for speaking */
+@keyframes voice-speaking-wave {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  25% {
+    opacity: 0.9;
+    transform: scale(1.03);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.01);
+  }
+  75% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+}
+
+/* Hidden state - when loading/generating/speaking */
+.voice-glow-container.voice-glow-hidden::before,
+.voice-glow-container.voice-glow-hidden::after {
+  opacity: 0;
+}
+
+/* Hover state enhancement */
+.voice-glow-container:hover:not(.voice-active):not(.voice-recording):not(.voice-speaking):not(.voice-glow-hidden) {
+  --glow-base-opacity: 0.8;
+  --glow-outer-opacity: 0.7;
+}
+
+/* Focus-within enhancement */
+.voice-glow-container:focus-within:not(.voice-active):not(.voice-recording):not(.voice-speaking) {
+  --glow-base-opacity: 0.9;
+  --glow-outer-opacity: 0.75;
+}
+
+.voice-glow-container:focus-within::before {
+  animation-duration: 5s;
+}
+
+/* Audio level indicator - inline style will set --audio-level */
+.voice-glow-container.voice-recording {
+  --audio-scale: calc(1 + var(--audio-level, 0) * 0.1);
+}
+
+.voice-glow-container.voice-recording::after {
+  transform: scale(var(--audio-scale, 1));
+}
+
+/* Reduce motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .voice-glow-container::before,
+  .voice-glow-container::after {
+    animation: none !important;
+    opacity: 0.5;
+  }
+  
+  .voice-glow-container.voice-active::before,
+  .voice-glow-container.voice-active::after,
+  .voice-glow-container.voice-recording::before,
+  .voice-glow-container.voice-recording::after,
+  .voice-glow-container.voice-speaking::before,
+  .voice-glow-container.voice-speaking::after {
+    opacity: 1;
+  }
+}

@@ -17,6 +17,8 @@ import {
   History,
   Wrench,
   Settings,
+  Volume2,
+  Mic,
 } from "lucide-react";
 
 export interface ApiKeyConfig {
@@ -89,6 +91,30 @@ interface TabConfig {
   icon: React.ReactNode;
 }
 
+// Voice types
+export type VoiceId = "alloy" | "echo" | "fable" | "onyx" | "nova" | "shimmer";
+
+export interface VoiceOption {
+  id: VoiceId;
+  name: string;
+  description: string;
+}
+
+export const VOICE_OPTIONS: VoiceOption[] = [
+  { id: "alloy", name: "Alloy", description: "Neutral and balanced" },
+  { id: "echo", name: "Echo", description: "Warm and conversational" },
+  { id: "fable", name: "Fable", description: "British and narrative" },
+  { id: "onyx", name: "Onyx", description: "Deep and authoritative" },
+  { id: "nova", name: "Nova", description: "Friendly and upbeat" },
+  { id: "shimmer", name: "Shimmer", description: "Clear and expressive" },
+];
+
+export interface VoiceSettings {
+  voice: VoiceId;
+  speed: number;
+  autoSpeak: boolean;
+}
+
 const TABS: TabConfig[] = [
   { id: "tools", label: "Tools", icon: <Wrench className="w-5 h-5" /> },
   { id: "history", label: "History", icon: <History className="w-5 h-5" /> },
@@ -104,6 +130,11 @@ interface ToolPanelProps {
   collapsed?: boolean;
   onCollapsedChange?: (collapsed: boolean) => void;
   loading?: boolean;
+  // Voice settings
+  voiceSettings?: VoiceSettings;
+  onVoiceChange?: (voice: VoiceId) => void;
+  onSpeedChange?: (speed: number) => void;
+  onAutoSpeakChange?: (autoSpeak: boolean) => void;
 }
 
 function ToolGroupCard({
@@ -590,12 +621,147 @@ function HistoryTab() {
   );
 }
 
-function SettingsTab() {
+function SettingsTab({
+  voiceSettings,
+  onVoiceChange,
+  onSpeedChange,
+  onAutoSpeakChange,
+}: {
+  voiceSettings?: VoiceSettings;
+  onVoiceChange?: (voice: VoiceId) => void;
+  onSpeedChange?: (speed: number) => void;
+  onAutoSpeakChange?: (autoSpeak: boolean) => void;
+}) {
+  const settings = voiceSettings || { voice: "nova", speed: 1.0, autoSpeak: false };
+
   return (
-    <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-      <Settings className="w-10 h-10 text-white/15 mb-3" />
-      <h3 className="text-sm font-medium text-white/60 mb-1">Settings</h3>
-      <p className="text-xs text-white/35">Chat settings coming soon.</p>
+    <div className="flex flex-col h-full p-4 overflow-y-auto">
+      {/* Voice Settings Section */}
+      <div className="mb-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Volume2 className="w-4 h-4 text-[#6FEC06]" />
+          <h3 className="text-sm font-semibold text-white">Voice Settings</h3>
+        </div>
+
+        {/* Voice Selection */}
+        <div className="space-y-3">
+          <label className="text-xs font-medium text-white/60">Voice</label>
+          <div className="grid grid-cols-2 gap-2">
+            {VOICE_OPTIONS.map((voice) => (
+              <button
+                key={voice.id}
+                onClick={() => onVoiceChange?.(voice.id)}
+                className={`p-3 rounded-xl border text-left transition-all duration-200 ${
+                  settings.voice === voice.id
+                    ? "bg-[#6FEC06]/10 border-[#6FEC06]/30"
+                    : "bg-white/[0.02] border-white/[0.06] hover:border-white/10"
+                }`}
+              >
+                <span
+                  className={`font-medium text-sm block ${
+                    settings.voice === voice.id ? "text-white" : "text-white/70"
+                  }`}
+                >
+                  {voice.name}
+                </span>
+                <span
+                  className={`text-[10px] ${
+                    settings.voice === voice.id ? "text-white/50" : "text-white/40"
+                  }`}
+                >
+                  {voice.description}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Speed Control */}
+        <div className="mt-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-medium text-white/60">Speed</label>
+            <span className="text-xs font-mono text-[#6FEC06]">
+              {settings.speed.toFixed(1)}x
+            </span>
+          </div>
+          <input
+            type="range"
+            min="0.5"
+            max="2.0"
+            step="0.1"
+            value={settings.speed}
+            onChange={(e) => onSpeedChange?.(parseFloat(e.target.value))}
+            className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#6FEC06] [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#6FEC06] [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(111,236,6,0.4)]"
+          />
+          <div className="flex justify-between text-[10px] text-white/30">
+            <span>0.5x</span>
+            <span>1.0x</span>
+            <span>2.0x</span>
+          </div>
+        </div>
+
+        {/* Auto-speak Toggle */}
+        <div className="mt-4 flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+          <div>
+            <span className="font-medium text-sm text-white/80 block">
+              Auto-speak
+            </span>
+            <span className="text-[10px] text-white/40">
+              Automatically read new responses
+            </span>
+          </div>
+          <button
+            onClick={() => onAutoSpeakChange?.(!settings.autoSpeak)}
+            className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${
+              settings.autoSpeak ? "bg-[#6FEC06]" : "bg-white/10"
+            }`}
+          >
+            <span
+              className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow-md transition-transform duration-200 ${
+                settings.autoSpeak ? "translate-x-5" : "translate-x-0"
+              }`}
+            />
+          </button>
+        </div>
+      </div>
+
+      {/* Voice Input Settings Section */}
+      <div className="mb-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Mic className="w-4 h-4 text-[#6FEC06]" />
+          <h3 className="text-sm font-semibold text-white">Voice Input</h3>
+        </div>
+
+        <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+          <p className="text-xs text-white/50 leading-relaxed">
+            Click the microphone button in the chat input to record your voice.
+            Your speech will be automatically transcribed and added to the message.
+          </p>
+        </div>
+      </div>
+
+      {/* Keyboard Shortcuts */}
+      <div>
+        <div className="flex items-center gap-2 mb-4">
+          <Settings className="w-4 h-4 text-[#6FEC06]" />
+          <h3 className="text-sm font-semibold text-white">Tips</h3>
+        </div>
+
+        <div className="space-y-2 text-xs text-white/50">
+          <p className="flex items-center gap-2">
+            <kbd className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 font-mono text-[10px]">
+              Enter
+            </kbd>
+            <span>Send message</span>
+          </p>
+          <p className="flex items-center gap-2">
+            <kbd className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 font-mono text-[10px]">
+              Shift + Enter
+            </kbd>
+            <span>New line</span>
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
@@ -647,6 +813,10 @@ export function ToolPanel({
   loading = false,
   mobileOpen = false,
   onMobileClose,
+  voiceSettings,
+  onVoiceChange,
+  onSpeedChange,
+  onAutoSpeakChange,
 }: ToolPanelMobileProps) {
   const [activeTab, setActiveTab] = useState<TabId>("tools");
 
@@ -741,7 +911,14 @@ export function ToolPanel({
               />
             )}
             {activeTab === "history" && <HistoryTab />}
-            {activeTab === "settings" && <SettingsTab />}
+            {activeTab === "settings" && (
+              <SettingsTab
+                voiceSettings={voiceSettings}
+                onVoiceChange={onVoiceChange}
+                onSpeedChange={onSpeedChange}
+                onAutoSpeakChange={onAutoSpeakChange}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -803,7 +980,14 @@ export function ToolPanel({
             />
           )}
           {activeTab === "history" && <HistoryTab />}
-          {activeTab === "settings" && <SettingsTab />}
+          {activeTab === "settings" && (
+            <SettingsTab
+              voiceSettings={voiceSettings}
+              onVoiceChange={onVoiceChange}
+              onSpeedChange={onSpeedChange}
+              onAutoSpeakChange={onAutoSpeakChange}
+            />
+          )}
         </div>
       </div>
     </>
