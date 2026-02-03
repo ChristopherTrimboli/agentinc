@@ -10,7 +10,7 @@ import {
   Brain,
   ChevronDown,
   ArrowLeft,
-  Trash2,
+  Plus,
   Check,
   Sparkles,
   Search,
@@ -115,6 +115,7 @@ interface ToolGroupInfo {
   name: string;
   description: string;
   icon: string;
+  logoUrl?: string;
   source?: string;
   functions: { id: string; name: string; description: string }[];
 }
@@ -624,7 +625,7 @@ function ChatSkeleton() {
 }
 
 // Chat Interface Component
-function ChatInterface({ agentId }: { agentId: string }) {
+function ChatInterface({ agentId, chatId: initialChatId }: { agentId: string; chatId?: string }) {
   const router = useRouter();
   const { identityToken } = useAuth();
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -638,6 +639,16 @@ function ChatInterface({ agentId }: { agentId: string }) {
   const [toolGroups, setToolGroups] = useState<ToolGroup[]>([]);
   const [skills, setSkills] = useState<SkillConfig[]>([]);
   const [toolsLoading, setToolsLoading] = useState(true);
+  
+  // Chat history state
+  const [chatId, setChatId] = useState<string | undefined>(initialChatId);
+  const [chatLoading, setChatLoading] = useState(!!initialChatId);
+  const [initialMessages, setInitialMessages] = useState<Array<{ id: string; role: "user" | "assistant"; parts: Array<{ type: string; text?: string; [key: string]: unknown }> }>>([]);
+  const [historyRefreshTrigger, setHistoryRefreshTrigger] = useState(0);
+  
+  // Track if we need to save messages after response
+  const pendingSaveRef = useRef(false);
+  const lastSavedMessagesRef = useRef<number>(0);
 
   // Voice settings state
   const [voiceSettings, setVoiceSettings] = useState<VoiceSettings>(() =>
@@ -729,6 +740,7 @@ function ChatInterface({ agentId }: { agentId: string }) {
               name: g.name,
               description: g.description,
               icon: g.icon,
+              logoUrl: g.logoUrl,
               source: g.source,
               enabled: true, // Enable tool groups by default
               functions: g.functions,
@@ -856,6 +868,38 @@ function ChatInterface({ agentId }: { agentId: string }) {
   const { messages, sendMessage, status, regenerate, stop, setMessages } =
     useChat({ transport });
 
+  // Load initial messages when chat is loaded from history
+  const loadedInitialMessagesRef = useRef(false);
+  useEffect(() => {
+    if (initialMessages.length > 0 && !loadedInitialMessagesRef.current) {
+      loadedInitialMessagesRef.current = true;
+      setMessages(initialMessages as Parameters<typeof setMessages>[0]);
+    }
+  }, [initialMessages, setMessages]);
+
+  // Reset the loaded flag when starting a new chat
+  useEffect(() => {
+    if (!chatId) {
+      loadedInitialMessagesRef.current = false;
+    }
+  }, [chatId]);
+
+  // Handle new chat creation (needs setMessages from useChat)
+  const handleNewChat = useCallback(() => {
+    setChatId(undefined);
+    setMessages([]);
+    setInitialMessages([]);
+    lastSavedMessagesRef.current = 0;
+    loadedInitialMessagesRef.current = false;
+    router.push(`/dashboard/chat?agent=${agentId}`);
+  }, [agentId, router, setMessages]);
+
+  // Handle selecting a chat from history
+  const handleSelectChat = useCallback((selectedChatId: string, selectedAgentId?: string | null) => {
+    const url = `/dashboard/chat?agent=${selectedAgentId || agentId}&chatId=${selectedChatId}`;
+    router.push(url);
+  }, [agentId, router]);
+
   // Auto-speak new assistant messages when streaming completes
   useEffect(() => {
     if (
@@ -903,6 +947,143 @@ function ChatInterface({ agentId }: { agentId: string }) {
     fetchAgentInfo();
   }, [agentId, identityToken]);
 
+  // Load existing chat messages if chatId is provided
+  useEffect(() => {
+    async function loadChat() {
+      if (!initialChatId || !identityToken) {
+        setChatLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/chats/${initialChatId}`, {
+          headers: { "privy-id-token": identityToken },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          // Convert saved messages to the format useChat expects
+          if (data.chat?.messages?.length > 0) {
+            const loadedMessages = data.chat.messages.map((msg: { id: string; role: string; content: string; parts?: unknown }) => ({
+              id: msg.id,
+              role: msg.role as "user" | "assistant",
+              parts: msg.parts || [{ type: "text", text: msg.content }],
+            }));
+            setInitialMessages(loadedMessages);
+            lastSavedMessagesRef.current = loadedMessages.length;
+          }
+          setChatId(initialChatId);
+        } else {
+          // Chat not found, clear the chatId
+          console.warn("Chat not found:", initialChatId);
+          setChatId(undefined);
+        }
+      } catch (err) {
+        console.error("Failed to load chat:", err);
+        setChatId(undefined);
+      } finally {
+        setChatLoading(false);
+      }
+    }
+
+    loadChat();
+  }, [initialChatId, identityToken]);
+
+  // Track chat ID in a ref for stable access in callbacks
+  const chatIdRef = useRef<string | undefined>(chatId);
+  useEffect(() => {
+    chatIdRef.current = chatId;
+  }, [chatId]);
+
+  // Save new messages to the database
+  const saveMessages = useCallback(async (messagesToSave: typeof messages) => {
+    if (!identityToken || messagesToSave.length === 0) {
+      console.log("[Chat] saveMessages skipped - no token or messages");
+      return;
+    }
+
+    // Only save messages we haven't saved yet
+    const newMessages = messagesToSave.slice(lastSavedMessagesRef.current);
+    if (newMessages.length === 0) {
+      console.log("[Chat] saveMessages skipped - no new messages");
+      return;
+    }
+
+    console.log("[Chat] Saving", newMessages.length, "new messages, chatId:", chatIdRef.current);
+
+    try {
+      let currentChatId = chatIdRef.current;
+
+      // Create a new chat if we don't have one
+      if (!currentChatId) {
+        console.log("[Chat] Creating new chat for agent:", agentId);
+        const createResponse = await fetch("/api/chats", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "privy-id-token": identityToken,
+          },
+          body: JSON.stringify({ agentId }),
+        });
+
+        if (createResponse.ok) {
+          const data = await createResponse.json();
+          currentChatId = data.chat.id;
+          console.log("[Chat] Created new chat:", currentChatId);
+          setChatId(currentChatId);
+          chatIdRef.current = currentChatId; // Update ref immediately
+          // Update URL without reload
+          const newUrl = `/dashboard/chat?agent=${agentId}&chatId=${currentChatId}`;
+          window.history.replaceState({}, "", newUrl);
+        } else {
+          const errorText = await createResponse.text();
+          console.error("Failed to create chat:", createResponse.status, errorText);
+          return;
+        }
+      }
+
+      // Save the new messages
+      const formattedMessages = newMessages.map((msg) => {
+        const textPart = msg.parts.find((p) => p.type === "text");
+        return {
+          role: msg.role,
+          content: textPart?.type === "text" ? textPart.text : "",
+          parts: msg.parts,
+        };
+      });
+
+      const saveResponse = await fetch(`/api/chats/${currentChatId}/messages`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "privy-id-token": identityToken,
+        },
+        body: JSON.stringify({ messages: formattedMessages }),
+      });
+
+      if (saveResponse.ok) {
+        console.log("[Chat] Messages saved successfully");
+        lastSavedMessagesRef.current = messagesToSave.length;
+        // Trigger sidebar refresh to show updated chat
+        setHistoryRefreshTrigger((prev) => prev + 1);
+      } else {
+        const errorText = await saveResponse.text();
+        console.error("Failed to save messages:", saveResponse.status, errorText);
+      }
+    } catch (err) {
+      console.error("Error saving messages:", err);
+    }
+  }, [agentId, identityToken]); // Removed chatId from deps - using ref instead
+
+  // Save messages after response completes
+  useEffect(() => {
+    console.log("[Chat] Save effect - status:", status, "messages:", messages.length, "lastSaved:", lastSavedMessagesRef.current);
+    if (status === "ready" && messages.length > 0 && messages.length > lastSavedMessagesRef.current) {
+      console.log("[Chat] Triggering save...");
+      saveMessages(messages);
+    }
+  }, [status, messages, saveMessages]);
+
   const displayName = agentInfo?.name || "Agent";
   const rarity =
     rarityColors[agentInfo?.rarity || "common"] || rarityColors.common;
@@ -929,8 +1110,8 @@ function ChatInterface({ agentId }: { agentId: string }) {
   // Quick suggestions
   const suggestions = ["Tell me about yourself", "What can you do?", "Hi!"];
 
-  // Show skeleton while loading agent info
-  if (agentLoading) {
+  // Show skeleton while loading agent info or chat
+  if (agentLoading || chatLoading) {
     return <ChatSkeleton />;
   }
 
@@ -943,7 +1124,7 @@ function ChatInterface({ agentId }: { agentId: string }) {
           <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
             <button
               onClick={() => router.push("/dashboard/chat")}
-              className="p-2 -ml-2 rounded-xl hover:bg-white/5 text-white/40 hover:text-white transition-all duration-200 group shrink-0"
+              className="p-2 -ml-2 lg:ml-0 rounded-xl hover:bg-white/5 text-white/40 hover:text-white transition-all duration-200 group shrink-0"
             >
               <ArrowLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
             </button>
@@ -993,15 +1174,13 @@ function ChatInterface({ agentId }: { agentId: string }) {
 
           {/* Header Actions */}
           <div className="flex items-center gap-1 shrink-0">
-            {messages.length > 0 && (
-              <button
-                onClick={() => setMessages([])}
-                className="p-2.5 rounded-lg hover:bg-red-500/10 text-white/40 hover:text-red-400 transition-all duration-200"
-                title="Clear conversation"
-              >
-                <Trash2 className="w-5 h-5" />
-              </button>
-            )}
+            <button
+              onClick={handleNewChat}
+              className="p-2.5 rounded-lg hover:bg-[#6FEC06]/10 text-white/40 hover:text-[#6FEC06] transition-all duration-200"
+              title="New chat"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
 
             {/* Mobile Tool Panel Toggle */}
             <button
@@ -1487,6 +1666,13 @@ function ChatInterface({ agentId }: { agentId: string }) {
         onVoiceChange={handleVoiceChange}
         onSpeedChange={handleSpeedChange}
         onAutoSpeakChange={handleAutoSpeakChange}
+        // Chat history props
+        currentChatId={chatId}
+        currentAgentId={agentId}
+        identityToken={identityToken}
+        onNewChat={handleNewChat}
+        onSelectChat={handleSelectChat}
+        historyRefreshTrigger={historyRefreshTrigger}
       />
     </div>
   );
@@ -1496,9 +1682,10 @@ function ChatInterface({ agentId }: { agentId: string }) {
 function ChatPageContent() {
   const searchParams = useSearchParams();
   const agentId = searchParams.get("agent");
+  const chatId = searchParams.get("chatId");
 
   if (agentId) {
-    return <ChatInterface agentId={agentId} />;
+    return <ChatInterface agentId={agentId} chatId={chatId || undefined} />;
   }
 
   return <AgentSelector />;

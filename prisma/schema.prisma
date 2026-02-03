@@ -18,6 +18,47 @@ model User {
 
   // Relations
   agents Agent[]
+  chats  Chat[]
+}
+
+// Chat session - represents a conversation with an agent
+model Chat {
+  id        String   @id @default(cuid())
+  title     String?  @db.VarChar(100) // Auto-generated from first message or manual
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // User relation
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Agent relation (optional - can chat without specific agent)
+  agentId String?
+  agent   Agent?  @relation(fields: [agentId], references: [id], onDelete: SetNull)
+
+  // Messages in this chat
+  messages ChatMessage[]
+
+  @@index([userId])
+  @@index([agentId])
+  @@index([userId, updatedAt])
+  @@index([createdAt])
+}
+
+// Individual message in a chat
+model ChatMessage {
+  id        String   @id @default(cuid())
+  role      String   // "user" | "assistant" | "system"
+  content   String   @db.Text // Message text content
+  parts     Json?    // Full message parts (for tool calls, reasoning, etc.)
+  createdAt DateTime @default(now())
+
+  // Chat relation
+  chatId String
+  chat   Chat   @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  @@index([chatId])
+  @@index([chatId, createdAt])
 }
 
 model Agent {
@@ -62,6 +103,9 @@ model Agent {
   // Corporation relation (optional - agent can belong to a corporation)
   corporationId String?
   corporation   Corporation? @relation(fields: [corporationId], references: [id], onDelete: SetNull)
+
+  // Chats with this agent
+  chats Chat[]
 
   @@index([createdById])
   @@index([tokenMint])

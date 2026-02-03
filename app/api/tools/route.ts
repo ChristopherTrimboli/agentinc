@@ -12,6 +12,7 @@ export async function GET() {
     name: group.name,
     description: group.description,
     icon: group.icon,
+    logoUrl: group.logoUrl,
     source: group.source,
     functions: group.functions,
   }));

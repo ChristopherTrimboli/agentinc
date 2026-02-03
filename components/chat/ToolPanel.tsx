@@ -20,7 +20,15 @@ import {
   Volume2,
   Mic,
   GripVertical,
+  Plus,
+  MessageSquare,
+  Bot,
+  Clock,
+  Trash2,
+  Loader2,
 } from "lucide-react";
+import Image from "next/image";
+import { formatDistanceToNow } from "date-fns";
 
 export interface ApiKeyConfig {
   label: string;
@@ -42,6 +50,7 @@ export interface ToolGroup {
   name: string;
   description: string;
   icon: string;
+  logoUrl?: string; // URL to actual logo image from the web
   source?: string;
   enabled: boolean;
   functions: ToolFunction[];
@@ -136,6 +145,13 @@ interface ToolPanelProps {
   onVoiceChange?: (voice: VoiceId) => void;
   onSpeedChange?: (speed: number) => void;
   onAutoSpeakChange?: (autoSpeak: boolean) => void;
+  // Chat history props
+  currentChatId?: string;
+  currentAgentId?: string;
+  identityToken?: string | null;
+  onNewChat?: () => void;
+  onSelectChat?: (chatId: string, agentId?: string | null) => void;
+  historyRefreshTrigger?: number;
 }
 
 function ToolGroupCard({
@@ -146,6 +162,7 @@ function ToolGroupCard({
   onToggle: (enabled: boolean) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   return (
     <div
@@ -156,13 +173,23 @@ function ToolGroupCard({
       }`}
     >
       <div className="flex items-center gap-2.5 px-2.5 py-2">
-        {/* Icon */}
+        {/* Icon/Logo */}
         <div
-          className={`w-6 h-6 rounded-md flex items-center justify-center text-xs shrink-0 ${
+          className={`w-6 h-6 rounded-md flex items-center justify-center text-xs shrink-0 overflow-hidden ${
             group.enabled ? "bg-[#6FEC06]/20" : "bg-white/[0.04]"
           }`}
         >
-          {group.icon}
+          {group.logoUrl && !imageError ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={group.logoUrl}
+              alt={group.name}
+              className="w-4 h-4 object-contain"
+              onError={() => setImageError(true)}
+            />
+          ) : (
+            group.icon
+          )}
         </div>
 
         {/* Content */}
@@ -589,16 +616,368 @@ function ToolsTab({
   );
 }
 
-function HistoryTab() {
+interface ChatHistoryItem {
+  id: string;
+  title: string | null;
+  createdAt: string;
+  updatedAt: string;
+  agentId: string | null;
+  agent: {
+    id: string;
+    name: string;
+    imageUrl: string | null;
+    rarity: string | null;
+    tokenSymbol: string | null;
+  } | null;
+  lastMessage: {
+    content: string;
+    role: string;
+    createdAt: string;
+  } | null;
+  messageCount: number;
+}
+
+const rarityColors: Record<string, string> = {
+  legendary: "ring-[#FFD700]",
+  epic: "ring-[#A855F7]",
+  rare: "ring-[#3B82F6]",
+  uncommon: "ring-[#6FEC06]",
+  common: "ring-white/20",
+};
+
+function HistoryTab({
+  currentChatId,
+  currentAgentId,
+  identityToken,
+  onNewChat,
+  onSelectChat,
+  refreshTrigger = 0,
+}: {
+  currentChatId?: string;
+  currentAgentId?: string;
+  identityToken?: string | null;
+  onNewChat?: () => void;
+  onSelectChat?: (chatId: string, agentId?: string | null) => void;
+  refreshTrigger?: number;
+}) {
+  const [chats, setChats] = useState<ChatHistoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  // Fetch chat history
+  const fetchChats = useCallback(async () => {
+    if (!identityToken) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const params = new URLSearchParams();
+      params.set("limit", "50");
+
+      const response = await fetch(`/api/chats?${params.toString()}`, {
+        headers: { "privy-id-token": identityToken },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setChats(data.chats || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch chat history:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [identityToken]);
+
+  // Fetch on mount and when refreshTrigger changes
+  useEffect(() => {
+    fetchChats();
+  }, [fetchChats, refreshTrigger]);
+
+  // Filter chats by search
+  const filteredChats = chats.filter((chat) => {
+    if (!search) return true;
+    const searchLower = search.toLowerCase();
+    return (
+      chat.title?.toLowerCase().includes(searchLower) ||
+      chat.agent?.name.toLowerCase().includes(searchLower) ||
+      chat.lastMessage?.content.toLowerCase().includes(searchLower)
+    );
+  });
+
+  // Group chats by time periods
+  const groupedChats = filteredChats.reduce(
+    (acc, chat) => {
+      const date = new Date(chat.updatedAt);
+      const now = new Date();
+      const diffDays = Math.floor(
+        (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      let group: string;
+      if (diffDays === 0) {
+        group = "Today";
+      } else if (diffDays === 1) {
+        group = "Yesterday";
+      } else if (diffDays < 7) {
+        group = "This Week";
+      } else if (diffDays < 30) {
+        group = "This Month";
+      } else {
+        group = "Older";
+      }
+
+      if (!acc[group]) acc[group] = [];
+      acc[group].push(chat);
+      return acc;
+    },
+    {} as Record<string, ChatHistoryItem[]>
+  );
+
+  // Order time groups properly
+  const timeGroupOrder = ["Today", "Yesterday", "This Week", "This Month", "Older"];
+  const orderedGroups = timeGroupOrder.filter((g) => groupedChats[g]?.length > 0);
+
+  const handleDeleteChat = async (chatId: string) => {
+    if (!identityToken) return;
+
+    setDeleting(true);
+    try {
+      const response = await fetch(`/api/chats/${chatId}`, {
+        method: "DELETE",
+        headers: { "privy-id-token": identityToken },
+      });
+
+      if (response.ok) {
+        setChats((prev) => prev.filter((c) => c.id !== chatId));
+        if (currentChatId === chatId) {
+          onNewChat?.();
+        }
+      }
+    } catch (err) {
+      console.error("Failed to delete chat:", err);
+    } finally {
+      setDeleting(false);
+      setDeleteConfirm(null);
+    }
+  };
+
+  if (!identityToken) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-6 text-center">
+        <div className="w-12 h-12 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mb-4">
+          <History className="w-6 h-6 text-white/20" />
+        </div>
+        <h3 className="text-sm font-medium text-white/70 mb-1">
+          Sign in to view history
+        </h3>
+        <p className="text-xs text-white/40 max-w-[180px]">
+          Your conversations will be saved automatically
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col items-center justify-center h-full p-4 text-center">
-      <History className="w-7 h-7 text-white/10 mb-2" />
-      <h3 className="text-[12px] font-medium text-white/50 mb-0.5">
-        Chat History
-      </h3>
-      <p className="text-[10px] text-white/30">
-        Conversation history will appear here.
-      </p>
+    <div className="flex flex-col h-full">
+      {/* Header with New Chat button */}
+      <div className="px-3 py-3 border-b border-white/[0.06]">
+        <button
+          onClick={onNewChat}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#6FEC06]/15 to-[#6FEC06]/5 hover:from-[#6FEC06]/25 hover:to-[#6FEC06]/10 text-[#6FEC06] text-xs font-semibold transition-all duration-200 border border-[#6FEC06]/20 hover:border-[#6FEC06]/40 shadow-[0_2px_8px_rgba(111,236,6,0.08)] hover:shadow-[0_4px_12px_rgba(111,236,6,0.15)]"
+        >
+          <Plus className="w-4 h-4" />
+          New Chat
+        </button>
+
+        {/* Search - show when there are multiple chats */}
+        {chats.length > 3 && (
+          <div className="relative mt-3">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/25" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search conversations..."
+              className="w-full pl-9 pr-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.06] text-xs text-white placeholder:text-white/25 focus:border-[#6FEC06]/30 focus:bg-white/[0.04] focus:outline-none transition-all"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded text-white/30 hover:text-white/50"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Chat list */}
+      <div className="flex-1 overflow-y-auto">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <Loader2 className="w-5 h-5 text-[#6FEC06]/50 animate-spin mb-2" />
+            <p className="text-[10px] text-white/40">Loading history...</p>
+          </div>
+        ) : filteredChats.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-white/[0.02] border border-white/[0.05] flex items-center justify-center mb-4">
+              <MessageSquare className="w-6 h-6 text-white/20" />
+            </div>
+            <p className="text-sm font-medium text-white/60 mb-1">
+              {search ? "No results found" : "No conversations yet"}
+            </p>
+            <p className="text-xs text-white/40 max-w-[160px]">
+              {search
+                ? "Try a different search term"
+                : "Start chatting to see your history here"}
+            </p>
+          </div>
+        ) : (
+          <div className="py-2">
+            {orderedGroups.map((group) => (
+              <div key={group} className="mb-1">
+                {/* Time group label */}
+                <div className="px-4 py-2 sticky top-0 bg-[#000015]/95 backdrop-blur-sm z-10">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-white/40">
+                    {group}
+                  </span>
+                </div>
+
+                {/* Chat items */}
+                <div className="px-2">
+                  {groupedChats[group].map((chat) => {
+                    const isActive = currentChatId === chat.id;
+                    const rarityRing = rarityColors[chat.agent?.rarity || "common"];
+
+                    return (
+                      <div
+                        key={chat.id}
+                        className={`group relative rounded-xl mb-0.5 transition-all duration-150 ${
+                          isActive
+                            ? "bg-[#6FEC06]/[0.08] shadow-[inset_0_0_0_1px_rgba(111,236,6,0.2)]"
+                            : "hover:bg-white/[0.03]"
+                        }`}
+                      >
+                        <button
+                          onClick={() => onSelectChat?.(chat.id, chat.agentId)}
+                          className="w-full text-left px-3 py-2.5"
+                        >
+                          <div className="flex items-center gap-3">
+                            {/* Agent avatar - larger and more prominent */}
+                            <div
+                              className={`relative w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 ring-1.5 ${rarityRing} bg-[#0a0520] shadow-sm`}
+                            >
+                              {chat.agent?.imageUrl ? (
+                                <Image
+                                  src={chat.agent.imageUrl}
+                                  alt={chat.agent.name}
+                                  fill
+                                  sizes="36px"
+                                  className="object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#6FEC06]/10 to-transparent">
+                                  <Bot className="w-4 h-4 text-[#6FEC06]/40" />
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Content */}
+                            <div className="flex-1 min-w-0 pr-6">
+                              {/* Title row with time */}
+                              <div className="flex items-center justify-between gap-2 mb-0.5">
+                                <h4
+                                  className={`text-[13px] font-medium truncate ${
+                                    isActive ? "text-white" : "text-white/80"
+                                  }`}
+                                >
+                                  {chat.title || chat.agent?.name || "New Chat"}
+                                </h4>
+                              </div>
+
+                              {/* Last message preview */}
+                              <p
+                                className={`text-[11px] truncate leading-relaxed ${
+                                  isActive ? "text-white/55" : "text-white/45"
+                                }`}
+                              >
+                                {chat.lastMessage ? (
+                                  <>
+                                    {chat.lastMessage.role === "user" && (
+                                      <span className="text-white/60">You: </span>
+                                    )}
+                                    {chat.lastMessage.content}
+                                  </>
+                                ) : (
+                                  <span className="italic text-white/35">No messages</span>
+                                )}
+                              </p>
+
+                              {/* Timestamp */}
+                              <p className={`text-[10px] mt-1 ${isActive ? "text-[#6FEC06]/60" : "text-white/35"}`}>
+                                {formatDistanceToNow(new Date(chat.updatedAt), {
+                                  addSuffix: true,
+                                })}
+                              </p>
+                            </div>
+                          </div>
+                        </button>
+
+                        {/* Delete button - slides in from right */}
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all duration-150 translate-x-1 group-hover:translate-x-0">
+                          {deleteConfirm === chat.id ? (
+                            <div className="flex items-center gap-1 bg-[#0a0520]/95 backdrop-blur-sm rounded-lg p-1 border border-white/[0.08] shadow-lg">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteChat(chat.id);
+                                }}
+                                disabled={deleting}
+                                className="px-2 py-1 rounded-md bg-red-500/20 text-red-400 hover:bg-red-500/30 text-[10px] font-medium transition-colors disabled:opacity-50"
+                              >
+                                {deleting ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  "Delete"
+                                )}
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteConfirm(null);
+                                }}
+                                className="px-2 py-1 rounded-md text-white/50 hover:bg-white/10 text-[10px] font-medium transition-colors"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteConfirm(chat.id);
+                              }}
+                              className="p-1.5 rounded-lg bg-white/[0.03] hover:bg-red-500/10 border border-transparent hover:border-red-500/20 text-white/30 hover:text-red-400 transition-all duration-150"
+                              title="Delete conversation"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -626,14 +1005,14 @@ function SettingsTab({
       <div className="mb-4">
         <div className="flex items-center gap-1.5 mb-2.5 px-0.5">
           <Volume2 className="w-3 h-3 text-[#6FEC06]/70" />
-          <h3 className="text-[11px] font-semibold text-white/70">
+          <h3 className="text-[11px] font-semibold text-white/80">
             Voice Output
           </h3>
         </div>
 
         {/* Voice Selection */}
         <div className="space-y-2">
-          <label className="text-[10px] font-medium text-white/40 px-0.5">
+          <label className="text-[10px] font-medium text-white/50 px-0.5">
             Voice
           </label>
           <div className="grid grid-cols-2 gap-1">
@@ -662,7 +1041,7 @@ function SettingsTab({
         {/* Speed Control */}
         <div className="mt-3 space-y-1.5">
           <div className="flex items-center justify-between px-0.5">
-            <label className="text-[10px] font-medium text-white/40">
+            <label className="text-[10px] font-medium text-white/50">
               Speed
             </label>
             <span className="text-[10px] font-mono text-[#6FEC06]/80">
@@ -678,7 +1057,7 @@ function SettingsTab({
             onChange={(e) => onSpeedChange?.(parseFloat(e.target.value))}
             className="w-full h-1 bg-white/[0.06] rounded appearance-none cursor-pointer accent-[#6FEC06] [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#6FEC06] [&::-webkit-slider-thumb]:appearance-none"
           />
-          <div className="flex justify-between text-[9px] text-white/20 px-0.5">
+          <div className="flex justify-between text-[9px] text-white/35 px-0.5">
             <span>0.5x</span>
             <span>1.0x</span>
             <span>2.0x</span>
@@ -688,10 +1067,10 @@ function SettingsTab({
         {/* Auto-speak Toggle */}
         <div className="mt-3 flex items-center justify-between px-2 py-2 rounded-md bg-white/[0.02] border border-white/[0.04]">
           <div>
-            <span className="font-medium text-[11px] text-white/60 block">
+            <span className="font-medium text-[11px] text-white/70 block">
               Auto-speak
             </span>
-            <span className="text-[9px] text-white/30">
+            <span className="text-[9px] text-white/40">
               Read responses aloud
             </span>
           </div>
@@ -716,13 +1095,13 @@ function SettingsTab({
       <div className="mb-4">
         <div className="flex items-center gap-1.5 mb-2 px-0.5">
           <Mic className="w-3 h-3 text-[#6FEC06]/70" />
-          <h3 className="text-[11px] font-semibold text-white/70">
+          <h3 className="text-[11px] font-semibold text-white/80">
             Voice Input
           </h3>
         </div>
 
         <div className="px-2 py-2 rounded-md bg-white/[0.02] border border-white/[0.04]">
-          <p className="text-[10px] text-white/40 leading-relaxed">
+          <p className="text-[10px] text-white/50 leading-relaxed">
             Click the mic button to record. Speech is transcribed automatically.
           </p>
         </div>
@@ -732,18 +1111,18 @@ function SettingsTab({
       <div>
         <div className="flex items-center gap-1.5 mb-2 px-0.5">
           <Settings className="w-3 h-3 text-[#6FEC06]/70" />
-          <h3 className="text-[11px] font-semibold text-white/70">Tips</h3>
+          <h3 className="text-[11px] font-semibold text-white/80">Tips</h3>
         </div>
 
-        <div className="space-y-1.5 text-[10px] text-white/40 px-0.5">
+        <div className="space-y-1.5 text-[10px] text-white/50 px-0.5">
           <p className="flex items-center gap-2">
-            <kbd className="px-1 py-0.5 rounded bg-white/[0.03] border border-white/[0.06] font-mono text-[9px]">
+            <kbd className="px-1 py-0.5 rounded bg-white/[0.04] border border-white/[0.08] font-mono text-[9px] text-white/60">
               Enter
             </kbd>
             <span>Send</span>
           </p>
           <p className="flex items-center gap-2">
-            <kbd className="px-1 py-0.5 rounded bg-white/[0.03] border border-white/[0.06] font-mono text-[9px]">
+            <kbd className="px-1 py-0.5 rounded bg-white/[0.04] border border-white/[0.08] font-mono text-[9px] text-white/60">
               Shift+Enter
             </kbd>
             <span>New line</span>
@@ -838,6 +1217,13 @@ export function ToolPanel({
   onVoiceChange,
   onSpeedChange,
   onAutoSpeakChange,
+  // Chat history props
+  currentChatId,
+  currentAgentId,
+  identityToken,
+  onNewChat,
+  onSelectChat,
+  historyRefreshTrigger,
 }: ToolPanelMobileProps) {
   const [activeTab, setActiveTab] = useState<TabId>("tools");
   const [panelWidth, setPanelWidth] = useState<number>(DEFAULT_PANEL_WIDTH);
@@ -1062,7 +1448,16 @@ export function ToolPanel({
                 loading={loading}
               />
             )}
-            {activeTab === "history" && <HistoryTab />}
+            {activeTab === "history" && (
+              <HistoryTab
+                currentChatId={currentChatId}
+                currentAgentId={currentAgentId}
+                identityToken={identityToken}
+                onNewChat={onNewChat}
+                onSelectChat={onSelectChat}
+                refreshTrigger={historyRefreshTrigger}
+              />
+            )}
             {activeTab === "settings" && (
               <SettingsTab
                 voiceSettings={voiceSettings}
@@ -1131,7 +1526,16 @@ export function ToolPanel({
               loading={loading}
             />
           )}
-          {activeTab === "history" && <HistoryTab />}
+          {activeTab === "history" && (
+            <HistoryTab
+              currentChatId={currentChatId}
+              currentAgentId={currentAgentId}
+              identityToken={identityToken}
+              onNewChat={onNewChat}
+              onSelectChat={onSelectChat}
+              refreshTrigger={historyRefreshTrigger}
+            />
+          )}
           {activeTab === "settings" && (
             <SettingsTab
               voiceSettings={voiceSettings}

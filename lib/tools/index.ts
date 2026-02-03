@@ -94,6 +94,7 @@ export interface ToolGroup {
   name: string;
   description: string;
   icon: string;
+  logoUrl?: string; // URL to actual logo image from the web
   source?: string; // e.g., "CoinGecko", "Wikipedia", etc.
   functions: ToolFunction[];
 }
@@ -123,6 +124,7 @@ export const TOOL_GROUPS: ToolGroup[] = [
     name: "Crypto Prices",
     description: "Real-time cryptocurrency prices and market data",
     icon: "💰",
+    logoUrl: "https://static.coingecko.com/s/thumbnail-007177f3eca19695592f0b8b0eabbdae282b54154e1be912285c9034ea6cbaf2.png",
     source: "CoinGecko",
     functions: [
       {
@@ -163,6 +165,7 @@ export const TOOL_GROUPS: ToolGroup[] = [
     name: "Trending & Search",
     description: "Discover trending coins and search crypto",
     icon: "🔥",
+    logoUrl: "https://static.coingecko.com/s/thumbnail-007177f3eca19695592f0b8b0eabbdae282b54154e1be912285c9034ea6cbaf2.png",
     source: "CoinGecko",
     functions: [
       {
@@ -188,6 +191,7 @@ export const TOOL_GROUPS: ToolGroup[] = [
     name: "Market Overview",
     description: "Global crypto market statistics",
     icon: "🌍",
+    logoUrl: "https://static.coingecko.com/s/thumbnail-007177f3eca19695592f0b8b0eabbdae282b54154e1be912285c9034ea6cbaf2.png",
     source: "CoinGecko",
     functions: [
       {
@@ -218,6 +222,7 @@ export const TOOL_GROUPS: ToolGroup[] = [
     name: "Onchain DEX",
     description: "DEX pools, trades, and token data",
     icon: "⛓️",
+    logoUrl: "https://www.geckoterminal.com/favicon.ico",
     source: "GeckoTerminal",
     functions: [
       {
@@ -271,6 +276,7 @@ export const TOOL_GROUPS: ToolGroup[] = [
     name: "IP Geolocation",
     description: "Geographic location from IP addresses",
     icon: "📍",
+    logoUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
     functions: [
       {
         id: "geolocateIP",
@@ -289,6 +295,7 @@ export const TOOL_GROUPS: ToolGroup[] = [
     name: "Wikipedia",
     description: "Encyclopedia articles and search",
     icon: "📚",
+    logoUrl: "https://en.wikipedia.org/static/apple-touch/wikipedia.png",
     functions: [
       {
         id: "getWikiSummary",
