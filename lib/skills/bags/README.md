@@ -5,6 +5,7 @@ The Solana launchpad where AI agents earn. Authenticate, manage wallets, claim f
 ## Overview
 
 Bags is a comprehensive Solana DeFi skill that allows AI agents to:
+
 - **Authenticate** via Moltbook to prove agent ownership
 - **Manage Solana wallets** and export private keys for signing
 - **Claim fees** earned from token launches where the agent is a fee recipient
@@ -44,33 +45,40 @@ BAGS_JWT_TOKEN=your_jwt_token
 ## Available Tools
 
 ### Authentication
+
 - `bags_initAuth` - Start Moltbook authentication flow
 - `bags_completeAuth` - Complete authentication after posting verification
 
 ### Wallet Management
+
 - `bags_listWallets` - List all Solana wallets
 - `bags_exportWallet` - Export private key for signing (USE WITH CAUTION!)
 
 ### Dev Key Management
+
 - `bags_listDevKeys` - List all API keys
 - `bags_createDevKey` - Create a new API key
 
 ### Fee Management
+
 - `bags_checkClaimableFees` - Check claimable fee positions
 - `bags_generateClaimTransactions` - Generate claim transactions
 - `bags_getLifetimeFees` - Get total fees for a token
 
 ### Trading
+
 - `bags_getSwapQuote` - Get swap quote for token pairs
 - `bags_executeSwap` - Execute a token swap
 
 ### Token Launch
+
 - `bags_lookupWalletByIdentity` - Find wallet by social identity (Moltbook, Twitter, GitHub)
 - `bags_createTokenMetadata` - Create token metadata and upload to IPFS
 - `bags_configureFeeShare` - Configure fee sharing between parties
 - `bags_createLaunchTransaction` - Create the final launch transaction
 
 ### Solana Utilities
+
 - `bags_submitTransaction` - Submit signed transactions to Solana
 
 ## Usage Examples
@@ -84,16 +92,16 @@ BAGS_JWT_TOKEN=your_jwt_token
 await bags_listWallets();
 
 // 2. Check claimable fees
-await bags_checkClaimableFees({ 
+await bags_checkClaimableFees({
   walletAddress: "YOUR_WALLET_ADDRESS",
-  apiKey: "YOUR_API_KEY" 
+  apiKey: "YOUR_API_KEY",
 });
 
 // 3. Generate claim transactions
 await bags_generateClaimTransactions({
   walletAddress: "YOUR_WALLET_ADDRESS",
   tokenMints: ["TOKEN_MINT_1", "TOKEN_MINT_2"],
-  apiKey: "YOUR_API_KEY"
+  apiKey: "YOUR_API_KEY",
 });
 
 // 4. Sign and submit transactions
@@ -111,7 +119,7 @@ await bags_getSwapQuote({
   outputMint: "AGENT_TOKEN_MINT_ADDRESS",
   amount: 100000000, // 0.1 SOL in lamports
   slippageBps: 100, // 1% slippage
-  apiKey: "YOUR_API_KEY"
+  apiKey: "YOUR_API_KEY",
 });
 
 // 2. Execute swap
@@ -121,7 +129,7 @@ await bags_executeSwap({
   amount: 100000000,
   slippageBps: 100,
   walletAddress: "YOUR_WALLET_ADDRESS",
-  apiKey: "YOUR_API_KEY"
+  apiKey: "YOUR_API_KEY",
 });
 
 // 3. Sign and submit transaction
@@ -139,7 +147,7 @@ await bags_createTokenMetadata({
   description: "A token for AI agents",
   imageUrl: "https://example.com/agent.png",
   twitter: "@agenttoken",
-  apiKey: "YOUR_API_KEY"
+  apiKey: "YOUR_API_KEY",
 });
 
 // 2. (Optional) Configure fee sharing
@@ -147,10 +155,10 @@ await bags_configureFeeShare({
   payerWallet: "YOUR_WALLET_ADDRESS",
   tokenMint: "TOKEN_MINT_FROM_METADATA",
   feeClaimers: [
-    { user: "YOUR_WALLET", userBps: 5000 },      // 50%
-    { user: "OTHER_AGENT_WALLET", userBps: 5000 } // 50%
+    { user: "YOUR_WALLET", userBps: 5000 }, // 50%
+    { user: "OTHER_AGENT_WALLET", userBps: 5000 }, // 50%
   ],
-  apiKey: "YOUR_API_KEY"
+  apiKey: "YOUR_API_KEY",
 });
 
 // 3. Create launch transaction
@@ -159,7 +167,7 @@ await bags_createLaunchTransaction({
   tokenMint: "TOKEN_MINT_FROM_METADATA",
   initialSolDeposit: 100000000, // 0.1 SOL
   feeShareConfigId: "FEE_SHARE_CONFIG_ID",
-  apiKey: "YOUR_API_KEY"
+  apiKey: "YOUR_API_KEY",
 });
 
 // 4. Sign and submit transaction
@@ -174,7 +182,7 @@ await bags_createLaunchTransaction({
 await bags_lookupWalletByIdentity({
   provider: "moltbook",
   username: "otheragent",
-  apiKey: "YOUR_API_KEY"
+  apiKey: "YOUR_API_KEY",
 });
 
 // 2. Create token metadata
@@ -182,7 +190,7 @@ await bags_createTokenMetadata({
   name: "Other Agent Token",
   symbol: "OTHER",
   description: "Token for @otheragent",
-  apiKey: "YOUR_API_KEY"
+  apiKey: "YOUR_API_KEY",
 });
 
 // 3. Configure fee sharing (50/50 split)
@@ -191,9 +199,9 @@ await bags_configureFeeShare({
   tokenMint: "TOKEN_MINT_FROM_METADATA",
   feeClaimers: [
     { user: "YOUR_WALLET", userBps: 5000 },
-    { user: "OTHER_AGENT_WALLET", userBps: 5000 }
+    { user: "OTHER_AGENT_WALLET", userBps: 5000 },
   ],
-  apiKey: "YOUR_API_KEY"
+  apiKey: "YOUR_API_KEY",
 });
 
 // 4. Create launch transaction
@@ -201,7 +209,7 @@ await bags_createLaunchTransaction({
   creatorWallet: "YOUR_WALLET_ADDRESS",
   tokenMint: "TOKEN_MINT_FROM_METADATA",
   feeShareConfigId: "FEE_SHARE_CONFIG_ID",
-  apiKey: "YOUR_API_KEY"
+  apiKey: "YOUR_API_KEY",
 });
 ```
 
@@ -211,6 +219,7 @@ await bags_createLaunchTransaction({
 - **Agent API**: Rate limited per IP
 
 Check response headers:
+
 - `X-RateLimit-Remaining` - Requests left
 - `X-RateLimit-Reset` - When limit resets (Unix timestamp)
 
@@ -243,6 +252,7 @@ lib/skills/bags/
 ```
 
 The Bags skill follows the same pattern as the Moltbook skill:
+
 1. Configuration in `config.ts` defines API endpoints and constants
 2. Tool implementations in `tools.ts` provide the functionality
 3. Main export in `index.ts` registers the skill with the system prompt

@@ -414,14 +414,14 @@ function AttachmentsPreview() {
             >
               <AttachmentPreview className="size-full" />
               <AttachmentRemove className="transition-all duration-200" />
-              
+
               {/* Filename label at bottom */}
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/95 to-transparent px-1.5 py-1.5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                 <p className="text-[9px] text-white/90 font-medium truncate leading-tight">
                   {shortName}
                 </p>
               </div>
-              
+
               {/* Top overlay gradient for better remove button contrast */}
               <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/30 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
             </Attachment>
@@ -523,7 +523,7 @@ const ChatInputArea = React.memo(function ChatInputArea({
           </div>
         </div>
       )}
-      
+
       <div className="max-w-3xl mx-auto">
         {/* Glowing border wrapper - hidden when busy */}
         <div
@@ -557,9 +557,7 @@ const ChatInputArea = React.memo(function ChatInputArea({
               <PromptInputTools>
                 {/* Model Picker - Enhanced with neon green accents */}
                 <Select value={selectedModel} onValueChange={onModelChange}>
-                  <SelectTrigger 
-                    className="h-9 w-9 p-0 rounded-lg bg-white/[0.03] border border-white/[0.12] hover:bg-[#7fff00]/[0.08] hover:border-[#7fff00]/40 hover:shadow-[0_0_16px_rgba(127,255,0,0.2)] active:scale-95 transition-all duration-200 flex items-center justify-center [&_svg[class*='opacity']]:hidden"
-                  >
+                  <SelectTrigger className="h-9 w-9 p-0 rounded-lg bg-white/[0.03] border border-white/[0.12] hover:bg-[#7fff00]/[0.08] hover:border-[#7fff00]/40 hover:shadow-[0_0_16px_rgba(127,255,0,0.2)] active:scale-95 transition-all duration-200 flex items-center justify-center [&_svg[class*='opacity']]:hidden">
                     <SelectValue>
                       {selectedModel === "anthropic/claude-haiku-4-5" ? (
                         <Zap className="w-4 h-4 text-yellow-400 drop-shadow-[0_0_6px_rgba(250,204,21,0.4)]" />
@@ -571,19 +569,30 @@ const ChatInputArea = React.memo(function ChatInputArea({
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent className="bg-[#0a0520]/95 backdrop-blur-xl border-white/[0.12] shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
-                    <SelectItem value="anthropic/claude-haiku-4-5" className="text-white/90 hover:bg-[#7fff00]/10 hover:text-[#7fff00] cursor-pointer">
+                    <SelectItem
+                      value="anthropic/claude-haiku-4-5"
+                      className="text-white/90 hover:bg-[#7fff00]/10 hover:text-[#7fff00] cursor-pointer"
+                    >
                       <div className="flex items-center gap-2.5">
                         <Zap className="w-4 h-4 text-yellow-400" />
                         <span className="font-medium">Fast (Haiku 4.5)</span>
                       </div>
                     </SelectItem>
-                    <SelectItem value="anthropic/claude-sonnet-4-5" className="text-white/90 hover:bg-[#7fff00]/10 hover:text-[#7fff00] cursor-pointer">
+                    <SelectItem
+                      value="anthropic/claude-sonnet-4-5"
+                      className="text-white/90 hover:bg-[#7fff00]/10 hover:text-[#7fff00] cursor-pointer"
+                    >
                       <div className="flex items-center gap-2.5">
                         <Brain className="w-4 h-4 text-blue-400" />
-                        <span className="font-medium">Balanced (Sonnet 4.5)</span>
+                        <span className="font-medium">
+                          Balanced (Sonnet 4.5)
+                        </span>
                       </div>
                     </SelectItem>
-                    <SelectItem value="anthropic/claude-opus-4-5" className="text-white/90 hover:bg-[#7fff00]/10 hover:text-[#7fff00] cursor-pointer">
+                    <SelectItem
+                      value="anthropic/claude-opus-4-5"
+                      className="text-white/90 hover:bg-[#7fff00]/10 hover:text-[#7fff00] cursor-pointer"
+                    >
                       <div className="flex items-center gap-2.5">
                         <Star className="w-4 h-4 text-purple-400" />
                         <span className="font-medium">Smart (Opus 4.5)</span>
@@ -653,7 +662,7 @@ const ChatInputArea = React.memo(function ChatInputArea({
               >
                 {/* Background sparkle effect on hover */}
                 <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out" />
-                
+
                 {/* Rocket icon with smooth lift-off on hover */}
                 <Rocket className="w-4 h-4 relative z-10 transition-transform duration-200 group-hover:-translate-y-0.5 drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]" />
               </PromptInputSubmit>
@@ -678,10 +687,10 @@ const ChatInputArea = React.memo(function ChatInputArea({
   );
 });
 
-// Streaming cursor with smooth animation
+// Streaming cursor with smooth animation - optimized for inline display
 function StreamingCursor() {
   return (
-    <span className="streaming-cursor">
+    <span className="streaming-cursor" aria-label="typing">
       <span className="streaming-cursor-bar" />
     </span>
   );
@@ -1159,7 +1168,13 @@ function ChatInterface({
       enabledToolGroups,
       skillApiKeys,
     };
-  }, [agentId, selectedModel, enabledSkillIds, enabledToolGroups, skillApiKeys]);
+  }, [
+    agentId,
+    selectedModel,
+    enabledSkillIds,
+    enabledToolGroups,
+    skillApiKeys,
+  ]);
 
   // Transport with stable identity - body function reads from ref
   const transport = useMemo(() => {
@@ -1616,9 +1631,12 @@ function ChatInterface({
                   const isLastMessage = messageIndex === messages.length - 1;
                   const isUser = message.role === "user";
 
+                  // Memoize message key to prevent re-renders
+                  const messageKey = `${message.id}-${messageIndex}`;
+
                   return (
                     <div
-                      key={message.id}
+                      key={messageKey}
                       className={`flex ${isUser ? "justify-end" : "justify-start"} message-animate-in`}
                     >
                       <Message
@@ -1668,17 +1686,24 @@ function ChatInterface({
                                       filename?: string;
                                       [key: string]: unknown; // Allow accessing any additional properties
                                     };
-                                    
-                                    const fileUrl = filePart.url || filePart.data;
+
+                                    const fileUrl =
+                                      filePart.url || filePart.data;
                                     if (!fileUrl) return null;
-                                    
+
                                     // Try to find the best URL for opening in new tab
                                     // Check for original URL, source URL, or fallback to the file URL
-                                    const clickUrl = 
-                                      (typeof filePart.url === 'string' && filePart.url.startsWith('http') ? filePart.url : null) ||
-                                      (typeof filePart.data === 'string' && filePart.data.startsWith('http') ? filePart.data : null) ||
+                                    const clickUrl =
+                                      (typeof filePart.url === "string" &&
+                                      filePart.url.startsWith("http")
+                                        ? filePart.url
+                                        : null) ||
+                                      (typeof filePart.data === "string" &&
+                                      filePart.data.startsWith("http")
+                                        ? filePart.data
+                                        : null) ||
                                       fileUrl;
-                                    
+
                                     return (
                                       <div
                                         key={`${message.id}-file-${idx}`}
@@ -1686,7 +1711,11 @@ function ChatInterface({
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           if (clickUrl) {
-                                            window.open(clickUrl, '_blank', 'noopener,noreferrer');
+                                            window.open(
+                                              clickUrl,
+                                              "_blank",
+                                              "noopener,noreferrer",
+                                            );
                                           }
                                         }}
                                       >
@@ -1695,14 +1724,18 @@ function ChatInterface({
                                             id: `${message.id}-${idx}`,
                                             type: "file",
                                             url: fileUrl,
-                                            mediaType: filePart.mediaType || "application/octet-stream",
-                                            filename: filePart.filename || "attachment",
+                                            mediaType:
+                                              filePart.mediaType ||
+                                              "application/octet-stream",
+                                            filename:
+                                              filePart.filename || "attachment",
                                           }}
                                           className={`
                                             rounded-2xl overflow-hidden cursor-pointer
-                                            ${isUser 
-                                              ? 'border border-white/[0.15] shadow-[0_4px_16px_rgba(0,0,0,0.4)] bg-white/[0.04]' 
-                                              : 'border border-white/[0.08] shadow-[0_4px_16px_rgba(0,0,0,0.25)] bg-white/[0.02]'
+                                            ${
+                                              isUser
+                                                ? "border border-white/[0.15] shadow-[0_4px_16px_rgba(0,0,0,0.4)] bg-white/[0.04]"
+                                                : "border border-white/[0.08] shadow-[0_4px_16px_rgba(0,0,0,0.25)] bg-white/[0.02]"
                                             }
                                             hover:border-white/[0.2] hover:shadow-[0_8px_32px_rgba(0,0,0,0.6)] 
                                             hover:scale-[1.02] hover:z-10
@@ -1723,25 +1756,28 @@ function ChatInterface({
                                             </div>
                                           </div>
                                         </Attachment>
-                                        
-                        {/* Full-size preview on hover - simple image popup */}
-                        <div className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center p-4 sm:p-8">
-                          {/* Expanded image - clean and simple */}
-                          <div className="relative max-w-[90vw] max-h-[90vh] rounded-xl overflow-visible shadow-[0_20px_80px_rgba(0,0,0,0.8),0_0_120px_rgba(111,236,6,0.15)] border border-white/20 bg-gradient-to-br from-white/[0.05] to-white/[0.02] backdrop-blur-sm transform transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] scale-0 group-hover/image:scale-100 opacity-0 group-hover/image:opacity-100 p-1">
-                            <div className="rounded-xl overflow-hidden">
-                              <img
-                                src={fileUrl}
-                                alt={filePart.filename || "Full size preview"}
-                                className="max-w-full max-h-[90vh] w-auto h-auto object-contain"
-                              />
-                            </div>
-                          </div>
-                          
-                          {/* Clean hint text */}
-                          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-xl px-5 py-2.5 rounded-full text-white/90 text-sm font-medium shadow-2xl border border-white/20 transition-all duration-500 ease-out delay-100 opacity-0 group-hover/image:opacity-100 transform translate-y-2 group-hover/image:translate-y-0">
-                            Click to open in new tab
-                          </div>
-                        </div>
+
+                                        {/* Full-size preview on hover - simple image popup */}
+                                        <div className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center p-4 sm:p-8">
+                                          {/* Expanded image - clean and simple */}
+                                          <div className="relative max-w-[90vw] max-h-[90vh] rounded-xl overflow-visible shadow-[0_20px_80px_rgba(0,0,0,0.8),0_0_120px_rgba(111,236,6,0.15)] border border-white/20 bg-gradient-to-br from-white/[0.05] to-white/[0.02] backdrop-blur-sm transform transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] scale-0 group-hover/image:scale-100 opacity-0 group-hover/image:opacity-100 p-1">
+                                            <div className="rounded-xl overflow-hidden">
+                                              <img
+                                                src={fileUrl}
+                                                alt={
+                                                  filePart.filename ||
+                                                  "Full size preview"
+                                                }
+                                                className="max-w-full max-h-[90vh] w-auto h-auto object-contain"
+                                              />
+                                            </div>
+                                          </div>
+
+                                          {/* Clean hint text */}
+                                          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-xl px-5 py-2.5 rounded-full text-white/90 text-sm font-medium shadow-2xl border border-white/20 transition-all duration-500 ease-out delay-100 opacity-0 group-hover/image:opacity-100 transform translate-y-2 group-hover/image:translate-y-0">
+                                            Click to open in new tab
+                                          </div>
+                                        </div>
                                       </div>
                                     );
                                   })}
@@ -1756,7 +1792,8 @@ function ChatInterface({
                               isLastMessage && status === "streaming";
                             // Check if the next part is also a tool
                             const nextPart = message.parts[i + 1];
-                            const isLastToolInSequence = !nextPart || !nextPart.type.startsWith("tool-");
+                            const isLastToolInSequence =
+                              !nextPart || !nextPart.type.startsWith("tool-");
 
                             switch (part.type) {
                               case "file":
@@ -1766,18 +1803,22 @@ function ChatInterface({
                                 return (
                                   <div
                                     key={`${message.id}-${i}`}
-                                    className="relative streaming-text-container"
+                                    className="relative"
                                   >
                                     <div
-                                      className={`${isActivelyStreaming ? "streaming-message" : ""}`}
+                                      className={
+                                        isActivelyStreaming
+                                          ? "streaming-message"
+                                          : ""
+                                      }
                                     >
                                       <MessageResponse className="text-white/90 leading-relaxed">
                                         {part.text}
                                       </MessageResponse>
+                                      {isLastPart && isActivelyStreaming && (
+                                        <StreamingCursor />
+                                      )}
                                     </div>
-                                    {isLastPart && isActivelyStreaming && (
-                                      <StreamingCursor />
-                                    )}
                                   </div>
                                 );
                               case "reasoning":
@@ -1854,7 +1895,12 @@ function ChatInterface({
                                     isImageToolResult(toolResult);
 
                                   return (
-                                    <div key={`${message.id}-${i}`} className={isLastToolInSequence ? "mb-6" : ""}>
+                                    <div
+                                      key={`${message.id}-${i}`}
+                                      className={
+                                        isLastToolInSequence ? "mb-6" : ""
+                                      }
+                                    >
                                       <ToolExecution
                                         toolName={toolDisplayName}
                                         toolIcon={toolIcon}

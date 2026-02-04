@@ -15,8 +15,8 @@ export const Conversation = ({ className, ...props }: ConversationProps) => (
       "relative flex-1 overflow-y-auto overflow-x-hidden",
       className,
     )}
-    initial="smooth"
-    resize="smooth"
+    initial="instant"
+    resize="instant"
     role="log"
     {...props}
   />

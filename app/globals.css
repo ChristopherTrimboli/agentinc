@@ -1155,32 +1155,23 @@ h6,
    SMOOTH STREAMING TEXT ANIMATIONS
    ============================================ */
 
-/* Container for streaming messages - enables smooth content flow */
-.streaming-text-container {
-  position: relative;
-}
-
-/* Smooth fade-in for streaming text content */
-@keyframes text-fade-in {
-  from {
-    opacity: 0;
-    filter: blur(2px);
-    transform: translateY(2px);
-  }
-  to {
-    opacity: 1;
-    filter: blur(0);
-    transform: translateY(0);
-  }
-}
-
-/* Apply to streaming message content */
+/* Streaming message - no animations on content, just smooth rendering */
 .streaming-message {
-  /* Smooth out any jarring content changes */
-  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Smooth text rendering for better streaming appearance */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+
+  /* Use GPU acceleration for smooth updates */
+  transform: translateZ(0);
+  backface-visibility: hidden;
+
+  /* No jarring transitions - text appears instantly */
+  transition: none;
 }
 
-/* Streamdown element animation - each element fades in */
+/* Remove all element-level animations - text streams in naturally */
+.streaming-message *,
 .streaming-message [data-streamdown],
 .streaming-message p,
 .streaming-message li,
@@ -1194,56 +1185,27 @@ h6,
 .streaming-message blockquote,
 .streaming-message table,
 .streaming-message ul,
-.streaming-message ol {
-  animation: text-fade-in 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  animation-delay: 0.02s;
-}
-
-/* Smooth text rendering for better streaming appearance */
-.streaming-message * {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-}
-
-/* Inline elements get faster, more subtle animation */
+.streaming-message ol,
 .streaming-message span,
-.streaming-message code:not(pre code),
+.streaming-message code,
 .streaming-message strong,
 .streaming-message em,
 .streaming-message a {
-  animation: inline-text-appear 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  /* No animations - instant appearance for smooth streaming */
+  animation: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+  transition: none !important;
 }
 
-@keyframes inline-text-appear {
-  from {
-    opacity: 0.7;
-  }
-  to {
-    opacity: 1;
-  }
-}
+/* Optimize Streamdown rendering for streaming */
+[data-streamdown] {
+  /* Prevent layout shifts */
+  contain: layout;
 
-/* Word-level smooth reveal effect via CSS */
-.streaming-text-reveal {
-  background: linear-gradient(
-    90deg,
-    var(--foreground) 0%,
-    var(--foreground) 50%,
-    transparent 50%,
-    transparent 100%
-  );
-  background-size: 200% 100%;
-  background-position: 100% 0;
-  -webkit-background-clip: text;
-  background-clip: text;
-  animation: reveal-text 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-@keyframes reveal-text {
-  to {
-    background-position: 0% 0;
-  }
+  /* Optimize rendering */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Smooth cursor blink for streaming indicator */
@@ -1253,7 +1215,7 @@ h6,
     opacity: 1;
   }
   50% {
-    opacity: 0.4;
+    opacity: 0.3;
   }
 }
 
@@ -1262,6 +1224,8 @@ h6,
   align-items: center;
   margin-left: 2px;
   vertical-align: middle;
+  /* Prevent cursor from causing layout shift */
+  line-height: 0;
 }
 
 .streaming-cursor-bar {
@@ -1269,15 +1233,16 @@ h6,
   height: 1.1em;
   background: var(--coral);
   border-radius: 1px;
-  animation: smooth-blink 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  animation: smooth-blink 1.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   box-shadow: 0 0 8px rgba(111, 236, 6, 0.5);
+  display: block;
 }
 
-/* Message container smooth entrance */
+/* Message container entrance - subtle and fast */
 @keyframes message-enter {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(4px);
   }
   to {
     opacity: 1;
@@ -1286,7 +1251,7 @@ h6,
 }
 
 .message-animate-in {
-  animation: message-enter 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: message-enter 0.2s cubic-bezier(0.2, 0, 0.2, 1) forwards;
 }
 
 /* Typing indicator dots with smooth animation */
@@ -1332,7 +1297,7 @@ h6,
 /* Smooth content height transitions */
 .streaming-content-wrapper {
   display: grid;
-  transition: grid-template-rows 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: grid-template-rows 0.2s cubic-bezier(0.2, 0, 0.2, 1);
 }
 
 .streaming-content-wrapper[data-expanded="true"] {
@@ -1343,68 +1308,8 @@ h6,
   grid-template-rows: 0fr;
 }
 
-/* Code block streaming - fade in with slight scale */
-@keyframes code-block-enter {
-  from {
-    opacity: 0;
-    transform: scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.streaming-message pre {
-  animation: code-block-enter 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-/* Markdown list items stagger animation */
-.streaming-message li {
-  opacity: 0;
-  animation: text-fade-in 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-.streaming-message li:nth-child(1) {
-  animation-delay: 0.05s;
-}
-.streaming-message li:nth-child(2) {
-  animation-delay: 0.1s;
-}
-.streaming-message li:nth-child(3) {
-  animation-delay: 0.15s;
-}
-.streaming-message li:nth-child(4) {
-  animation-delay: 0.2s;
-}
-.streaming-message li:nth-child(5) {
-  animation-delay: 0.25s;
-}
-.streaming-message li:nth-child(6) {
-  animation-delay: 0.3s;
-}
-.streaming-message li:nth-child(n + 7) {
-  animation-delay: 0.35s;
-}
-
-/* Smooth text color transitions for emphasis changes */
-.streaming-message strong,
-.streaming-message em,
-.streaming-message code {
-  transition:
-    color 0.2s ease,
-    background-color 0.2s ease;
-}
-
-/* Anti-flicker for fast streaming */
-.streaming-message {
-  will-change: contents;
-  contain: layout style;
-}
-
 /* Disable animations when user prefers reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  .streaming-message *,
   .streaming-cursor-bar,
   .typing-indicator-dot,
   .message-animate-in {
@@ -1420,6 +1325,21 @@ h6,
 /* Override the StickToBottom library's scrollbar-gutter to prevent layout shift */
 [data-stick-to-bottom-scroll] {
   scrollbar-gutter: auto !important;
+
+  /* Optimize scrolling performance during streaming */
+  scroll-behavior: auto !important;
+
+  /* Enable GPU acceleration for smooth scrolling */
+  transform: translateZ(0);
+  will-change: scroll-position;
+
+  /* Reduce paint complexity */
+  contain: layout style paint;
+}
+
+/* Smooth scroll only when manually triggered */
+[data-stick-to-bottom-scroll].smooth-scroll {
+  scroll-behavior: smooth !important;
 }
 
 /* ============================================

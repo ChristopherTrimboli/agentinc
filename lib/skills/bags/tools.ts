@@ -137,9 +137,7 @@ const feeShareSchema = z.object({
     .array(
       z.object({
         user: z.string().describe("Wallet address of fee recipient"),
-        userBps: z
-          .number()
-          .describe("Basis points (10000 = 100%, 5000 = 50%)"),
+        userBps: z.number().describe("Basis points (10000 = 100%, 5000 = 50%)"),
       }),
     )
     .describe("Array of fee recipients and their share (must total 10000 bps)"),
@@ -165,9 +163,7 @@ const launchTxSchema = z.object({
 });
 
 const submitTxSchema = z.object({
-  signedTransaction: z
-    .string()
-    .describe("Base64-encoded signed transaction"),
+  signedTransaction: z.string().describe("Base64-encoded signed transaction"),
   apiKey: z.string().optional().describe("API key (optional if set in config)"),
 });
 
@@ -180,16 +176,13 @@ async function agentApiRequest<T>(
   body?: Record<string, unknown>,
 ): Promise<{ success: boolean; response?: T; error?: string }> {
   try {
-    const response = await fetch(
-      `${BAGS_CONFIG.agentApiUrl}${endpoint}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ token: jwtToken, ...body }),
+    const response = await fetch(`${BAGS_CONFIG.agentApiUrl}${endpoint}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
       },
-    );
+      body: JSON.stringify({ token: jwtToken, ...body }),
+    });
 
     const data = await response.json();
 
@@ -267,14 +260,11 @@ export function createBagsTools(config: SkillConfig) {
       inputSchema: agentUsernameSchema,
       execute: async (input: z.infer<typeof agentUsernameSchema>) => {
         try {
-          const response = await fetch(
-            `${BAGS_CONFIG.agentApiUrl}/auth/init`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ agentUsername: input.agentUsername }),
-            },
-          );
+          const response = await fetch(`${BAGS_CONFIG.agentApiUrl}/auth/init`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ agentUsername: input.agentUsername }),
+          });
 
           const data = await response.json();
 
@@ -313,9 +303,9 @@ export function createBagsTools(config: SkillConfig) {
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ 
-                sessionId: input.sessionId, 
-                postId: input.postId 
+              body: JSON.stringify({
+                sessionId: input.sessionId,
+                postId: input.postId,
               }),
             },
           );
@@ -412,8 +402,8 @@ export function createBagsTools(config: SkillConfig) {
           };
         }
 
-        return await agentApiRequest("/dev/keys/create", jwtToken, { 
-          name: input.name 
+        return await agentApiRequest("/dev/keys/create", jwtToken, {
+          name: input.name,
         });
       },
     }),
@@ -507,7 +497,9 @@ export function createBagsTools(config: SkillConfig) {
           inputMint: input.inputMint,
           outputMint: input.outputMint,
           amount: input.amount.toString(),
-          ...(input.slippageBps && { slippageBps: input.slippageBps.toString() }),
+          ...(input.slippageBps && {
+            slippageBps: input.slippageBps.toString(),
+          }),
         });
 
         return await publicApiRequest(

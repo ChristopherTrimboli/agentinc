@@ -85,8 +85,8 @@ try {
   const result = await generateText({
     model: "anthropic/claude-opus-4-20250514",
     prompt: "Search for something",
-    tools: { 
-      web_search: anthropic.tools.webSearch_20250305({ maxUses: 5 })
+    tools: {
+      web_search: anthropic.tools.webSearch_20250305({ maxUses: 5 }),
     },
   });
 } catch (error) {
@@ -106,8 +106,8 @@ import { anthropic } from "@ai-sdk/anthropic";
 const result = await streamText({
   model: "anthropic/claude-opus-4-20250514",
   prompt: "Search for something",
-  tools: { 
-    web_search: anthropic.tools.webSearch_20250305({ maxUses: 5 })
+  tools: {
+    web_search: anthropic.tools.webSearch_20250305({ maxUses: 5 }),
   },
 });
 

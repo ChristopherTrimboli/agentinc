@@ -316,11 +316,11 @@ export async function POST(req: Request) {
       enabledToolGroups,
       Object.keys(groupTools),
     );
-    
+
     // Separate provider-defined tools from regular tools
     // Provider-defined tools like web_search should NOT be deferred
     const providerDefinedTools = ["web_search"];
-    
+
     const deferredGroupTools = Object.fromEntries(
       Object.entries(groupTools).map(([name, tool]) => {
         // Don't defer provider-defined tools
