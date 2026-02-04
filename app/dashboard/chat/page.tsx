@@ -110,6 +110,13 @@ interface AgentInfo {
   personality: string | null;
   rarity: string | null;
   tokenSymbol: string | null;
+  tokenMint: string | null;
+}
+
+interface PriceData {
+  price: number;
+  priceChange24h?: number;
+  marketCap?: number;
 }
 
 interface ApiKeyConfigInfo {
@@ -174,50 +181,127 @@ function saveApiKey(skillId: string, apiKey: string) {
   }
 }
 
-const rarityColors: Record<string, { ring: string; glow: string; bg: string }> =
+const rarityColors: Record<
+  string,
   {
-    legendary: {
-      ring: "ring-[#FFD700]",
-      glow: "shadow-[0_0_30px_rgba(255,215,0,0.4)]",
-      bg: "from-[#FFD700]/20 to-[#FFD700]/5",
-    },
-    epic: {
-      ring: "ring-[#A855F7]",
-      glow: "shadow-[0_0_30px_rgba(168,85,247,0.4)]",
-      bg: "from-[#A855F7]/20 to-[#A855F7]/5",
-    },
-    rare: {
-      ring: "ring-[#3B82F6]",
-      glow: "shadow-[0_0_30px_rgba(59,130,246,0.4)]",
-      bg: "from-[#3B82F6]/20 to-[#3B82F6]/5",
-    },
-    uncommon: {
-      ring: "ring-[#6FEC06]",
-      glow: "shadow-[0_0_30px_rgba(111,236,6,0.3)]",
-      bg: "from-[#6FEC06]/20 to-[#6FEC06]/5",
-    },
-    common: {
-      ring: "ring-white/20",
-      glow: "",
-      bg: "from-white/10 to-white/5",
-    },
-  };
+    ring: string;
+    glow: string;
+    bg: string;
+    hoverRing: string;
+    hoverGlow: string;
+    hoverText: string;
+    accent: string;
+    hoverOverlay: string;
+  }
+> = {
+  legendary: {
+    ring: "ring-[#FFD700]",
+    glow: "shadow-[0_0_30px_rgba(255,215,0,0.4)]",
+    bg: "from-[#FFD700]/20 to-[#FFD700]/5",
+    hoverRing: "hover:ring-[#FFD700]",
+    hoverGlow: "hover:shadow-[0_8px_30px_rgba(255,215,0,0.35)]",
+    hoverText: "group-hover:text-[#FFD700]",
+    accent: "text-[#FFD700]",
+    hoverOverlay: "from-[#FFD700]/20 via-[#FFD700]/5",
+  },
+  epic: {
+    ring: "ring-[#A855F7]",
+    glow: "shadow-[0_0_30px_rgba(168,85,247,0.4)]",
+    bg: "from-[#A855F7]/20 to-[#A855F7]/5",
+    hoverRing: "hover:ring-[#A855F7]",
+    hoverGlow: "hover:shadow-[0_8px_30px_rgba(168,85,247,0.35)]",
+    hoverText: "group-hover:text-[#A855F7]",
+    accent: "text-[#A855F7]",
+    hoverOverlay: "from-[#A855F7]/20 via-[#A855F7]/5",
+  },
+  rare: {
+    ring: "ring-[#3B82F6]",
+    glow: "shadow-[0_0_30px_rgba(59,130,246,0.4)]",
+    bg: "from-[#3B82F6]/20 to-[#3B82F6]/5",
+    hoverRing: "hover:ring-[#3B82F6]",
+    hoverGlow: "hover:shadow-[0_8px_30px_rgba(59,130,246,0.35)]",
+    hoverText: "group-hover:text-[#3B82F6]",
+    accent: "text-[#3B82F6]",
+    hoverOverlay: "from-[#3B82F6]/20 via-[#3B82F6]/5",
+  },
+  uncommon: {
+    ring: "ring-[#6FEC06]",
+    glow: "shadow-[0_0_30px_rgba(111,236,6,0.3)]",
+    bg: "from-[#6FEC06]/20 to-[#6FEC06]/5",
+    hoverRing: "hover:ring-[#6FEC06]",
+    hoverGlow: "hover:shadow-[0_8px_30px_rgba(111,236,6,0.35)]",
+    hoverText: "group-hover:text-[#6FEC06]",
+    accent: "text-[#6FEC06]",
+    hoverOverlay: "from-[#6FEC06]/20 via-[#6FEC06]/5",
+  },
+  common: {
+    ring: "ring-white/20",
+    glow: "",
+    bg: "from-white/10 to-white/5",
+    hoverRing: "hover:ring-white/50",
+    hoverGlow: "hover:shadow-[0_8px_30px_rgba(255,255,255,0.15)]",
+    hoverText: "group-hover:text-white",
+    accent: "text-white/70",
+    hoverOverlay: "from-white/15 via-white/5",
+  },
+};
+
+// Format price for display - compact format for small prices
+function formatPrice(price: number): string {
+  if (price >= 100) {
+    return `$${price.toFixed(0)}`;
+  } else if (price >= 1) {
+    return `$${price.toFixed(2)}`;
+  } else if (price >= 0.01) {
+    return `$${price.toFixed(3)}`;
+  } else if (price >= 0.0001) {
+    return `$${price.toFixed(5)}`;
+  } else {
+    // For very small prices, show significant digits with zero count
+    // e.g., 0.00000274 -> "$0.0{5}27"
+    const str = price.toFixed(12);
+    const match = str.match(/^0\.(0*)([1-9]\d{0,1})/);
+    if (match) {
+      const zeroCount = match[1].length;
+      const significantDigits = match[2];
+      if (zeroCount > 2) {
+        return `$0.0{${zeroCount}}${significantDigits}`;
+      }
+    }
+    return `$${price.toFixed(6)}`;
+  }
+}
+
+// Format market cap for display
+function formatMarketCap(mc: number): string {
+  if (mc >= 1_000_000) {
+    return `$${(mc / 1_000_000).toFixed(2)}M`;
+  } else if (mc >= 1_000) {
+    return `$${(mc / 1_000).toFixed(1)}K`;
+  }
+  return `$${mc.toFixed(0)}`;
+}
 
 // Agent Card Component - Memoized to prevent re-renders when parent updates
 const AgentCard = React.memo(function AgentCard({
   agent,
   index,
+  priceData,
 }: {
   agent: AgentInfo;
   index: number;
+  priceData?: PriceData;
 }) {
   const rarity = rarityColors[agent.rarity || "common"] || rarityColors.common;
   const router = useRouter();
 
+  const priceChange = priceData?.priceChange24h;
+  const isPositive = priceChange !== undefined && priceChange >= 0;
+
   return (
     <button
       onClick={() => router.push(`/dashboard/chat?agent=${agent.id}`)}
-      className={`group relative aspect-square rounded-xl sm:rounded-2xl overflow-hidden bg-[#0a0520] ring-2 ${rarity.ring} hover:ring-4 transition-all duration-300 ${rarity.glow} hover:scale-[1.02] text-left`}
+      className={`group relative aspect-square rounded-xl sm:rounded-2xl overflow-hidden bg-[#0a0520] ring-2 ${rarity.ring} transition-all duration-300 ease-out ${rarity.glow} text-left cursor-pointer ${rarity.hoverRing} ${rarity.hoverGlow} hover:-translate-y-1`}
       style={{ animationDelay: `${index * 30}ms` }}
     >
       {/* Agent Image */}
@@ -227,7 +311,7 @@ const AgentCard = React.memo(function AgentCard({
           alt={agent.name}
           fill
           sizes="(max-width: 640px) 45vw, (max-width: 768px) 30vw, (max-width: 1024px) 22vw, 18vw"
-          className="object-cover group-hover:scale-110 transition-transform duration-500"
+          className="object-cover transition-transform duration-500 ease-out group-hover:scale-105"
         />
       ) : (
         <div className="absolute inset-0 bg-gradient-to-br from-[#120557] to-[#0a0520] flex items-center justify-center">
@@ -235,53 +319,78 @@ const AgentCard = React.memo(function AgentCard({
         </div>
       )}
 
-      {/* Gradient overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity" />
+      {/* Base gradient overlay - always visible */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-transparent" />
+
+      {/* Hover gradient overlay - slides up from bottom */}
+      <div
+        className={`absolute inset-0 bg-gradient-to-t ${rarity.hoverOverlay} to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
+      />
 
       {/* Content overlay */}
-      <div className="absolute inset-0 p-2.5 sm:p-4 flex flex-col justify-end">
-        {/* Token badge */}
-        {agent.tokenSymbol && (
-          <div className="absolute top-2 left-2 sm:top-3 sm:left-3 px-1.5 sm:px-2 py-0.5 rounded-full bg-[#6FEC06]/20 text-[#6FEC06] text-[8px] sm:text-[10px] font-bold backdrop-blur-sm border border-[#6FEC06]/30">
-            ${agent.tokenSymbol}
-          </div>
-        )}
+      <div className="absolute inset-0 p-2.5 sm:p-4 flex flex-col justify-between">
+        {/* Top row: Token symbol & Price */}
+        <div className="flex items-start justify-between gap-1">
+          {/* Token badge */}
+          {agent.tokenSymbol && (
+            <div className="px-1.5 sm:px-2 py-0.5 rounded-full bg-black/60 text-[#6FEC06] text-[8px] sm:text-[10px] font-bold backdrop-blur-sm border border-[#6FEC06]/30 transition-all duration-300 group-hover:bg-[#6FEC06]/20 group-hover:border-[#6FEC06]/50">
+              ${agent.tokenSymbol}
+            </div>
+          )}
 
-        {/* Rarity badge */}
-        {agent.rarity && agent.rarity !== "common" && (
-          <div
-            className={`absolute top-2 right-2 sm:top-3 sm:right-3 px-1.5 sm:px-2 py-0.5 rounded-full text-[8px] sm:text-[10px] font-bold uppercase tracking-wider backdrop-blur-sm ${
-              agent.rarity === "legendary"
-                ? "bg-[#FFD700]/20 text-[#FFD700] border border-[#FFD700]/30"
-                : agent.rarity === "epic"
-                  ? "bg-[#A855F7]/20 text-[#A855F7] border border-[#A855F7]/30"
-                  : agent.rarity === "rare"
-                    ? "bg-[#3B82F6]/20 text-[#3B82F6] border border-[#3B82F6]/30"
-                    : "bg-[#6FEC06]/20 text-[#6FEC06] border border-[#6FEC06]/30"
-            }`}
+          {/* 24h change badge */}
+          {priceChange !== undefined && (
+            <div
+              className={`px-1.5 sm:px-2 py-0.5 rounded-full backdrop-blur-sm border text-[8px] sm:text-[10px] font-bold transition-all duration-300 ${
+                isPositive
+                  ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400"
+                  : "bg-red-500/15 border-red-500/30 text-red-400"
+              }`}
+            >
+              {isPositive ? "+" : ""}
+              {priceChange.toFixed(1)}%
+            </div>
+          )}
+        </div>
+
+        {/* Bottom content area with name, personality, and chat CTA */}
+        <div className="relative z-10">
+          {/* Name and personality */}
+          <h3
+            className={`font-bold text-white text-sm sm:text-lg leading-tight truncate font-display transition-colors duration-300 ${rarity.hoverText}`}
           >
-            {agent.rarity}
-          </div>
-        )}
+            {agent.name}
+          </h3>
 
-        {/* Name and personality */}
-        <h3 className="font-bold text-white text-sm sm:text-lg leading-tight truncate font-display">
-          {agent.name}
-        </h3>
-        {agent.personality && (
-          <p className="text-white/50 text-[10px] sm:text-xs capitalize mt-0.5 truncate">
-            {agent.personality}
-          </p>
-        )}
+          {/* Personality / Chat CTA row */}
+          <div className="flex items-center justify-between mt-0.5 sm:mt-1">
+            {agent.personality ? (
+              <p className="text-white/60 text-[10px] sm:text-xs capitalize truncate transition-all duration-300 group-hover:text-white/80">
+                {agent.personality}
+              </p>
+            ) : priceData?.marketCap ? (
+              <p className="text-white/50 text-[10px] sm:text-xs transition-all duration-300 group-hover:text-white/70">
+                MC: {formatMarketCap(priceData.marketCap)}
+              </p>
+            ) : (
+              <span />
+            )}
 
-        {/* Chat indicator on hover */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40 backdrop-blur-[2px]">
-          <div className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-[#6FEC06] text-black font-semibold text-xs sm:text-sm">
-            <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            Chat
+            {/* Chat indicator - appears on hover with slide effect */}
+            <div
+              className={`flex items-center gap-1 ${rarity.accent} opacity-0 translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 ease-out`}
+            >
+              <span className="text-[10px] sm:text-xs font-semibold hidden sm:inline">
+                Chat
+              </span>
+              <MessageSquare className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Subtle inner border */}
+      <div className="absolute inset-0 rounded-xl sm:rounded-2xl ring-1 ring-inset ring-white/10 transition-all duration-300" />
     </button>
   );
 });
@@ -289,8 +398,10 @@ const AgentCard = React.memo(function AgentCard({
 // Agent Selector Grid
 function AgentSelector() {
   const [agents, setAgents] = useState<AgentInfo[]>([]);
+  const [prices, setPrices] = useState<Record<string, PriceData>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [searchFocused, setSearchFocused] = useState(false);
 
   useEffect(() => {
     async function fetchAgents() {
@@ -298,7 +409,24 @@ function AgentSelector() {
         const response = await fetch("/api/explore");
         if (response.ok) {
           const data = await response.json();
-          setAgents(data.agents || []);
+          const agentList = data.agents || [];
+          setAgents(agentList);
+
+          // Fetch prices for all agents with token mints
+          const tokenMints = agentList
+            .filter((a: AgentInfo) => a.tokenMint)
+            .map((a: AgentInfo) => a.tokenMint)
+            .filter(Boolean);
+
+          if (tokenMints.length > 0) {
+            const priceResponse = await fetch(
+              `/api/explore/prices?mints=${tokenMints.join(",")}`,
+            );
+            if (priceResponse.ok) {
+              const priceData = await priceResponse.json();
+              setPrices(priceData.prices || {});
+            }
+          }
         }
       } catch (err) {
         console.error("Failed to fetch agents:", err);
@@ -324,65 +452,119 @@ function AgentSelector() {
   return (
     <div className="h-full overflow-y-auto">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-[#000020]/95 backdrop-blur-xl border-b border-white/[0.06]">
-        <div className="p-4 sm:p-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 sm:gap-4">
-            <div>
-              <div className="inline-flex items-center gap-2 px-2.5 sm:px-3 py-1 rounded-full border border-[#6FEC06]/30 bg-[#6FEC06]/10 mb-2 sm:mb-3">
-                <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#6FEC06]" />
-                <span className="text-[10px] sm:text-xs font-medium text-[#6FEC06]">
-                  Select an Agent
-                </span>
+      <div className="sticky top-0 z-10 bg-[#000020]/98 backdrop-blur-xl border-b border-white/[0.06]">
+        <div className="p-4 sm:p-6 lg:p-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 sm:gap-6">
+              <div>
+                <div className="inline-flex items-center gap-2 px-2.5 sm:px-3 py-1 rounded-full border border-[#6FEC06]/30 bg-[#6FEC06]/10 mb-3 sm:mb-4">
+                  <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#6FEC06]" />
+                  <span className="text-[10px] sm:text-xs font-medium text-[#6FEC06]">
+                    Select an Agent
+                  </span>
+                </div>
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold font-display tracking-tight">
+                  Chat with <span className="gradient-text">AI Agents</span>
+                </h1>
+                <p className="text-white/50 text-sm sm:text-base mt-1.5 sm:mt-2 max-w-md">
+                  Choose an agent to start a conversation
+                </p>
               </div>
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold font-display">
-                Chat with <span className="gradient-text">AI Agents</span>
-              </h1>
-            </div>
 
-            {/* Search */}
-            <div className="relative w-full md:w-72">
-              <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/60" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search agents..."
-                className="w-full pl-9 sm:pl-11 pr-4 py-2 sm:py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder:text-white/45 focus:border-[#6FEC06]/50 focus:outline-none"
-              />
+              {/* Search */}
+              <div className="relative w-full md:w-80">
+                <div
+                  className={`relative transition-all duration-300 ${
+                    searchFocused
+                      ? "shadow-[0_0_20px_rgba(111,236,6,0.15)]"
+                      : ""
+                  }`}
+                >
+                  <Search
+                    className={`absolute left-3.5 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors duration-200 ${
+                      searchFocused ? "text-[#6FEC06]" : "text-white/40"
+                    }`}
+                  />
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    onFocus={() => setSearchFocused(true)}
+                    onBlur={() => setSearchFocused(false)}
+                    placeholder="Search by name, personality, or token..."
+                    className="w-full pl-10 sm:pl-11 pr-4 py-2.5 sm:py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] text-sm text-white placeholder:text-white/35 focus:border-[#6FEC06]/40 focus:bg-white/[0.06] focus:outline-none transition-all duration-200"
+                  />
+                  {search && (
+                    <button
+                      onClick={() => setSearch("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md text-white/40 hover:text-white/70 hover:bg-white/10 transition-all duration-200"
+                    >
+                      <Plus className="w-4 h-4 rotate-45" />
+                    </button>
+                  )}
+                </div>
+                {search && (
+                  <p className="absolute -bottom-5 left-0 text-[11px] text-white/40">
+                    {filteredAgents.length} agent
+                    {filteredAgents.length !== 1 ? "s" : ""} found
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Grid */}
-      <div className="p-4 sm:p-6">
-        {isLoading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 skeleton-fade-in">
-            {Array.from({ length: 10 }).map((_, i) => (
-              <div
-                key={i}
-                className="aspect-square rounded-xl sm:rounded-2xl skeleton-glow skeleton-item"
-                style={{ animationDelay: `${i * 0.05}s` }}
-              />
-            ))}
-          </div>
-        ) : filteredAgents.length === 0 ? (
-          <div className="text-center py-12 sm:py-20">
-            <Bot className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 text-white/20" />
-            <h2 className="text-lg sm:text-xl font-bold mb-2">
-              {search ? "No agents found" : "No agents available"}
-            </h2>
-            <p className="text-white/50 text-sm">
-              {search ? "Try a different search" : "Check back later"}
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 content-fade-in">
-            {filteredAgents.map((agent, index) => (
-              <AgentCard key={agent.id} agent={agent} index={index} />
-            ))}
-          </div>
-        )}
+      <div className="p-4 sm:p-6 lg:p-8">
+        <div className="max-w-7xl mx-auto">
+          {isLoading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-5 lg:gap-6 skeleton-fade-in">
+              {Array.from({ length: 20 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="aspect-square rounded-xl sm:rounded-2xl skeleton-glow skeleton-item"
+                  style={{ animationDelay: `${i * 0.04}s` }}
+                />
+              ))}
+            </div>
+          ) : filteredAgents.length === 0 ? (
+            <div className="text-center py-16 sm:py-24">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 sm:mb-5 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center">
+                <Bot className="w-8 h-8 sm:w-10 sm:h-10 text-white/20" />
+              </div>
+              <h2 className="text-lg sm:text-xl font-bold mb-2 font-display">
+                {search ? "No agents found" : "No agents available"}
+              </h2>
+              <p className="text-white/50 text-sm max-w-sm mx-auto">
+                {search
+                  ? "Try adjusting your search terms or browse all agents"
+                  : "Check back later for new agents"}
+              </p>
+              {search && (
+                <button
+                  onClick={() => setSearch("")}
+                  className="mt-4 px-4 py-2 rounded-lg text-sm font-medium text-[#6FEC06] bg-[#6FEC06]/10 border border-[#6FEC06]/20 hover:bg-[#6FEC06]/15 hover:border-[#6FEC06]/30 transition-all duration-200"
+                >
+                  Clear search
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-5 lg:gap-6 content-fade-in">
+              {filteredAgents.map((agent, index) => (
+                <AgentCard
+                  key={agent.id}
+                  agent={agent}
+                  index={index}
+                  priceData={
+                    agent.tokenMint ? prices[agent.tokenMint] : undefined
+                  }
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
