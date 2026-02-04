@@ -33,6 +33,7 @@ import { wikipediaTools } from "./wikipedia";
 import { datetimeTools } from "./datetime";
 import { imageGenerationTools } from "./imageGeneration";
 import { webSearchTools } from "./webSearch";
+// Note: Twitter tools are created dynamically with user OAuth token via createTwitterTools()
 
 // Export types
 export * from "./types";
@@ -84,6 +85,12 @@ export {
 } from "./datetime";
 export { generateImageTool, imageGenerationTools } from "./imageGeneration";
 export { createWebSearchTool, webSearchTools } from "./webSearch";
+export {
+  createTwitterTools,
+  createTwitterOnboardingTools,
+  refreshTwitterToken,
+  type TwitterOnboardingContext,
+} from "./twitter";
 
 /**
  * Tool function metadata
@@ -104,6 +111,7 @@ export interface ToolGroup {
   icon: string;
   logoUrl?: string; // URL to actual logo image from the web
   source?: string; // e.g., "CoinGecko", "Wikipedia", etc.
+  requiresAuth?: boolean; // Whether this tool requires OAuth authentication
   functions: ToolFunction[];
 }
 
@@ -138,6 +146,101 @@ export const TOOL_GROUPS: ToolGroup[] = [
         id: "web_search",
         name: "Web Search",
         description: "Search the web for up-to-date information",
+      },
+    ],
+  },
+  // Twitter/X Integration
+  {
+    id: "twitter",
+    name: "Twitter/X",
+    description:
+      "Post tweets, interact, search, and manage your Twitter account",
+    icon: "𝕏",
+    logoUrl: "https://abs.twimg.com/favicons/twitter.3.ico",
+    source: "Twitter",
+    requiresAuth: true,
+    functions: [
+      // Onboarding tools (always available)
+      {
+        id: "checkTwitterConnection",
+        name: "Check Connection",
+        description: "Check if Twitter is connected",
+      },
+      {
+        id: "getTwitterAuthUrl",
+        name: "Get Auth URL",
+        description: "Get OAuth link to connect Twitter",
+      },
+      // API tools (require connection)
+      {
+        id: "postTweet",
+        name: "Post Tweet",
+        description: "Post a new tweet or reply",
+      },
+      {
+        id: "deleteTweet",
+        name: "Delete Tweet",
+        description: "Delete one of your tweets",
+      },
+      {
+        id: "getTweet",
+        name: "Get Tweet",
+        description: "Get details about a tweet",
+      },
+      {
+        id: "likeTweet",
+        name: "Like Tweet",
+        description: "Like a tweet",
+      },
+      {
+        id: "retweet",
+        name: "Retweet",
+        description: "Retweet a tweet",
+      },
+      {
+        id: "bookmarkTweet",
+        name: "Bookmark",
+        description: "Bookmark a tweet",
+      },
+      {
+        id: "getHomeTimeline",
+        name: "Home Timeline",
+        description: "Get your home timeline",
+      },
+      {
+        id: "searchTweets",
+        name: "Search Tweets",
+        description: "Search for tweets",
+      },
+      {
+        id: "getUserProfile",
+        name: "Get Profile",
+        description: "Get a user's profile",
+      },
+      {
+        id: "followUser",
+        name: "Follow User",
+        description: "Follow a Twitter user",
+      },
+      {
+        id: "getFollowers",
+        name: "Get Followers",
+        description: "Get followers list",
+      },
+      {
+        id: "uploadMedia",
+        name: "Upload Media",
+        description: "Upload images/videos",
+      },
+      {
+        id: "sendDirectMessage",
+        name: "Send DM",
+        description: "Send a direct message",
+      },
+      {
+        id: "createList",
+        name: "Create List",
+        description: "Create a Twitter list",
       },
     ],
   },
@@ -373,6 +476,9 @@ export const TOOL_GROUPS: ToolGroup[] = [
 /**
  * Get all available tools as a single object
  * Tools are simple utilities that work with any model
+ *
+ * NOTE: Twitter tools are NOT included here because they require user OAuth credentials.
+ * Twitter tools are dynamically created via createTwitterTools() in the chat API route.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function getAllTools(): Record<string, Tool<any, any>> {
@@ -384,11 +490,15 @@ export function getAllTools(): Record<string, Tool<any, any>> {
     ...datetimeTools,
     ...imageGenerationTools,
     ...webSearchTools,
+    // Note: twitterTools excluded - requires user OAuth token, added dynamically in chat API
   };
 }
 
 /**
  * Get tools for specific groups
+ *
+ * NOTE: Twitter tools are handled separately in the chat API route
+ * because they require user OAuth credentials.
  */
 export function getToolsForGroups(
   groupIds: string[],
@@ -407,6 +517,7 @@ export function getToolsForGroups(
     datetime: datetimeTools,
     imageGeneration: imageGenerationTools,
     webSearch: webSearchTools,
+    // Note: twitter group is handled separately in chat API (requires OAuth token)
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

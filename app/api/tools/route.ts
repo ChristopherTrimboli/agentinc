@@ -14,6 +14,7 @@ export async function GET() {
     icon: group.icon,
     logoUrl: group.logoUrl,
     source: group.source,
+    requiresAuth: group.requiresAuth,
     functions: group.functions,
   }));
 

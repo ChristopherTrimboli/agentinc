@@ -1206,6 +1206,26 @@ h6,
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Link styling for chat messages - high contrast on dark background */
+[data-streamdown] a,
+.streaming-message a,
+[data-streamdown="link"],
+button[data-streamdown="link"] {
+  color: var(--coral) !important;
+  text-decoration: underline;
+  text-decoration-color: rgba(111, 236, 6, 0.4);
+  text-underline-offset: 2px;
+  transition: all 0.2s ease;
+}
+
+[data-streamdown] a:hover,
+.streaming-message a:hover,
+[data-streamdown="link"]:hover,
+button[data-streamdown="link"]:hover {
+  color: var(--secondary-light) !important;
+  text-decoration-color: var(--secondary-light);
+}
+
 /* Smooth cursor blink for streaming indicator */
 @keyframes smooth-blink {
   0%,

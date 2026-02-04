@@ -12,6 +12,13 @@ import {
   skillRegistry,
 } from "@/lib/skills";
 import { getToolsForGroups } from "@/lib/tools";
+import {
+  createTwitterTools,
+  createTwitterOnboardingTools,
+  createTwitterConnectionBrokenTool,
+  refreshTwitterToken,
+} from "@/lib/tools/twitter";
+import { safeDecrypt, encrypt } from "@/lib/utils/encryption";
 import type { AvailableSkill } from "@/lib/skills";
 import { getPrivyClient } from "@/lib/auth/verifyRequest";
 
@@ -101,15 +108,6 @@ export async function POST(req: Request) {
     enabledToolGroups?: string[];
     skillApiKeys?: Record<string, string>; // User-provided API keys
   } = requestBody;
-
-  console.log("[Chat API] Request:", {
-    agentId,
-    model,
-    enabledSkills,
-    enabledToolGroups,
-    hasUserApiKeys: Object.keys(skillApiKeys).length > 0,
-    messageCount: messages?.length,
-  });
 
   let baseSystemPrompt = DEFAULT_SYSTEM_PROMPT;
   let agentName = "Agent Inc. Assistant";
@@ -265,22 +263,10 @@ export async function POST(req: Request) {
       };
     }
 
-    // Log which skills are being enabled for debugging
-    console.log("[Chat API] Enabling skills:", skillsToEnable);
-    console.log(
-      "[Chat API] Skills with server config:",
-      Object.keys(serverConfigs).filter((k) => serverConfigs[k]?.apiKey),
-    );
-    console.log(
-      "[Chat API] Skills with user config:",
-      Object.keys(skillApiKeys),
-    );
-
     const skillTools = getSkillTools(skillsToEnable, mergedConfigs);
     const skillToolNames = Object.keys(skillTools);
 
     if (skillToolNames.length > 0) {
-      console.log("[Chat API] Registered skill tools:", skillToolNames);
       // Mark skill tools as deferred for tool search
       const deferredSkillTools = Object.fromEntries(
         Object.entries(skillTools).map(([name, tool]) => [
@@ -304,18 +290,12 @@ export async function POST(req: Request) {
     const skillPrompts = skillRegistry.getSystemPrompts(skillsToEnable);
     if (skillPrompts) {
       systemPrompt = `${systemPrompt}\n\n${skillPrompts}`;
-      console.log("[Chat API] Added skill prompts to system prompt");
     }
   }
 
   // Add tools from enabled tool groups - only add what's explicitly enabled
   if (enabledToolGroups.length > 0) {
     const groupTools = getToolsForGroups(enabledToolGroups);
-    console.log(
-      "[Chat API] Adding tools from groups:",
-      enabledToolGroups,
-      Object.keys(groupTools),
-    );
 
     // Separate provider-defined tools from regular tools
     // Provider-defined tools like web_search should NOT be deferred
@@ -340,14 +320,133 @@ export async function POST(req: Request) {
       }),
     );
     tools = { ...tools, ...deferredGroupTools };
+
+    // Add Twitter tools if the twitter group is enabled
+    // Always include onboarding tools so the AI can help users connect
+    if (enabledToolGroups.includes("twitter")) {
+      try {
+        const twitterUser = await prisma.user.findUnique({
+          where: { id: userId },
+          select: {
+            twitterAccessToken: true,
+            twitterRefreshToken: true,
+            twitterTokenExpiresAt: true,
+            twitterUsername: true,
+            twitterConnectedAt: true,
+          },
+        });
+
+        const isConnected = !!(
+          twitterUser?.twitterAccessToken && twitterUser?.twitterUsername
+        );
+
+        // ALWAYS add onboarding tools so the AI can check status and provide OAuth URL
+        const onboardingTools = createTwitterOnboardingTools({
+          userId,
+          isConnected,
+          username: twitterUser?.twitterUsername || undefined,
+          connectedAt: twitterUser?.twitterConnectedAt || undefined,
+          tokenExpiresAt: twitterUser?.twitterTokenExpiresAt || undefined,
+        });
+
+        // Mark onboarding tools as deferred for tool search
+        const deferredOnboardingTools = Object.fromEntries(
+          Object.entries(onboardingTools).map(([name, tool]) => [
+            name,
+            {
+              ...tool,
+              providerOptions: {
+                anthropic: { deferLoading: true },
+              },
+            },
+          ]),
+        );
+        tools = { ...tools, ...deferredOnboardingTools };
+
+        // If connected, also add the full Twitter API tools
+        if (twitterUser?.twitterAccessToken) {
+          // Decrypt the stored token (handles both encrypted and legacy plaintext)
+          let accessToken = safeDecrypt(twitterUser.twitterAccessToken);
+
+          // Check if token is expired or expiring soon (within 5 minutes)
+          const expirationBuffer = 5 * 60 * 1000; // 5 minutes
+          const isExpired =
+            twitterUser.twitterTokenExpiresAt &&
+            new Date(twitterUser.twitterTokenExpiresAt).getTime() <
+              Date.now() + expirationBuffer;
+
+          if (isExpired && twitterUser.twitterRefreshToken) {
+            // Decrypt refresh token before using
+            const decryptedRefreshToken = safeDecrypt(
+              twitterUser.twitterRefreshToken,
+            );
+            const refreshResult = await refreshTwitterToken(
+              decryptedRefreshToken,
+            );
+
+            if (refreshResult) {
+              // Encrypt new tokens before storing
+              const encryptedAccessToken = encrypt(refreshResult.accessToken);
+              const encryptedRefreshToken = encrypt(refreshResult.refreshToken);
+
+              // Update encrypted tokens in database
+              await prisma.user.update({
+                where: { id: userId },
+                data: {
+                  twitterAccessToken: encryptedAccessToken,
+                  twitterRefreshToken: encryptedRefreshToken,
+                  twitterTokenExpiresAt: new Date(
+                    Date.now() + refreshResult.expiresIn * 1000,
+                  ),
+                },
+              });
+              accessToken = refreshResult.accessToken;
+            } else {
+              accessToken = ""; // Clear to skip adding API tools
+
+              // Add a tool to inform the user their connection is broken
+              const brokenTool = createTwitterConnectionBrokenTool(
+                userId,
+                "refresh_failed",
+              );
+              tools = { ...tools, ...brokenTool };
+            }
+          } else if (isExpired) {
+            accessToken = "";
+
+            // Add a tool to inform the user their connection is broken
+            const brokenTool = createTwitterConnectionBrokenTool(
+              userId,
+              "no_refresh_token",
+            );
+            tools = { ...tools, ...brokenTool };
+          }
+
+          if (accessToken) {
+            const twitterApiTools = createTwitterTools(accessToken);
+
+            // Mark Twitter API tools as deferred for tool search
+            const deferredTwitterTools = Object.fromEntries(
+              Object.entries(twitterApiTools).map(([name, tool]) => [
+                name,
+                {
+                  ...tool,
+                  providerOptions: {
+                    anthropic: { deferLoading: true },
+                  },
+                },
+              ]),
+            );
+            tools = { ...tools, ...deferredTwitterTools };
+          }
+        }
+      } catch (error) {
+        console.error("[Chat API] Failed to load Twitter tools:", error);
+      }
+    }
   }
 
-  // Log final tool count
   const toolNames = Object.keys(tools);
-  console.log(
-    `[Chat API] Total tools available: ${toolNames.length}`,
-    toolNames,
-  );
 
   // ALWAYS append tool usage guidelines if tools are available
   if (toolNames.length > 0) {

@@ -23,12 +23,10 @@ type RouteContext = {
 // POST /api/chats/[chatId]/messages - Add messages to a chat (bulk)
 export async function POST(req: NextRequest, context: RouteContext) {
   const { chatId } = await context.params;
-  console.log("[ChatMessages API] POST - Adding messages to chat:", chatId);
 
   const userId = await verifyAuth(req);
 
   if (!userId) {
-    console.log("[ChatMessages API] POST - Unauthorized");
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

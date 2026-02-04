@@ -63,7 +63,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const { identityToken } = useIdentityToken();
 
   const [sessionExpired, setSessionExpired] = useState(false);
-  
+
   // Use ref to always have the latest token value in async callbacks
   const identityTokenRef = useRef<string | null>(identityToken);
 
@@ -118,8 +118,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
         !disableRetry &&
         authenticated
       ) {
-        console.log("[Auth] Received 401, attempting token refresh and retry...");
-
         try {
           // Store the old token to compare
           const oldToken = identityTokenRef.current;
@@ -136,11 +134,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
           while (Date.now() - startTime < maxWaitMs) {
             // Check if token has been updated in the ref
-            if (identityTokenRef.current !== oldToken && identityTokenRef.current !== null) {
-              console.log("[Auth] Token refreshed successfully, retrying request...");
+            if (
+              identityTokenRef.current !== oldToken &&
+              identityTokenRef.current !== null
+            ) {
               break;
             }
-            
+
             // Wait before checking again
             await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
           }
@@ -150,12 +150,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
           // If retry also fails with 401, session is truly expired
           if (retryResponse.status === 401) {
-            console.warn(
-              "[Auth] Retry failed with 401, session truly expired",
-            );
             setSessionExpired(true);
-          } else {
-            console.log("[Auth] Retry succeeded with refreshed token");
           }
 
           return retryResponse;

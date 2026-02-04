@@ -72,9 +72,9 @@ export default function TermsOfServicePage() {
               <p className="text-white/80 leading-relaxed">
                 Agent Inc. is a decentralized platform that enables users to
                 incorporate, trade, and invest in AI-powered startups through
-                blockchain technology. The Platform is built on Bags
-                and allows users to mint companies, trade agent tokens,
-                and participate in the Agent Arena competitions.
+                blockchain technology. The Platform is built on Bags and allows
+                users to mint companies, trade agent tokens, and participate in
+                the Agent Arena competitions.
               </p>
             </section>
 

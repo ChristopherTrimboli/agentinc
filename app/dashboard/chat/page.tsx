@@ -126,6 +126,7 @@ interface ToolGroupInfo {
   icon: string;
   logoUrl?: string;
   source?: string;
+  requiresAuth?: boolean;
   functions: { id: string; name: string; description: string }[];
 }
 
@@ -954,6 +955,7 @@ function ChatInterface({
   const [toolGroups, setToolGroups] = useState<ToolGroup[]>([]);
   const [skills, setSkills] = useState<SkillConfig[]>([]);
   const [toolsLoading, setToolsLoading] = useState(true);
+  const [twitterConnected, setTwitterConnected] = useState(false);
 
   // Model selection state
   const [selectedModel, setSelectedModel] = useState<string>(
@@ -1055,6 +1057,7 @@ function ChatInterface({
               icon: g.icon,
               logoUrl: g.logoUrl,
               source: g.source,
+              requiresAuth: g.requiresAuth,
               enabled: true, // Enable tool groups by default
               functions: g.functions,
             }),
@@ -1083,15 +1086,6 @@ function ChatInterface({
             },
           );
           setSkills(mappedSkills);
-
-          // Log which skills are auto-enabled
-          const enabledSkills = mappedSkills.filter((s) => s.enabled);
-          if (enabledSkills.length > 0) {
-            console.log(
-              "[Chat] Auto-enabled configured skills:",
-              enabledSkills.map((s) => s.name),
-            );
-          }
         }
       } catch (err) {
         console.error("Failed to fetch tools:", err);
@@ -1101,6 +1095,28 @@ function ChatInterface({
     }
     fetchToolsAndSkills();
   }, []);
+
+  // Check Twitter connection status
+  useEffect(() => {
+    async function checkTwitterStatus() {
+      if (!identityToken) {
+        setTwitterConnected(false);
+        return;
+      }
+      try {
+        const response = await fetch("/api/twitter/oauth/status", {
+          headers: { "privy-id-token": identityToken },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setTwitterConnected(data.connected);
+        }
+      } catch {
+        setTwitterConnected(false);
+      }
+    }
+    checkTwitterStatus();
+  }, [identityToken]);
 
   // Tool group handlers
   const handleGroupToggle = useCallback((groupId: string, enabled: boolean) => {
@@ -1343,30 +1359,20 @@ function ChatInterface({
   const saveMessages = useCallback(
     async (messagesToSave: typeof messages) => {
       if (!identityToken || messagesToSave.length === 0) {
-        console.log("[Chat] saveMessages skipped - no token or messages");
         return;
       }
 
       // Only save messages we haven't saved yet
       const newMessages = messagesToSave.slice(lastSavedMessagesRef.current);
       if (newMessages.length === 0) {
-        console.log("[Chat] saveMessages skipped - no new messages");
         return;
       }
-
-      console.log(
-        "[Chat] Saving",
-        newMessages.length,
-        "new messages, chatId:",
-        chatIdRef.current,
-      );
 
       try {
         let currentChatId = chatIdRef.current;
 
         // Create a new chat if we don't have one
         if (!currentChatId) {
-          console.log("[Chat] Creating new chat for agent:", agentId);
           const createResponse = await fetch("/api/chats", {
             method: "POST",
             headers: {
@@ -1379,7 +1385,6 @@ function ChatInterface({
           if (createResponse.ok) {
             const data = await createResponse.json();
             currentChatId = data.chat.id;
-            console.log("[Chat] Created new chat:", currentChatId);
             setChatId(currentChatId);
             chatIdRef.current = currentChatId; // Update ref immediately
             // Update URL without reload
@@ -1419,7 +1424,6 @@ function ChatInterface({
         );
 
         if (saveResponse.ok) {
-          console.log("[Chat] Messages saved successfully");
           lastSavedMessagesRef.current = messagesToSave.length;
           // Trigger sidebar refresh to show updated chat
           setHistoryRefreshTrigger((prev) => prev + 1);
@@ -1440,20 +1444,11 @@ function ChatInterface({
 
   // Save messages after response completes
   useEffect(() => {
-    console.log(
-      "[Chat] Save effect - status:",
-      status,
-      "messages:",
-      messages.length,
-      "lastSaved:",
-      lastSavedMessagesRef.current,
-    );
     if (
       status === "ready" &&
       messages.length > 0 &&
       messages.length > lastSavedMessagesRef.current
     ) {
-      console.log("[Chat] Triggering save...");
       saveMessages(messages);
     }
   }, [status, messages, saveMessages]);
@@ -2098,6 +2093,8 @@ function ChatInterface({
         onNewChat={handleNewChat}
         onSelectChat={handleSelectChat}
         historyRefreshTrigger={historyRefreshTrigger}
+        // Tool connection status
+        twitterConnected={twitterConnected}
       />
     </div>
   );
@@ -2108,6 +2105,23 @@ function ChatPageContent() {
   const searchParams = useSearchParams();
   const agentId = searchParams.get("agent");
   const chatId = searchParams.get("chatId");
+
+  // Clean up OAuth callback params from URL (twitter_connected, twitter_error)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasOAuthParam =
+      urlParams.has("twitter_connected") || urlParams.has("twitter_error");
+
+    if (hasOAuthParam) {
+      urlParams.delete("twitter_connected");
+      urlParams.delete("twitter_error");
+      const newSearch = urlParams.toString();
+      const newUrl = newSearch
+        ? `${window.location.pathname}?${newSearch}`
+        : window.location.pathname;
+      window.history.replaceState({}, document.title, newUrl);
+    }
+  }, []);
 
   if (agentId) {
     return <ChatInterface agentId={agentId} chatId={chatId || undefined} />;

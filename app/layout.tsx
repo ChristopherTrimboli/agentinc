@@ -68,9 +68,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body
-        className={`${inter.variable} ${syne.variable} antialiased`}
-      >
+      <body className={`${inter.variable} ${syne.variable} antialiased`}>
         <ClientLayout>{children}</ClientLayout>
         <Analytics />
       </body>

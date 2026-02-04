@@ -16,9 +16,20 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Twitter OAuth credentials (encrypted)
+  twitterAccessToken       String? @db.Text
+  twitterRefreshToken      String? @db.Text
+  twitterTokenExpiresAt    DateTime?
+  twitterUserId            String? // Twitter user ID
+  twitterUsername          String? // Twitter username
+  twitterConnectedAt       DateTime? // When user connected Twitter
+
   // Relations
   agents Agent[]
   chats  Chat[]
+
+  @@index([twitterUserId])
+  @@index([twitterUsername])
 }
 
 // Chat session - represents a conversation with an agent

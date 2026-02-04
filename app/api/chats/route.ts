@@ -97,11 +97,9 @@ export async function GET(req: NextRequest) {
 
 // POST /api/chats - Create a new chat
 export async function POST(req: NextRequest) {
-  console.log("[Chats API] POST - Creating new chat");
   const userId = await verifyAuth(req);
 
   if (!userId) {
-    console.log("[Chats API] POST - Unauthorized");
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -110,17 +108,10 @@ export async function POST(req: NextRequest) {
     try {
       body = await req.json();
     } catch {
-      console.log("[Chats API] POST - Invalid JSON body");
       return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     }
 
     const { agentId, title } = body;
-    console.log(
-      "[Chats API] POST - Creating chat for agent:",
-      agentId,
-      "user:",
-      userId,
-    );
 
     // If agentId provided, verify agent exists and user can access it
     if (agentId) {
@@ -160,7 +151,6 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    console.log("[Chats API] POST - Chat created successfully:", chat.id);
     return NextResponse.json({ chat }, { status: 201 });
   } catch (error) {
     console.error("Failed to create chat:", error);

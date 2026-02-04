@@ -95,10 +95,7 @@ export function ChatHistorySidebar({
 
       if (response.ok) {
         const data = await response.json();
-        console.log("[ChatHistory] Fetched chats:", data.chats?.length || 0);
         setChats(data.chats || []);
-      } else {
-        console.error("[ChatHistory] Failed to fetch:", response.status);
       }
     } catch (err) {
       console.error("Failed to fetch chat history:", err);

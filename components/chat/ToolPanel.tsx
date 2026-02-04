@@ -32,9 +32,11 @@ import {
   Clock,
   Trash2,
   Loader2,
+  Link2,
 } from "lucide-react";
 import Image from "next/image";
 import { formatDistanceToNow } from "date-fns";
+import { TwitterAuthButton } from "./TwitterAuthButton";
 
 export interface ApiKeyConfig {
   label: string;
@@ -58,6 +60,7 @@ export interface ToolGroup {
   icon: string;
   logoUrl?: string; // URL to actual logo image from the web
   source?: string;
+  requiresAuth?: boolean; // Whether this tool requires OAuth authentication
   enabled: boolean;
   functions: ToolFunction[];
 }
@@ -160,14 +163,22 @@ interface ToolPanelProps {
   onNewChat?: () => void;
   onSelectChat?: (chatId: string, agentId?: string | null) => void;
   historyRefreshTrigger?: number;
+  // Tool connection status
+  twitterConnected?: boolean;
 }
 
 const ToolGroupCard = React.memo(function ToolGroupCard({
   group,
   onToggle,
+  agentId,
+  chatId,
+  isConnected,
 }: {
   group: ToolGroup;
   onToggle: (enabled: boolean) => void;
+  agentId?: string;
+  chatId?: string;
+  isConnected?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -187,7 +198,10 @@ const ToolGroupCard = React.memo(function ToolGroupCard({
           : "bg-transparent border-white/[0.04] hover:border-white/[0.08]"
       }`}
     >
-      <div className="flex items-center gap-2.5 px-2.5 py-2">
+      <div
+        className="flex items-center gap-2.5 px-2.5 py-2 cursor-pointer"
+        onClick={handleExpand}
+      >
         {/* Icon/Logo */}
         <div
           className={`w-6 h-6 rounded-md flex items-center justify-center text-xs shrink-0 overflow-hidden ${
@@ -223,20 +237,26 @@ const ToolGroupCard = React.memo(function ToolGroupCard({
           >
             {group.functions.length}
           </span>
+          {/* Connection indicator for auth-requiring tools */}
+          {group.requiresAuth && (
+            <span title={isConnected ? "Connected" : "Connection required"}>
+              <Link2
+                className={`w-3 h-3 ${isConnected ? "text-[#6FEC06]/60" : "text-amber-400/60"}`}
+              />
+            </span>
+          )}
+          <ChevronRight
+            className={`w-3 h-3 text-white/55 transition-transform duration-150 ${expanded ? "rotate-90" : ""}`}
+          />
           <button
-            onClick={handleExpand}
-            className="p-1 rounded hover:bg-white/[0.04] text-white/55 hover:text-white/70 transition-colors"
-          >
-            <ChevronRight
-              className={`w-3 h-3 transition-transform duration-150 ${expanded ? "rotate-90" : ""}`}
-            />
-          </button>
-          <button
-            onClick={handleToggle}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleToggle();
+            }}
             className={`p-1 rounded transition-colors ${
               group.enabled
-                ? "text-[#6FEC06]"
-                : "text-white/20 hover:text-white/35"
+                ? "text-[#6FEC06] hover:bg-[#6FEC06]/10"
+                : "text-white/20 hover:text-white/35 hover:bg-white/[0.04]"
             }`}
           >
             <Power className="w-3.5 h-3.5" />
@@ -248,17 +268,25 @@ const ToolGroupCard = React.memo(function ToolGroupCard({
         <div
           className={`px-2.5 pb-2 border-t ${group.enabled ? "border-[#6FEC06]/10" : "border-white/[0.03]"}`}
         >
-          <div className="pt-1.5 space-y-0.5">
+          {/* Show Twitter auth button in expanded view */}
+          {group.requiresAuth && group.id === "twitter" && (
+            <div className="pt-2 pb-1.5 border-b border-white/[0.05] mb-1.5">
+              <TwitterAuthButton agentId={agentId} chatId={chatId} />
+            </div>
+          )}
+
+          <div className="pt-1.5 grid grid-cols-2 gap-x-2 gap-y-0.5">
             {group.functions.map((fn) => (
               <div
                 key={fn.id}
-                className="flex items-start gap-1.5 py-0.5 text-[10px]"
+                className="flex items-start gap-1 py-0.5 text-[9px] min-w-0"
               >
                 <span
-                  className={`w-1 h-1 rounded-full mt-[5px] shrink-0 ${group.enabled ? "bg-[#6FEC06]/60" : "bg-white/15"}`}
+                  className={`w-1 h-1 rounded-full mt-[4px] shrink-0 ${group.enabled ? "bg-[#6FEC06]/60" : "bg-white/15"}`}
                 />
                 <span
-                  className={group.enabled ? "text-white/70" : "text-white/50"}
+                  className={`truncate ${group.enabled ? "text-white/70" : "text-white/50"}`}
+                  title={fn.name}
                 >
                   {fn.name}
                 </span>
@@ -326,7 +354,10 @@ const SkillCard = React.memo(function SkillCard({
           : "bg-transparent border-white/[0.04] hover:border-white/[0.08]"
       }`}
     >
-      <div className="flex items-center gap-2.5 px-2.5 py-2">
+      <div
+        className={`flex items-center gap-2.5 px-2.5 py-2 ${canExpand ? "cursor-pointer" : ""}`}
+        onClick={canExpand ? handleExpand : undefined}
+      >
         {/* Icon */}
         <div
           className={`w-6 h-6 rounded-md flex items-center justify-center text-xs shrink-0 ${
@@ -361,24 +392,22 @@ const SkillCard = React.memo(function SkillCard({
               className={`w-3 h-3 ${hasUserApiKey ? "text-[#6FEC06]/60" : "text-amber-400/60"}`}
             />
           )}
-          {/* Show expand button if can expand */}
+          {/* Show expand chevron if can expand */}
           {canExpand && (
-            <button
-              onClick={handleExpand}
-              className="p-1 rounded hover:bg-white/[0.04] text-white/55 hover:text-white/70 transition-colors"
-            >
-              <ChevronRight
-                className={`w-3 h-3 transition-transform duration-150 ${expanded ? "rotate-90" : ""}`}
-              />
-            </button>
+            <ChevronRight
+              className={`w-3 h-3 text-white/55 transition-transform duration-150 ${expanded ? "rotate-90" : ""}`}
+            />
           )}
           {/* Always allow enabling - skills can work without API key for setup tools */}
           <button
-            onClick={handleToggle}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleToggle();
+            }}
             className={`p-1 rounded transition-colors ${
               skill.enabled
-                ? "text-[#6FEC06]"
-                : "text-white/20 hover:text-white/35"
+                ? "text-[#6FEC06] hover:bg-[#6FEC06]/10"
+                : "text-white/20 hover:text-white/35 hover:bg-white/[0.04]"
             }`}
           >
             <Power className="w-3.5 h-3.5" />
@@ -393,19 +422,18 @@ const SkillCard = React.memo(function SkillCard({
         >
           {/* Functions list */}
           {hasFunctions && (
-            <div className="pt-1.5 space-y-0.5">
+            <div className="pt-1.5 grid grid-cols-2 gap-x-2 gap-y-0.5">
               {skill.functions!.map((fn) => (
                 <div
                   key={fn.id}
-                  className="flex items-start gap-1.5 py-0.5 text-[10px]"
+                  className="flex items-start gap-1 py-0.5 text-[9px] min-w-0"
                 >
                   <span
-                    className={`w-1 h-1 rounded-full mt-[5px] shrink-0 ${skill.enabled ? "bg-[#6FEC06]/60" : "bg-white/15"}`}
+                    className={`w-1 h-1 rounded-full mt-[4px] shrink-0 ${skill.enabled ? "bg-[#6FEC06]/60" : "bg-white/15"}`}
                   />
                   <span
-                    className={
-                      skill.enabled ? "text-white/70" : "text-white/50"
-                    }
+                    className={`truncate ${skill.enabled ? "text-white/70" : "text-white/50"}`}
+                    title={fn.name}
                   >
                     {fn.name}
                   </span>
@@ -527,6 +555,9 @@ function ToolsTab({
   onSkillToggle,
   onApiKeyChange,
   loading,
+  agentId,
+  chatId,
+  twitterConnected,
 }: {
   toolGroups: ToolGroup[];
   skills: SkillConfig[];
@@ -534,6 +565,9 @@ function ToolsTab({
   onSkillToggle: (skillId: string, enabled: boolean) => void;
   onApiKeyChange?: (skillId: string, apiKey: string) => void;
   loading?: boolean;
+  agentId?: string;
+  chatId?: string;
+  twitterConnected?: boolean;
 }) {
   const [search, setSearch] = useState("");
 
@@ -637,18 +671,23 @@ function ToolsTab({
 
           return (
             <div key={category}>
-          <div className="flex items-center gap-1.5 mb-1.5 px-0.5">
-            {categoryConfig.icon}
-            <span className="text-[9px] font-semibold uppercase tracking-wider text-white/60">
-              {categoryConfig.label}
-            </span>
-          </div>
+              <div className="flex items-center gap-1.5 mb-1.5 px-0.5">
+                {categoryConfig.icon}
+                <span className="text-[9px] font-semibold uppercase tracking-wider text-white/60">
+                  {categoryConfig.label}
+                </span>
+              </div>
               <div className="space-y-1">
                 {groups.map((group) => (
                   <ToolGroupCard
                     key={group.id}
                     group={group}
                     onToggle={(enabled) => onGroupToggle(group.id, enabled)}
+                    agentId={agentId}
+                    chatId={chatId}
+                    isConnected={
+                      group.id === "twitter" ? twitterConnected : undefined
+                    }
                   />
                 ))}
               </div>
@@ -881,7 +920,7 @@ function HistoryTab({
 
   if (!identityToken) {
     return (
-          <div className="flex flex-col items-center justify-center h-full p-6 text-center">
+      <div className="flex flex-col items-center justify-center h-full p-6 text-center">
         <div className="w-12 h-12 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mb-4">
           <History className="w-6 h-6 text-white/30" />
         </div>
@@ -978,11 +1017,11 @@ function HistoryTab({
                             : "hover:bg-white/[0.03]"
                         }`}
                       >
-          <button
-            onClick={() => onSelectChat?.(chat.id, chat.agentId)}
-            className="w-full text-left px-3 py-2.5 transition-colors"
-          >
-            <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => onSelectChat?.(chat.id, chat.agentId)}
+                          className="w-full text-left px-3 py-2.5 transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
                             {/* Agent avatar - larger and more prominent */}
                             <div
                               className={`relative w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 ring-1.5 ${rarityRing} bg-[#0a0520] shadow-sm`}
@@ -1006,13 +1045,13 @@ function HistoryTab({
                             <div className="flex-1 min-w-0 pr-6">
                               {/* Title row with time */}
                               <div className="flex items-center justify-between gap-2 mb-0.5">
-                              <h4
-                                className={`text-[13px] font-medium truncate ${
-                                  isActive ? "text-white" : "text-white/90"
-                                }`}
-                              >
-                                {chat.title || chat.agent?.name || "New Chat"}
-                              </h4>
+                                <h4
+                                  className={`text-[13px] font-medium truncate ${
+                                    isActive ? "text-white" : "text-white/90"
+                                  }`}
+                                >
+                                  {chat.title || chat.agent?.name || "New Chat"}
+                                </h4>
                               </div>
 
                               {/* Last message preview */}
@@ -1345,6 +1384,8 @@ export function ToolPanel({
   onNewChat,
   onSelectChat,
   historyRefreshTrigger,
+  // Tool connection status
+  twitterConnected,
 }: ToolPanelMobileProps) {
   const [activeTab, setActiveTab] = useState<TabId>("tools");
   const [panelWidth, setPanelWidth] = useState<number>(DEFAULT_PANEL_WIDTH);
@@ -1567,6 +1608,9 @@ export function ToolPanel({
                 onSkillToggle={onSkillToggle}
                 onApiKeyChange={onApiKeyChange}
                 loading={loading}
+                agentId={currentAgentId}
+                chatId={currentChatId}
+                twitterConnected={twitterConnected}
               />
             )}
             {activeTab === "history" && (
@@ -1645,6 +1689,9 @@ export function ToolPanel({
               onSkillToggle={onSkillToggle}
               onApiKeyChange={onApiKeyChange}
               loading={loading}
+              agentId={currentAgentId}
+              chatId={currentChatId}
+              twitterConnected={twitterConnected}
             />
           )}
           {activeTab === "history" && (
