@@ -1108,9 +1108,9 @@ export default function ExplorePage() {
         </div>
 
         {/* Controls */}
-        <div className="flex flex-col gap-3 sm:gap-4 mb-4 sm:mb-6">
-          {/* Search - full width on mobile */}
-          <div className="relative">
+        <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 mb-4 sm:mb-6">
+          {/* Search - full width on mobile, grows on desktop */}
+          <div className="relative flex-1 min-w-0">
             <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-white/30" />
             <input
               type="text"
@@ -1121,8 +1121,8 @@ export default function ExplorePage() {
             />
           </div>
 
-          {/* Filters row - scrollable on mobile */}
-          <div className="flex gap-2 sm:gap-4 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
+          {/* Filters row - beside search on desktop, below on mobile */}
+          <div className="flex gap-2 sm:gap-4">
             {/* Type filter */}
             <div className="flex rounded-lg sm:rounded-xl bg-[#0a0520]/80 border border-white/10 p-0.5 sm:p-1 shrink-0">
               {(["all", "agent", "corporation"] as const).map((type) => (
