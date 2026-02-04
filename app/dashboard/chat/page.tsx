@@ -27,7 +27,17 @@ import {
   Volume2,
   VolumeX,
   Loader2,
+  Star,
+  Rocket,
+  SendHorizonal,
 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import React, {
   useState,
   useMemo,
@@ -328,13 +338,13 @@ function AgentSelector() {
 
             {/* Search */}
             <div className="relative w-full md:w-72">
-              <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+              <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/60" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search agents..."
-                className="w-full pl-9 sm:pl-11 pr-4 py-2 sm:py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder:text-white/30 focus:border-[#6FEC06]/50 focus:outline-none"
+                className="w-full pl-9 sm:pl-11 pr-4 py-2 sm:py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder:text-white/45 focus:border-[#6FEC06]/50 focus:outline-none"
               />
             </div>
           </div>
@@ -430,6 +440,8 @@ interface ChatInputAreaProps {
   onStop: () => void;
   speechSynthesis: ReturnType<typeof useSpeechSynthesis>;
   identityToken: string | null | undefined;
+  selectedModel: string;
+  onModelChange: (model: string) => void;
 }
 
 const ChatInputArea = React.memo(function ChatInputArea({
@@ -439,6 +451,8 @@ const ChatInputArea = React.memo(function ChatInputArea({
   onStop,
   speechSynthesis,
   identityToken,
+  selectedModel,
+  onModelChange,
 }: ChatInputAreaProps) {
   const [input, setInput] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -536,31 +550,69 @@ const ChatInputArea = React.memo(function ChatInputArea({
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder={`Message ${displayName}...`}
-                className="bg-transparent border-0 !rounded-xl focus:ring-0 focus-visible:ring-0 text-white placeholder:text-white/30 min-h-[48px] sm:min-h-[52px] max-h-[150px] sm:max-h-[180px] text-sm sm:text-[15px] leading-relaxed shadow-none"
+                className="bg-transparent border-0 !rounded-xl focus:ring-0 focus-visible:ring-0 text-white placeholder:text-white/45 min-h-[48px] sm:min-h-[52px] max-h-[150px] sm:max-h-[180px] text-sm sm:text-[15px] leading-relaxed shadow-none"
               />
             </PromptInputBody>
             <PromptInputFooter>
               <PromptInputTools>
+                {/* Model Picker - Enhanced with neon green accents */}
+                <Select value={selectedModel} onValueChange={onModelChange}>
+                  <SelectTrigger 
+                    className="h-9 w-9 p-0 rounded-lg bg-white/[0.03] border border-white/[0.12] hover:bg-[#7fff00]/[0.08] hover:border-[#7fff00]/40 hover:shadow-[0_0_16px_rgba(127,255,0,0.2)] active:scale-95 transition-all duration-200 flex items-center justify-center [&_svg[class*='opacity']]:hidden"
+                  >
+                    <SelectValue>
+                      {selectedModel === "anthropic/claude-haiku-4-5" ? (
+                        <Zap className="w-4 h-4 text-yellow-400 drop-shadow-[0_0_6px_rgba(250,204,21,0.4)]" />
+                      ) : selectedModel === "anthropic/claude-sonnet-4-5" ? (
+                        <Brain className="w-4 h-4 text-blue-400 drop-shadow-[0_0_6px_rgba(96,165,250,0.4)]" />
+                      ) : (
+                        <Star className="w-4 h-4 text-purple-400 drop-shadow-[0_0_6px_rgba(192,132,252,0.4)]" />
+                      )}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#0a0520]/95 backdrop-blur-xl border-white/[0.12] shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+                    <SelectItem value="anthropic/claude-haiku-4-5" className="text-white/90 hover:bg-[#7fff00]/10 hover:text-[#7fff00] cursor-pointer">
+                      <div className="flex items-center gap-2.5">
+                        <Zap className="w-4 h-4 text-yellow-400" />
+                        <span className="font-medium">Fast (Haiku 4.5)</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="anthropic/claude-sonnet-4-5" className="text-white/90 hover:bg-[#7fff00]/10 hover:text-[#7fff00] cursor-pointer">
+                      <div className="flex items-center gap-2.5">
+                        <Brain className="w-4 h-4 text-blue-400" />
+                        <span className="font-medium">Balanced (Sonnet 4.5)</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="anthropic/claude-opus-4-5" className="text-white/90 hover:bg-[#7fff00]/10 hover:text-[#7fff00] cursor-pointer">
+                      <div className="flex items-center gap-2.5">
+                        <Star className="w-4 h-4 text-purple-400" />
+                        <span className="font-medium">Smart (Opus 4.5)</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* Attach Button - Enhanced with neon green hover */}
                 <PromptInputActionMenu>
-                  <PromptInputActionMenuTrigger className="text-white/40 hover:text-white hover:bg-white/[0.08]">
+                  <PromptInputActionMenuTrigger className="h-9 w-9 p-0 rounded-lg bg-white/[0.03] border border-white/[0.12] text-white/70 hover:text-[#7fff00] hover:bg-[#7fff00]/[0.08] hover:border-[#7fff00]/40 hover:shadow-[0_0_16px_rgba(127,255,0,0.2)] active:scale-95 transition-all duration-200 flex items-center justify-center">
                     <Paperclip className="w-4 h-4" />
                   </PromptInputActionMenuTrigger>
-                  <PromptInputActionMenuContent className="bg-[#0a0520] border-white/10">
-                    <PromptInputActionAddAttachments className="hover:bg-[#6FEC06]/10 hover:text-[#6FEC06]" />
+                  <PromptInputActionMenuContent className="bg-[#0a0520]/95 backdrop-blur-xl border-white/[0.12] shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
+                    <PromptInputActionAddAttachments className="hover:bg-[#7fff00]/10 hover:text-[#7fff00]" />
                   </PromptInputActionMenuContent>
                 </PromptInputActionMenu>
 
-                {/* Voice Input Button */}
+                {/* Voice Input Button - Enhanced with neon green hover */}
                 <button
                   type="button"
                   onClick={voiceInput.toggleRecording}
                   disabled={voiceInput.isTranscribing}
-                  className={`relative p-2 rounded-lg transition-all duration-200 ${
+                  className={`relative h-9 w-9 rounded-lg border transition-all duration-200 flex items-center justify-center ${
                     voiceInput.isRecording
-                      ? "bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                      ? "bg-red-500/20 border-red-500/40 text-red-400 hover:bg-red-500/30 hover:border-red-500/50 shadow-[0_0_16px_rgba(239,68,68,0.3)]"
                       : voiceInput.isTranscribing
-                        ? "bg-white/5 text-white/30 cursor-not-allowed"
-                        : "text-white/40 hover:text-white hover:bg-white/[0.08]"
+                        ? "bg-white/[0.03] border-white/[0.08] text-white/50 cursor-not-allowed"
+                        : "bg-white/[0.03] border-white/[0.12] text-white/70 hover:text-[#7fff00] hover:bg-[#7fff00]/[0.08] hover:border-[#7fff00]/40 hover:shadow-[0_0_16px_rgba(127,255,0,0.2)] active:scale-95"
                   }`}
                   title={
                     voiceInput.isRecording
@@ -576,7 +628,7 @@ const ChatInputArea = React.memo(function ChatInputArea({
                     <>
                       <MicOff className="w-4 h-4" />
                       {/* Recording indicator pulse */}
-                      <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                      <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.6)]" />
                       {/* Audio level indicator */}
                       <span
                         className="absolute inset-0 rounded-lg bg-red-400/20 transition-transform duration-75"
@@ -591,20 +643,26 @@ const ChatInputArea = React.memo(function ChatInputArea({
                   )}
                 </button>
               </PromptInputTools>
+
+              {/* Send Button - Pure Neon Green with rocket icon */}
               <PromptInputSubmit
                 status={status}
                 onStop={onStop}
                 disabled={!input.trim() && status === "ready"}
-                className="!rounded-lg bg-[#6FEC06] text-black hover:bg-[#5ad005] disabled:opacity-30 disabled:hover:bg-[#6FEC06] shadow-[0_2px_8px_rgba(111,236,6,0.3)]"
+                className="group !rounded-lg !h-9 !w-9 !p-0 bg-gradient-to-br from-[#7fff00] to-[#00ff41] text-black font-bold hover:from-[#8fff10] hover:to-[#10ff51] disabled:opacity-30 disabled:hover:from-[#7fff00] disabled:hover:to-[#00ff41] disabled:cursor-not-allowed shadow-[0_2px_12px_rgba(127,255,0,0.4)] hover:shadow-[0_4px_24px_rgba(127,255,0,0.6)] hover:scale-105 active:scale-95 transition-all duration-200 border border-[#9fff30]/40 disabled:hover:scale-100 overflow-hidden relative"
               >
-                <Send className="w-4 h-4" />
+                {/* Background sparkle effect on hover */}
+                <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out" />
+                
+                {/* Rocket icon with smooth lift-off on hover */}
+                <Rocket className="w-4 h-4 relative z-10 transition-transform duration-200 group-hover:-translate-y-0.5 drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]" />
               </PromptInputSubmit>
             </PromptInputFooter>
           </PromptInput>
         </div>
 
         {/* Keyboard hint - hidden on mobile */}
-        <p className="hidden sm:block text-center text-[11px] text-white/25 mt-2.5">
+        <p className="hidden sm:block text-center text-[11px] text-white/50 mt-2.5">
           Press{" "}
           <kbd className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 font-mono text-[10px]">
             Enter
@@ -700,14 +758,14 @@ const GeneratedImageDisplay = React.memo(function GeneratedImageDisplay({
         <div className="flex items-center gap-1">
           <button
             onClick={handleOpenInNewTab}
-            className="p-2 rounded-lg hover:bg-white/[0.08] text-white/40 hover:text-white transition-all duration-200"
+            className="p-2 rounded-lg hover:bg-white/[0.08] text-white/60 hover:text-white transition-all duration-200"
             title="Open in new tab"
           >
             <ExternalLink className="w-4 h-4" />
           </button>
           <button
             onClick={handleDownload}
-            className="p-2 rounded-lg hover:bg-white/[0.08] text-white/40 hover:text-white transition-all duration-200"
+            className="p-2 rounded-lg hover:bg-white/[0.08] text-white/60 hover:text-white transition-all duration-200"
             title="Download"
           >
             <Download className="w-4 h-4" />
@@ -774,7 +832,7 @@ const ReasoningBlock = React.memo(function ReasoningBlock({
           {isStreaming ? "Thinking..." : "Reasoning"}
         </span>
         <ChevronDown
-          className={`w-4 h-4 text-white/40 ml-auto transition-transform duration-300 ${isExpanded ? "rotate-180" : ""}`}
+          className={`w-4 h-4 text-white/60 ml-auto transition-transform duration-300 ${isExpanded ? "rotate-180" : ""}`}
         />
       </button>
       <div
@@ -886,6 +944,11 @@ function ChatInterface({
   const [toolGroups, setToolGroups] = useState<ToolGroup[]>([]);
   const [skills, setSkills] = useState<SkillConfig[]>([]);
   const [toolsLoading, setToolsLoading] = useState(true);
+
+  // Model selection state
+  const [selectedModel, setSelectedModel] = useState<string>(
+    "anthropic/claude-haiku-4-5",
+  );
 
   // Chat history state
   const [chatId, setChatId] = useState<string | undefined>(initialChatId);
@@ -1081,6 +1144,7 @@ function ChatInterface({
   // Store body values in a ref so transport always has current values
   const bodyRef = useRef({
     agentId,
+    model: selectedModel,
     enabledSkills: enabledSkillIds,
     enabledToolGroups,
     skillApiKeys,
@@ -1090,11 +1154,12 @@ function ChatInterface({
   useEffect(() => {
     bodyRef.current = {
       agentId,
+      model: selectedModel,
       enabledSkills: enabledSkillIds,
       enabledToolGroups,
       skillApiKeys,
     };
-  }, [agentId, enabledSkillIds, enabledToolGroups, skillApiKeys]);
+  }, [agentId, selectedModel, enabledSkillIds, enabledToolGroups, skillApiKeys]);
 
   // Transport with stable identity - body function reads from ref
   const transport = useMemo(() => {
@@ -1420,7 +1485,7 @@ function ChatInterface({
           <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
             <button
               onClick={handleBackToChat}
-              className="p-2 -ml-2 lg:ml-0 rounded-xl hover:bg-white/5 text-white/40 hover:text-white transition-all duration-200 group shrink-0"
+              className="p-2 -ml-2 lg:ml-0 rounded-xl hover:bg-white/[0.08] text-white/60 hover:text-white transition-all duration-200 group shrink-0"
             >
               <ArrowLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
             </button>
@@ -1450,7 +1515,7 @@ function ChatInterface({
               <h1 className="font-semibold text-white text-sm sm:text-base truncate">
                 {displayName}
               </h1>
-              <div className="flex items-center gap-2 text-[10px] sm:text-xs text-white/40">
+              <div className="flex items-center gap-2 text-[10px] sm:text-xs text-white/60">
                 <span className="flex items-center gap-1">
                   <Zap className="w-3 h-3 text-[#6FEC06]" />
                   <span className="hidden xs:inline">
@@ -1474,7 +1539,7 @@ function ChatInterface({
           <div className="flex items-center gap-1 shrink-0">
             <button
               onClick={handleNewChat}
-              className="p-2.5 rounded-lg hover:bg-[#6FEC06]/10 text-white/40 hover:text-[#6FEC06] transition-all duration-200"
+              className="p-2.5 rounded-lg hover:bg-[#7fff00]/10 text-white/60 hover:text-[#7fff00] transition-all duration-200 hover:shadow-[0_0_16px_rgba(127,255,0,0.15)] active:scale-95"
               title="New chat"
             >
               <Plus className="w-5 h-5" />
@@ -1483,7 +1548,7 @@ function ChatInterface({
             {/* Mobile Tool Panel Toggle */}
             <button
               onClick={handleOpenMobileToolPanel}
-              className="lg:hidden relative p-2.5 rounded-lg hover:bg-white/5 text-white/40 hover:text-white transition-all duration-200"
+              className="lg:hidden relative p-2.5 rounded-lg hover:bg-white/[0.08] text-white/60 hover:text-white transition-all duration-200"
               title="Open tools"
             >
               <Wrench className="w-5 h-5" />
@@ -1668,7 +1733,6 @@ function ChatInterface({
                                 src={fileUrl}
                                 alt={filePart.filename || "Full size preview"}
                                 className="max-w-full max-h-[90vh] w-auto h-auto object-contain"
-                                style={{ imageRendering: 'high-quality' }}
                               />
                             </div>
                           </div>
@@ -1690,6 +1754,9 @@ function ChatInterface({
                             const isLastPart = i === message.parts.length - 1;
                             const isActivelyStreaming =
                               isLastMessage && status === "streaming";
+                            // Check if the next part is also a tool
+                            const nextPart = message.parts[i + 1];
+                            const isLastToolInSequence = !nextPart || !nextPart.type.startsWith("tool-");
 
                             switch (part.type) {
                               case "file":
@@ -1787,7 +1854,7 @@ function ChatInterface({
                                     isImageToolResult(toolResult);
 
                                   return (
-                                    <div key={`${message.id}-${i}`}>
+                                    <div key={`${message.id}-${i}`} className={isLastToolInSequence ? "mb-6" : ""}>
                                       <ToolExecution
                                         toolName={toolDisplayName}
                                         toolIcon={toolIcon}
@@ -1824,12 +1891,12 @@ function ChatInterface({
                         {message.role === "assistant" &&
                           isLastMessage &&
                           status === "ready" && (
-                            <MessageActions className="mt-4 pt-3 border-t border-white/[0.06]">
+                            <MessageActions className="mt-4 pt-3 border-t border-white/[0.06] gap-1.5">
                               <MessageAction
                                 onClick={() => regenerate()}
                                 label="Regenerate"
                                 tooltip="Regenerate response"
-                                className="text-white/30 hover:text-[#6FEC06] hover:bg-[#6FEC06]/10 rounded-lg transition-all duration-200"
+                                className="text-white/55 hover:text-[#7fff00] hover:bg-[#7fff00]/15 hover:border-[#7fff00]/30 active:scale-95 rounded-lg transition-all duration-200 border border-transparent hover:shadow-[0_0_16px_rgba(127,255,0,0.15)]"
                               >
                                 <RefreshCcw className="size-3.5" />
                               </MessageAction>
@@ -1843,10 +1910,10 @@ function ChatInterface({
                                 }}
                                 label="Copy"
                                 tooltip="Copy to clipboard"
-                                className="text-white/30 hover:text-[#6FEC06] hover:bg-[#6FEC06]/10 rounded-lg transition-all duration-200"
+                                className="text-white/55 hover:text-[#7fff00] hover:bg-[#7fff00]/15 hover:border-[#7fff00]/30 active:scale-95 rounded-lg transition-all duration-200 border border-transparent hover:shadow-[0_0_16px_rgba(127,255,0,0.15)]"
                               >
                                 {copied ? (
-                                  <Check className="size-3.5 text-[#6FEC06]" />
+                                  <Check className="size-3.5 text-[#7fff00] drop-shadow-[0_0_6px_rgba(127,255,0,0.6)]" />
                                 ) : (
                                   <Copy className="size-3.5" />
                                 )}
@@ -1873,10 +1940,10 @@ function ChatInterface({
                                     ? "Stop speaking"
                                     : "Read aloud"
                                 }
-                                className={`rounded-lg transition-all duration-200 ${
+                                className={`rounded-lg transition-all duration-200 border active:scale-95 ${
                                   speakingMessageId === message.id
-                                    ? "text-[#6FEC06] bg-[#6FEC06]/10"
-                                    : "text-white/30 hover:text-[#6FEC06] hover:bg-[#6FEC06]/10"
+                                    ? "text-[#7fff00] bg-[#7fff00]/15 border-[#7fff00]/35 shadow-[0_0_16px_rgba(127,255,0,0.25)]"
+                                    : "text-white/55 hover:text-[#7fff00] hover:bg-[#7fff00]/15 hover:border-[#7fff00]/30 border-transparent hover:shadow-[0_0_16px_rgba(127,255,0,0.15)]"
                                 }`}
                               >
                                 {speechSynthesis.isLoading &&
@@ -1934,7 +2001,7 @@ function ChatInterface({
                 </div>
               )}
             </ConversationContent>
-            <ConversationScrollButton className="bg-[#0a0520]/90 backdrop-blur-sm border-white/10 text-[#6FEC06] hover:bg-[#6FEC06]/10 hover:border-[#6FEC06]/30 shadow-xl" />
+            <ConversationScrollButton className="bg-[#0a0520]/90 backdrop-blur-sm border-white/[0.12] text-[#7fff00] hover:text-[#7fff00] hover:bg-[#7fff00]/15 hover:border-[#7fff00]/40 hover:shadow-[0_0_20px_rgba(127,255,0,0.3)] hover:scale-105 active:scale-95 transition-all duration-200 shadow-xl [&_svg]:text-[#7fff00] [&_svg]:hover:text-[#7fff00]" />
           </Conversation>
         </div>
 
@@ -1946,6 +2013,8 @@ function ChatInterface({
           onStop={stop}
           speechSynthesis={speechSynthesis}
           identityToken={identityToken}
+          selectedModel={selectedModel}
+          onModelChange={setSelectedModel}
         />
       </div>
 

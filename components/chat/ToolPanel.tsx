@@ -225,7 +225,7 @@ const ToolGroupCard = React.memo(function ToolGroupCard({
           </span>
           <button
             onClick={handleExpand}
-            className="p-1 rounded hover:bg-white/[0.04] text-white/25 hover:text-white/40"
+            className="p-1 rounded hover:bg-white/[0.04] text-white/55 hover:text-white/70 transition-colors"
           >
             <ChevronRight
               className={`w-3 h-3 transition-transform duration-150 ${expanded ? "rotate-90" : ""}`}
@@ -365,7 +365,7 @@ const SkillCard = React.memo(function SkillCard({
           {canExpand && (
             <button
               onClick={handleExpand}
-              className="p-1 rounded hover:bg-white/[0.04] text-white/25 hover:text-white/40"
+              className="p-1 rounded hover:bg-white/[0.04] text-white/55 hover:text-white/70 transition-colors"
             >
               <ChevronRight
                 className={`w-3 h-3 transition-transform duration-150 ${expanded ? "rotate-90" : ""}`}
@@ -455,7 +455,7 @@ const SkillCard = React.memo(function SkillCard({
                   <button
                     type="button"
                     onClick={() => setShowApiKey(!showApiKey)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/40"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-white/50 hover:text-white/70 transition-colors"
                   >
                     {showApiKey ? (
                       <EyeOff className="w-2.5 h-2.5" />
@@ -709,7 +709,7 @@ function ToolsTab({
               toolGroups.forEach((g) => onGroupToggle(g.id, false));
               skills.forEach((s) => onSkillToggle(s.id, false));
             }}
-            className="flex-1 py-1.5 rounded-md text-[11px] font-medium bg-white/[0.02] text-white/40 hover:text-white/60 border border-white/[0.04]"
+            className="flex-1 py-1.5 rounded-md text-[11px] font-medium bg-white/[0.02] text-white/60 hover:text-white/80 hover:bg-white/[0.05] border border-white/[0.04]"
           >
             Disable All
           </button>
@@ -910,18 +910,18 @@ function HistoryTab({
         {/* Search - show when there are multiple chats */}
         {chats.length > 3 && (
           <div className="relative mt-3">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/25" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/50" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search conversations..."
-              className="w-full pl-9 pr-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.06] text-xs text-white placeholder:text-white/25 focus:border-[#6FEC06]/30 focus:bg-white/[0.04] focus:outline-none transition-all"
+              className="w-full pl-9 pr-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.06] text-xs text-white placeholder:text-white/40 focus:border-[#6FEC06]/30 focus:bg-white/[0.04] focus:outline-none transition-all"
             />
             {search && (
               <button
                 onClick={() => setSearch("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded text-white/30 hover:text-white/50"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded text-white/55 hover:text-white/80 transition-colors"
               >
                 <X className="w-3 h-3" />
               </button>
@@ -1083,7 +1083,7 @@ function HistoryTab({
                                 e.stopPropagation();
                                 setDeleteConfirm(chat.id);
                               }}
-                              className="p-1.5 rounded-lg bg-white/[0.03] hover:bg-red-500/10 border border-transparent hover:border-red-500/20 text-white/30 hover:text-red-400 transition-all duration-150"
+                              className="p-1.5 rounded-lg bg-white/[0.03] hover:bg-red-500/10 border border-transparent hover:border-red-500/20 text-white/55 hover:text-red-400 transition-all duration-150"
                               title="Delete conversation"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -1271,7 +1271,7 @@ function TabButton({
       className={`relative p-2.5 rounded-lg transition-all duration-150 ${
         isActive
           ? "bg-[#6FEC06]/15 text-[#6FEC06]"
-          : "text-white/30 hover:text-white/50 hover:bg-white/5"
+          : "text-white/55 hover:text-white/75 hover:bg-white/[0.08]"
       }`}
       title={tab.label}
     >
@@ -1491,7 +1491,7 @@ export function ToolPanel({
             `}
             >
               <GripVertical
-                className={`w-3 h-3 transition-colors duration-150 ${isResizing ? "text-[#6FEC06]" : "text-white/30 group-hover:text-white/50"}`}
+                className={`w-3 h-3 transition-colors duration-150 ${isResizing ? "text-[#6FEC06]" : "text-white/55 group-hover:text-white/75"}`}
               />
             </div>
 
@@ -1534,7 +1534,7 @@ export function ToolPanel({
           <div className="p-2 border-t border-white/[0.04]">
             <button
               onClick={() => onCollapsedChange?.(!collapsed)}
-              className="p-2.5 rounded-lg text-white/30 hover:text-white/50 hover:bg-white/5 w-full flex items-center justify-center transition-all duration-150"
+              className="p-2.5 rounded-lg text-white/55 hover:text-white/75 hover:bg-white/[0.08] w-full flex items-center justify-center transition-all duration-150"
               title={collapsed ? "Expand panel" : "Collapse panel"}
             >
               <ChevronRight
@@ -1606,7 +1606,7 @@ export function ToolPanel({
           </h2>
           <button
             onClick={onMobileClose}
-            className="p-2 rounded-lg text-white/40 hover:text-white hover:bg-white/5"
+            className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/[0.08] transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -1621,7 +1621,7 @@ export function ToolPanel({
               className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
                 activeTab === tab.id
                   ? "bg-[#6FEC06]/15 text-[#6FEC06]"
-                  : "text-white/40 hover:text-white/60 hover:bg-white/5"
+                  : "text-white/60 hover:text-white/80 hover:bg-white/[0.08]"
               }`}
             >
               <span className="[&>svg]:w-4 [&>svg]:h-4">{tab.icon}</span>

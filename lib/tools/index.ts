@@ -26,6 +26,13 @@
  */
 
 import type { Tool } from "ai";
+import { weatherTools } from "./weather";
+import { cryptoTools } from "./crypto";
+import { geolocationTools } from "./geolocation";
+import { wikipediaTools } from "./wikipedia";
+import { datetimeTools } from "./datetime";
+import { imageGenerationTools } from "./imageGeneration";
+import { webSearchTools } from "./webSearch";
 
 // Export types
 export * from "./types";
@@ -76,6 +83,7 @@ export {
   datetimeTools,
 } from "./datetime";
 export { generateImageTool, imageGenerationTools } from "./imageGeneration";
+export { createWebSearchTool, webSearchTools } from "./webSearch";
 
 /**
  * Tool function metadata
@@ -115,6 +123,21 @@ export const TOOL_GROUPS: ToolGroup[] = [
         id: "generateImage",
         name: "Generate Image",
         description: "Create an image from a text prompt",
+      },
+    ],
+  },
+  // Web Search
+  {
+    id: "webSearch",
+    name: "Web Search",
+    description: "Search the web for real-time information",
+    icon: "🔍",
+    source: "Anthropic",
+    functions: [
+      {
+        id: "web_search",
+        name: "Web Search",
+        description: "Search the web for up-to-date information",
       },
     ],
   },
@@ -353,14 +376,6 @@ export const TOOL_GROUPS: ToolGroup[] = [
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function getAllTools(): Record<string, Tool<any, any>> {
-  // Import tools dynamically to avoid circular deps
-  const { weatherTools } = require("./weather");
-  const { cryptoTools } = require("./crypto");
-  const { geolocationTools } = require("./geolocation");
-  const { wikipediaTools } = require("./wikipedia");
-  const { datetimeTools } = require("./datetime");
-  const { imageGenerationTools } = require("./imageGeneration");
-
   return {
     ...weatherTools,
     ...cryptoTools,
@@ -368,37 +383,38 @@ export function getAllTools(): Record<string, Tool<any, any>> {
     ...wikipediaTools,
     ...datetimeTools,
     ...imageGenerationTools,
+    ...webSearchTools,
   };
 }
 
 /**
  * Get tools for specific groups
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function getToolsForGroups(
   groupIds: string[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Record<string, Tool<any, any>> {
-  const toolModules: Record<
-    string,
-    () => Record<string, Tool<unknown, unknown>>
-  > = {
-    weather: () => require("./weather").weatherTools,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const toolModules: Record<string, Record<string, Tool<any, any>>> = {
+    weather: weatherTools,
     // All crypto-related groups use the same cryptoTools (they're all in one file)
-    crypto: () => require("./crypto").cryptoTools,
-    cryptoTrending: () => require("./crypto").cryptoTools,
-    cryptoGlobal: () => require("./crypto").cryptoTools,
-    onchainDEX: () => require("./crypto").cryptoTools,
-    geolocation: () => require("./geolocation").geolocationTools,
-    wikipedia: () => require("./wikipedia").wikipediaTools,
-    datetime: () => require("./datetime").datetimeTools,
-    imageGeneration: () => require("./imageGeneration").imageGenerationTools,
+    crypto: cryptoTools,
+    cryptoTrending: cryptoTools,
+    cryptoGlobal: cryptoTools,
+    onchainDEX: cryptoTools,
+    geolocation: geolocationTools,
+    wikipedia: wikipediaTools,
+    datetime: datetimeTools,
+    imageGeneration: imageGenerationTools,
+    webSearch: webSearchTools,
   };
 
-  const result: Record<string, Tool<unknown, unknown>> = {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const result: Record<string, Tool<any, any>> = {};
   for (const groupId of groupIds) {
-    const getTools = toolModules[groupId];
-    if (getTools) {
-      Object.assign(result, getTools());
+    const tools = toolModules[groupId];
+    if (tools) {
+      Object.assign(result, tools);
     }
   }
   return result;

@@ -95,14 +95,14 @@ function ImageView({
         <div className="flex items-center gap-1">
           <button
             onClick={handleOpenInNewTab}
-            className="p-1.5 rounded-lg hover:bg-white/[0.06] text-white/30 hover:text-white/60 transition-all duration-200"
+            className="p-1.5 rounded-lg hover:bg-[#6FEC06]/15 text-white/55 hover:text-white hover:border-[#6FEC06]/25 transition-all duration-200 border border-transparent active:scale-95 hover:shadow-[0_0_8px_rgba(111,236,6,0.12)]"
             title="Open in new tab"
           >
             <ExternalLink className="w-3 h-3" />
           </button>
           <button
             onClick={handleDownload}
-            className="p-1.5 rounded-lg hover:bg-white/[0.06] text-white/30 hover:text-white/60 transition-all duration-200"
+            className="p-1.5 rounded-lg hover:bg-[#6FEC06]/15 text-white/55 hover:text-white hover:border-[#6FEC06]/25 transition-all duration-200 border border-transparent active:scale-95 hover:shadow-[0_0_8px_rgba(111,236,6,0.12)]"
             title="Download image"
           >
             <Download className="w-3 h-3" />
@@ -164,10 +164,10 @@ function JsonView({ data, label }: { data: unknown; label: string }) {
         </span>
         <button
           onClick={handleCopy}
-          className="p-1.5 rounded-lg hover:bg-white/[0.06] text-white/30 hover:text-white/60 transition-all duration-200"
+          className="p-1.5 rounded-lg hover:bg-[#6FEC06]/15 text-white/55 hover:text-white hover:border-[#6FEC06]/25 transition-all duration-200 border border-transparent active:scale-95 hover:shadow-[0_0_8px_rgba(111,236,6,0.12)]"
         >
           {copied ? (
-            <Check className="w-3 h-3 text-[#6FEC06]" />
+            <Check className="w-3 h-3 text-[#6FEC06] drop-shadow-[0_0_4px_rgba(111,236,6,0.5)]" />
           ) : (
             <Copy className="w-3 h-3" />
           )}
@@ -299,7 +299,7 @@ export function ToolExecution({
             </span>
           </div>
           <ChevronDown
-            className={`w-4 h-4 text-white/30 transition-transform duration-200 ${
+            className={`w-4 h-4 text-white/55 transition-transform duration-200 ${
               isExpanded ? "rotate-180" : ""
             }`}
           />

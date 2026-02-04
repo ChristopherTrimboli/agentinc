@@ -89,12 +89,14 @@ export async function POST(req: Request) {
   const {
     messages,
     agentId,
+    model = "anthropic/claude-haiku-4-5", // Default to Haiku 4.5
     enabledSkills = [],
     enabledToolGroups = [],
     skillApiKeys = {},
   }: {
     messages: UIMessage[];
     agentId?: string;
+    model?: string;
     enabledSkills?: AvailableSkill[];
     enabledToolGroups?: string[];
     skillApiKeys?: Record<string, string>; // User-provided API keys
@@ -102,6 +104,7 @@ export async function POST(req: Request) {
 
   console.log("[Chat API] Request:", {
     agentId,
+    model,
     enabledSkills,
     enabledToolGroups,
     hasUserApiKeys: Object.keys(skillApiKeys).length > 0,
@@ -313,17 +316,28 @@ export async function POST(req: Request) {
       enabledToolGroups,
       Object.keys(groupTools),
     );
-    // Mark group tools as deferred for tool search
+    
+    // Separate provider-defined tools from regular tools
+    // Provider-defined tools like web_search should NOT be deferred
+    const providerDefinedTools = ["web_search"];
+    
     const deferredGroupTools = Object.fromEntries(
-      Object.entries(groupTools).map(([name, tool]) => [
-        name,
-        {
-          ...tool,
-          providerOptions: {
-            anthropic: { deferLoading: true },
+      Object.entries(groupTools).map(([name, tool]) => {
+        // Don't defer provider-defined tools
+        if (providerDefinedTools.includes(name)) {
+          return [name, tool];
+        }
+        // Defer regular tools for tool search
+        return [
+          name,
+          {
+            ...tool,
+            providerOptions: {
+              anthropic: { deferLoading: true },
+            },
           },
-        },
-      ]),
+        ];
+      }),
     );
     tools = { ...tools, ...deferredGroupTools };
   }
@@ -359,7 +373,7 @@ Remember: CALL these tools, don't write code about them!`;
   }
 
   const result = streamText({
-    model: "anthropic/claude-haiku-4-5",
+    model,
     system: systemPrompt,
     messages: await convertToModelMessages(messages),
     tools: Object.keys(tools).length > 0 ? tools : undefined,
