@@ -124,6 +124,7 @@ interface ToolGroupInfo {
   name: string;
   description: string;
   icon: string;
+  category: "AI" | "CRYPTO" | "UTILITIES" | "SOCIAL";
   logoUrl?: string;
   source?: string;
   requiresAuth?: boolean;
@@ -1055,6 +1056,7 @@ function ChatInterface({
               name: g.name,
               description: g.description,
               icon: g.icon,
+              category: g.category,
               logoUrl: g.logoUrl,
               source: g.source,
               requiresAuth: g.requiresAuth,

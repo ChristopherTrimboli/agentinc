@@ -12,6 +12,7 @@ export async function GET() {
     name: group.name,
     description: group.description,
     icon: group.icon,
+    category: group.category,
     logoUrl: group.logoUrl,
     source: group.source,
     requiresAuth: group.requiresAuth,

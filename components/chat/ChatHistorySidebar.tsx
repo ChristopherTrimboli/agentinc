@@ -186,7 +186,7 @@ export function ChatHistorySidebar({
         <div className="p-2 space-y-2">
           <button
             onClick={() => onCollapsedChange?.(false)}
-            className="w-full p-2.5 rounded-lg hover:bg-white/5 text-white/40 hover:text-white transition-all"
+            className="w-full p-2.5 rounded-lg hover:bg-white/5 text-white/55 hover:text-white transition-all"
             title="Show chat history"
           >
             <History className="w-5 h-5 mx-auto" />
@@ -217,14 +217,14 @@ export function ChatHistorySidebar({
             {/* Mobile close */}
             <button
               onClick={onMobileClose}
-              className="lg:hidden p-1.5 rounded-lg hover:bg-white/5 text-white/40 hover:text-white transition-all"
+              className="lg:hidden p-1.5 rounded-lg hover:bg-white/5 text-white/55 hover:text-white transition-all"
             >
               <X className="w-4 h-4" />
             </button>
             {/* Desktop collapse */}
             <button
               onClick={() => onCollapsedChange?.(true)}
-              className="hidden lg:flex p-1.5 rounded-lg hover:bg-white/5 text-white/40 hover:text-white transition-all"
+              className="hidden lg:flex p-1.5 rounded-lg hover:bg-white/5 text-white/55 hover:text-white transition-all"
               title="Collapse"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -244,13 +244,13 @@ export function ChatHistorySidebar({
         {/* Search */}
         {chats.length > 5 && (
           <div className="relative mt-3">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/50" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search chats..."
-              className="w-full pl-8 pr-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white placeholder:text-white/30 focus:border-[#6FEC06]/30 focus:outline-none"
+              className="w-full pl-8 pr-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white placeholder:text-white/50 focus:border-[#6FEC06]/30 focus:outline-none"
             />
           </div>
         )}
@@ -260,16 +260,16 @@ export function ChatHistorySidebar({
       <div className="flex-1 overflow-y-auto p-2 space-y-4">
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-5 h-5 text-white/30 animate-spin" />
+            <Loader2 className="w-5 h-5 text-white/50 animate-spin" />
           </div>
         ) : filteredChats.length === 0 ? (
           <div className="text-center py-8 px-2">
-            <MessageSquare className="w-8 h-8 mx-auto mb-2 text-white/20" />
-            <p className="text-xs text-white/40">
+            <MessageSquare className="w-8 h-8 mx-auto mb-2 text-white/40" />
+            <p className="text-xs text-white/55">
               {search ? "No chats match your search" : "No chat history yet"}
             </p>
             {!search && (
-              <p className="text-[10px] text-white/30 mt-1">
+              <p className="text-[10px] text-white/50 mt-1">
                 Start a conversation to see it here
               </p>
             )}
@@ -277,7 +277,7 @@ export function ChatHistorySidebar({
         ) : (
           Object.entries(groupedChats).map(([group, groupChats]) => (
             <div key={group}>
-              <h3 className="text-[10px] font-medium text-white/30 uppercase tracking-wider px-2 mb-1.5">
+              <h3 className="text-[10px] font-medium text-white/50 uppercase tracking-wider px-2 mb-1.5">
                 {group}
               </h3>
               <div className="space-y-0.5">
@@ -330,14 +330,14 @@ export function ChatHistorySidebar({
 
                           {/* Last message preview */}
                           {chat.lastMessage && (
-                            <p className="text-[10px] text-white/40 truncate mt-0.5">
+                            <p className="text-[10px] text-white/55 truncate mt-0.5">
                               {chat.lastMessage.role === "user" ? "You: " : ""}
                               {chat.lastMessage.content}
                             </p>
                           )}
 
                           {/* Time */}
-                          <p className="text-[10px] text-white/30 mt-0.5 flex items-center gap-1">
+                          <p className="text-[10px] text-white/50 mt-0.5 flex items-center gap-1">
                             <Clock className="w-2.5 h-2.5" />
                             {formatDistanceToNow(new Date(chat.updatedAt), {
                               addSuffix: true,
@@ -364,7 +364,7 @@ export function ChatHistorySidebar({
                           </button>
                           <button
                             onClick={() => setDeleteConfirm(null)}
-                            className="p-1 rounded text-white/40 hover:bg-white/10 text-[10px]"
+                            className="p-1 rounded text-white/55 hover:bg-white/10 text-[10px]"
                           >
                             Cancel
                           </button>
@@ -375,7 +375,7 @@ export function ChatHistorySidebar({
                             e.stopPropagation();
                             setDeleteConfirm(chat.id);
                           }}
-                          className="p-1.5 rounded hover:bg-white/10 text-white/30 hover:text-red-400"
+                          className="p-1.5 rounded hover:bg-white/10 text-white/50 hover:text-red-400"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>

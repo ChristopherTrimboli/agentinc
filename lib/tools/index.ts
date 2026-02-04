@@ -33,6 +33,7 @@ import { wikipediaTools } from "./wikipedia";
 import { datetimeTools } from "./datetime";
 import { imageGenerationTools } from "./imageGeneration";
 import { webSearchTools } from "./webSearch";
+import { twilioTools } from "./twilio";
 // Note: Twitter tools are created dynamically with user OAuth token via createTwitterTools()
 
 // Export types
@@ -91,6 +92,31 @@ export {
   refreshTwitterToken,
   type TwitterOnboardingContext,
 } from "./twitter";
+// Twilio Communications (SMS, MMS, Voice, WhatsApp)
+export {
+  // SMS
+  sendSms,
+  // MMS / Rich Media
+  sendMms,
+  sendImage,
+  // Voice Calls
+  makeCall,
+  playAudioCall,
+  // WhatsApp
+  sendWhatsApp,
+  // Status & History
+  checkMessageStatus,
+  checkCallStatus,
+  getMessageHistory,
+  // Configuration
+  checkTwilioConfig,
+  // Tool bundles
+  twilioTools,
+  smsTools,
+  mmsTools,
+  voiceTools,
+  whatsAppTools,
+} from "./twilio";
 
 /**
  * Tool function metadata
@@ -102,6 +128,11 @@ export interface ToolFunction {
 }
 
 /**
+ * Tool category for organizing groups
+ */
+export type ToolCategory = "AI" | "CRYPTO" | "UTILITIES" | "SOCIAL";
+
+/**
  * Tool group - a collection of related tool functions
  */
 export interface ToolGroup {
@@ -109,6 +140,7 @@ export interface ToolGroup {
   name: string;
   description: string;
   icon: string;
+  category: ToolCategory;
   logoUrl?: string; // URL to actual logo image from the web
   source?: string; // e.g., "CoinGecko", "Wikipedia", etc.
   requiresAuth?: boolean; // Whether this tool requires OAuth authentication
@@ -116,15 +148,28 @@ export interface ToolGroup {
 }
 
 /**
+ * Tool categories for organized UI display
+ */
+export const TOOL_CATEGORIES: ToolCategory[] = [
+  "AI",
+  "CRYPTO",
+  "UTILITIES",
+  "SOCIAL",
+];
+
+/**
  * Tool groups for organized UI display
  */
 export const TOOL_GROUPS: ToolGroup[] = [
-  // AI Tools
+  // ═══════════════════════════════════════════════════════════════════════════
+  // AI TOOLS
+  // ═══════════════════════════════════════════════════════════════════════════
   {
     id: "imageGeneration",
     name: "Image Gen",
     description: "Generate images from text descriptions",
     icon: "🎨",
+    category: "AI",
     source: "AI",
     functions: [
       {
@@ -134,12 +179,12 @@ export const TOOL_GROUPS: ToolGroup[] = [
       },
     ],
   },
-  // Web Search
   {
     id: "webSearch",
     name: "Web Search",
     description: "Search the web for real-time information",
     icon: "🔍",
+    category: "AI",
     source: "Anthropic",
     functions: [
       {
@@ -149,13 +194,234 @@ export const TOOL_GROUPS: ToolGroup[] = [
       },
     ],
   },
-  // Twitter/X Integration
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CRYPTO TOOLS
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    id: "crypto",
+    name: "Crypto Market",
+    description: "Prices, trending coins, and global market data",
+    icon: "💰",
+    category: "CRYPTO",
+    logoUrl:
+      "https://static.coingecko.com/s/thumbnail-007177f3eca19695592f0b8b0eabbdae282b54154e1be912285c9034ea6cbaf2.png",
+    source: "CoinGecko",
+    functions: [
+      // Prices
+      {
+        id: "getCryptoPrice",
+        name: "Get Price",
+        description: "Get price and 24h change for a coin",
+      },
+      {
+        id: "getMultipleCryptoPrices",
+        name: "Multiple Prices",
+        description: "Get prices for multiple coins at once",
+      },
+      {
+        id: "getTopCoins",
+        name: "Top Coins",
+        description: "Top coins ranked by market cap",
+      },
+      {
+        id: "getCoinDetails",
+        name: "Coin Details",
+        description: "Full details, links, and socials for a coin",
+      },
+      {
+        id: "getCoinHistory",
+        name: "Price History",
+        description: "Historical price data for charting",
+      },
+      {
+        id: "getCoinOHLC",
+        name: "OHLC Data",
+        description: "Candlestick data for technical analysis",
+      },
+      // Trending & Search
+      {
+        id: "getTrendingCoins",
+        name: "Trending Coins",
+        description: "What's hot in the last 24 hours",
+      },
+      {
+        id: "searchCrypto",
+        name: "Search",
+        description: "Search coins, exchanges, categories",
+      },
+      {
+        id: "getCategories",
+        name: "Categories",
+        description: "DeFi, Gaming, Layer 1, Meme coins, etc.",
+      },
+      // Global Market Data
+      {
+        id: "getGlobalMarketData",
+        name: "Global Data",
+        description: "Total market cap, BTC dominance, etc.",
+      },
+      {
+        id: "getDeFiGlobalData",
+        name: "DeFi Data",
+        description: "DeFi market cap and volume",
+      },
+      {
+        id: "getExchanges",
+        name: "Exchanges",
+        description: "Top exchanges by volume",
+      },
+      {
+        id: "getExchangeRates",
+        name: "Exchange Rates",
+        description: "BTC rates to 60+ currencies",
+      },
+    ],
+  },
+  {
+    id: "onchainDEX",
+    name: "Onchain DEX",
+    description: "DEX pools, trades, and token data",
+    icon: "⛓️",
+    category: "CRYPTO",
+    logoUrl: "https://www.geckoterminal.com/favicon.ico",
+    source: "GeckoTerminal",
+    functions: [
+      {
+        id: "getTrendingPools",
+        name: "Trending Pools",
+        description: "Hot liquidity pools across chains",
+      },
+      {
+        id: "getNewPools",
+        name: "New Pools",
+        description: "Recently created pools & launches",
+      },
+      {
+        id: "getTokenByContract",
+        name: "Token Lookup",
+        description: "Look up token by contract address",
+      },
+      {
+        id: "searchPools",
+        name: "Search Pools",
+        description: "Find pools by token name or address",
+      },
+      {
+        id: "getPoolTrades",
+        name: "Pool Trades",
+        description: "Recent trades for a pool",
+      },
+    ],
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // UTILITIES
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    id: "weather",
+    name: "Weather",
+    description: "Current conditions and forecasts",
+    icon: "🌤️",
+    category: "UTILITIES",
+    functions: [
+      {
+        id: "getWeather",
+        name: "Current Weather",
+        description: "Get current weather for a location",
+      },
+      {
+        id: "getForecast",
+        name: "Forecast",
+        description: "Get weather forecast for upcoming days",
+      },
+    ],
+  },
+  {
+    id: "geolocation",
+    name: "IP Geolocation",
+    description: "Geographic location from IP addresses",
+    icon: "📍",
+    category: "UTILITIES",
+    logoUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
+    functions: [
+      {
+        id: "geolocateIP",
+        name: "Locate IP",
+        description: "Get location for an IP address",
+      },
+      {
+        id: "batchGeolocateIPs",
+        name: "Batch Locate",
+        description: "Geolocate multiple IPs at once",
+      },
+    ],
+  },
+  {
+    id: "wikipedia",
+    name: "Wikipedia",
+    description: "Encyclopedia articles and search",
+    icon: "📚",
+    category: "UTILITIES",
+    logoUrl: "https://en.wikipedia.org/static/apple-touch/wikipedia.png",
+    functions: [
+      {
+        id: "getWikiSummary",
+        name: "Get Summary",
+        description: "Get a summary of an article",
+      },
+      {
+        id: "searchWikipedia",
+        name: "Search",
+        description: "Search for articles",
+      },
+    ],
+  },
+  {
+    id: "datetime",
+    name: "Date & Time",
+    description: "Timezones, calculations, formatting",
+    icon: "🕐",
+    category: "UTILITIES",
+    functions: [
+      {
+        id: "getCurrentTime",
+        name: "Current Time",
+        description: "Get time in any timezone",
+      },
+      {
+        id: "convertTimezone",
+        name: "Convert Timezone",
+        description: "Convert between timezones",
+      },
+      {
+        id: "dateDiff",
+        name: "Date Difference",
+        description: "Calculate difference between dates",
+      },
+      {
+        id: "addToDate",
+        name: "Add/Subtract",
+        description: "Add or subtract time from a date",
+      },
+      {
+        id: "formatDate",
+        name: "Format",
+        description: "Format dates for different locales",
+      },
+    ],
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SOCIAL TOOLS
+  // ═══════════════════════════════════════════════════════════════════════════
   {
     id: "twitter",
     name: "Twitter/X",
     description:
       "Post tweets, interact, search, and manage your Twitter account",
     icon: "𝕏",
+    category: "SOCIAL",
     logoUrl: "https://abs.twimg.com/favicons/twitter.3.ico",
     source: "Twitter",
     requiresAuth: true,
@@ -244,230 +510,69 @@ export const TOOL_GROUPS: ToolGroup[] = [
       },
     ],
   },
-  // Crypto Price Tools
   {
-    id: "crypto",
-    name: "Crypto Prices",
-    description: "Real-time cryptocurrency prices and market data",
-    icon: "💰",
-    logoUrl:
-      "https://static.coingecko.com/s/thumbnail-007177f3eca19695592f0b8b0eabbdae282b54154e1be912285c9034ea6cbaf2.png",
-    source: "CoinGecko",
+    id: "twilio",
+    name: "Communications",
+    description: "SMS, MMS, voice calls, and WhatsApp via Twilio",
+    icon: "📱",
+    category: "SOCIAL",
+    logoUrl: "https://www.twilio.com/assets/icons/twilio-icon.svg",
+    source: "Twilio",
     functions: [
+      // SMS
       {
-        id: "getCryptoPrice",
-        name: "Get Price",
-        description: "Get price and 24h change for a coin",
+        id: "sendSms",
+        name: "Send SMS",
+        description: "Send a text message to a phone number",
+      },
+      // MMS / Rich Media
+      {
+        id: "sendMms",
+        name: "Send MMS",
+        description: "Send images, videos, audio, or documents",
       },
       {
-        id: "getMultipleCryptoPrices",
-        name: "Multiple Prices",
-        description: "Get prices for multiple coins at once",
+        id: "sendImage",
+        name: "Send Image",
+        description: "Send a photo or image via MMS",
+      },
+      // Voice Calls
+      {
+        id: "makeCall",
+        name: "Make Call",
+        description: "Call and speak a message with text-to-speech",
       },
       {
-        id: "getTopCoins",
-        name: "Top Coins",
-        description: "Top coins ranked by market cap",
+        id: "playAudioCall",
+        name: "Play Audio",
+        description: "Call and play an audio file",
+      },
+      // WhatsApp
+      {
+        id: "sendWhatsApp",
+        name: "Send WhatsApp",
+        description: "Send a WhatsApp message",
+      },
+      // Status & History
+      {
+        id: "checkMessageStatus",
+        name: "Message Status",
+        description: "Check SMS/MMS delivery status",
       },
       {
-        id: "getCoinDetails",
-        name: "Coin Details",
-        description: "Full details, links, and socials for a coin",
+        id: "checkCallStatus",
+        name: "Call Status",
+        description: "Check voice call status",
       },
       {
-        id: "getCoinHistory",
-        name: "Price History",
-        description: "Historical price data for charting",
+        id: "getMessageHistory",
+        name: "Message History",
+        description: "Get recent sent/received messages",
       },
       {
-        id: "getCoinOHLC",
-        name: "OHLC Data",
-        description: "Candlestick data for technical analysis",
-      },
-    ],
-  },
-  // Trending & Search
-  {
-    id: "cryptoTrending",
-    name: "Trending & Search",
-    description: "Discover trending coins and search crypto",
-    icon: "🔥",
-    logoUrl:
-      "https://static.coingecko.com/s/thumbnail-007177f3eca19695592f0b8b0eabbdae282b54154e1be912285c9034ea6cbaf2.png",
-    source: "CoinGecko",
-    functions: [
-      {
-        id: "getTrendingCoins",
-        name: "Trending Coins",
-        description: "What's hot in the last 24 hours",
-      },
-      {
-        id: "searchCrypto",
-        name: "Search",
-        description: "Search coins, exchanges, categories",
-      },
-      {
-        id: "getCategories",
-        name: "Categories",
-        description: "DeFi, Gaming, Layer 1, Meme coins, etc.",
-      },
-    ],
-  },
-  // Global Market Data
-  {
-    id: "cryptoGlobal",
-    name: "Market Overview",
-    description: "Global crypto market statistics",
-    icon: "🌍",
-    logoUrl:
-      "https://static.coingecko.com/s/thumbnail-007177f3eca19695592f0b8b0eabbdae282b54154e1be912285c9034ea6cbaf2.png",
-    source: "CoinGecko",
-    functions: [
-      {
-        id: "getGlobalMarketData",
-        name: "Global Data",
-        description: "Total market cap, BTC dominance, etc.",
-      },
-      {
-        id: "getDeFiGlobalData",
-        name: "DeFi Data",
-        description: "DeFi market cap and volume",
-      },
-      {
-        id: "getExchanges",
-        name: "Exchanges",
-        description: "Top exchanges by volume",
-      },
-      {
-        id: "getExchangeRates",
-        name: "Exchange Rates",
-        description: "BTC rates to 60+ currencies",
-      },
-    ],
-  },
-  // Onchain DEX Tools
-  {
-    id: "onchainDEX",
-    name: "Onchain DEX",
-    description: "DEX pools, trades, and token data",
-    icon: "⛓️",
-    logoUrl: "https://www.geckoterminal.com/favicon.ico",
-    source: "GeckoTerminal",
-    functions: [
-      {
-        id: "getTrendingPools",
-        name: "Trending Pools",
-        description: "Hot liquidity pools across chains",
-      },
-      {
-        id: "getNewPools",
-        name: "New Pools",
-        description: "Recently created pools & launches",
-      },
-      {
-        id: "getTokenByContract",
-        name: "Token Lookup",
-        description: "Look up token by contract address",
-      },
-      {
-        id: "searchPools",
-        name: "Search Pools",
-        description: "Find pools by token name or address",
-      },
-      {
-        id: "getPoolTrades",
-        name: "Pool Trades",
-        description: "Recent trades for a pool",
-      },
-    ],
-  },
-  // Utility Tools
-  {
-    id: "weather",
-    name: "Weather",
-    description: "Current conditions and forecasts",
-    icon: "🌤️",
-    functions: [
-      {
-        id: "getWeather",
-        name: "Current Weather",
-        description: "Get current weather for a location",
-      },
-      {
-        id: "getForecast",
-        name: "Forecast",
-        description: "Get weather forecast for upcoming days",
-      },
-    ],
-  },
-  {
-    id: "geolocation",
-    name: "IP Geolocation",
-    description: "Geographic location from IP addresses",
-    icon: "📍",
-    logoUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
-    functions: [
-      {
-        id: "geolocateIP",
-        name: "Locate IP",
-        description: "Get location for an IP address",
-      },
-      {
-        id: "batchGeolocateIPs",
-        name: "Batch Locate",
-        description: "Geolocate multiple IPs at once",
-      },
-    ],
-  },
-  {
-    id: "wikipedia",
-    name: "Wikipedia",
-    description: "Encyclopedia articles and search",
-    icon: "📚",
-    logoUrl: "https://en.wikipedia.org/static/apple-touch/wikipedia.png",
-    functions: [
-      {
-        id: "getWikiSummary",
-        name: "Get Summary",
-        description: "Get a summary of an article",
-      },
-      {
-        id: "searchWikipedia",
-        name: "Search",
-        description: "Search for articles",
-      },
-    ],
-  },
-  {
-    id: "datetime",
-    name: "Date & Time",
-    description: "Timezones, calculations, formatting",
-    icon: "🕐",
-    functions: [
-      {
-        id: "getCurrentTime",
-        name: "Current Time",
-        description: "Get time in any timezone",
-      },
-      {
-        id: "convertTimezone",
-        name: "Convert Timezone",
-        description: "Convert between timezones",
-      },
-      {
-        id: "dateDiff",
-        name: "Date Difference",
-        description: "Calculate difference between dates",
-      },
-      {
-        id: "addToDate",
-        name: "Add/Subtract",
-        description: "Add or subtract time from a date",
-      },
-      {
-        id: "formatDate",
-        name: "Format",
-        description: "Format dates for different locales",
+        id: "checkTwilioConfig",
+        name: "Check Config",
+        description: "Verify Twilio is configured",
       },
     ],
   },
@@ -490,6 +595,7 @@ export function getAllTools(): Record<string, Tool<any, any>> {
     ...datetimeTools,
     ...imageGenerationTools,
     ...webSearchTools,
+    ...twilioTools,
     // Note: twitterTools excluded - requires user OAuth token, added dynamically in chat API
   };
 }
@@ -506,17 +612,19 @@ export function getToolsForGroups(
 ): Record<string, Tool<any, any>> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const toolModules: Record<string, Record<string, Tool<any, any>>> = {
-    weather: weatherTools,
-    // All crypto-related groups use the same cryptoTools (they're all in one file)
+    // AI
+    imageGeneration: imageGenerationTools,
+    webSearch: webSearchTools,
+    // CRYPTO
     crypto: cryptoTools,
-    cryptoTrending: cryptoTools,
-    cryptoGlobal: cryptoTools,
     onchainDEX: cryptoTools,
+    // UTILITIES
+    weather: weatherTools,
     geolocation: geolocationTools,
     wikipedia: wikipediaTools,
     datetime: datetimeTools,
-    imageGeneration: imageGenerationTools,
-    webSearch: webSearchTools,
+    // SOCIAL
+    twilio: twilioTools,
     // Note: twitter group is handled separately in chat API (requires OAuth token)
   };
 
@@ -529,6 +637,28 @@ export function getToolsForGroups(
     }
   }
   return result;
+}
+
+/**
+ * Get tool groups by category
+ */
+export function getToolGroupsByCategory(category: ToolCategory): ToolGroup[] {
+  return TOOL_GROUPS.filter((g) => g.category === category);
+}
+
+/**
+ * Get all tool groups organized by category
+ */
+export function getToolGroupsGroupedByCategory(): Record<
+  ToolCategory,
+  ToolGroup[]
+> {
+  return {
+    AI: getToolGroupsByCategory("AI"),
+    CRYPTO: getToolGroupsByCategory("CRYPTO"),
+    UTILITIES: getToolGroupsByCategory("UTILITIES"),
+    SOCIAL: getToolGroupsByCategory("SOCIAL"),
+  };
 }
 
 /**

@@ -47,14 +47,14 @@ body {
 
   /* Text colors */
   --text-primary: #ffffff;
-  --text-secondary: rgba(255, 255, 255, 0.7);
-  --text-muted: rgba(255, 255, 255, 0.5);
-  --text-dimmed: rgba(255, 255, 255, 0.3);
+  --text-secondary: rgba(255, 255, 255, 0.8);
+  --text-muted: rgba(255, 255, 255, 0.65);
+  --text-dimmed: rgba(255, 255, 255, 0.5);
 
   /* shadcn/ui compatible color tokens for AI Elements (dark mode default) */
   --radius: 0.75rem;
   --muted: #1a1050;
-  --muted-foreground: rgba(255, 255, 255, 0.5);
+  --muted-foreground: rgba(255, 255, 255, 0.65);
   --popover: #0a0520;
   --popover-foreground: #ffffff;
   --card: #0a0520;

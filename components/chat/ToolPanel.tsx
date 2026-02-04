@@ -52,12 +52,16 @@ export interface ToolFunction {
   description: string;
 }
 
+/** Tool category for organizing groups */
+export type ToolCategory = "AI" | "CRYPTO" | "UTILITIES" | "SOCIAL";
+
 /** Tool group - a collection of related functions */
 export interface ToolGroup {
   id: string;
   name: string;
   description: string;
   icon: string;
+  category: ToolCategory;
   logoUrl?: string; // URL to actual logo image from the web
   source?: string;
   requiresAuth?: boolean; // Whether this tool requires OAuth authentication
@@ -194,8 +198,8 @@ const ToolGroupCard = React.memo(function ToolGroupCard({
     <div
       className={`rounded-lg border transition-all duration-150 ${
         group.enabled
-          ? "bg-[#6FEC06]/[0.06] border-[#6FEC06]/20"
-          : "bg-transparent border-white/[0.04] hover:border-white/[0.08]"
+          ? "bg-[#6FEC06]/[0.06] border-[#6FEC06]/20 hover:bg-[#6FEC06]/[0.12] hover:border-[#6FEC06]/30"
+          : "bg-transparent border-white/[0.04] hover:bg-white/[0.04] hover:border-white/[0.12]"
       }`}
     >
       <div
@@ -233,7 +237,7 @@ const ToolGroupCard = React.memo(function ToolGroupCard({
         {/* Count + Actions */}
         <div className="flex items-center gap-1 shrink-0">
           <span
-            className={`text-[10px] tabular-nums min-w-[12px] text-right ${group.enabled ? "text-white/60" : "text-white/45"}`}
+            className={`text-[10px] tabular-nums min-w-[12px] text-right ${group.enabled ? "text-white/70" : "text-white/55"}`}
           >
             {group.functions.length}
           </span>
@@ -381,7 +385,7 @@ const SkillCard = React.memo(function SkillCard({
           {/* Function count */}
           {hasFunctions && (
             <span
-              className={`text-[10px] tabular-nums min-w-[12px] text-right ${skill.enabled ? "text-white/60" : "text-white/45"}`}
+              className={`text-[10px] tabular-nums min-w-[12px] text-right ${skill.enabled ? "text-white/70" : "text-white/55"}`}
             >
               {skill.functions!.length}
             </span>
@@ -527,24 +531,24 @@ const SkillCard = React.memo(function SkillCard({
 
 // Category icons and labels
 const CATEGORY_CONFIG: Record<
-  string,
+  ToolCategory,
   { icon: React.ReactNode; label: string }
 > = {
   AI: {
     icon: <Sparkles className="w-2.5 h-2.5 text-purple-400/50" />,
     label: "AI",
   },
-  CoinGecko: {
+  CRYPTO: {
     icon: <Zap className="w-2.5 h-2.5 text-amber-400/50" />,
-    label: "CoinGecko",
+    label: "Crypto",
   },
-  GeckoTerminal: {
-    icon: <Zap className="w-2.5 h-2.5 text-emerald-400/50" />,
-    label: "GeckoTerminal",
-  },
-  Utilities: {
+  UTILITIES: {
     icon: <Wrench className="w-2.5 h-2.5 text-[#6FEC06]/50" />,
     label: "Utilities",
+  },
+  SOCIAL: {
+    icon: <MessageSquare className="w-2.5 h-2.5 text-blue-400/50" />,
+    label: "Social",
   },
 };
 
@@ -594,24 +598,26 @@ function ToolsTab({
     [skills, search],
   );
 
-  // Group tools by their source/category
+  // Group tools by their category
   const { groupedTools, orderedCategories } = useMemo(() => {
-    const grouped = filteredGroups.reduce<Record<string, ToolGroup[]>>(
+    const grouped = filteredGroups.reduce<Record<ToolCategory, ToolGroup[]>>(
       (acc, group) => {
-        const category = group.source || "Utilities";
+        const category = group.category;
         if (!acc[category]) acc[category] = [];
         acc[category].push(group);
         return acc;
       },
-      {},
+      {} as Record<ToolCategory, ToolGroup[]>,
     );
 
-    // Order categories: AI, CoinGecko, GeckoTerminal, then Utilities
-    const categoryOrder = ["AI", "CoinGecko", "GeckoTerminal", "Utilities"];
-    const ordered = [
-      ...categoryOrder.filter((c) => grouped[c]),
-      ...Object.keys(grouped).filter((c) => !categoryOrder.includes(c)),
+    // Order categories: AI, CRYPTO, UTILITIES, SOCIAL
+    const categoryOrder: ToolCategory[] = [
+      "AI",
+      "CRYPTO",
+      "UTILITIES",
+      "SOCIAL",
     ];
+    const ordered = categoryOrder.filter((c) => grouped[c]?.length > 0);
 
     return { groupedTools: grouped, orderedCategories: ordered };
   }, [filteredGroups]);
@@ -648,7 +654,7 @@ function ToolsTab({
       {/* Search */}
       <div className="px-2.5 py-2 border-b border-white/[0.04]">
         <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/20" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/40" />
           <input
             type="text"
             value={search}
@@ -663,10 +669,7 @@ function ToolsTab({
       <div className="flex-1 overflow-y-auto px-2.5 py-2 space-y-3">
         {/* Tool Groups by Category */}
         {orderedCategories.map((category) => {
-          const categoryConfig = CATEGORY_CONFIG[category] || {
-            icon: <Zap className="w-2.5 h-2.5 text-[#6FEC06]/50" />,
-            label: category,
-          };
+          const categoryConfig = CATEGORY_CONFIG[category];
           const groups = groupedTools[category];
 
           return (
@@ -723,8 +726,8 @@ function ToolsTab({
 
         {orderedCategories.length === 0 && filteredSkills.length === 0 && (
           <div className="text-center py-6">
-            <Wrench className="w-6 h-6 text-white/20 mx-auto mb-1.5" />
-            <p className="text-[11px] text-white/60">No tools found</p>
+            <Wrench className="w-6 h-6 text-white/40 mx-auto mb-1.5" />
+            <p className="text-[11px] text-white/65">No tools found</p>
           </div>
         )}
       </div>
@@ -922,7 +925,7 @@ function HistoryTab({
     return (
       <div className="flex flex-col items-center justify-center h-full p-6 text-center">
         <div className="w-12 h-12 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mb-4">
-          <History className="w-6 h-6 text-white/30" />
+          <History className="w-6 h-6 text-white/50" />
         </div>
         <h3 className="text-sm font-medium text-white/85 mb-1">
           Sign in to view history
@@ -949,7 +952,7 @@ function HistoryTab({
         {/* Search - show when there are multiple chats */}
         {chats.length > 3 && (
           <div className="relative mt-3">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/50" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/55" />
             <input
               type="text"
               value={search}
@@ -974,12 +977,12 @@ function HistoryTab({
         {loading ? (
           <div className="flex flex-col items-center justify-center py-12">
             <Loader2 className="w-5 h-5 text-[#6FEC06]/50 animate-spin mb-2" />
-            <p className="text-[10px] text-white/40">Loading history...</p>
+            <p className="text-[10px] text-white/55">Loading history...</p>
           </div>
         ) : filteredChats.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
             <div className="w-14 h-14 rounded-2xl bg-white/[0.02] border border-white/[0.05] flex items-center justify-center mb-4">
-              <MessageSquare className="w-6 h-6 text-white/30" />
+              <MessageSquare className="w-6 h-6 text-white/50" />
             </div>
             <p className="text-sm font-medium text-white/75 mb-1">
               {search ? "No results found" : "No conversations yet"}

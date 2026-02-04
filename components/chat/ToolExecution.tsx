@@ -88,21 +88,21 @@ function ImageView({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <ImageIcon className="w-3.5 h-3.5 text-[#6FEC06]" />
-          <span className="text-[10px] font-semibold text-white/40 uppercase tracking-wider">
+          <span className="text-[10px] font-semibold text-white/60 uppercase tracking-wider">
             Generated Image
           </span>
         </div>
         <div className="flex items-center gap-1">
           <button
             onClick={handleOpenInNewTab}
-            className="p-1.5 rounded-lg hover:bg-[#6FEC06]/15 text-white/55 hover:text-white hover:border-[#6FEC06]/25 transition-all duration-200 border border-transparent active:scale-95 hover:shadow-[0_0_8px_rgba(111,236,6,0.12)]"
+            className="p-1.5 rounded-lg hover:bg-[#6FEC06]/15 text-white/70 hover:text-white hover:border-[#6FEC06]/25 transition-all duration-200 border border-transparent active:scale-95 hover:shadow-[0_0_8px_rgba(111,236,6,0.12)]"
             title="Open in new tab"
           >
             <ExternalLink className="w-3 h-3" />
           </button>
           <button
             onClick={handleDownload}
-            className="p-1.5 rounded-lg hover:bg-[#6FEC06]/15 text-white/55 hover:text-white hover:border-[#6FEC06]/25 transition-all duration-200 border border-transparent active:scale-95 hover:shadow-[0_0_8px_rgba(111,236,6,0.12)]"
+            className="p-1.5 rounded-lg hover:bg-[#6FEC06]/15 text-white/70 hover:text-white hover:border-[#6FEC06]/25 transition-all duration-200 border border-transparent active:scale-95 hover:shadow-[0_0_8px_rgba(111,236,6,0.12)]"
             title="Download image"
           >
             <Download className="w-3 h-3" />
@@ -131,8 +131,8 @@ function ImageView({
       </div>
 
       {/* Prompt info */}
-      <div className="text-xs text-white/40 px-1">
-        <span className="text-white/60">Prompt:</span> {result.prompt}
+      <div className="text-xs text-white/60 px-1">
+        <span className="text-white/75">Prompt:</span> {result.prompt}
       </div>
     </div>
   );
@@ -159,12 +159,12 @@ function JsonView({ data, label }: { data: unknown; label: string }) {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-semibold text-white/40 uppercase tracking-wider">
+        <span className="text-[10px] font-semibold text-white/60 uppercase tracking-wider">
           {label}
         </span>
         <button
           onClick={handleCopy}
-          className="p-1.5 rounded-lg hover:bg-[#6FEC06]/15 text-white/55 hover:text-white hover:border-[#6FEC06]/25 transition-all duration-200 border border-transparent active:scale-95 hover:shadow-[0_0_8px_rgba(111,236,6,0.12)]"
+          className="p-1.5 rounded-lg hover:bg-[#6FEC06]/15 text-white/70 hover:text-white hover:border-[#6FEC06]/25 transition-all duration-200 border border-transparent active:scale-95 hover:shadow-[0_0_8px_rgba(111,236,6,0.12)]"
         >
           {copied ? (
             <Check className="w-3 h-3 text-[#6FEC06] drop-shadow-[0_0_4px_rgba(111,236,6,0.5)]" />
@@ -173,7 +173,7 @@ function JsonView({ data, label }: { data: unknown; label: string }) {
           )}
         </button>
       </div>
-      <pre className="text-xs bg-black/30 rounded-lg p-3 overflow-x-auto font-mono text-white/60 leading-relaxed border border-white/[0.04]">
+      <pre className="text-xs bg-black/30 rounded-lg p-3 overflow-x-auto font-mono text-white/75 leading-relaxed border border-white/[0.04]">
         {displayString}
       </pre>
     </div>
@@ -183,7 +183,7 @@ function JsonView({ data, label }: { data: unknown; label: string }) {
 const stateConfig = {
   pending: {
     icon: Clock,
-    color: "text-white/40",
+    color: "text-white/60",
     bgColor: "bg-white/5",
     borderColor: "border-white/10",
     label: "Pending",
@@ -266,14 +266,14 @@ export function ToolExecution({
           <div className="flex items-center gap-2">
             <span className="font-medium text-sm text-white">{toolName}</span>
             {Object.keys(args).length > 0 && (
-              <span className="text-[11px] text-white/30 px-1.5 py-0.5 rounded bg-white/[0.04]">
+              <span className="text-[11px] text-white/50 px-1.5 py-0.5 rounded bg-white/[0.06]">
                 {Object.keys(args).length} arg
                 {Object.keys(args).length !== 1 ? "s" : ""}
               </span>
             )}
           </div>
           {!isExpanded && Object.keys(args).length > 0 && (
-            <p className="text-xs text-white/40 truncate mt-0.5 max-w-[250px]">
+            <p className="text-xs text-white/55 truncate mt-0.5 max-w-[250px]">
               {Object.entries(args)
                 .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
                 .join(", ")}
@@ -284,7 +284,7 @@ export function ToolExecution({
         {/* Status */}
         <div className="flex items-center gap-2">
           {duration && (
-            <span className="text-[11px] text-white/30 tabular-nums">
+            <span className="text-[11px] text-white/50 tabular-nums">
               {duration}
             </span>
           )}
@@ -299,7 +299,7 @@ export function ToolExecution({
             </span>
           </div>
           <ChevronDown
-            className={`w-4 h-4 text-white/55 transition-transform duration-200 ${
+            className={`w-4 h-4 text-white/70 transition-transform duration-200 ${
               isExpanded ? "rotate-180" : ""
             }`}
           />
@@ -367,7 +367,7 @@ export function ToolExecution({
                     style={{ animationDelay: "300ms" }}
                   />
                 </div>
-                <span className="text-white/50 text-xs">Executing...</span>
+                <span className="text-white/65 text-xs">Executing...</span>
               </div>
             )}
           </div>
@@ -418,10 +418,10 @@ export function ToolExecutionGroup({ tools }: { tools: ToolExecutionProps[] }) {
       {/* Summary header */}
       {tools.length > 1 && (
         <div className="flex items-center gap-3 px-1 text-xs">
-          <div className="p-1 rounded-md bg-white/[0.04]">
+          <div className="p-1 rounded-md bg-white/[0.06]">
             <Sparkles className="w-3.5 h-3.5 text-[#6FEC06]" />
           </div>
-          <span className="text-white/50">
+          <span className="text-white/65">
             {tools.length} tools
             {runningCount > 0 && (
               <span className="text-[#6FEC06]"> • {runningCount} running</span>
