@@ -37,17 +37,23 @@ function SoonBadge({ className = "" }: { className?: string }) {
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-[#000028] text-white overflow-x-hidden">
+    <div className="h-screen flex flex-col overflow-hidden bg-[#000028] text-white">
       {/* Background effects */}
       <div className="fixed inset-0 bg-grid opacity-50 pointer-events-none" />
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-[#6FEC06]/10 rounded-full blur-[120px] pointer-events-none" />
       <div className="fixed bottom-0 right-0 w-[600px] h-[400px] bg-[#120557]/30 rounded-full blur-[100px] pointer-events-none" />
 
-      {/* Navigation */}
+      {/* Navigation - Fixed at top */}
       <Navigation />
+      
+      {/* Spacer for fixed nav */}
+      <div className="h-[72px] flex-shrink-0" />
+      
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto">
 
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center pt-24 sm:pt-28 pb-8 px-4 sm:px-6">
+      <section className="relative min-h-screen flex items-center justify-center pb-8 px-4 sm:px-6">
         {/* Animated Hero Visual */}
         <div className="absolute inset-0 z-0">
           <HeroAnimation />
@@ -101,7 +107,7 @@ export default function Home() {
         </div>
 
         {/* Scroll indicator */}
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce z-10">
+        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 animate-bounce z-10">
           <div className="w-7 h-11 rounded-full border-2 border-[#6FEC06]/50 flex items-start justify-center p-2 backdrop-blur-sm bg-[#000028]/30">
             <div className="w-1.5 h-3 bg-[#6FEC06] rounded-full animate-pulse" />
           </div>
@@ -310,6 +316,7 @@ export default function Home() {
       <AgentCapabilities />
 
       <Footer />
+      </div>
     </div>
   );
 }

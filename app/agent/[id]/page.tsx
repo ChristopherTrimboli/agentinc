@@ -204,7 +204,7 @@ export default function AgentProfilePage({
   const chartLinks = agent.tokenMint ? getChartLinks(agent.tokenMint) : null;
 
   return (
-    <div className="min-h-screen bg-[var(--background)] overflow-x-hidden">
+    <div className="h-screen flex flex-col overflow-hidden bg-[var(--background)]">
       {/* Background effects */}
       <div className="fixed inset-0 bg-grid opacity-30 pointer-events-none" />
       <div
@@ -212,7 +212,7 @@ export default function AgentProfilePage({
       />
 
       {/* Navigation */}
-      <nav className="sticky top-0 z-50 backdrop-blur-xl bg-[var(--background)]/80 border-b border-white/5">
+      <nav className="flex-shrink-0 z-50 backdrop-blur-xl bg-[var(--background)]/80 border-b border-white/5">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-2">
           <Link
             href="/"
@@ -244,8 +244,10 @@ export default function AgentProfilePage({
         </div>
       </nav>
 
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto">
       {/* Main Content */}
-      <main className="relative max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-12 overflow-x-hidden">
+      <main className="relative max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
         <div className="grid lg:grid-cols-5 gap-6 sm:gap-8 lg:gap-12 w-full min-w-0">
           {/* Left Column - Image */}
           <div className="lg:col-span-2 max-w-[260px] sm:max-w-[300px] md:max-w-none mx-auto lg:mx-0 min-w-0">
@@ -618,6 +620,7 @@ export default function AgentProfilePage({
       </main>
 
       <Footer />
+      </div>
     </div>
   );
 }

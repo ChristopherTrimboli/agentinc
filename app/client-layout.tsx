@@ -62,7 +62,7 @@ export default function ClientLayout({
       <AuthProvider>
         <UserSync />
         <SessionExpiredModal />
-        <div className="h-full overflow-hidden">{children}</div>
+        {children}
       </AuthProvider>
     </PrivyProvider>
   );

@@ -67,9 +67,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark h-full overflow-hidden">
+    <html lang="en" className="dark">
       <body
-        className={`${inter.variable} ${syne.variable} antialiased h-full overflow-hidden`}
+        className={`${inter.variable} ${syne.variable} antialiased`}
       >
         <ClientLayout>{children}</ClientLayout>
         <Analytics />
