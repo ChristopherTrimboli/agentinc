@@ -30,6 +30,7 @@ import {
   Star,
   Rocket,
   SendHorizonal,
+  User,
 } from "lucide-react";
 import {
   Select,
@@ -1505,49 +1506,59 @@ function ChatInterface({
               <ArrowLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
             </button>
 
-            {/* Agent avatar with rarity ring */}
-            <div className="relative shrink-0">
-              <div
-                className={`relative w-9 h-9 sm:w-11 sm:h-11 rounded-xl overflow-hidden bg-gradient-to-br ${rarity.bg} flex items-center justify-center ring-2 ${rarity.ring} ${rarity.glow}`}
-              >
-                {agentInfo?.imageUrl ? (
-                  <Image
-                    src={agentInfo.imageUrl}
-                    alt={displayName}
-                    fill
-                    sizes="44px"
-                    className="object-cover"
-                  />
-                ) : (
-                  <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-[#6FEC06]" />
-                )}
+            {/* Agent profile link - clickable avatar and name */}
+            <button
+              onClick={() => router.push(`/agent/${agentId}`)}
+              className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 group"
+              title="View agent profile"
+            >
+              {/* Agent avatar with rarity ring */}
+              <div className="relative shrink-0">
+                <div
+                  className={`relative w-9 h-9 sm:w-11 sm:h-11 rounded-xl overflow-hidden bg-gradient-to-br ${rarity.bg} flex items-center justify-center ring-2 ${rarity.ring} ${rarity.glow} group-hover:ring-[#6FEC06] transition-all duration-200`}
+                >
+                  {agentInfo?.imageUrl ? (
+                    <Image
+                      src={agentInfo.imageUrl}
+                      alt={displayName}
+                      fill
+                      sizes="44px"
+                      className="object-cover group-hover:scale-105 transition-transform duration-200"
+                    />
+                  ) : (
+                    <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-[#6FEC06]" />
+                  )}
+                </div>
+                {/* Online indicator */}
+                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full bg-[#10b981] border-2 border-[#000020]" />
               </div>
-              {/* Online indicator */}
-              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full bg-[#10b981] border-2 border-[#000020]" />
-            </div>
 
-            <div className="min-w-0 flex-1">
-              <h1 className="font-semibold text-white text-sm sm:text-base truncate">
-                {displayName}
-              </h1>
-              <div className="flex items-center gap-2 text-[10px] sm:text-xs text-white/60">
-                <span className="flex items-center gap-1">
-                  <Zap className="w-3 h-3 text-[#6FEC06]" />
-                  <span className="hidden xs:inline">
-                    {enabledToolsCount} tools
-                  </span>
-                  <span className="xs:hidden">{enabledToolsCount}</span>
-                </span>
-                {agentInfo?.tokenSymbol && (
-                  <>
-                    <span className="w-1 h-1 rounded-full bg-white/20" />
-                    <span className="text-[#6FEC06] font-medium">
-                      ${agentInfo.tokenSymbol}
+              <div className="min-w-0 flex-1 text-left">
+                <div className="flex items-center gap-1.5">
+                  <h1 className="font-semibold text-white text-sm sm:text-base truncate group-hover:text-[#6FEC06] transition-colors duration-200">
+                    {displayName}
+                  </h1>
+                  <User className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white/40 group-hover:text-[#6FEC06] transition-colors duration-200" />
+                </div>
+                <div className="flex items-center gap-2 text-[10px] sm:text-xs text-white/60">
+                  <span className="flex items-center gap-1">
+                    <Zap className="w-3 h-3 text-[#6FEC06]" />
+                    <span className="hidden xs:inline">
+                      {enabledToolsCount} tools
                     </span>
-                  </>
-                )}
+                    <span className="xs:hidden">{enabledToolsCount}</span>
+                  </span>
+                  {agentInfo?.tokenSymbol && (
+                    <>
+                      <span className="w-1 h-1 rounded-full bg-white/20" />
+                      <span className="text-[#6FEC06] font-medium">
+                        ${agentInfo.tokenSymbol}
+                      </span>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
+            </button>
           </div>
 
           {/* Header Actions */}
