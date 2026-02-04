@@ -17,6 +17,18 @@ export interface ApiKeyConfig {
 }
 
 /**
+ * Function metadata for skill tools
+ */
+export interface SkillFunction {
+  /** Unique identifier for the function */
+  id: string;
+  /** Human-readable name */
+  name: string;
+  /** Short description of what this function does */
+  description: string;
+}
+
+/**
  * Skill metadata - describes a skill for the registry
  * Skills are complex integrations that typically require API keys and
  * provide multiple related tools. Only supported by Claude models.
@@ -42,6 +54,8 @@ export interface SkillMetadata {
   apiKeyConfig?: ApiKeyConfig;
   /** Optional tags for discovery */
   tags?: string[];
+  /** List of functions this skill provides (for UI display) */
+  functions?: SkillFunction[];
 }
 
 /**

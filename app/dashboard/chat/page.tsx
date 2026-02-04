@@ -26,10 +26,9 @@ import {
   MicOff,
   Volume2,
   VolumeX,
-  Square,
   Loader2,
 } from "lucide-react";
-import {
+import React, {
   useState,
   useMemo,
   Suspense,
@@ -88,7 +87,6 @@ import {
   useSpeechSynthesis,
   getVoiceSettings,
   saveVoiceSettings,
-  VOICES,
   type Voice,
   type VoiceSettings,
 } from "@/lib/hooks/useSpeechSynthesis";
@@ -132,6 +130,9 @@ interface SkillInfo {
 
 // Storage key for user API keys
 const API_KEYS_STORAGE_KEY = "agentinc_skill_api_keys";
+
+// Quick suggestions - defined outside component to prevent recreation
+const QUICK_SUGGESTIONS = ["Tell me about yourself", "What can you do?", "Hi!"];
 
 // Helper to get stored API keys
 function getStoredApiKeys(): Record<string, string> {
@@ -189,8 +190,14 @@ const rarityColors: Record<string, { ring: string; glow: string; bg: string }> =
     },
   };
 
-// Agent Card Component
-function AgentCard({ agent, index }: { agent: AgentInfo; index: number }) {
+// Agent Card Component - Memoized to prevent re-renders when parent updates
+const AgentCard = React.memo(function AgentCard({
+  agent,
+  index,
+}: {
+  agent: AgentInfo;
+  index: number;
+}) {
   const rarity = rarityColors[agent.rarity || "common"] || rarityColors.common;
   const router = useRouter();
 
@@ -264,7 +271,7 @@ function AgentCard({ agent, index }: { agent: AgentInfo; index: number }) {
       </div>
     </button>
   );
-}
+});
 
 // Agent Selector Grid
 function AgentSelector() {
@@ -289,11 +296,16 @@ function AgentSelector() {
     fetchAgents();
   }, []);
 
-  const filteredAgents = agents.filter(
-    (agent) =>
-      agent.name.toLowerCase().includes(search.toLowerCase()) ||
-      agent.personality?.toLowerCase().includes(search.toLowerCase()) ||
-      agent.tokenSymbol?.toLowerCase().includes(search.toLowerCase()),
+  // Memoize filtered agents to avoid recalculation on every render
+  const filteredAgents = useMemo(
+    () =>
+      agents.filter(
+        (agent) =>
+          agent.name.toLowerCase().includes(search.toLowerCase()) ||
+          agent.personality?.toLowerCase().includes(search.toLowerCase()) ||
+          agent.tokenSymbol?.toLowerCase().includes(search.toLowerCase()),
+      ),
+    [agents, search],
   );
 
   return (
@@ -388,6 +400,160 @@ function AttachmentsPreview() {
   );
 }
 
+// Isolated Chat Input Component - prevents parent re-renders on every keystroke
+interface ChatInputAreaProps {
+  displayName: string;
+  status: "ready" | "submitted" | "streaming" | "error";
+  onSubmit: (message: PromptInputMessage) => void;
+  onStop: () => void;
+  speechSynthesis: ReturnType<typeof useSpeechSynthesis>;
+  identityToken: string | null | undefined;
+}
+
+const ChatInputArea = React.memo(function ChatInputArea({
+  displayName,
+  status,
+  onSubmit,
+  onStop,
+  speechSynthesis,
+  identityToken,
+}: ChatInputAreaProps) {
+  const [input, setInput] = useState("");
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Voice input hook - contained within this component so transcript updates don't affect parent
+  const voiceInput = useVoiceInput({
+    identityToken,
+    onTranscript: (text) => {
+      setInput((prev) => (prev ? `${prev} ${text}` : text));
+      inputRef.current?.focus();
+    },
+    onError: (error) => {
+      console.error("Voice input error:", error);
+    },
+  });
+
+  const handleSubmit = useCallback(
+    (message: PromptInputMessage) => {
+      if (!message.text?.trim() && !message.files?.length) return;
+      onSubmit(message);
+      setInput("");
+    },
+    [onSubmit],
+  );
+
+  return (
+    <div className="shrink-0 z-20 px-3 sm:px-4 md:px-6 pb-3 sm:pb-4 pt-2 sm:pt-3 bg-[#000020]">
+      <div className="max-w-3xl mx-auto">
+        {/* Glowing border wrapper - hidden when busy */}
+        <div
+          className={`voice-glow-container ${
+            status === "streaming" ||
+            status === "submitted" ||
+            speechSynthesis.isPlaying ||
+            speechSynthesis.isLoading
+              ? "voice-glow-hidden"
+              : ""
+          }`}
+        >
+          <PromptInput
+            onSubmit={handleSubmit}
+            accept="image/*"
+            multiple
+            globalDrop
+            className="[&_[data-slot=input-group]]:bg-[#0a0a1f]/90 [&_[data-slot=input-group]]:backdrop-blur-xl [&_[data-slot=input-group]]:!rounded-xl [&_[data-slot=input-group]]:border [&_[data-slot=input-group]]:border-white/[0.08] [&_[data-slot=input-group]]:shadow-[0_4px_20px_rgba(0,0,0,0.3)] [&_[data-slot=input-group]]:transition-all [&_[data-slot=input-group]:focus-within]:border-[#6FEC06]/30 [&_[data-slot=input-group]:focus-within]:shadow-[0_4px_20px_rgba(111,236,6,0.1)] [&_[data-slot=input-group]:focus-within]:ring-0"
+          >
+            <AttachmentsPreview />
+            <PromptInputBody>
+              <PromptInputTextarea
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder={`Message ${displayName}...`}
+                className="bg-transparent border-0 !rounded-xl focus:ring-0 focus-visible:ring-0 text-white placeholder:text-white/30 min-h-[48px] sm:min-h-[52px] max-h-[150px] sm:max-h-[180px] text-sm sm:text-[15px] leading-relaxed shadow-none"
+              />
+            </PromptInputBody>
+            <PromptInputFooter>
+              <PromptInputTools>
+                <PromptInputActionMenu>
+                  <PromptInputActionMenuTrigger className="text-white/40 hover:text-white hover:bg-white/[0.08]">
+                    <Paperclip className="w-4 h-4" />
+                  </PromptInputActionMenuTrigger>
+                  <PromptInputActionMenuContent className="bg-[#0a0520] border-white/10">
+                    <PromptInputActionAddAttachments className="hover:bg-[#6FEC06]/10 hover:text-[#6FEC06]" />
+                  </PromptInputActionMenuContent>
+                </PromptInputActionMenu>
+
+                {/* Voice Input Button */}
+                <button
+                  type="button"
+                  onClick={voiceInput.toggleRecording}
+                  disabled={voiceInput.isTranscribing}
+                  className={`relative p-2 rounded-lg transition-all duration-200 ${
+                    voiceInput.isRecording
+                      ? "bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                      : voiceInput.isTranscribing
+                        ? "bg-white/5 text-white/30 cursor-not-allowed"
+                        : "text-white/40 hover:text-white hover:bg-white/[0.08]"
+                  }`}
+                  title={
+                    voiceInput.isRecording
+                      ? "Stop recording"
+                      : voiceInput.isTranscribing
+                        ? "Transcribing..."
+                        : "Voice input"
+                  }
+                >
+                  {voiceInput.isTranscribing ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : voiceInput.isRecording ? (
+                    <>
+                      <MicOff className="w-4 h-4" />
+                      {/* Recording indicator pulse */}
+                      <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                      {/* Audio level indicator */}
+                      <span
+                        className="absolute inset-0 rounded-lg bg-red-400/20 transition-transform duration-75"
+                        style={{
+                          transform: `scale(${1 + voiceInput.audioLevel * 0.3})`,
+                          opacity: voiceInput.audioLevel,
+                        }}
+                      />
+                    </>
+                  ) : (
+                    <Mic className="w-4 h-4" />
+                  )}
+                </button>
+              </PromptInputTools>
+              <PromptInputSubmit
+                status={status}
+                onStop={onStop}
+                disabled={!input.trim() && status === "ready"}
+                className="!rounded-lg bg-[#6FEC06] text-black hover:bg-[#5ad005] disabled:opacity-30 disabled:hover:bg-[#6FEC06] shadow-[0_2px_8px_rgba(111,236,6,0.3)]"
+              >
+                <Send className="w-4 h-4" />
+              </PromptInputSubmit>
+            </PromptInputFooter>
+          </PromptInput>
+        </div>
+
+        {/* Keyboard hint - hidden on mobile */}
+        <p className="hidden sm:block text-center text-[11px] text-white/25 mt-2.5">
+          Press{" "}
+          <kbd className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 font-mono text-[10px]">
+            Enter
+          </kbd>{" "}
+          to send,{" "}
+          <kbd className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 font-mono text-[10px]">
+            Shift + Enter
+          </kbd>{" "}
+          for new line
+        </p>
+      </div>
+    </div>
+  );
+});
+
 // Streaming cursor with smooth animation
 function StreamingCursor() {
   return (
@@ -415,33 +581,43 @@ function isImageToolResult(result: unknown): result is {
 }
 
 // Generated Image Display - shows prominently in chat
-function GeneratedImageDisplay({
+interface GeneratedImageResult {
+  success: boolean;
+  image: { url: string; mediaType: string };
+  prompt: string;
+  enhancedPrompt?: string;
+}
+
+const GeneratedImageDisplay = React.memo(function GeneratedImageDisplay({
   result,
 }: {
-  result: {
-    success: boolean;
-    image: { url: string; mediaType: string };
-    prompt: string;
-    enhancedPrompt?: string;
-  };
+  result: GeneratedImageResult;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const handleDownload = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const link = document.createElement("a");
-    link.href = result.image.url;
-    link.download = `generated-image-${Date.now()}.png`;
-    link.target = "_blank";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+  const handleDownload = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      const link = document.createElement("a");
+      link.href = result.image.url;
+      link.download = `generated-image-${Date.now()}.png`;
+      link.target = "_blank";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    },
+    [result.image.url],
+  );
 
-  const handleOpenInNewTab = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    window.open(result.image.url, "_blank");
-  };
+  const handleOpenInNewTab = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      window.open(result.image.url, "_blank");
+    },
+    [result.image.url],
+  );
+
+  const toggleExpanded = useCallback(() => setIsExpanded((prev) => !prev), []);
 
   return (
     <div className="my-3 rounded-xl overflow-hidden bg-gradient-to-br from-[#6FEC06]/5 to-transparent border border-[#6FEC06]/20 shadow-[0_4px_20px_rgba(111,236,6,0.1)]">
@@ -476,7 +652,7 @@ function GeneratedImageDisplay({
       {/* Image */}
       <div
         className={`relative cursor-pointer transition-all duration-300 ${isExpanded ? "" : "max-h-[400px]"}`}
-        onClick={() => setIsExpanded(!isExpanded)}
+        onClick={toggleExpanded}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -502,10 +678,10 @@ function GeneratedImageDisplay({
       </div>
     </div>
   );
-}
+});
 
-// Reasoning block with smooth streaming
-function ReasoningBlock({
+// Reasoning block with smooth streaming - memoized to prevent unnecessary re-renders
+const ReasoningBlock = React.memo(function ReasoningBlock({
   text,
   isStreaming,
 }: {
@@ -513,11 +689,12 @@ function ReasoningBlock({
   isStreaming: boolean;
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
+  const toggleExpanded = useCallback(() => setIsExpanded((prev) => !prev), []);
 
   return (
     <div className="rounded-xl bg-gradient-to-br from-purple-500/10 to-indigo-500/5 border border-purple-500/20 overflow-hidden message-animate-in">
       <button
-        onClick={() => setIsExpanded(!isExpanded)}
+        onClick={toggleExpanded}
         className="w-full flex items-center gap-2.5 px-4 py-3 text-left hover:bg-white/5 transition-colors"
       >
         <div
@@ -548,7 +725,7 @@ function ReasoningBlock({
       </div>
     </div>
   );
-}
+});
 
 // Chat Skeleton Loading Component
 function ChatSkeleton() {
@@ -625,12 +802,16 @@ function ChatSkeleton() {
 }
 
 // Chat Interface Component
-function ChatInterface({ agentId, chatId: initialChatId }: { agentId: string; chatId?: string }) {
+function ChatInterface({
+  agentId,
+  chatId: initialChatId,
+}: {
+  agentId: string;
+  chatId?: string;
+}) {
   const router = useRouter();
   const { identityToken } = useAuth();
-  const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  const [input, setInput] = useState("");
   const [agentInfo, setAgentInfo] = useState<AgentInfo | null>(null);
   const [agentLoading, setAgentLoading] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -639,15 +820,20 @@ function ChatInterface({ agentId, chatId: initialChatId }: { agentId: string; ch
   const [toolGroups, setToolGroups] = useState<ToolGroup[]>([]);
   const [skills, setSkills] = useState<SkillConfig[]>([]);
   const [toolsLoading, setToolsLoading] = useState(true);
-  
+
   // Chat history state
   const [chatId, setChatId] = useState<string | undefined>(initialChatId);
   const [chatLoading, setChatLoading] = useState(!!initialChatId);
-  const [initialMessages, setInitialMessages] = useState<Array<{ id: string; role: "user" | "assistant"; parts: Array<{ type: string; text?: string; [key: string]: unknown }> }>>([]);
+  const [initialMessages, setInitialMessages] = useState<
+    Array<{
+      id: string;
+      role: "user" | "assistant";
+      parts: Array<{ type: string; text?: string; [key: string]: unknown }>;
+    }>
+  >([]);
   const [historyRefreshTrigger, setHistoryRefreshTrigger] = useState(0);
-  
-  // Track if we need to save messages after response
-  const pendingSaveRef = useRef(false);
+
+  // Track message save state
   const lastSavedMessagesRef = useRef<number>(0);
 
   // Voice settings state
@@ -657,18 +843,6 @@ function ChatInterface({ agentId, chatId: initialChatId }: { agentId: string; ch
   const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(
     null,
   );
-
-  // Voice input hook (STT)
-  const voiceInput = useVoiceInput({
-    identityToken,
-    onTranscript: (text) => {
-      setInput((prev) => (prev ? `${prev} ${text}` : text));
-      inputRef.current?.focus();
-    },
-    onError: (error) => {
-      console.error("Voice input error:", error);
-    },
-  });
 
   // Voice synthesis hook (TTS)
   const speechSynthesis = useSpeechSynthesis({
@@ -895,10 +1069,26 @@ function ChatInterface({ agentId, chatId: initialChatId }: { agentId: string; ch
   }, [agentId, router, setMessages]);
 
   // Handle selecting a chat from history
-  const handleSelectChat = useCallback((selectedChatId: string, selectedAgentId?: string | null) => {
-    const url = `/dashboard/chat?agent=${selectedAgentId || agentId}&chatId=${selectedChatId}`;
-    router.push(url);
-  }, [agentId, router]);
+  const handleSelectChat = useCallback(
+    (selectedChatId: string, selectedAgentId?: string | null) => {
+      const url = `/dashboard/chat?agent=${selectedAgentId || agentId}&chatId=${selectedChatId}`;
+      router.push(url);
+    },
+    [agentId, router],
+  );
+
+  // Memoized navigation handlers
+  const handleBackToChat = useCallback(() => {
+    router.push("/dashboard/chat");
+  }, [router]);
+
+  const handleOpenMobileToolPanel = useCallback(() => {
+    setMobileToolPanelOpen(true);
+  }, []);
+
+  const handleCloseMobileToolPanel = useCallback(() => {
+    setMobileToolPanelOpen(false);
+  }, []);
 
   // Auto-speak new assistant messages when streaming completes
   useEffect(() => {
@@ -964,11 +1154,18 @@ function ChatInterface({ agentId, chatId: initialChatId }: { agentId: string; ch
           const data = await response.json();
           // Convert saved messages to the format useChat expects
           if (data.chat?.messages?.length > 0) {
-            const loadedMessages = data.chat.messages.map((msg: { id: string; role: string; content: string; parts?: unknown }) => ({
-              id: msg.id,
-              role: msg.role as "user" | "assistant",
-              parts: msg.parts || [{ type: "text", text: msg.content }],
-            }));
+            const loadedMessages = data.chat.messages.map(
+              (msg: {
+                id: string;
+                role: string;
+                content: string;
+                parts?: unknown;
+              }) => ({
+                id: msg.id,
+                role: msg.role as "user" | "assistant",
+                parts: msg.parts || [{ type: "text", text: msg.content }],
+              }),
+            );
             setInitialMessages(loadedMessages);
             lastSavedMessagesRef.current = loadedMessages.length;
           }
@@ -996,89 +1193,119 @@ function ChatInterface({ agentId, chatId: initialChatId }: { agentId: string; ch
   }, [chatId]);
 
   // Save new messages to the database
-  const saveMessages = useCallback(async (messagesToSave: typeof messages) => {
-    if (!identityToken || messagesToSave.length === 0) {
-      console.log("[Chat] saveMessages skipped - no token or messages");
-      return;
-    }
+  const saveMessages = useCallback(
+    async (messagesToSave: typeof messages) => {
+      if (!identityToken || messagesToSave.length === 0) {
+        console.log("[Chat] saveMessages skipped - no token or messages");
+        return;
+      }
 
-    // Only save messages we haven't saved yet
-    const newMessages = messagesToSave.slice(lastSavedMessagesRef.current);
-    if (newMessages.length === 0) {
-      console.log("[Chat] saveMessages skipped - no new messages");
-      return;
-    }
+      // Only save messages we haven't saved yet
+      const newMessages = messagesToSave.slice(lastSavedMessagesRef.current);
+      if (newMessages.length === 0) {
+        console.log("[Chat] saveMessages skipped - no new messages");
+        return;
+      }
 
-    console.log("[Chat] Saving", newMessages.length, "new messages, chatId:", chatIdRef.current);
+      console.log(
+        "[Chat] Saving",
+        newMessages.length,
+        "new messages, chatId:",
+        chatIdRef.current,
+      );
 
-    try {
-      let currentChatId = chatIdRef.current;
+      try {
+        let currentChatId = chatIdRef.current;
 
-      // Create a new chat if we don't have one
-      if (!currentChatId) {
-        console.log("[Chat] Creating new chat for agent:", agentId);
-        const createResponse = await fetch("/api/chats", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "privy-id-token": identityToken,
-          },
-          body: JSON.stringify({ agentId }),
+        // Create a new chat if we don't have one
+        if (!currentChatId) {
+          console.log("[Chat] Creating new chat for agent:", agentId);
+          const createResponse = await fetch("/api/chats", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "privy-id-token": identityToken,
+            },
+            body: JSON.stringify({ agentId }),
+          });
+
+          if (createResponse.ok) {
+            const data = await createResponse.json();
+            currentChatId = data.chat.id;
+            console.log("[Chat] Created new chat:", currentChatId);
+            setChatId(currentChatId);
+            chatIdRef.current = currentChatId; // Update ref immediately
+            // Update URL without reload
+            const newUrl = `/dashboard/chat?agent=${agentId}&chatId=${currentChatId}`;
+            window.history.replaceState({}, "", newUrl);
+          } else {
+            const errorText = await createResponse.text();
+            console.error(
+              "Failed to create chat:",
+              createResponse.status,
+              errorText,
+            );
+            return;
+          }
+        }
+
+        // Save the new messages
+        const formattedMessages = newMessages.map((msg) => {
+          const textPart = msg.parts.find((p) => p.type === "text");
+          return {
+            role: msg.role,
+            content: textPart?.type === "text" ? textPart.text : "",
+            parts: msg.parts,
+          };
         });
 
-        if (createResponse.ok) {
-          const data = await createResponse.json();
-          currentChatId = data.chat.id;
-          console.log("[Chat] Created new chat:", currentChatId);
-          setChatId(currentChatId);
-          chatIdRef.current = currentChatId; // Update ref immediately
-          // Update URL without reload
-          const newUrl = `/dashboard/chat?agent=${agentId}&chatId=${currentChatId}`;
-          window.history.replaceState({}, "", newUrl);
+        const saveResponse = await fetch(
+          `/api/chats/${currentChatId}/messages`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "privy-id-token": identityToken,
+            },
+            body: JSON.stringify({ messages: formattedMessages }),
+          },
+        );
+
+        if (saveResponse.ok) {
+          console.log("[Chat] Messages saved successfully");
+          lastSavedMessagesRef.current = messagesToSave.length;
+          // Trigger sidebar refresh to show updated chat
+          setHistoryRefreshTrigger((prev) => prev + 1);
         } else {
-          const errorText = await createResponse.text();
-          console.error("Failed to create chat:", createResponse.status, errorText);
-          return;
+          const errorText = await saveResponse.text();
+          console.error(
+            "Failed to save messages:",
+            saveResponse.status,
+            errorText,
+          );
         }
+      } catch (err) {
+        console.error("Error saving messages:", err);
       }
-
-      // Save the new messages
-      const formattedMessages = newMessages.map((msg) => {
-        const textPart = msg.parts.find((p) => p.type === "text");
-        return {
-          role: msg.role,
-          content: textPart?.type === "text" ? textPart.text : "",
-          parts: msg.parts,
-        };
-      });
-
-      const saveResponse = await fetch(`/api/chats/${currentChatId}/messages`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "privy-id-token": identityToken,
-        },
-        body: JSON.stringify({ messages: formattedMessages }),
-      });
-
-      if (saveResponse.ok) {
-        console.log("[Chat] Messages saved successfully");
-        lastSavedMessagesRef.current = messagesToSave.length;
-        // Trigger sidebar refresh to show updated chat
-        setHistoryRefreshTrigger((prev) => prev + 1);
-      } else {
-        const errorText = await saveResponse.text();
-        console.error("Failed to save messages:", saveResponse.status, errorText);
-      }
-    } catch (err) {
-      console.error("Error saving messages:", err);
-    }
-  }, [agentId, identityToken]); // Removed chatId from deps - using ref instead
+    },
+    [agentId, identityToken],
+  ); // Removed chatId from deps - using ref instead
 
   // Save messages after response completes
   useEffect(() => {
-    console.log("[Chat] Save effect - status:", status, "messages:", messages.length, "lastSaved:", lastSavedMessagesRef.current);
-    if (status === "ready" && messages.length > 0 && messages.length > lastSavedMessagesRef.current) {
+    console.log(
+      "[Chat] Save effect - status:",
+      status,
+      "messages:",
+      messages.length,
+      "lastSaved:",
+      lastSavedMessagesRef.current,
+    );
+    if (
+      status === "ready" &&
+      messages.length > 0 &&
+      messages.length > lastSavedMessagesRef.current
+    ) {
       console.log("[Chat] Triggering save...");
       saveMessages(messages);
     }
@@ -1088,27 +1315,30 @@ function ChatInterface({ agentId, chatId: initialChatId }: { agentId: string; ch
   const rarity =
     rarityColors[agentInfo?.rarity || "common"] || rarityColors.common;
 
-  const handleSubmit = (message: PromptInputMessage) => {
-    if (!message.text?.trim() && !message.files?.length) return;
-    sendMessage({
-      text: message.text || "Sent with attachments",
-      files: message.files,
-    });
-    setInput("");
-  };
+  const handleSubmit = useCallback(
+    (message: PromptInputMessage) => {
+      if (!message.text?.trim() && !message.files?.length) return;
+      sendMessage({
+        text: message.text || "Sent with attachments",
+        files: message.files,
+      });
+    },
+    [sendMessage],
+  );
 
-  const copyToClipboard = (text: string) => {
+  const copyToClipboard = useCallback((text: string) => {
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
-  };
+  }, []);
 
-  const enabledToolsCount =
-    toolGroups.filter((g) => g.enabled).length +
-    skills.filter((s) => s.enabled).length;
-
-  // Quick suggestions
-  const suggestions = ["Tell me about yourself", "What can you do?", "Hi!"];
+  // Memoize enabled tools count to avoid recalculation
+  const enabledToolsCount = useMemo(
+    () =>
+      toolGroups.filter((g) => g.enabled).length +
+      skills.filter((s) => s.enabled).length,
+    [toolGroups, skills],
+  );
 
   // Show skeleton while loading agent info or chat
   if (agentLoading || chatLoading) {
@@ -1123,27 +1353,29 @@ function ChatInterface({ agentId, chatId: initialChatId }: { agentId: string; ch
         <header className="relative z-20 h-[52px] sm:h-[60px] shrink-0 flex items-center justify-between px-3 sm:px-4 md:px-6 border-b border-white/[0.06] bg-[#000020]/80 backdrop-blur-xl">
           <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
             <button
-              onClick={() => router.push("/dashboard/chat")}
+              onClick={handleBackToChat}
               className="p-2 -ml-2 lg:ml-0 rounded-xl hover:bg-white/5 text-white/40 hover:text-white transition-all duration-200 group shrink-0"
             >
               <ArrowLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
             </button>
 
             {/* Agent avatar with rarity ring */}
-            <div
-              className={`relative w-9 h-9 sm:w-11 sm:h-11 rounded-xl overflow-hidden bg-gradient-to-br ${rarity.bg} flex items-center justify-center ring-2 ${rarity.ring} ${rarity.glow} shrink-0`}
-            >
-              {agentInfo?.imageUrl ? (
-                <Image
-                  src={agentInfo.imageUrl}
-                  alt={displayName}
-                  fill
-                  sizes="44px"
-                  className="object-cover"
-                />
-              ) : (
-                <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-[#6FEC06]" />
-              )}
+            <div className="relative shrink-0">
+              <div
+                className={`relative w-9 h-9 sm:w-11 sm:h-11 rounded-xl overflow-hidden bg-gradient-to-br ${rarity.bg} flex items-center justify-center ring-2 ${rarity.ring} ${rarity.glow}`}
+              >
+                {agentInfo?.imageUrl ? (
+                  <Image
+                    src={agentInfo.imageUrl}
+                    alt={displayName}
+                    fill
+                    sizes="44px"
+                    className="object-cover"
+                  />
+                ) : (
+                  <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-[#6FEC06]" />
+                )}
+              </div>
               {/* Online indicator */}
               <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-full bg-[#10b981] border-2 border-[#000020]" />
             </div>
@@ -1184,7 +1416,7 @@ function ChatInterface({ agentId, chatId: initialChatId }: { agentId: string; ch
 
             {/* Mobile Tool Panel Toggle */}
             <button
-              onClick={() => setMobileToolPanelOpen(true)}
+              onClick={handleOpenMobileToolPanel}
               className="lg:hidden relative p-2.5 rounded-lg hover:bg-white/5 text-white/40 hover:text-white transition-all duration-200"
               title="Open tools"
             >
@@ -1235,7 +1467,7 @@ function ChatInterface({ agentId, chatId: initialChatId }: { agentId: string; ch
 
                   {/* Quick suggestions */}
                   <div className="flex flex-wrap justify-center gap-2 px-2">
-                    {suggestions.map((suggestion) => (
+                    {QUICK_SUGGESTIONS.map((suggestion) => (
                       <button
                         key={suggestion}
                         onClick={() => {
@@ -1539,115 +1771,15 @@ function ChatInterface({ agentId, chatId: initialChatId }: { agentId: string; ch
           </Conversation>
         </div>
 
-        {/* Input Area - Fixed at bottom */}
-        <div className="shrink-0 z-20 px-3 sm:px-4 md:px-6 pb-3 sm:pb-4 pt-2 sm:pt-3 bg-[#000020]">
-          <div className="max-w-3xl mx-auto">
-            {/* Glowing border wrapper - hidden when busy */}
-            <div
-              className={`voice-glow-container ${
-                status === "streaming" ||
-                status === "submitted" ||
-                speechSynthesis.isPlaying ||
-                speechSynthesis.isLoading
-                  ? "voice-glow-hidden"
-                  : ""
-              }`}
-            >
-              <PromptInput
-                onSubmit={handleSubmit}
-                accept="image/*"
-                multiple
-                globalDrop
-                className="[&_[data-slot=input-group]]:bg-[#0a0a1f]/90 [&_[data-slot=input-group]]:backdrop-blur-xl [&_[data-slot=input-group]]:!rounded-xl [&_[data-slot=input-group]]:border [&_[data-slot=input-group]]:border-white/[0.08] [&_[data-slot=input-group]]:shadow-[0_4px_20px_rgba(0,0,0,0.3)] [&_[data-slot=input-group]]:transition-all [&_[data-slot=input-group]:focus-within]:border-[#6FEC06]/30 [&_[data-slot=input-group]:focus-within]:shadow-[0_4px_20px_rgba(111,236,6,0.1)] [&_[data-slot=input-group]:focus-within]:ring-0"
-              >
-                <AttachmentsPreview />
-                <PromptInputBody>
-                  <PromptInputTextarea
-                    ref={inputRef}
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    placeholder={`Message ${displayName}...`}
-                    className="bg-transparent border-0 !rounded-xl focus:ring-0 focus-visible:ring-0 text-white placeholder:text-white/30 min-h-[48px] sm:min-h-[52px] max-h-[150px] sm:max-h-[180px] text-sm sm:text-[15px] leading-relaxed shadow-none"
-                  />
-                </PromptInputBody>
-                <PromptInputFooter>
-                  <PromptInputTools>
-                    <PromptInputActionMenu>
-                      <PromptInputActionMenuTrigger className="text-white/40 hover:text-white hover:bg-white/[0.08]">
-                        <Paperclip className="w-4 h-4" />
-                      </PromptInputActionMenuTrigger>
-                      <PromptInputActionMenuContent className="bg-[#0a0520] border-white/10">
-                        <PromptInputActionAddAttachments className="hover:bg-[#6FEC06]/10 hover:text-[#6FEC06]" />
-                      </PromptInputActionMenuContent>
-                    </PromptInputActionMenu>
-
-                    {/* Voice Input Button */}
-                    <button
-                      type="button"
-                      onClick={voiceInput.toggleRecording}
-                      disabled={voiceInput.isTranscribing}
-                      className={`relative p-2 rounded-lg transition-all duration-200 ${
-                        voiceInput.isRecording
-                          ? "bg-red-500/20 text-red-400 hover:bg-red-500/30"
-                          : voiceInput.isTranscribing
-                            ? "bg-white/5 text-white/30 cursor-not-allowed"
-                            : "text-white/40 hover:text-white hover:bg-white/[0.08]"
-                      }`}
-                      title={
-                        voiceInput.isRecording
-                          ? "Stop recording"
-                          : voiceInput.isTranscribing
-                            ? "Transcribing..."
-                            : "Voice input"
-                      }
-                    >
-                      {voiceInput.isTranscribing ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : voiceInput.isRecording ? (
-                        <>
-                          <MicOff className="w-4 h-4" />
-                          {/* Recording indicator pulse */}
-                          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                          {/* Audio level indicator */}
-                          <span
-                            className="absolute inset-0 rounded-lg bg-red-400/20 transition-transform duration-75"
-                            style={{
-                              transform: `scale(${1 + voiceInput.audioLevel * 0.3})`,
-                              opacity: voiceInput.audioLevel,
-                            }}
-                          />
-                        </>
-                      ) : (
-                        <Mic className="w-4 h-4" />
-                      )}
-                    </button>
-                  </PromptInputTools>
-                  <PromptInputSubmit
-                    status={status}
-                    onStop={stop}
-                    disabled={!input.trim() && status === "ready"}
-                    className="!rounded-lg bg-[#6FEC06] text-black hover:bg-[#5ad005] disabled:opacity-30 disabled:hover:bg-[#6FEC06] shadow-[0_2px_8px_rgba(111,236,6,0.3)]"
-                  >
-                    <Send className="w-4 h-4" />
-                  </PromptInputSubmit>
-                </PromptInputFooter>
-              </PromptInput>
-            </div>
-
-            {/* Keyboard hint - hidden on mobile */}
-            <p className="hidden sm:block text-center text-[11px] text-white/25 mt-2.5">
-              Press{" "}
-              <kbd className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 font-mono text-[10px]">
-                Enter
-              </kbd>{" "}
-              to send,{" "}
-              <kbd className="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 font-mono text-[10px]">
-                Shift + Enter
-              </kbd>{" "}
-              for new line
-            </p>
-          </div>
-        </div>
+        {/* Input Area - Fixed at bottom (isolated component to prevent re-renders) */}
+        <ChatInputArea
+          displayName={displayName}
+          status={status}
+          onSubmit={handleSubmit}
+          onStop={stop}
+          speechSynthesis={speechSynthesis}
+          identityToken={identityToken}
+        />
       </div>
 
       {/* Tool Panel - Right Side (Desktop) & Mobile Overlay */}
@@ -1661,7 +1793,7 @@ function ChatInterface({ agentId, chatId: initialChatId }: { agentId: string; ch
         onCollapsedChange={setToolPanelCollapsed}
         loading={toolsLoading}
         mobileOpen={mobileToolPanelOpen}
-        onMobileClose={() => setMobileToolPanelOpen(false)}
+        onMobileClose={handleCloseMobileToolPanel}
         voiceSettings={voiceSettings}
         onVoiceChange={handleVoiceChange}
         onSpeedChange={handleSpeedChange}

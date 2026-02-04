@@ -124,7 +124,8 @@ export const TOOL_GROUPS: ToolGroup[] = [
     name: "Crypto Prices",
     description: "Real-time cryptocurrency prices and market data",
     icon: "💰",
-    logoUrl: "https://static.coingecko.com/s/thumbnail-007177f3eca19695592f0b8b0eabbdae282b54154e1be912285c9034ea6cbaf2.png",
+    logoUrl:
+      "https://static.coingecko.com/s/thumbnail-007177f3eca19695592f0b8b0eabbdae282b54154e1be912285c9034ea6cbaf2.png",
     source: "CoinGecko",
     functions: [
       {
@@ -165,7 +166,8 @@ export const TOOL_GROUPS: ToolGroup[] = [
     name: "Trending & Search",
     description: "Discover trending coins and search crypto",
     icon: "🔥",
-    logoUrl: "https://static.coingecko.com/s/thumbnail-007177f3eca19695592f0b8b0eabbdae282b54154e1be912285c9034ea6cbaf2.png",
+    logoUrl:
+      "https://static.coingecko.com/s/thumbnail-007177f3eca19695592f0b8b0eabbdae282b54154e1be912285c9034ea6cbaf2.png",
     source: "CoinGecko",
     functions: [
       {
@@ -191,7 +193,8 @@ export const TOOL_GROUPS: ToolGroup[] = [
     name: "Market Overview",
     description: "Global crypto market statistics",
     icon: "🌍",
-    logoUrl: "https://static.coingecko.com/s/thumbnail-007177f3eca19695592f0b8b0eabbdae282b54154e1be912285c9034ea6cbaf2.png",
+    logoUrl:
+      "https://static.coingecko.com/s/thumbnail-007177f3eca19695592f0b8b0eabbdae282b54154e1be912285c9034ea6cbaf2.png",
     source: "CoinGecko",
     functions: [
       {

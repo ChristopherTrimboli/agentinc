@@ -43,6 +43,8 @@ export async function GET() {
       isConfigured,
       requiresApiKey: !!skill.metadata.apiKeyConfig,
       apiKeyConfig,
+      // Include functions for UI display
+      functions: skill.metadata.functions || [],
     };
   }).filter(Boolean);
 

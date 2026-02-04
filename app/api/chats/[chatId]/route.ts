@@ -71,7 +71,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
     console.error("Failed to fetch chat:", error);
     return NextResponse.json(
       { error: "Failed to fetch chat" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -121,7 +121,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     console.error("Failed to update chat:", error);
     return NextResponse.json(
       { error: "Failed to update chat" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -159,7 +159,7 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
     console.error("Failed to delete chat:", error);
     return NextResponse.json(
       { error: "Failed to delete chat" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

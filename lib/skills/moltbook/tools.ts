@@ -98,7 +98,57 @@ const moltyNameSchema = z.object({
 });
 
 const updateProfileSchema = z.object({
-  description: z.string().describe("Your new profile description"),
+  description: z.string().optional().describe("Your new profile description"),
+  metadata: z
+    .record(z.string(), z.unknown())
+    .optional()
+    .describe("Optional metadata object"),
+});
+
+const submoltFeedSchema = z.object({
+  name: z.string().describe("The name of the submolt"),
+  sort: z
+    .enum(["hot", "new", "top", "rising"])
+    .default("new")
+    .describe("How to sort posts"),
+  limit: z
+    .number()
+    .min(1)
+    .max(50)
+    .default(25)
+    .describe("Number of posts to return"),
+});
+
+// Moderation schemas
+const pinPostSchema = z.object({
+  postId: z.string().describe("The ID of the post to pin (max 3 per submolt)"),
+});
+
+const updateSubmoltSettingsSchema = z.object({
+  name: z.string().describe("The name of the submolt to update"),
+  description: z.string().optional().describe("New description"),
+  bannerColor: z
+    .string()
+    .optional()
+    .describe('Banner color hex code, e.g., "#1a1a2e"'),
+  themeColor: z
+    .string()
+    .optional()
+    .describe('Theme color hex code, e.g., "#ff4500"'),
+});
+
+const moderatorSchema = z.object({
+  submoltName: z.string().describe("The name of the submolt"),
+  agentName: z.string().describe("The name of the agent to add/remove as mod"),
+  role: z
+    .enum(["moderator"])
+    .optional()
+    .describe("The role to assign (currently only moderator)"),
+});
+
+const removeModeratorSchema = z.object({
+  submoltName: z.string().describe("The name of the submolt"),
+  agentName: z.string().describe("The name of the agent to remove as mod"),
 });
 
 const searchSchema = z.object({
@@ -288,6 +338,20 @@ export function createMoltbookTools(config: SkillConfig) {
     },
   });
 
+  const downvoteComment = tool({
+    description: "Downvote a comment.",
+    inputSchema: commentIdSchema,
+    execute: async (input: z.infer<typeof commentIdSchema>) => {
+      return skillFetch(
+        apiUrl(`/comments/${input.commentId}/downvote`, baseUrl),
+        {
+          method: "POST",
+          apiKey,
+        },
+      );
+    },
+  });
+
   // ============================================
   // SUBMOLTS (Communities)
   // ============================================
@@ -353,6 +417,120 @@ export function createMoltbookTools(config: SkillConfig) {
     },
   });
 
+  const getSubmoltFeed = tool({
+    description:
+      "Get posts from a specific submolt (community). Convenience method for browsing a single community.",
+    inputSchema: submoltFeedSchema,
+    execute: async (input: z.infer<typeof submoltFeedSchema>) => {
+      const params = new URLSearchParams({
+        sort: input.sort,
+        limit: input.limit.toString(),
+      });
+
+      return skillFetch(
+        apiUrl(`/submolts/${input.name}/feed?${params}`, baseUrl),
+        {
+          method: "GET",
+          apiKey,
+        },
+      );
+    },
+  });
+
+  // ============================================
+  // MODERATION (For Submolt Mods)
+  // ============================================
+
+  const pinPost = tool({
+    description:
+      "Pin a post to the top of a submolt. Only for submolt owners and moderators. Max 3 pinned posts per submolt.",
+    inputSchema: pinPostSchema,
+    execute: async (input: z.infer<typeof pinPostSchema>) => {
+      return skillFetch(apiUrl(`/posts/${input.postId}/pin`, baseUrl), {
+        method: "POST",
+        apiKey,
+      });
+    },
+  });
+
+  const unpinPost = tool({
+    description:
+      "Unpin a post from a submolt. Only for submolt owners and moderators.",
+    inputSchema: pinPostSchema,
+    execute: async (input: z.infer<typeof pinPostSchema>) => {
+      return skillFetch(apiUrl(`/posts/${input.postId}/pin`, baseUrl), {
+        method: "DELETE",
+        apiKey,
+      });
+    },
+  });
+
+  const updateSubmoltSettings = tool({
+    description:
+      "Update settings for a submolt you own or moderate. Can change description, banner color, and theme color.",
+    inputSchema: updateSubmoltSettingsSchema,
+    execute: async (input: z.infer<typeof updateSubmoltSettingsSchema>) => {
+      const body: Record<string, string> = {};
+      if (input.description) body.description = input.description;
+      if (input.bannerColor) body.banner_color = input.bannerColor;
+      if (input.themeColor) body.theme_color = input.themeColor;
+
+      return skillFetch(apiUrl(`/submolts/${input.name}/settings`, baseUrl), {
+        method: "PATCH",
+        apiKey,
+        body: JSON.stringify(body),
+      });
+    },
+  });
+
+  const addModerator = tool({
+    description:
+      "Add a moderator to a submolt you own. Only submolt owners can add moderators.",
+    inputSchema: moderatorSchema,
+    execute: async (input: z.infer<typeof moderatorSchema>) => {
+      return skillFetch(
+        apiUrl(`/submolts/${input.submoltName}/moderators`, baseUrl),
+        {
+          method: "POST",
+          apiKey,
+          body: JSON.stringify({
+            agent_name: input.agentName,
+            role: input.role || "moderator",
+          }),
+        },
+      );
+    },
+  });
+
+  const removeModerator = tool({
+    description:
+      "Remove a moderator from a submolt you own. Only submolt owners can remove moderators.",
+    inputSchema: removeModeratorSchema,
+    execute: async (input: z.infer<typeof removeModeratorSchema>) => {
+      return skillFetch(
+        apiUrl(`/submolts/${input.submoltName}/moderators`, baseUrl),
+        {
+          method: "DELETE",
+          apiKey,
+          body: JSON.stringify({
+            agent_name: input.agentName,
+          }),
+        },
+      );
+    },
+  });
+
+  const listModerators = tool({
+    description: "List all moderators for a submolt.",
+    inputSchema: submoltNameSchema,
+    execute: async (input: z.infer<typeof submoltNameSchema>) => {
+      return skillFetch(apiUrl(`/submolts/${input.name}/moderators`, baseUrl), {
+        method: "GET",
+        apiKey,
+      });
+    },
+  });
+
   // ============================================
   // FOLLOWING
   // ============================================
@@ -408,13 +586,18 @@ export function createMoltbookTools(config: SkillConfig) {
   });
 
   const updateProfile = tool({
-    description: "Update your Moltbook profile description.",
+    description:
+      "Update your Moltbook profile. Can update description and/or metadata. Use PATCH method.",
     inputSchema: updateProfileSchema,
     execute: async (input: z.infer<typeof updateProfileSchema>) => {
+      const body: Record<string, unknown> = {};
+      if (input.description) body.description = input.description;
+      if (input.metadata) body.metadata = input.metadata;
+
       return skillFetch(apiUrl("/agents/me", baseUrl), {
         method: "PATCH",
         apiKey,
-        body: JSON.stringify({ description: input.description }),
+        body: JSON.stringify(body),
       });
     },
   });
@@ -487,12 +670,21 @@ export function createMoltbookTools(config: SkillConfig) {
     upvotePost,
     downvotePost,
     upvoteComment,
+    downvoteComment,
     // Submolts
     listSubmolts,
     getSubmolt,
+    getSubmoltFeed,
     createSubmolt,
     subscribeSubmolt,
     unsubscribeSubmolt,
+    // Moderation
+    pinPost,
+    unpinPost,
+    updateSubmoltSettings,
+    addModerator,
+    removeModerator,
+    listModerators,
     // Following
     followMolty,
     unfollowMolty,

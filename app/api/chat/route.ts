@@ -122,6 +122,18 @@ export async function POST(req: Request) {
           isPublic: true,
           createdById: true,
           enabledSkills: true,
+          // Agent identity metadata
+          description: true,
+          personality: true,
+          traits: true,
+          skills: true,
+          specialAbility: true,
+          rarity: true,
+          // Token/blockchain info
+          isMinted: true,
+          tokenMint: true,
+          tokenSymbol: true,
+          launchedAt: true,
         },
       });
 
@@ -136,8 +148,78 @@ export async function POST(req: Request) {
             },
           );
         }
-        baseSystemPrompt = agent.systemPrompt;
+
         agentName = agent.name;
+
+        // Build agent identity preamble
+        const identityParts: string[] = [];
+
+        // Core identity
+        identityParts.push(`# Your Identity`);
+        identityParts.push(
+          `You are **${agent.name}**${agent.tokenSymbol ? ` ($${agent.tokenSymbol})` : ""}.`,
+        );
+
+        if (agent.description) {
+          identityParts.push(`\n${agent.description}`);
+        }
+
+        // Token info (if minted/launched)
+        if (agent.isMinted && agent.tokenMint) {
+          identityParts.push(`\n## Your Token`);
+          identityParts.push(
+            `- **Symbol**: $${agent.tokenSymbol || agent.name.toUpperCase()}`,
+          );
+          identityParts.push(`- **Token Mint Address**: ${agent.tokenMint}`);
+          identityParts.push(`- **Status**: Launched on Solana`);
+          if (agent.launchedAt) {
+            identityParts.push(
+              `- **Launch Date**: ${agent.launchedAt.toISOString().split("T")[0]}`,
+            );
+          }
+        }
+
+        // Personality & traits
+        if (agent.personality || (agent.traits && agent.traits.length > 0)) {
+          identityParts.push(`\n## Your Personality & Traits`);
+          if (agent.personality) {
+            identityParts.push(`- **Personality**: ${agent.personality}`);
+          }
+          if (agent.traits && agent.traits.length > 0) {
+            identityParts.push(`- **Traits**: ${agent.traits.join(", ")}`);
+          }
+        }
+
+        // Skills (conceptual abilities, not toolsets)
+        if (agent.skills && agent.skills.length > 0) {
+          identityParts.push(`\n## Your Skills`);
+          identityParts.push(agent.skills.map((s) => `- ${s}`).join("\n"));
+        }
+
+        // Special ability
+        if (agent.specialAbility) {
+          identityParts.push(`\n## Your Special Ability`);
+          identityParts.push(`**${agent.specialAbility}**`);
+        }
+
+        // Rarity
+        if (agent.rarity) {
+          identityParts.push(`\n## Rarity`);
+          identityParts.push(
+            `You are a **${agent.rarity.toUpperCase()}** agent.`,
+          );
+        }
+
+        // Important behavioral note
+        identityParts.push(`\n---`);
+        identityParts.push(
+          `When someone asks "who are you" or about your identity, introduce yourself as ${agent.name}${agent.tokenSymbol ? ` with token $${agent.tokenSymbol}` : ""}. Share your personality, traits, and capabilities. You ARE this agent - embody its personality in all your responses.`,
+        );
+        identityParts.push(`---\n`);
+
+        // Combine identity preamble with system prompt
+        const identityPreamble = identityParts.join("\n");
+        baseSystemPrompt = `${identityPreamble}\n\n# Your Instructions\n${agent.systemPrompt}`;
 
         // Get enabled skills from agent config
         if (agent.enabledSkills && agent.enabledSkills.length > 0) {

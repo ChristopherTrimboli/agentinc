@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
 import {
   Zap,
   Power,
@@ -67,6 +73,8 @@ export interface SkillConfig {
   apiKeyConfig?: ApiKeyConfig;
   apiKey?: string;
   isConfigured?: boolean;
+  /** Functions provided by this skill (for UI display) */
+  functions?: ToolFunction[];
 }
 
 // Legacy ToolConfig for backwards compatibility
@@ -154,7 +162,7 @@ interface ToolPanelProps {
   historyRefreshTrigger?: number;
 }
 
-function ToolGroupCard({
+const ToolGroupCard = React.memo(function ToolGroupCard({
   group,
   onToggle,
 }: {
@@ -163,6 +171,13 @@ function ToolGroupCard({
 }) {
   const [expanded, setExpanded] = useState(false);
   const [imageError, setImageError] = useState(false);
+
+  const handleToggle = useCallback(
+    () => onToggle(!group.enabled),
+    [onToggle, group.enabled],
+  );
+  const handleExpand = useCallback(() => setExpanded((prev) => !prev), []);
+  const handleImageError = useCallback(() => setImageError(true), []);
 
   return (
     <div
@@ -185,7 +200,7 @@ function ToolGroupCard({
               src={group.logoUrl}
               alt={group.name}
               className="w-4 h-4 object-contain"
-              onError={() => setImageError(true)}
+              onError={handleImageError}
             />
           ) : (
             group.icon
@@ -209,7 +224,7 @@ function ToolGroupCard({
             {group.functions.length}
           </span>
           <button
-            onClick={() => setExpanded(!expanded)}
+            onClick={handleExpand}
             className="p-1 rounded hover:bg-white/[0.04] text-white/25 hover:text-white/40"
           >
             <ChevronRight
@@ -217,7 +232,7 @@ function ToolGroupCard({
             />
           </button>
           <button
-            onClick={() => onToggle(!group.enabled)}
+            onClick={handleToggle}
             className={`p-1 rounded transition-colors ${
               group.enabled
                 ? "text-[#6FEC06]"
@@ -254,9 +269,9 @@ function ToolGroupCard({
       )}
     </div>
   );
-}
+});
 
-function SkillCard({
+const SkillCard = React.memo(function SkillCard({
   skill,
   onToggle,
   onApiKeyChange,
@@ -269,14 +284,39 @@ function SkillCard({
   const [showApiKey, setShowApiKey] = useState(false);
   const [localApiKey, setLocalApiKey] = useState(skill.apiKey || "");
 
-  const needsApiKey = skill.requiresApiKey && !skill.isConfigured;
+  // Skills with apiKeyConfig can always be expanded to configure API key
+  const hasApiKeyConfig = !!skill.apiKeyConfig;
   const hasUserApiKey = !!skill.apiKey;
+  const hasFunctions = skill.functions && skill.functions.length > 0;
+  const canExpand = hasApiKeyConfig || hasFunctions;
 
   const handleApiKeySave = () => {
     if (onApiKeyChange) {
       onApiKeyChange(localApiKey);
     }
   };
+
+  const handleApiKeyClear = () => {
+    setLocalApiKey("");
+    if (onApiKeyChange) {
+      onApiKeyChange("");
+    }
+  };
+
+  // Update local state when skill.apiKey changes (e.g., loaded from storage)
+  const prevApiKeyRef = useRef(skill.apiKey);
+  useEffect(() => {
+    if (skill.apiKey !== prevApiKeyRef.current) {
+      setLocalApiKey(skill.apiKey || "");
+      prevApiKeyRef.current = skill.apiKey;
+    }
+  }, [skill.apiKey]);
+
+  const handleToggle = useCallback(
+    () => onToggle(!skill.enabled),
+    [onToggle, skill.enabled],
+  );
+  const handleExpand = useCallback(() => setExpanded((prev) => !prev), []);
 
   return (
     <div
@@ -307,12 +347,24 @@ function SkillCard({
 
         {/* Status + Actions */}
         <div className="flex items-center gap-1 shrink-0">
-          {needsApiKey && !hasUserApiKey && (
-            <Key className="w-3 h-3 text-amber-400/60" />
+          {/* Function count */}
+          {hasFunctions && (
+            <span
+              className={`text-[10px] tabular-nums min-w-[12px] text-right ${skill.enabled ? "text-white/40" : "text-white/25"}`}
+            >
+              {skill.functions!.length}
+            </span>
           )}
-          {needsApiKey && (
+          {/* Show key status indicator */}
+          {hasApiKeyConfig && (
+            <Key
+              className={`w-3 h-3 ${hasUserApiKey ? "text-[#6FEC06]/60" : "text-amber-400/60"}`}
+            />
+          )}
+          {/* Show expand button if can expand */}
+          {canExpand && (
             <button
-              onClick={() => setExpanded(!expanded)}
+              onClick={handleExpand}
               className="p-1 rounded hover:bg-white/[0.04] text-white/25 hover:text-white/40"
             >
               <ChevronRight
@@ -320,15 +372,13 @@ function SkillCard({
               />
             </button>
           )}
+          {/* Always allow enabling - skills can work without API key for setup tools */}
           <button
-            onClick={() => onToggle(!skill.enabled)}
-            disabled={needsApiKey && !hasUserApiKey}
+            onClick={handleToggle}
             className={`p-1 rounded transition-colors ${
               skill.enabled
                 ? "text-[#6FEC06]"
-                : needsApiKey && !hasUserApiKey
-                  ? "text-white/10 cursor-not-allowed"
-                  : "text-white/20 hover:text-white/35"
+                : "text-white/20 hover:text-white/35"
             }`}
           >
             <Power className="w-3.5 h-3.5" />
@@ -336,76 +386,116 @@ function SkillCard({
         </div>
       </div>
 
-      {expanded && needsApiKey && (
+      {/* Expanded content */}
+      {expanded && canExpand && (
         <div
           className={`px-2.5 pb-2 border-t ${skill.enabled ? "border-[#6FEC06]/10" : "border-white/[0.03]"}`}
         >
-          <div className="pt-2 space-y-1.5">
-            {skill.apiKeyConfig && (
-              <>
-                <div className="flex items-center justify-between">
-                  <label className="text-[10px] text-white/50 font-medium">
-                    {skill.apiKeyConfig.label}
-                  </label>
-                  {skill.apiKeyConfig.helpUrl && (
-                    <a
-                      href={skill.apiKeyConfig.helpUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-[10px] text-[#6FEC06]/60 hover:text-[#6FEC06]"
-                    >
-                      Get key <ExternalLink className="w-2.5 h-2.5" />
-                    </a>
-                  )}
-                </div>
-                <div className="flex gap-1.5">
-                  <div className="relative flex-1">
-                    <input
-                      type={showApiKey ? "text" : "password"}
-                      value={localApiKey}
-                      onChange={(e) => setLocalApiKey(e.target.value)}
-                      placeholder={
-                        skill.apiKeyConfig.placeholder || "Enter API key..."
-                      }
-                      className="w-full py-1.5 pl-2.5 pr-7 rounded text-[11px] bg-white/[0.03] border border-white/[0.06] text-white placeholder:text-white/20 focus:border-[#6FEC06]/25 focus:outline-none font-mono"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowApiKey(!showApiKey)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/40"
-                    >
-                      {showApiKey ? (
-                        <EyeOff className="w-2.5 h-2.5" />
-                      ) : (
-                        <Eye className="w-2.5 h-2.5" />
-                      )}
-                    </button>
-                  </div>
-                  <button
-                    onClick={handleApiKeySave}
-                    disabled={!localApiKey || localApiKey === skill.apiKey}
-                    className={`px-2 rounded text-[10px] font-medium ${
-                      localApiKey && localApiKey !== skill.apiKey
-                        ? "bg-[#6FEC06] text-black"
-                        : "bg-white/[0.03] text-white/20 cursor-not-allowed"
-                    }`}
+          {/* Functions list */}
+          {hasFunctions && (
+            <div className="pt-1.5 space-y-0.5">
+              {skill.functions!.map((fn) => (
+                <div
+                  key={fn.id}
+                  className="flex items-start gap-1.5 py-0.5 text-[10px]"
+                >
+                  <span
+                    className={`w-1 h-1 rounded-full mt-[5px] shrink-0 ${skill.enabled ? "bg-[#6FEC06]/60" : "bg-white/15"}`}
+                  />
+                  <span
+                    className={
+                      skill.enabled ? "text-white/50" : "text-white/30"
+                    }
                   >
-                    {skill.apiKey ? <Check className="w-3 h-3" /> : "Save"}
+                    {fn.name}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* API Key config area */}
+          {hasApiKeyConfig && skill.apiKeyConfig && (
+            <div
+              className={`pt-2 space-y-1.5 ${hasFunctions ? "mt-2 border-t border-white/[0.04]" : ""}`}
+            >
+              {/* Info text for skills that can auto-setup */}
+              {!hasUserApiKey && (
+                <p className="text-[10px] text-white/40 leading-relaxed mb-2">
+                  Enable this skill and use it to auto-register. Then paste your
+                  API key here.
+                </p>
+              )}
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] text-white/50 font-medium">
+                  {skill.apiKeyConfig.label}
+                </label>
+                {skill.apiKeyConfig.helpUrl && (
+                  <a
+                    href={skill.apiKeyConfig.helpUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-[10px] text-[#6FEC06]/60 hover:text-[#6FEC06]"
+                  >
+                    Get key <ExternalLink className="w-2.5 h-2.5" />
+                  </a>
+                )}
+              </div>
+              <div className="flex gap-1.5">
+                <div className="relative flex-1">
+                  <input
+                    type={showApiKey ? "text" : "password"}
+                    value={localApiKey}
+                    onChange={(e) => setLocalApiKey(e.target.value)}
+                    placeholder={
+                      skill.apiKeyConfig.placeholder || "Enter API key..."
+                    }
+                    className="w-full py-1.5 pl-2.5 pr-7 rounded text-[11px] bg-white/[0.03] border border-white/[0.06] text-white placeholder:text-white/20 focus:border-[#6FEC06]/25 focus:outline-none font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowApiKey(!showApiKey)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-white/25 hover:text-white/40"
+                  >
+                    {showApiKey ? (
+                      <EyeOff className="w-2.5 h-2.5" />
+                    ) : (
+                      <Eye className="w-2.5 h-2.5" />
+                    )}
                   </button>
                 </div>
-                {hasUserApiKey && (
+                <button
+                  onClick={handleApiKeySave}
+                  disabled={!localApiKey || localApiKey === skill.apiKey}
+                  className={`px-2 rounded text-[10px] font-medium ${
+                    localApiKey && localApiKey !== skill.apiKey
+                      ? "bg-[#6FEC06] text-black"
+                      : "bg-white/[0.03] text-white/20 cursor-not-allowed"
+                  }`}
+                >
+                  {skill.apiKey ? <Check className="w-3 h-3" /> : "Save"}
+                </button>
+              </div>
+              {hasUserApiKey && (
+                <div className="flex items-center justify-between">
                   <p className="text-[9px] text-[#6FEC06]/50 flex items-center gap-1">
-                    <Check className="w-2 h-2" /> Saved
+                    <Check className="w-2 h-2" /> API key saved
                   </p>
-                )}
-              </>
-            )}
-          </div>
+                  <button
+                    onClick={handleApiKeyClear}
+                    className="text-[9px] text-red-400/60 hover:text-red-400"
+                  >
+                    Clear
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
   );
-}
+});
 
 // Category icons and labels
 const CATEGORY_CONFIG: Record<
@@ -447,41 +537,57 @@ function ToolsTab({
 }) {
   const [search, setSearch] = useState("");
 
-  const filteredGroups = toolGroups.filter(
-    (group) =>
-      group.name.toLowerCase().includes(search.toLowerCase()) ||
-      group.functions.some((f) =>
-        f.name.toLowerCase().includes(search.toLowerCase()),
+  // Memoize filtered and grouped data
+  const filteredGroups = useMemo(
+    () =>
+      toolGroups.filter(
+        (group) =>
+          group.name.toLowerCase().includes(search.toLowerCase()) ||
+          group.functions.some((f) =>
+            f.name.toLowerCase().includes(search.toLowerCase()),
+          ),
       ),
+    [toolGroups, search],
   );
 
-  const filteredSkills = skills.filter(
-    (skill) =>
-      skill.name.toLowerCase().includes(search.toLowerCase()) ||
-      skill.description.toLowerCase().includes(search.toLowerCase()),
+  const filteredSkills = useMemo(
+    () =>
+      skills.filter(
+        (skill) =>
+          skill.name.toLowerCase().includes(search.toLowerCase()) ||
+          skill.description.toLowerCase().includes(search.toLowerCase()),
+      ),
+    [skills, search],
   );
 
   // Group tools by their source/category
-  const groupedTools = filteredGroups.reduce<Record<string, ToolGroup[]>>(
-    (acc, group) => {
-      const category = group.source || "Utilities";
-      if (!acc[category]) acc[category] = [];
-      acc[category].push(group);
-      return acc;
-    },
-    {},
+  const { groupedTools, orderedCategories } = useMemo(() => {
+    const grouped = filteredGroups.reduce<Record<string, ToolGroup[]>>(
+      (acc, group) => {
+        const category = group.source || "Utilities";
+        if (!acc[category]) acc[category] = [];
+        acc[category].push(group);
+        return acc;
+      },
+      {},
+    );
+
+    // Order categories: AI, CoinGecko, GeckoTerminal, then Utilities
+    const categoryOrder = ["AI", "CoinGecko", "GeckoTerminal", "Utilities"];
+    const ordered = [
+      ...categoryOrder.filter((c) => grouped[c]),
+      ...Object.keys(grouped).filter((c) => !categoryOrder.includes(c)),
+    ];
+
+    return { groupedTools: grouped, orderedCategories: ordered };
+  }, [filteredGroups]);
+
+  const enabledCount = useMemo(
+    () =>
+      toolGroups.filter((g) => g.enabled).length +
+      skills.filter((s) => s.enabled).length,
+    [toolGroups, skills],
   );
-
-  // Order categories: AI, CoinGecko, GeckoTerminal, then Utilities
-  const categoryOrder = ["AI", "CoinGecko", "GeckoTerminal", "Utilities"];
-  const orderedCategories = [
-    ...categoryOrder.filter((c) => groupedTools[c]),
-    ...Object.keys(groupedTools).filter((c) => !categoryOrder.includes(c)),
-  ];
-
-  const enabledCount =
-    toolGroups.filter((g) => g.enabled).length +
-    skills.filter((s) => s.enabled).length;
 
   if (loading) {
     return (
@@ -714,7 +820,7 @@ function HistoryTab({
       const date = new Date(chat.updatedAt);
       const now = new Date();
       const diffDays = Math.floor(
-        (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24)
+        (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24),
       );
 
       let group: string;
@@ -734,12 +840,20 @@ function HistoryTab({
       acc[group].push(chat);
       return acc;
     },
-    {} as Record<string, ChatHistoryItem[]>
+    {} as Record<string, ChatHistoryItem[]>,
   );
 
   // Order time groups properly
-  const timeGroupOrder = ["Today", "Yesterday", "This Week", "This Month", "Older"];
-  const orderedGroups = timeGroupOrder.filter((g) => groupedChats[g]?.length > 0);
+  const timeGroupOrder = [
+    "Today",
+    "Yesterday",
+    "This Week",
+    "This Month",
+    "Older",
+  ];
+  const orderedGroups = timeGroupOrder.filter(
+    (g) => groupedChats[g]?.length > 0,
+  );
 
   const handleDeleteChat = async (chatId: string) => {
     if (!identityToken) return;
@@ -852,7 +966,8 @@ function HistoryTab({
                 <div className="px-2">
                   {groupedChats[group].map((chat) => {
                     const isActive = currentChatId === chat.id;
-                    const rarityRing = rarityColors[chat.agent?.rarity || "common"];
+                    const rarityRing =
+                      rarityColors[chat.agent?.rarity || "common"];
 
                     return (
                       <div
@@ -909,17 +1024,23 @@ function HistoryTab({
                                 {chat.lastMessage ? (
                                   <>
                                     {chat.lastMessage.role === "user" && (
-                                      <span className="text-white/60">You: </span>
+                                      <span className="text-white/60">
+                                        You:{" "}
+                                      </span>
                                     )}
                                     {chat.lastMessage.content}
                                   </>
                                 ) : (
-                                  <span className="italic text-white/35">No messages</span>
+                                  <span className="italic text-white/35">
+                                    No messages
+                                  </span>
                                 )}
                               </p>
 
                               {/* Timestamp */}
-                              <p className={`text-[10px] mt-1 ${isActive ? "text-[#6FEC06]/60" : "text-white/35"}`}>
+                              <p
+                                className={`text-[10px] mt-1 ${isActive ? "text-[#6FEC06]/60" : "text-white/35"}`}
+                              >
                                 {formatDistanceToNow(new Date(chat.updatedAt), {
                                   addSuffix: true,
                                 })}

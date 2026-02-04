@@ -80,7 +80,8 @@ export async function GET(req: NextRequest) {
         updatedAt: chat.updatedAt,
         agentId: chat.agentId,
         agent: "agent" in chat ? chat.agent : null,
-        lastMessage: "messages" in chat && chat.messages[0] ? chat.messages[0] : null,
+        lastMessage:
+          "messages" in chat && chat.messages[0] ? chat.messages[0] : null,
         messageCount: "_count" in chat ? chat._count.messages : 0,
       })),
       nextCursor,
@@ -89,7 +90,7 @@ export async function GET(req: NextRequest) {
     console.error("Failed to fetch chats:", error);
     return NextResponse.json(
       { error: "Failed to fetch chats" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -114,7 +115,12 @@ export async function POST(req: NextRequest) {
     }
 
     const { agentId, title } = body;
-    console.log("[Chats API] POST - Creating chat for agent:", agentId, "user:", userId);
+    console.log(
+      "[Chats API] POST - Creating chat for agent:",
+      agentId,
+      "user:",
+      userId,
+    );
 
     // If agentId provided, verify agent exists and user can access it
     if (agentId) {
@@ -130,7 +136,7 @@ export async function POST(req: NextRequest) {
       if (!agent.isPublic && agent.createdById !== userId) {
         return NextResponse.json(
           { error: "Access denied to this agent" },
-          { status: 403 }
+          { status: 403 },
         );
       }
     }
@@ -160,7 +166,7 @@ export async function POST(req: NextRequest) {
     console.error("Failed to create chat:", error);
     return NextResponse.json(
       { error: "Failed to create chat" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

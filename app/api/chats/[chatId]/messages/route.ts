@@ -24,7 +24,7 @@ type RouteContext = {
 export async function POST(req: NextRequest, context: RouteContext) {
   const { chatId } = await context.params;
   console.log("[ChatMessages API] POST - Adding messages to chat:", chatId);
-  
+
   const userId = await verifyAuth(req);
 
   if (!userId) {
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
     if (!Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json(
         { error: "Messages array is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -89,7 +89,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
           result.parts = msg.parts as object;
         }
         return result;
-      }
+      },
     );
 
     // Create messages
@@ -100,7 +100,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
     // Auto-generate title from first user message if chat has no title
     if (!chat.title && messages.length > 0) {
       const firstUserMessage = messages.find(
-        (m: { role: string }) => m.role === "user"
+        (m: { role: string }) => m.role === "user",
       );
       if (firstUserMessage) {
         const autoTitle = firstUserMessage.content
@@ -111,7 +111,8 @@ export async function POST(req: NextRequest, context: RouteContext) {
           await prisma.chat.update({
             where: { id: chatId },
             data: {
-              title: autoTitle + (firstUserMessage.content.length > 50 ? "..." : ""),
+              title:
+                autoTitle + (firstUserMessage.content.length > 50 ? "..." : ""),
             },
           });
         }
@@ -167,7 +168,7 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
     console.error("Failed to clear messages:", error);
     return NextResponse.json(
       { error: "Failed to clear messages" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
