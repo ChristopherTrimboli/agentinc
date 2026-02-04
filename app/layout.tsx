@@ -18,14 +18,14 @@ const syne = Syne({
 export const metadata: Metadata = {
   title: "Agent Inc. | AI-Powered Autonomous Startups on Chain",
   description:
-    "Incorporate, trade and invest in collections of agents that build together a real startup. Based on ERC-8041.",
+    "Incorporate, trade and invest in collections of agents that build together a real startup. Built on Bags.",
   keywords: [
     "AI agents",
     "autonomous agents",
     "crypto",
     "blockchain",
     "NFT",
-    "ERC-8041",
+    "Bags",
     "pump.fun",
     "startup",
     "onchain",
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Agent Inc. | AI-Powered Autonomous Startups on Chain",
     description:
-      "Incorporate, trade and invest in collections of agents that build together a real startup. Based on ERC-8041.",
+      "Incorporate, trade and invest in collections of agents that build together a real startup. Built on Bags.",
     type: "website",
     url: "https://agentinc.fun",
     siteName: "Agent Inc.",
@@ -54,7 +54,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Agent Inc. | AI-Powered Autonomous Startups on Chain",
     description:
-      "Incorporate, trade and invest in collections of agents that build together a real startup. Based on ERC-8041.",
+      "Incorporate, trade and invest in collections of agents that build together a real startup. Built on Bags.",
     creator: "@agentincdotfun",
     site: "@agentincdotfun",
     images: ["/og-image.png"],

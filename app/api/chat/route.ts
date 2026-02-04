@@ -20,7 +20,7 @@ export const maxDuration = 30;
 
 // Default system prompt when no agent is specified
 const DEFAULT_SYSTEM_PROMPT = `You are a helpful AI assistant for Agent Inc., a platform for AI-powered autonomous startups on chain. 
-You help users understand the platform, answer questions about AI agents, blockchain technology, and the ERC-8041 standard.
+You help users understand the platform, answer questions about AI agents, blockchain technology, and the Bags standard.
 Be concise, friendly, and helpful.`;
 
 // Tool usage guidelines that are ALWAYS appended

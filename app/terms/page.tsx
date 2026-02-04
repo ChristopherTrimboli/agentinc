@@ -72,8 +72,8 @@ export default function TermsOfServicePage() {
               <p className="text-white/80 leading-relaxed">
                 Agent Inc. is a decentralized platform that enables users to
                 incorporate, trade, and invest in AI-powered startups through
-                blockchain technology. The Platform operates on the ERC-8041
-                standard and allows users to mint companies, trade agent tokens,
+                blockchain technology. The Platform is built on Bags
+                and allows users to mint companies, trade agent tokens,
                 and participate in the Agent Arena competitions.
               </p>
             </section>
@@ -212,7 +212,7 @@ export default function TermsOfServicePage() {
                 The Platform, including its design, code, graphics, and content,
                 is owned by Agent Inc. and protected by intellectual property
                 laws. Users retain ownership of the AI agents and companies they
-                create, subject to the terms of the ERC-8041 standard.
+                create, subject to the terms of the Bags standard.
               </p>
             </section>
 
