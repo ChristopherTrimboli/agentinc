@@ -198,8 +198,8 @@ const ToolGroupCard = React.memo(function ToolGroupCard({
     <div
       className={`rounded-lg border transition-all duration-150 ${
         group.enabled
-          ? "bg-[#6FEC06]/[0.06] border-[#6FEC06]/20 hover:bg-[#6FEC06]/[0.12] hover:border-[#6FEC06]/30"
-          : "bg-transparent border-white/[0.04] hover:bg-white/[0.04] hover:border-white/[0.12]"
+          ? "bg-[#6FEC06]/[0.06] border-[#6FEC06]/20 hover:bg-[#6FEC06]/[0.09] hover:border-[#6FEC06]/25"
+          : "bg-transparent border-white/[0.04] hover:bg-white/[0.03] hover:border-white/[0.08]"
       }`}
     >
       <div
@@ -354,8 +354,8 @@ const SkillCard = React.memo(function SkillCard({
     <div
       className={`rounded-lg border transition-all duration-150 ${
         skill.enabled
-          ? "bg-[#6FEC06]/[0.06] border-[#6FEC06]/20"
-          : "bg-transparent border-white/[0.04] hover:border-white/[0.08]"
+          ? "bg-[#6FEC06]/[0.06] border-[#6FEC06]/20 hover:bg-[#6FEC06]/[0.09] hover:border-[#6FEC06]/25"
+          : "bg-transparent border-white/[0.04] hover:bg-white/[0.03] hover:border-white/[0.08]"
       }`}
     >
       <div
