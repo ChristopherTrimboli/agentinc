@@ -210,7 +210,7 @@ const ToolGroupCard = React.memo(function ToolGroupCard({
         {/* Content */}
         <div className="flex-1 min-w-0">
           <span
-            className={`font-medium text-[13px] leading-tight truncate block ${group.enabled ? "text-white" : "text-white/60"}`}
+            className={`font-medium text-[13px] leading-tight truncate block ${group.enabled ? "text-white" : "text-white/75"}`}
           >
             {group.name}
           </span>
@@ -219,7 +219,7 @@ const ToolGroupCard = React.memo(function ToolGroupCard({
         {/* Count + Actions */}
         <div className="flex items-center gap-1 shrink-0">
           <span
-            className={`text-[10px] tabular-nums min-w-[12px] text-right ${group.enabled ? "text-white/40" : "text-white/25"}`}
+            className={`text-[10px] tabular-nums min-w-[12px] text-right ${group.enabled ? "text-white/60" : "text-white/45"}`}
           >
             {group.functions.length}
           </span>
@@ -258,7 +258,7 @@ const ToolGroupCard = React.memo(function ToolGroupCard({
                   className={`w-1 h-1 rounded-full mt-[5px] shrink-0 ${group.enabled ? "bg-[#6FEC06]/60" : "bg-white/15"}`}
                 />
                 <span
-                  className={group.enabled ? "text-white/50" : "text-white/30"}
+                  className={group.enabled ? "text-white/70" : "text-white/50"}
                 >
                   {fn.name}
                 </span>
@@ -339,7 +339,7 @@ const SkillCard = React.memo(function SkillCard({
         {/* Content */}
         <div className="flex-1 min-w-0">
           <span
-            className={`font-medium text-[13px] leading-tight truncate block ${skill.enabled ? "text-white" : "text-white/60"}`}
+            className={`font-medium text-[13px] leading-tight truncate block ${skill.enabled ? "text-white" : "text-white/75"}`}
           >
             {skill.name}
           </span>
@@ -350,7 +350,7 @@ const SkillCard = React.memo(function SkillCard({
           {/* Function count */}
           {hasFunctions && (
             <span
-              className={`text-[10px] tabular-nums min-w-[12px] text-right ${skill.enabled ? "text-white/40" : "text-white/25"}`}
+              className={`text-[10px] tabular-nums min-w-[12px] text-right ${skill.enabled ? "text-white/60" : "text-white/45"}`}
             >
               {skill.functions!.length}
             </span>
@@ -404,7 +404,7 @@ const SkillCard = React.memo(function SkillCard({
                   />
                   <span
                     className={
-                      skill.enabled ? "text-white/50" : "text-white/30"
+                      skill.enabled ? "text-white/70" : "text-white/50"
                     }
                   >
                     {fn.name}
@@ -421,13 +421,13 @@ const SkillCard = React.memo(function SkillCard({
             >
               {/* Info text for skills that can auto-setup */}
               {!hasUserApiKey && (
-                <p className="text-[10px] text-white/40 leading-relaxed mb-2">
+                <p className="text-[10px] text-white/65 leading-relaxed mb-2">
                   Enable this skill and use it to auto-register. Then paste your
                   API key here.
                 </p>
               )}
               <div className="flex items-center justify-between">
-                <label className="text-[10px] text-white/50 font-medium">
+                <label className="text-[10px] text-white/75 font-medium">
                   {skill.apiKeyConfig.label}
                 </label>
                 {skill.apiKeyConfig.helpUrl && (
@@ -450,7 +450,7 @@ const SkillCard = React.memo(function SkillCard({
                     placeholder={
                       skill.apiKeyConfig.placeholder || "Enter API key..."
                     }
-                    className="w-full py-1.5 pl-2.5 pr-7 rounded text-[11px] bg-white/[0.03] border border-white/[0.06] text-white placeholder:text-white/20 focus:border-[#6FEC06]/25 focus:outline-none font-mono"
+                    className="w-full py-1.5 pl-2.5 pr-7 rounded text-[11px] bg-white/[0.03] border border-white/[0.06] text-white placeholder:text-white/50 focus:border-[#6FEC06]/25 focus:outline-none font-mono"
                   />
                   <button
                     type="button"
@@ -478,7 +478,7 @@ const SkillCard = React.memo(function SkillCard({
               </div>
               {hasUserApiKey && (
                 <div className="flex items-center justify-between">
-                  <p className="text-[9px] text-[#6FEC06]/50 flex items-center gap-1">
+                  <p className="text-[9px] text-[#6FEC06]/70 flex items-center gap-1">
                     <Check className="w-2 h-2" /> API key saved
                   </p>
                   <button
@@ -620,7 +620,7 @@ function ToolsTab({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search..."
-            className="w-full pl-8 pr-2.5 py-1.5 rounded-md bg-white/[0.02] border border-white/[0.04] text-[12px] text-white placeholder:text-white/20 focus:border-white/[0.08] focus:outline-none"
+            className="w-full pl-8 pr-2.5 py-1.5 rounded-md bg-white/[0.02] border border-white/[0.04] text-[12px] text-white placeholder:text-white/50 focus:border-white/[0.08] focus:outline-none"
           />
         </div>
       </div>
@@ -637,12 +637,12 @@ function ToolsTab({
 
           return (
             <div key={category}>
-              <div className="flex items-center gap-1.5 mb-1.5 px-0.5">
-                {categoryConfig.icon}
-                <span className="text-[9px] font-semibold uppercase tracking-wider text-white/30">
-                  {categoryConfig.label}
-                </span>
-              </div>
+          <div className="flex items-center gap-1.5 mb-1.5 px-0.5">
+            {categoryConfig.icon}
+            <span className="text-[9px] font-semibold uppercase tracking-wider text-white/60">
+              {categoryConfig.label}
+            </span>
+          </div>
               <div className="space-y-1">
                 {groups.map((group) => (
                   <ToolGroupCard
@@ -661,7 +661,7 @@ function ToolsTab({
           <div>
             <div className="flex items-center gap-1.5 mb-1.5 px-0.5">
               <Sparkles className="w-2.5 h-2.5 text-[#6FEC06]/50" />
-              <span className="text-[9px] font-semibold uppercase tracking-wider text-white/30">
+              <span className="text-[9px] font-semibold uppercase tracking-wider text-white/60">
                 Skills
               </span>
             </div>
@@ -684,8 +684,8 @@ function ToolsTab({
 
         {orderedCategories.length === 0 && filteredSkills.length === 0 && (
           <div className="text-center py-6">
-            <Wrench className="w-6 h-6 text-white/10 mx-auto mb-1.5" />
-            <p className="text-[11px] text-white/30">No tools found</p>
+            <Wrench className="w-6 h-6 text-white/20 mx-auto mb-1.5" />
+            <p className="text-[11px] text-white/60">No tools found</p>
           </div>
         )}
       </div>
@@ -714,7 +714,7 @@ function ToolsTab({
             Disable All
           </button>
         </div>
-        <p className="text-center text-[9px] text-white/20 mt-1.5">
+        <p className="text-center text-[9px] text-white/60 mt-1.5">
           {enabledCount} tools enabled
         </p>
       </div>
@@ -881,14 +881,14 @@ function HistoryTab({
 
   if (!identityToken) {
     return (
-      <div className="flex flex-col items-center justify-center h-full p-6 text-center">
+          <div className="flex flex-col items-center justify-center h-full p-6 text-center">
         <div className="w-12 h-12 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mb-4">
-          <History className="w-6 h-6 text-white/20" />
+          <History className="w-6 h-6 text-white/30" />
         </div>
-        <h3 className="text-sm font-medium text-white/70 mb-1">
+        <h3 className="text-sm font-medium text-white/85 mb-1">
           Sign in to view history
         </h3>
-        <p className="text-xs text-white/40 max-w-[180px]">
+        <p className="text-xs text-white/65 max-w-[180px]">
           Your conversations will be saved automatically
         </p>
       </div>
@@ -916,7 +916,7 @@ function HistoryTab({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search conversations..."
-              className="w-full pl-9 pr-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.06] text-xs text-white placeholder:text-white/40 focus:border-[#6FEC06]/30 focus:bg-white/[0.04] focus:outline-none transition-all"
+              className="w-full pl-9 pr-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.06] text-xs text-white placeholder:text-white/60 focus:border-[#6FEC06]/30 focus:bg-white/[0.04] focus:outline-none transition-all"
             />
             {search && (
               <button
@@ -940,12 +940,12 @@ function HistoryTab({
         ) : filteredChats.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
             <div className="w-14 h-14 rounded-2xl bg-white/[0.02] border border-white/[0.05] flex items-center justify-center mb-4">
-              <MessageSquare className="w-6 h-6 text-white/20" />
+              <MessageSquare className="w-6 h-6 text-white/30" />
             </div>
-            <p className="text-sm font-medium text-white/60 mb-1">
+            <p className="text-sm font-medium text-white/75 mb-1">
               {search ? "No results found" : "No conversations yet"}
             </p>
-            <p className="text-xs text-white/40 max-w-[160px]">
+            <p className="text-xs text-white/60 max-w-[160px]">
               {search
                 ? "Try a different search term"
                 : "Start chatting to see your history here"}
@@ -957,7 +957,7 @@ function HistoryTab({
               <div key={group} className="mb-1">
                 {/* Time group label */}
                 <div className="px-4 py-2 sticky top-0 bg-[#000015]/95 backdrop-blur-sm z-10">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-white/40">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-white/65">
                     {group}
                   </span>
                 </div>
@@ -978,11 +978,11 @@ function HistoryTab({
                             : "hover:bg-white/[0.03]"
                         }`}
                       >
-                        <button
-                          onClick={() => onSelectChat?.(chat.id, chat.agentId)}
-                          className="w-full text-left px-3 py-2.5"
-                        >
-                          <div className="flex items-center gap-3">
+          <button
+            onClick={() => onSelectChat?.(chat.id, chat.agentId)}
+            className="w-full text-left px-3 py-2.5 transition-colors"
+          >
+            <div className="flex items-center gap-3">
                             {/* Agent avatar - larger and more prominent */}
                             <div
                               className={`relative w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 ring-1.5 ${rarityRing} bg-[#0a0520] shadow-sm`}
@@ -1006,32 +1006,32 @@ function HistoryTab({
                             <div className="flex-1 min-w-0 pr-6">
                               {/* Title row with time */}
                               <div className="flex items-center justify-between gap-2 mb-0.5">
-                                <h4
-                                  className={`text-[13px] font-medium truncate ${
-                                    isActive ? "text-white" : "text-white/80"
-                                  }`}
-                                >
-                                  {chat.title || chat.agent?.name || "New Chat"}
-                                </h4>
+                              <h4
+                                className={`text-[13px] font-medium truncate ${
+                                  isActive ? "text-white" : "text-white/90"
+                                }`}
+                              >
+                                {chat.title || chat.agent?.name || "New Chat"}
+                              </h4>
                               </div>
 
                               {/* Last message preview */}
                               <p
                                 className={`text-[11px] truncate leading-relaxed ${
-                                  isActive ? "text-white/55" : "text-white/45"
+                                  isActive ? "text-white/70" : "text-white/60"
                                 }`}
                               >
                                 {chat.lastMessage ? (
                                   <>
                                     {chat.lastMessage.role === "user" && (
-                                      <span className="text-white/60">
+                                      <span className="text-white/75">
                                         You:{" "}
                                       </span>
                                     )}
                                     {chat.lastMessage.content}
                                   </>
                                 ) : (
-                                  <span className="italic text-white/35">
+                                  <span className="italic text-white/50">
                                     No messages
                                   </span>
                                 )}
@@ -1039,7 +1039,7 @@ function HistoryTab({
 
                               {/* Timestamp */}
                               <p
-                                className={`text-[10px] mt-1 ${isActive ? "text-[#6FEC06]/60" : "text-white/35"}`}
+                                className={`text-[10px] mt-1 ${isActive ? "text-[#6FEC06]/70" : "text-white/55"}`}
                               >
                                 {formatDistanceToNow(new Date(chat.updatedAt), {
                                   addSuffix: true,
@@ -1133,7 +1133,7 @@ function SettingsTab({
 
         {/* Voice Selection */}
         <div className="space-y-2">
-          <label className="text-[10px] font-medium text-white/50 px-0.5">
+          <label className="text-[10px] font-medium text-white/70 px-0.5">
             Voice
           </label>
           <div className="grid grid-cols-2 gap-1">
@@ -1149,7 +1149,7 @@ function SettingsTab({
               >
                 <span
                   className={`font-medium text-[11px] block ${
-                    settings.voice === voice.id ? "text-white" : "text-white/50"
+                    settings.voice === voice.id ? "text-white" : "text-white/70"
                   }`}
                 >
                   {voice.name}
@@ -1162,10 +1162,10 @@ function SettingsTab({
         {/* Speed Control */}
         <div className="mt-3 space-y-1.5">
           <div className="flex items-center justify-between px-0.5">
-            <label className="text-[10px] font-medium text-white/50">
+            <label className="text-[10px] font-medium text-white/70">
               Speed
             </label>
-            <span className="text-[10px] font-mono text-[#6FEC06]/80">
+            <span className="text-[10px] font-mono text-[#6FEC06]/90">
               {settings.speed.toFixed(1)}x
             </span>
           </div>
@@ -1178,7 +1178,7 @@ function SettingsTab({
             onChange={(e) => onSpeedChange?.(parseFloat(e.target.value))}
             className="w-full h-1 bg-white/[0.06] rounded appearance-none cursor-pointer accent-[#6FEC06] [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#6FEC06] [&::-webkit-slider-thumb]:appearance-none"
           />
-          <div className="flex justify-between text-[9px] text-white/35 px-0.5">
+          <div className="flex justify-between text-[9px] text-white/60 px-0.5">
             <span>0.5x</span>
             <span>1.0x</span>
             <span>2.0x</span>
@@ -1188,10 +1188,10 @@ function SettingsTab({
         {/* Auto-speak Toggle */}
         <div className="mt-3 flex items-center justify-between px-2 py-2 rounded-md bg-white/[0.02] border border-white/[0.04]">
           <div>
-            <span className="font-medium text-[11px] text-white/70 block">
+            <span className="font-medium text-[11px] text-white/85 block">
               Auto-speak
             </span>
-            <span className="text-[9px] text-white/40">
+            <span className="text-[9px] text-white/65">
               Read responses aloud
             </span>
           </div>
@@ -1222,7 +1222,7 @@ function SettingsTab({
         </div>
 
         <div className="px-2 py-2 rounded-md bg-white/[0.02] border border-white/[0.04]">
-          <p className="text-[10px] text-white/50 leading-relaxed">
+          <p className="text-[10px] text-white/70 leading-relaxed">
             Click the mic button to record. Speech is transcribed automatically.
           </p>
         </div>
@@ -1235,15 +1235,15 @@ function SettingsTab({
           <h3 className="text-[11px] font-semibold text-white/80">Tips</h3>
         </div>
 
-        <div className="space-y-1.5 text-[10px] text-white/50 px-0.5">
+        <div className="space-y-1.5 text-[10px] text-white/70 px-0.5">
           <p className="flex items-center gap-2">
-            <kbd className="px-1 py-0.5 rounded bg-white/[0.04] border border-white/[0.08] font-mono text-[9px] text-white/60">
+            <kbd className="px-1 py-0.5 rounded bg-white/[0.04] border border-white/[0.08] font-mono text-[9px] text-white/75">
               Enter
             </kbd>
             <span>Send</span>
           </p>
           <p className="flex items-center gap-2">
-            <kbd className="px-1 py-0.5 rounded bg-white/[0.04] border border-white/[0.08] font-mono text-[9px] text-white/60">
+            <kbd className="px-1 py-0.5 rounded bg-white/[0.04] border border-white/[0.08] font-mono text-[9px] text-white/75">
               Shift+Enter
             </kbd>
             <span>New line</span>
@@ -1552,7 +1552,7 @@ export function ToolPanel({
         >
           {/* Tab Header - matches chat header height */}
           <div className="h-[52px] sm:h-[60px] shrink-0 flex items-center px-3 border-b border-white/[0.04]">
-            <h2 className="font-medium text-white/80 text-[13px] whitespace-nowrap">
+            <h2 className="font-medium text-white/90 text-[13px] whitespace-nowrap">
               {TABS.find((t) => t.id === activeTab)?.label}
             </h2>
           </div>
@@ -1601,7 +1601,7 @@ export function ToolPanel({
       >
         {/* Mobile Header */}
         <div className="flex items-center justify-between px-3 py-2.5 border-b border-white/[0.04]">
-          <h2 className="font-medium text-white/80 text-sm">
+          <h2 className="font-medium text-white/90 text-sm">
             {TABS.find((t) => t.id === activeTab)?.label}
           </h2>
           <button
