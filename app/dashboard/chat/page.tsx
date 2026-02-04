@@ -382,19 +382,41 @@ function AttachmentsPreview() {
   if (files.length === 0) return null;
 
   return (
-    <PromptInputHeader className="px-4 pt-3">
-      <Attachments variant="grid" className="gap-2">
-        {files.map((file) => (
-          <Attachment
-            key={file.id}
-            data={file}
-            onRemove={() => remove(file.id)}
-            className="size-16 rounded-xl border border-[#6FEC06]/20 bg-[#0a0520] overflow-hidden ring-1 ring-inset ring-white/5"
-          >
-            <AttachmentPreview className="size-full" />
-            <AttachmentRemove className="bg-black/80 hover:bg-black border-0 text-white/70 hover:text-white" />
-          </Attachment>
-        ))}
+    <PromptInputHeader className="px-4 pt-3 pb-2">
+      <Attachments variant="grid" className="gap-2.5 w-full justify-start">
+        {files.map((file, index) => {
+          const fileName = file.filename || "Image";
+          const shortName =
+            fileName.length > 15
+              ? `${fileName.slice(0, 12)}...${fileName.slice(-4)}`
+              : fileName;
+
+          return (
+            <Attachment
+              key={file.id}
+              data={file}
+              onRemove={() => remove(file.id)}
+              className="size-20 rounded-xl border border-[#6FEC06]/30 bg-gradient-to-br from-[#0a0520] to-[#0a0520]/60 overflow-hidden ring-1 ring-inset ring-white/5 hover:ring-[#6FEC06]/40 hover:border-[#6FEC06]/50 hover:shadow-[0_0_20px_rgba(111,236,6,0.15)] transition-all duration-300 hover:-translate-y-0.5"
+              style={{
+                animation: `slideInUp 0.3s ease-out ${index * 0.05}s both`,
+              }}
+              title={fileName}
+            >
+              <AttachmentPreview className="size-full" />
+              <AttachmentRemove className="transition-all duration-200" />
+              
+              {/* Filename label at bottom */}
+              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/95 to-transparent px-1.5 py-1.5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                <p className="text-[9px] text-white/90 font-medium truncate leading-tight">
+                  {shortName}
+                </p>
+              </div>
+              
+              {/* Top overlay gradient for better remove button contrast */}
+              <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/30 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+            </Attachment>
+          );
+        })}
       </Attachments>
     </PromptInputHeader>
   );
@@ -420,6 +442,8 @@ const ChatInputArea = React.memo(function ChatInputArea({
 }: ChatInputAreaProps) {
   const [input, setInput] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const dragCounterRef = useRef(0);
 
   // Voice input hook - contained within this component so transcript updates don't affect parent
   const voiceInput = useVoiceInput({
@@ -442,8 +466,50 @@ const ChatInputArea = React.memo(function ChatInputArea({
     [onSubmit],
   );
 
+  // Track drag events for visual feedback
+  useEffect(() => {
+    const handleDragEnter = (e: DragEvent) => {
+      if (e.dataTransfer?.types?.includes("Files")) {
+        dragCounterRef.current++;
+        setIsDraggingOver(true);
+      }
+    };
+
+    const handleDragLeave = () => {
+      dragCounterRef.current--;
+      if (dragCounterRef.current === 0) {
+        setIsDraggingOver(false);
+      }
+    };
+
+    const handleDrop = () => {
+      dragCounterRef.current = 0;
+      setIsDraggingOver(false);
+    };
+
+    document.addEventListener("dragenter", handleDragEnter);
+    document.addEventListener("dragleave", handleDragLeave);
+    document.addEventListener("drop", handleDrop);
+
+    return () => {
+      document.removeEventListener("dragenter", handleDragEnter);
+      document.removeEventListener("dragleave", handleDragLeave);
+      document.removeEventListener("drop", handleDrop);
+    };
+  }, []);
+
   return (
-    <div className="shrink-0 z-20 px-3 sm:px-4 md:px-6 pb-3 sm:pb-4 pt-2 sm:pt-3 bg-[#000020]">
+    <div className="shrink-0 z-20 px-3 sm:px-4 md:px-6 pb-3 sm:pb-4 pt-2 sm:pt-3 bg-[#000020] relative">
+      {/* Drag overlay */}
+      {isDraggingOver && (
+        <div className="absolute inset-0 z-30 flex items-center justify-center bg-[#6FEC06]/10 backdrop-blur-sm border-2 border-dashed border-[#6FEC06] rounded-2xl mx-3 sm:mx-4 md:mx-6 my-2 sm:my-3 pointer-events-none">
+          <div className="flex flex-col items-center gap-3 text-[#6FEC06]">
+            <ImageIcon className="w-12 h-12 animate-bounce" />
+            <p className="text-lg font-semibold">Drop images here</p>
+          </div>
+        </div>
+      )}
+      
       <div className="max-w-3xl mx-auto">
         {/* Glowing border wrapper - hidden when busy */}
         <div
@@ -1494,7 +1560,7 @@ function ChatInterface({
                         from={message.role}
                         className={`max-w-[95%] sm:max-w-[85%] ${
                           isUser
-                            ? "[&_.is-user]:bg-gradient-to-br [&_.is-user]:from-[#6FEC06]/20 [&_.is-user]:to-[#6FEC06]/5 [&_.is-user]:border [&_.is-user]:border-[#6FEC06]/20 [&_.is-user]:shadow-[0_2px_20px_rgba(111,236,6,0.1)]"
+                            ? "[&_.is-user]:bg-gradient-to-br [&_.is-user]:from-white/[0.08] [&_.is-user]:via-white/[0.05] [&_.is-user]:to-white/[0.03] [&_.is-user]:border [&_.is-user]:border-white/[0.12] [&_.is-user]:shadow-[0_2px_12px_rgba(0,0,0,0.3)] [&_.is-user]:backdrop-blur-sm"
                             : ""
                         }`}
                       >
@@ -1522,12 +1588,113 @@ function ChatInterface({
                         )}
 
                         <MessageContent className={isUser ? "text-white" : ""}>
+                          {/* Render file attachments at the top of the message if they exist */}
+                          {message.parts.some((p) => p.type === "file") && (
+                            <div className="mb-3 -mx-1">
+                              <Attachments variant="grid" className="gap-2.5">
+                                {message.parts
+                                  .filter((p) => p.type === "file")
+                                  .map((part, idx) => {
+                                    const filePart = part as {
+                                      type: string;
+                                      url?: string;
+                                      data?: string;
+                                      mediaType?: string;
+                                      filename?: string;
+                                      [key: string]: unknown; // Allow accessing any additional properties
+                                    };
+                                    
+                                    const fileUrl = filePart.url || filePart.data;
+                                    if (!fileUrl) return null;
+                                    
+                                    // Try to find the best URL for opening in new tab
+                                    // Check for original URL, source URL, or fallback to the file URL
+                                    const clickUrl = 
+                                      (typeof filePart.url === 'string' && filePart.url.startsWith('http') ? filePart.url : null) ||
+                                      (typeof filePart.data === 'string' && filePart.data.startsWith('http') ? filePart.data : null) ||
+                                      fileUrl;
+                                    
+                                    return (
+                                      <div
+                                        key={`${message.id}-file-${idx}`}
+                                        className="group/image relative"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          if (clickUrl) {
+                                            window.open(clickUrl, '_blank', 'noopener,noreferrer');
+                                          }
+                                        }}
+                                      >
+                                        <Attachment
+                                          data={{
+                                            id: `${message.id}-${idx}`,
+                                            type: "file",
+                                            url: fileUrl,
+                                            mediaType: filePart.mediaType || "application/octet-stream",
+                                            filename: filePart.filename || "attachment",
+                                          }}
+                                          className={`
+                                            rounded-2xl overflow-hidden cursor-pointer
+                                            ${isUser 
+                                              ? 'border border-white/[0.15] shadow-[0_4px_16px_rgba(0,0,0,0.4)] bg-white/[0.04]' 
+                                              : 'border border-white/[0.08] shadow-[0_4px_16px_rgba(0,0,0,0.25)] bg-white/[0.02]'
+                                            }
+                                            hover:border-white/[0.2] hover:shadow-[0_8px_32px_rgba(0,0,0,0.6)] 
+                                            hover:scale-[1.02] hover:z-10
+                                            transition-all duration-300
+                                            backdrop-blur-sm
+                                            !size-32 sm:!size-40
+                                          `}
+                                        >
+                                          <div className="relative w-full h-full overflow-hidden">
+                                            <AttachmentPreview className="w-full h-full object-cover transition-transform duration-500 group-hover/image:scale-110" />
+                                            {/* Subtle gradient overlay */}
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                                            {/* Zoom hint icon */}
+                                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 pointer-events-none">
+                                              <div className="bg-black/70 backdrop-blur-sm rounded-full p-2.5 shadow-xl animate-pulse">
+                                                <ImageIcon className="w-5 h-5 text-white" />
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </Attachment>
+                                        
+                        {/* Full-size preview on hover - simple image popup */}
+                        <div className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center p-4 sm:p-8">
+                          {/* Expanded image - clean and simple */}
+                          <div className="relative max-w-[90vw] max-h-[90vh] rounded-xl overflow-visible shadow-[0_20px_80px_rgba(0,0,0,0.8),0_0_120px_rgba(111,236,6,0.15)] border border-white/20 bg-gradient-to-br from-white/[0.05] to-white/[0.02] backdrop-blur-sm transform transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] scale-0 group-hover/image:scale-100 opacity-0 group-hover/image:opacity-100 p-1">
+                            <div className="rounded-xl overflow-hidden">
+                              <img
+                                src={fileUrl}
+                                alt={filePart.filename || "Full size preview"}
+                                className="max-w-full max-h-[90vh] w-auto h-auto object-contain"
+                                style={{ imageRendering: 'high-quality' }}
+                              />
+                            </div>
+                          </div>
+                          
+                          {/* Clean hint text */}
+                          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-xl px-5 py-2.5 rounded-full text-white/90 text-sm font-medium shadow-2xl border border-white/20 transition-all duration-500 ease-out delay-100 opacity-0 group-hover/image:opacity-100 transform translate-y-2 group-hover/image:translate-y-0">
+                            Click to open in new tab
+                          </div>
+                        </div>
+                                      </div>
+                                    );
+                                  })}
+                              </Attachments>
+                            </div>
+                          )}
+
+                          {/* Render text and other parts */}
                           {message.parts.map((part, i) => {
                             const isLastPart = i === message.parts.length - 1;
                             const isActivelyStreaming =
                               isLastMessage && status === "streaming";
 
                             switch (part.type) {
+                              case "file":
+                                // Files are rendered above, skip here
+                                return null;
                               case "text":
                                 return (
                                   <div

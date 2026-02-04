@@ -132,7 +132,6 @@ export const Attachments = ({
         className={cn(
           "flex items-start",
           variant === "list" ? "flex-col gap-2" : "flex-wrap gap-2",
-          variant === "grid" && "ml-auto w-fit",
           className,
         )}
         {...props}
@@ -219,7 +218,7 @@ export const AttachmentPreview = ({
     isGrid ? (
       <img
         alt={filename || "Image"}
-        className="size-full object-cover"
+        className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
         height={96}
         src={url}
         width={96}
@@ -333,11 +332,13 @@ export const AttachmentRemove = ({
       aria-label={label}
       className={cn(
         variant === "grid" && [
-          "absolute top-1 right-1 size-5 rounded-full p-0",
-          "bg-destructive text-destructive-foreground",
-          "opacity-0 transition-all group-hover:opacity-100",
-          "hover:bg-destructive/90 hover:scale-110",
-          "shadow-sm",
+          "absolute top-1.5 right-1.5 size-6 rounded-full p-0",
+          "flex items-center justify-center",
+          "bg-black/80 text-white/70 backdrop-blur-sm",
+          "opacity-0 transition-all duration-200 group-hover:opacity-100",
+          "hover:bg-black/95 hover:text-white hover:scale-105",
+          "border border-white/10 hover:border-white/30",
+          "shadow-lg",
           "[&>svg]:size-3",
         ],
         variant === "inline" && [

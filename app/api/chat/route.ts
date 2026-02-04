@@ -4,6 +4,7 @@ import {
   stepCountIs,
   type UIMessage,
 } from "ai";
+import { anthropic } from "@ai-sdk/anthropic";
 import prisma from "@/lib/prisma";
 import {
   getSkillTools,
@@ -241,6 +242,9 @@ export async function POST(req: Request) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let tools: Record<string, any> = {};
 
+  // Add tool search for dynamic tool discovery (Haiku 4.5+ feature)
+  tools.toolSearch = anthropic.tools.toolSearchBm25_20251119();
+
   // Add skill tools if any skills are enabled
   if (skillsToEnable.length > 0) {
     // Get server-side configs from environment
@@ -274,7 +278,19 @@ export async function POST(req: Request) {
 
     if (skillToolNames.length > 0) {
       console.log("[Chat API] Registered skill tools:", skillToolNames);
-      tools = { ...tools, ...skillTools };
+      // Mark skill tools as deferred for tool search
+      const deferredSkillTools = Object.fromEntries(
+        Object.entries(skillTools).map(([name, tool]) => [
+          name,
+          {
+            ...tool,
+            providerOptions: {
+              anthropic: { deferLoading: true },
+            },
+          },
+        ]),
+      );
+      tools = { ...tools, ...deferredSkillTools };
     } else {
       console.warn(
         "[Chat API] No skill tools were created. Check if API keys are configured.",
@@ -297,7 +313,19 @@ export async function POST(req: Request) {
       enabledToolGroups,
       Object.keys(groupTools),
     );
-    tools = { ...tools, ...groupTools };
+    // Mark group tools as deferred for tool search
+    const deferredGroupTools = Object.fromEntries(
+      Object.entries(groupTools).map(([name, tool]) => [
+        name,
+        {
+          ...tool,
+          providerOptions: {
+            anthropic: { deferLoading: true },
+          },
+        },
+      ]),
+    );
+    tools = { ...tools, ...deferredGroupTools };
   }
 
   // Log final tool count
@@ -331,7 +359,7 @@ Remember: CALL these tools, don't write code about them!`;
   }
 
   const result = streamText({
-    model: "anthropic/claude-3-5-haiku",
+    model: "anthropic/claude-haiku-4-5",
     system: systemPrompt,
     messages: await convertToModelMessages(messages),
     tools: Object.keys(tools).length > 0 ? tools : undefined,
