@@ -1,6 +1,7 @@
 import { experimental_transcribe as transcribe } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { getPrivyClient } from "@/lib/auth/verifyRequest";
+import { withServerSolPayment, isServerSolPaymentEnabled } from "@/lib/x402";
 
 // Allow up to 60 seconds for transcription
 export const maxDuration = 60;
@@ -17,7 +18,7 @@ const SUPPORTED_FORMATS = [
   "audio/m4a",
 ];
 
-export async function POST(req: Request) {
+async function transcribeHandler(req: Request) {
   // Verify authentication
   const idToken = req.headers.get("privy-id-token");
 
@@ -146,3 +147,8 @@ export async function POST(req: Request) {
     );
   }
 }
+
+// Export POST with server-side x402 payment wrapper if enabled
+export const POST = isServerSolPaymentEnabled()
+  ? withServerSolPayment(transcribeHandler, "transcribe")
+  : transcribeHandler;

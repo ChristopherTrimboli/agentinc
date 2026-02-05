@@ -74,9 +74,6 @@ const feeDistribution = [
 ];
 
 function PieChart({ data }: { data: typeof tokenDistribution }) {
-  const total = data.reduce((sum, item) => sum + item.percentage, 0);
-  let cumulativePercentage = 0;
-
   const createSlicePath = (percentage: number, startPercentage: number) => {
     const startAngle = (startPercentage / 100) * 360 - 90;
     const endAngle = ((startPercentage + percentage) / 100) * 360 - 90;
@@ -99,19 +96,25 @@ function PieChart({ data }: { data: typeof tokenDistribution }) {
       viewBox="0 0 200 200"
       className="w-full max-w-[300px] mx-auto drop-shadow-2xl"
     >
-      {data.map((item, index) => {
-        const path = createSlicePath(item.percentage, cumulativePercentage);
-        cumulativePercentage += item.percentage;
-        return (
-          <path
-            key={index}
-            d={path}
-            fill={item.color}
-            className="transition-all duration-300 hover:opacity-80 cursor-pointer"
-            style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))" }}
-          />
-        );
-      })}
+      {
+        data.reduce<{ elements: React.ReactElement[]; cumulative: number }>(
+          (acc, item, index) => {
+            const path = createSlicePath(item.percentage, acc.cumulative);
+            acc.elements.push(
+              <path
+                key={index}
+                d={path}
+                fill={item.color}
+                className="transition-all duration-300 hover:opacity-80 cursor-pointer"
+                style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))" }}
+              />,
+            );
+            acc.cumulative += item.percentage;
+            return acc;
+          },
+          { elements: [], cumulative: 0 },
+        ).elements
+      }
       <circle cx="100" cy="100" r="40" fill="#0a0a0a" />
       <text
         x="100"

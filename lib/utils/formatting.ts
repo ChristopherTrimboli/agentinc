@@ -64,6 +64,29 @@ export function truncateAddress(address: string, chars = 4): string {
 }
 
 /**
+ * Sanitize a user ID for logging (shows first 8 chars only)
+ */
+export function sanitizeUserId(userId: string): string {
+  if (!userId || userId.length <= 8) return userId;
+  return `${userId.slice(0, 8)}...`;
+}
+
+/**
+ * Sanitize a wallet address for logging (shows first 4 and last 4 chars)
+ */
+export function sanitizeWalletAddress(address: string): string {
+  return truncateAddress(address, 4);
+}
+
+/**
+ * Sanitize a transaction signature for logging (shows first 8 and last 4 chars)
+ */
+export function sanitizeTxSignature(signature: string): string {
+  if (!signature || signature.length <= 16) return signature;
+  return `${signature.slice(0, 8)}...${signature.slice(-4)}`;
+}
+
+/**
  * Format a date relative to now
  */
 export function formatRelativeTime(

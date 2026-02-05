@@ -21,6 +21,12 @@ import {
 import { safeDecrypt, encrypt } from "@/lib/utils/encryption";
 import type { AvailableSkill } from "@/lib/skills";
 import { getPrivyClient } from "@/lib/auth/verifyRequest";
+import {
+  withUsageBasedPayment,
+  isUsageBasedBillingEnabled,
+  type RequestWithBilling,
+  type BillingContext,
+} from "@/lib/x402";
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -60,27 +66,38 @@ When the user asks to generate, create, draw, or make an image/picture/illustrat
 - After the image is generated, briefly describe what you created
 - Examples of triggers: "make me an image of...", "draw a...", "generate a picture of...", "create an illustration of..."`;
 
-export async function POST(req: Request) {
-  // Verify authentication
-  const idToken = req.headers.get("privy-id-token");
+async function chatHandler(req: RequestWithBilling) {
+  // Get billing context if available (injected by withUsageBasedPayment middleware)
+  const billingContext: BillingContext | undefined = req.billingContext;
 
-  if (!idToken) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-
+  // Use userId from billing context if available (already authenticated by middleware)
+  // Otherwise verify authentication manually (for external x402 users or when billing disabled)
   let userId: string;
-  try {
-    const privy = getPrivyClient();
-    const privyUser = await privy.users().get({ id_token: idToken });
-    userId = privyUser.id;
-  } catch {
-    return new Response(JSON.stringify({ error: "Invalid token" }), {
-      status: 401,
-      headers: { "Content-Type": "application/json" },
-    });
+
+  if (billingContext?.userId) {
+    // Middleware already verified auth - reuse the userId
+    userId = billingContext.userId;
+  } else {
+    // Manual authentication for external users or when billing is disabled
+    const idToken = req.headers.get("privy-id-token");
+
+    if (!idToken) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    try {
+      const privy = getPrivyClient();
+      const privyUser = await privy.users().get({ id_token: idToken });
+      userId = privyUser.id;
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid token" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
   }
 
   let requestBody;
@@ -96,7 +113,7 @@ export async function POST(req: Request) {
   const {
     messages,
     agentId,
-    model = "anthropic/claude-haiku-4-5", // Default to Haiku 4.5
+    model = "anthropic/claude-haiku-4.5", // Default to Haiku 4.5
     enabledSkills = [],
     enabledToolGroups = [],
     skillApiKeys = {},
@@ -477,6 +494,57 @@ Remember: CALL these tools, don't write code about them!`;
     messages: await convertToModelMessages(messages),
     tools: Object.keys(tools).length > 0 ? tools : undefined,
     stopWhen: stepCountIs(5),
+    // Usage-based billing: calculate cost from token usage + model pricing
+    onFinish: async ({ usage }) => {
+      // Only charge if billing context is available (Privy authenticated user)
+      if (billingContext) {
+        // Import calculateCost dynamically to avoid circular deps
+        const { calculateCost } = await import("@/lib/x402/ai-gateway-cost");
+
+        // Calculate cost from tokens * model pricing
+        const costResult = await calculateCost(model, {
+          inputTokens: usage.inputTokens,
+          outputTokens: usage.outputTokens,
+        });
+
+        if (costResult && costResult.totalCost > 0) {
+          console.log(
+            `[Chat] Calculated cost: $${costResult.totalCost.toFixed(6)} ` +
+              `(${usage.inputTokens || 0} in + ${usage.outputTokens || 0} out tokens)`,
+          );
+
+          // Charge asynchronously - don't block the response
+          billingContext
+            .chargeUsage(
+              costResult.totalCost,
+              `AI Chat [${model}] - ${usage.totalTokens || 0} tokens`,
+              {
+                model,
+                inputTokens: usage.inputTokens,
+                outputTokens: usage.outputTokens,
+              },
+            )
+            .then((result) => {
+              if (result.success) {
+                console.log(
+                  `[Chat] Billed ${result.solCost} SOL ($${result.usdCost.toFixed(6)}) for ${usage.totalTokens || 0} tokens`,
+                );
+              } else if (result.error) {
+                console.error(`[Chat] Billing failed: ${result.error}`);
+              }
+            })
+            .catch((error) => {
+              console.error("[Chat] Billing error:", error);
+            });
+        } else {
+          // No cost calculated - either no pricing or zero tokens
+          console.warn(
+            `[Chat] Could not calculate cost for model ${model}. Usage:`,
+            usage,
+          );
+        }
+      }
+    },
   });
 
   return result.toUIMessageStreamResponse({
@@ -487,3 +555,9 @@ Remember: CALL these tools, don't write code about them!`;
     },
   });
 }
+
+// Export with usage-based payment wrapper if enabled, otherwise export raw handler
+// Usage-based billing charges actual AI Gateway costs after generation completes
+export const POST = isUsageBasedBillingEnabled()
+  ? withUsageBasedPayment(chatHandler, "chat")
+  : chatHandler;

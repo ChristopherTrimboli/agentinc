@@ -3,6 +3,7 @@ import { generateImage } from "ai";
 import { put } from "@vercel/blob";
 import { generateImagePrompt, AgentTraitData } from "@/lib/agentTraits";
 import { getPrivyClient } from "@/lib/auth/verifyRequest";
+import { withX402Payment, isX402Enabled } from "@/lib/x402";
 
 // Helper to verify auth
 async function verifyAuth(req: NextRequest): Promise<string | null> {
@@ -26,7 +27,7 @@ interface GenerateImageBody {
   contentType?: string;
 }
 
-export async function POST(req: NextRequest) {
+async function generateImageHandler(req: NextRequest) {
   const userId = await verifyAuth(req);
 
   if (!userId) {
@@ -155,3 +156,8 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+// Export POST with x402 payment wrapper if enabled
+export const POST = isX402Enabled()
+  ? withX402Payment(generateImageHandler, "generateImage")
+  : generateImageHandler;

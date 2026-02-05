@@ -233,7 +233,8 @@ export function ToolExecution({
     startTime && endTime
       ? formatDuration(endTime - startTime)
       : startTime
-        ? formatDuration(Date.now() - startTime)
+        ? // eslint-disable-next-line react-hooks/purity -- Intentional: show elapsed time for running tool
+          formatDuration(Date.now() - startTime)
         : null;
 
   return (

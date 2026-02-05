@@ -45,9 +45,9 @@ function createSwarmStore(): SwarmStore {
   let agents = new Map<string, SwarmAgent>();
   let corporations = new Map<string, Corporation>();
   let connections = new Map<string, SwarmConnection>();
-  let events: SwarmEvent[] = [];
+  const events: SwarmEvent[] = [];
   let physics: PhysicsSimulation | null = null;
-  let listeners = new Set<() => void>();
+  const listeners = new Set<() => void>();
 
   const notify = () => {
     listeners.forEach((l) => l());
@@ -306,11 +306,12 @@ const SwarmContext = createContext<SwarmStore | null>(null);
 
 export function SwarmProvider({ children }: { children: React.ReactNode }) {
   const storeRef = useRef<SwarmStore | null>(null);
-  if (!storeRef.current) {
+  if (storeRef.current == null) {
     storeRef.current = createSwarmStore();
   }
 
   return (
+    // eslint-disable-next-line react-hooks/refs -- Accessing stable singleton ref for context value
     <SwarmContext.Provider value={storeRef.current}>
       {children}
     </SwarmContext.Provider>

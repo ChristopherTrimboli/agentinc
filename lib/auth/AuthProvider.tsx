@@ -75,6 +75,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Reset session expired state when user logs in
   useEffect(() => {
     if (authenticated) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset state when auth state changes
       setSessionExpired(false);
     }
   }, [authenticated]);

@@ -16,6 +16,11 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Privy Wallet (for x402 server-side payments)
+  walletId          String?  // Privy wallet ID (e.g., "wallet_xxx")
+  walletAddress     String?  // Solana wallet address
+  walletSignerAdded Boolean  @default(false) // True if server signer has been added
+
   // Twitter OAuth credentials (encrypted)
   twitterAccessToken       String? @db.Text
   twitterRefreshToken      String? @db.Text
@@ -30,6 +35,7 @@ model User {
 
   @@index([twitterUserId])
   @@index([twitterUsername])
+  @@index([walletAddress])
 }
 
 // Chat session - represents a conversation with an agent

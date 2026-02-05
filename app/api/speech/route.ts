@@ -1,6 +1,7 @@
 import { experimental_generateSpeech as generateSpeech } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { getPrivyClient } from "@/lib/auth/verifyRequest";
+import { withServerSolPayment, isServerSolPaymentEnabled } from "@/lib/x402";
 
 // Allow up to 30 seconds for speech generation
 export const maxDuration = 30;
@@ -17,7 +18,7 @@ const AVAILABLE_VOICES = [
 
 type Voice = (typeof AVAILABLE_VOICES)[number];
 
-export async function POST(req: Request) {
+async function speechHandler(req: Request) {
   // Verify authentication
   const idToken = req.headers.get("privy-id-token");
 
@@ -144,7 +145,12 @@ export async function POST(req: Request) {
   }
 }
 
-// GET endpoint to list available voices
+// Export POST with server-side x402 payment wrapper if enabled
+export const POST = isServerSolPaymentEnabled()
+  ? withServerSolPayment(speechHandler, "speech")
+  : speechHandler;
+
+// GET endpoint to list available voices (free - no payment required)
 export async function GET(req: Request) {
   // Verify authentication
   const idToken = req.headers.get("privy-id-token");

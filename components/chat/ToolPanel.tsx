@@ -339,6 +339,7 @@ const SkillCard = React.memo(function SkillCard({
   const prevApiKeyRef = useRef(skill.apiKey);
   useEffect(() => {
     if (skill.apiKey !== prevApiKeyRef.current) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Sync external prop to local state
       setLocalApiKey(skill.apiKey || "");
       prevApiKeyRef.current = skill.apiKey;
     }
@@ -1398,6 +1399,7 @@ export function ToolPanel({
 
   // Load stored width on mount
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Initialize from localStorage on mount
     setPanelWidth(getStoredPanelWidth());
   }, []);
 
