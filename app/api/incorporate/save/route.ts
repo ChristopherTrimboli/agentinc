@@ -96,13 +96,7 @@ export async function POST(request: NextRequest) {
       // Create SwarmAgents from the user's minted agents and link them to the corporation
       // This populates the swarm visualization with the user's real agents
       // Using createMany for better performance (avoids N+1 queries)
-      const rarityColors: Record<string, string> = {
-        common: "#6b7280",
-        uncommon: "#22c55e",
-        rare: "#3b82f6",
-        epic: "#a855f7",
-        legendary: "#f59e0b",
-      };
+      const { getRarityHexColor } = await import("@/lib/utils/rarity");
 
       const swarmAgentData = userAgents.map((agent) => {
         // Map agent traits to capabilities for swarm visualization
@@ -115,7 +109,7 @@ export async function POST(request: NextRequest) {
           name: agent.name,
           description: agent.description,
           capabilities,
-          color: rarityColors[agent.rarity || "common"] || "#6b7280",
+          color: getRarityHexColor(agent.rarity),
           size:
             agent.rarity === "legendary"
               ? 50

@@ -1,20 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { getPrivyClient } from "@/lib/auth/verifyRequest";
-
-// Helper to verify auth and get user ID
-async function verifyAuth(req: NextRequest): Promise<string | null> {
-  const idToken = req.headers.get("privy-id-token");
-  if (!idToken) return null;
-
-  try {
-    const privy = getPrivyClient();
-    const privyUser = await privy.users().get({ id_token: idToken });
-    return privyUser.id;
-  } catch {
-    return null;
-  }
-}
+import { verifyAuthUserId } from "@/lib/auth/verifyRequest";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -23,7 +9,7 @@ type RouteContext = {
 // GET /api/agents/[id] - Get a specific agent (supports both database ID and tokenMint)
 export async function GET(req: NextRequest, context: RouteContext) {
   const { id } = await context.params;
-  const userId = await verifyAuth(req);
+  const userId = await verifyAuthUserId(req);
 
   try {
     // Cache agent lookups: 30s TTL with 60s SWR for public agent pages
@@ -97,7 +83,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
 // PATCH /api/agents/[id] - Update an agent
 export async function PATCH(req: NextRequest, context: RouteContext) {
   const { id } = await context.params;
-  const userId = await verifyAuth(req);
+  const userId = await verifyAuthUserId(req);
 
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -181,7 +167,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
 // DELETE /api/agents/[id] - Delete an agent
 export async function DELETE(req: NextRequest, context: RouteContext) {
   const { id } = await context.params;
-  const userId = await verifyAuth(req);
+  const userId = await verifyAuthUserId(req);
 
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

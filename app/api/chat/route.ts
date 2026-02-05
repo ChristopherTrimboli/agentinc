@@ -27,6 +27,7 @@ import {
   type RequestWithBilling,
   type BillingContext,
 } from "@/lib/x402";
+import { rateLimitByUser } from "@/lib/rateLimit";
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -75,10 +76,8 @@ async function chatHandler(req: RequestWithBilling) {
   let userId: string;
 
   if (billingContext?.userId) {
-    // Middleware already verified auth - reuse the userId
     userId = billingContext.userId;
   } else {
-    // Manual authentication for external users or when billing is disabled
     const idToken = req.headers.get("privy-id-token");
 
     if (!idToken) {
@@ -99,6 +98,10 @@ async function chatHandler(req: RequestWithBilling) {
       });
     }
   }
+
+  // Rate limit: 30 chat requests per minute per user
+  const rateLimited = rateLimitByUser(userId, "chat", 30);
+  if (rateLimited) return rateLimited;
 
   let requestBody;
   try {

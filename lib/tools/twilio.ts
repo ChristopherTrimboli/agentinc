@@ -69,32 +69,9 @@ function isValidE164(phone: string): boolean {
   return e164Regex.test(phone);
 }
 
-/**
- * Supported media types for MMS
- */
-const SUPPORTED_MEDIA_TYPES = {
-  // Images
-  "image/jpeg": { channel: "mms", maxSize: "5MB" },
-  "image/jpg": { channel: "mms", maxSize: "5MB" },
-  "image/png": { channel: "mms", maxSize: "5MB" },
-  "image/gif": { channel: "mms", maxSize: "5MB" },
-  "image/heic": { channel: "mms", maxSize: "5MB" },
-  "image/webp": { channel: "whatsapp", maxSize: "16MB" },
-  // Video
-  "video/mp4": { channel: "mms", maxSize: "5MB" },
-  "video/mpeg": { channel: "mms", maxSize: "5MB" },
-  "video/quicktime": { channel: "mms", maxSize: "5MB" },
-  "video/3gpp": { channel: "mms", maxSize: "5MB" },
-  // Audio
-  "audio/mpeg": { channel: "mms", maxSize: "5MB" },
-  "audio/mp3": { channel: "mms", maxSize: "5MB" },
-  "audio/ogg": { channel: "mms", maxSize: "5MB" },
-  "audio/amr": { channel: "mms", maxSize: "5MB" },
-  // Documents
-  "application/pdf": { channel: "mms", maxSize: "5MB" },
-  "text/vcard": { channel: "mms", maxSize: "5MB" },
-  "text/x-vcard": { channel: "mms", maxSize: "5MB" },
-};
+// Note: SUPPORTED_MEDIA_TYPES was removed as dead code.
+// If MMS media type validation is needed in the future, add it back
+// and actually use it in the send functions.
 
 // ============================================================================
 // Schema Definitions

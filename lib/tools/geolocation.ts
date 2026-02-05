@@ -4,10 +4,9 @@ import { z } from "zod";
 /**
  * IP Geolocation tools using ip-api.com (no API key required)
  * Free tier: 45 requests per minute
- * Note: HTTPS requires paid plan, but HTTP works fine for server-side
  */
 
-const IP_API_URL = "http://ip-api.com/json";
+const IP_API_URL = "https://ip-api.com/json";
 
 const geolocateIPSchema = z.object({
   ip: z
@@ -26,7 +25,9 @@ export const geolocateIP = tool({
     "Get geographic location information for an IP address including city, country, timezone, and ISP.",
   inputSchema: geolocateIPSchema,
   execute: async (input: z.infer<typeof geolocateIPSchema>) => {
-    const url = input.ip ? `${IP_API_URL}/${input.ip}` : IP_API_URL;
+    const url = input.ip
+      ? `${IP_API_URL}/${encodeURIComponent(input.ip)}`
+      : IP_API_URL;
 
     try {
       const response = await fetch(
@@ -92,7 +93,7 @@ export const batchGeolocateIPs = tool({
   inputSchema: batchGeolocateSchema,
   execute: async (input: z.infer<typeof batchGeolocateSchema>) => {
     try {
-      const response = await fetch("http://ip-api.com/batch", {
+      const response = await fetch("https://ip-api.com/batch", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

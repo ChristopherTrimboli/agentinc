@@ -62,16 +62,18 @@ export function withSolPayment<
     const description = SOL_ROUTE_DESCRIPTIONS[priceKey];
     const resourceUrl = req.url;
 
+    // Compute lamports ONCE to avoid TOCTOU price drift between 402 response and verification
+    const lamports = await usdToLamports(usdPrice);
+
     // Check for payment header
     const paymentPayload = extractPaymentFromHeaders(req.headers);
 
     if (!paymentPayload) {
-      // No payment - return 402 with requirements
-      return create402Response(usdPrice, description, resourceUrl);
+      // No payment - return 402 with requirements (using pre-computed lamports)
+      return create402Response(usdPrice, description, resourceUrl, lamports);
     }
 
-    // Build payment requirements for verification
-    const lamports = await usdToLamports(usdPrice);
+    // Build payment requirements for verification (using same lamports value)
     const paymentRequirements = buildPaymentRequirements(
       lamports,
       resourceUrl,

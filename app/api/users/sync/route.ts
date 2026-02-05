@@ -62,6 +62,18 @@ export async function POST(req: NextRequest) {
         // Preserve existing signer status - client updates this separately
         walletSignerAdded: existingUser?.walletSignerAdded ?? false,
       },
+      // Only return safe fields - exclude tokens and secrets
+      select: {
+        id: true,
+        email: true,
+        walletAddress: true,
+        walletSignerAdded: true,
+        twitterUserId: true,
+        twitterUsername: true,
+        twitterConnectedAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
 
     return NextResponse.json({
@@ -71,6 +83,6 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error("User sync error:", error);
-    return NextResponse.json({ error: "Failed to sync user" }, { status: 401 });
+    return NextResponse.json({ error: "Failed to sync user" }, { status: 500 });
   }
 }

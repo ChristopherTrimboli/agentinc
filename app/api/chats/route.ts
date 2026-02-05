@@ -1,24 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { getPrivyClient } from "@/lib/auth/verifyRequest";
-
-// Helper to verify auth and get user ID
-async function verifyAuth(req: NextRequest): Promise<string | null> {
-  const idToken = req.headers.get("privy-id-token");
-  if (!idToken) return null;
-
-  try {
-    const privy = getPrivyClient();
-    const privyUser = await privy.users().get({ id_token: idToken });
-    return privyUser.id;
-  } catch {
-    return null;
-  }
-}
+import { verifyAuthUserId } from "@/lib/auth/verifyRequest";
 
 // GET /api/chats - List user's chats (optionally filtered by agentId)
 export async function GET(req: NextRequest) {
-  const userId = await verifyAuth(req);
+  const userId = await verifyAuthUserId(req);
 
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -97,7 +83,7 @@ export async function GET(req: NextRequest) {
 
 // POST /api/chats - Create a new chat
 export async function POST(req: NextRequest) {
-  const userId = await verifyAuth(req);
+  const userId = await verifyAuthUserId(req);
 
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

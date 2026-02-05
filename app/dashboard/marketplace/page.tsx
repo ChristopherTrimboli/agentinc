@@ -62,37 +62,12 @@ interface PriceData {
 type SortField = "name" | "price" | "change" | "launchedAt";
 type SortDirection = "asc" | "desc";
 
-// Rarity colors
-const rarityColors: Record<
+import { RARITY_BADGE_STYLES } from "@/lib/utils/rarity";
+
+const rarityColors = RARITY_BADGE_STYLES as Record<
   string,
   { bg: string; text: string; border: string }
-> = {
-  legendary: {
-    bg: "bg-[#FFD700]/20",
-    text: "text-[#FFD700]",
-    border: "border-[#FFD700]/50",
-  },
-  epic: {
-    bg: "bg-[#A855F7]/20",
-    text: "text-[#A855F7]",
-    border: "border-[#A855F7]/50",
-  },
-  rare: {
-    bg: "bg-[#3B82F6]/20",
-    text: "text-[#3B82F6]",
-    border: "border-[#3B82F6]/50",
-  },
-  uncommon: {
-    bg: "bg-[#6FEC06]/20",
-    text: "text-[#6FEC06]",
-    border: "border-[#6FEC06]/50",
-  },
-  common: {
-    bg: "bg-white/10",
-    text: "text-white/60",
-    border: "border-white/20",
-  },
-};
+>;
 
 // Format price with appropriate decimals
 function formatPrice(price: number): string {

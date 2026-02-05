@@ -2,6 +2,7 @@ import { experimental_generateSpeech as generateSpeech } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { getPrivyClient } from "@/lib/auth/verifyRequest";
 import { withServerSolPayment, isServerSolPaymentEnabled } from "@/lib/x402";
+import { rateLimitByUser } from "@/lib/rateLimit";
 
 // Allow up to 30 seconds for speech generation
 export const maxDuration = 30;
@@ -29,15 +30,21 @@ async function speechHandler(req: Request) {
     });
   }
 
+  let privyUserId: string;
   try {
     const privy = getPrivyClient();
-    await privy.users().get({ id_token: idToken });
+    const privyUser = await privy.users().get({ id_token: idToken });
+    privyUserId = privyUser.id;
   } catch {
     return new Response(JSON.stringify({ error: "Invalid token" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },
     });
   }
+
+  // Rate limit: 20 TTS requests per minute per user
+  const rateLimited = rateLimitByUser(privyUserId, "speech", 20);
+  if (rateLimited) return rateLimited;
 
   let requestBody;
   try {

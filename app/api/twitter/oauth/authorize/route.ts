@@ -5,8 +5,14 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
+import { getPrivyClient } from "@/lib/auth/verifyRequest";
 
-const TWITTER_CLIENT_ID = process.env.TWITTER_CLIENT_ID!;
+const TWITTER_CLIENT_ID = process.env.TWITTER_CLIENT_ID || "";
+if (!TWITTER_CLIENT_ID) {
+  console.error(
+    "[Twitter OAuth] TWITTER_CLIENT_ID is not set. OAuth flow will fail.",
+  );
+}
 const CALLBACK_URL = process.env.NEXT_PUBLIC_APP_URL
   ? `${process.env.NEXT_PUBLIC_APP_URL}/api/twitter/oauth/callback`
   : "http://localhost:3000/api/twitter/oauth/callback";
@@ -24,6 +30,31 @@ function generatePKCE() {
 
 export async function GET(request: NextRequest) {
   try {
+    // Verify the caller is authenticated before allowing OAuth flow
+    const idToken =
+      request.headers.get("privy-id-token") ||
+      request.cookies.get("privy-id-token")?.value;
+
+    if (!idToken) {
+      return NextResponse.json(
+        { error: "Authentication required to connect Twitter" },
+        { status: 401 },
+      );
+    }
+
+    // Verify the token and extract the authenticated user's ID
+    const privy = getPrivyClient();
+    let authenticatedUserId: string;
+    try {
+      const privyUser = await privy.users().get({ id_token: idToken });
+      authenticatedUserId = privyUser.id;
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid or expired authentication token" },
+        { status: 401 },
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get("userId");
     const agentId = searchParams.get("agentId");
@@ -33,6 +64,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         { error: "Missing userId parameter" },
         { status: 400 },
+      );
+    }
+
+    // Prevent account hijacking: ensure the userId matches the authenticated user
+    if (userId !== authenticatedUserId) {
+      return NextResponse.json(
+        { error: "Cannot initiate OAuth for a different user" },
+        { status: 403 },
       );
     }
 

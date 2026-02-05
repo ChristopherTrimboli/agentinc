@@ -1,10 +1,10 @@
 import type { Tool } from "ai";
 
 /**
- * Tool definition - simple utility tools that work with any model
- * For complex integrations requiring API keys, use skills instead
+ * Tool registry entry - the canonical type for tool definitions.
+ * For complex integrations requiring API keys, use skills instead.
  */
-export interface AgentTool {
+export interface ToolEntry {
   /** Tool name */
   name: string;
   /** Description of what the tool does */
@@ -15,11 +15,6 @@ export interface AgentTool {
 }
 
 /**
- * Tool registry entry
+ * @deprecated Use ToolEntry instead. These types are identical.
  */
-export interface ToolEntry {
-  name: string;
-  description: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  tool: Tool<any, any>;
-}
+export type AgentTool = ToolEntry;

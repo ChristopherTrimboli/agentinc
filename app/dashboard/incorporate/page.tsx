@@ -45,41 +45,12 @@ interface LaunchStep {
   error?: string;
 }
 
-const rarityColors: Record<
+import { RARITY_INCORPORATE_STYLES } from "@/lib/utils/rarity";
+
+const rarityColors = RARITY_INCORPORATE_STYLES as Record<
   string,
   { bg: string; border: string; text: string; glow: string }
-> = {
-  common: {
-    bg: "bg-gray-500/20",
-    border: "border-gray-500/40",
-    text: "text-gray-400",
-    glow: "shadow-gray-500/20",
-  },
-  uncommon: {
-    bg: "bg-green-500/20",
-    border: "border-green-500/40",
-    text: "text-green-400",
-    glow: "shadow-green-500/20",
-  },
-  rare: {
-    bg: "bg-blue-500/20",
-    border: "border-blue-500/40",
-    text: "text-blue-400",
-    glow: "shadow-blue-500/20",
-  },
-  epic: {
-    bg: "bg-purple-500/20",
-    border: "border-purple-500/40",
-    text: "text-purple-400",
-    glow: "shadow-purple-500/20",
-  },
-  legendary: {
-    bg: "bg-amber-500/20",
-    border: "border-amber-500/40",
-    text: "text-amber-400",
-    glow: "shadow-amber-500/20",
-  },
-};
+>;
 
 function AgentCard({
   agent,

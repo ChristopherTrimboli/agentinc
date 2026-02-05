@@ -36,7 +36,6 @@ import {
   settlePayment,
   extractPaymentFromHeaders,
   type SolPaymentPayload,
-  type SolPaymentRequirements,
 } from "./sol-facilitator";
 import {
   SOL_NETWORK,
@@ -46,7 +45,11 @@ import {
   type SolNetwork,
   type PricingKey,
 } from "./config";
-import { create402Response } from "./shared";
+import {
+  create402Response,
+  buildPaymentRequirements,
+  addPaymentReceiptHeader as addReceiptHeader,
+} from "./shared";
 
 // Re-export for backward compatibility
 export { SOL_NETWORK, type SolNetwork, type PricingKey };
@@ -458,16 +461,17 @@ export async function chargeForUsage(
       };
     }
 
-    // Convert USD to lamports
-    const lamports = await usdToLamports(usdCost);
-    const solCost = lamportsToSol(lamports);
-
     // Non-null assertion safe here: we checked walletAddress above
     const walletAddress = user.walletAddress!;
     const walletId = user.walletId!;
 
-    // Use wallet lock to prevent race conditions between balance check and payment
+    // Use wallet lock to prevent race conditions between balance check and payment.
+    // usdToLamports() is called INSIDE the lock so the SOL price can't change
+    // between conversion and the actual balance check / payment.
     return withWalletLock(walletAddress, async () => {
+      const lamports = await usdToLamports(usdCost);
+      const solCost = lamportsToSol(lamports);
+
       // Check balance
       const hasBalance = await hasEnoughBalance(walletAddress, lamports);
       if (!hasBalance) {
@@ -586,58 +590,12 @@ function createWalletNotSetupResponse(): NextResponse {
   );
 }
 
-/**
- * Build x402-compliant payment requirements.
- */
-function buildX402PaymentRequirements(
-  lamports: bigint,
-  treasuryAddress: string,
-  network: SolNetwork,
-  resource: string,
-  description: string,
-  usdPrice?: number,
-  solPrice?: number,
-): SolPaymentRequirements {
-  return {
-    scheme: "exact",
-    network,
-    maxAmountRequired: lamports.toString(),
-    asset: "native",
-    payTo: treasuryAddress,
-    resource,
-    description,
-    maxTimeoutSeconds: 300,
-    extra:
-      usdPrice && solPrice
-        ? {
-            usdAmount: usdPrice.toFixed(4),
-            solPrice,
-          }
-        : undefined,
-  };
-}
-
-/**
- * Add payment receipt header to response
- */
-function addPaymentReceiptHeader(
-  response: Response,
-  receipt: PaymentReceipt,
-): Response {
-  const newResponse = new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers: new Headers(response.headers),
-  });
-  newResponse.headers.set(
-    "X-PAYMENT-RESPONSE",
-    Buffer.from(JSON.stringify(receipt)).toString("base64"),
-  );
-  return newResponse;
-}
+// buildPaymentRequirements and addPaymentReceiptHeader are imported from ./shared
 
 /**
  * Handle external x402 payment flow (any wallet)
+ *
+ * @param precomputedLamports - Pre-computed lamports to avoid TOCTOU price drift
  */
 async function handleExternalPayment(
   req: NextRequest,
@@ -645,15 +603,14 @@ async function handleExternalPayment(
   paymentPayload: SolPaymentPayload,
   usdPrice: number,
   description: string,
+  precomputedLamports?: bigint,
 ): Promise<Response> {
   const resourceUrl = req.url;
-  const lamports = await usdToLamports(usdPrice);
+  const lamports = precomputedLamports ?? (await usdToLamports(usdPrice));
 
   // Build payment requirements for verification
-  const paymentRequirements = buildX402PaymentRequirements(
+  const paymentRequirements = buildPaymentRequirements(
     lamports,
-    SOL_TREASURY_ADDRESS,
-    SOL_NETWORK,
     resourceUrl,
     description,
   );
@@ -696,7 +653,7 @@ async function handleExternalPayment(
       flow: "external",
     };
 
-    return addPaymentReceiptHeader(response, receipt);
+    return addReceiptHeader(response, receipt);
   }
 
   return response;
@@ -746,12 +703,12 @@ async function handlePrivyPayment(
   const walletAddress = user.walletAddress!;
   const walletId = user.walletId!;
 
-  // Calculate required amount
-  const lamports = await usdToLamports(usdPrice);
-
-  // Use wallet lock to prevent race conditions
-  // This ensures balance check + payment + handler are atomic per wallet
+  // Use wallet lock to prevent race conditions.
+  // usdToLamports() is called INSIDE the lock so the SOL price can't drift
+  // between conversion and the actual balance check / payment.
   return withWalletLock(walletAddress, async () => {
+    const lamports = await usdToLamports(usdPrice);
+
     // Check balance before payment
     const hasBalance = await hasEnoughBalance(walletAddress, lamports);
     if (!hasBalance) {
@@ -852,7 +809,7 @@ async function handlePrivyPayment(
           "X-PAYMENT-REFUND",
           Buffer.from(JSON.stringify(refundInfo)).toString("base64"),
         );
-        return addPaymentReceiptHeader(newResponse, receipt);
+        return addReceiptHeader(newResponse, receipt);
       } else if (refundResult.manualRequired) {
         receipt.error = `Service failed - refund pending manual processing. Original tx: ${sanitizeTxSignature(sendResult.signature || "")}`;
       } else {
@@ -860,7 +817,7 @@ async function handlePrivyPayment(
       }
     }
 
-    return addPaymentReceiptHeader(response, receipt);
+    return addReceiptHeader(response, receipt);
   });
 }
 
@@ -904,6 +861,9 @@ export function withServerSolPayment<
       );
     }
 
+    // Compute lamports ONCE to avoid TOCTOU price drift between flows
+    const lamports = await usdToLamports(usdPrice);
+
     // FLOW 1: Check for external x402 payment (X-PAYMENT header)
     const externalPayment = extractPaymentFromHeaders(req.headers);
     if (externalPayment) {
@@ -913,6 +873,7 @@ export function withServerSolPayment<
         externalPayment,
         usdPrice,
         description,
+        lamports,
       );
     }
 
@@ -930,8 +891,8 @@ export function withServerSolPayment<
       }
     }
 
-    // FLOW 3: No payment method - return 402 with requirements
-    return create402Response(usdPrice, description, resourceUrl);
+    // FLOW 3: No payment method - return 402 with requirements (pass pre-computed lamports)
+    return create402Response(usdPrice, description, resourceUrl, lamports);
   };
 
   return wrappedHandler as unknown as T;

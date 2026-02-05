@@ -59,47 +59,12 @@ interface Agent {
   corporation: Corporation | null;
 }
 
-// Rarity colors matching the design system
-const rarityColors: Record<
+import { RARITY_DETAIL_STYLES } from "@/lib/utils/rarity";
+
+const rarityColors = RARITY_DETAIL_STYLES as Record<
   string,
   { border: string; bg: string; text: string; glow: string; gradient: string }
-> = {
-  legendary: {
-    border: "border-[#FFD700]",
-    bg: "bg-[#FFD700]/10",
-    text: "text-[#FFD700]",
-    glow: "shadow-[0_0_40px_rgba(255,215,0,0.4)]",
-    gradient: "from-[#FFD700]/20 via-[#FFA500]/10 to-transparent",
-  },
-  epic: {
-    border: "border-[#A855F7]",
-    bg: "bg-[#A855F7]/10",
-    text: "text-[#A855F7]",
-    glow: "shadow-[0_0_40px_rgba(168,85,247,0.4)]",
-    gradient: "from-[#A855F7]/20 via-[#8B5CF6]/10 to-transparent",
-  },
-  rare: {
-    border: "border-[#3B82F6]",
-    bg: "bg-[#3B82F6]/10",
-    text: "text-[#3B82F6]",
-    glow: "shadow-[0_0_40px_rgba(59,130,246,0.4)]",
-    gradient: "from-[#3B82F6]/20 via-[#1D4ED8]/10 to-transparent",
-  },
-  uncommon: {
-    border: "border-[#6FEC06]",
-    bg: "bg-[#6FEC06]/10",
-    text: "text-[#6FEC06]",
-    glow: "shadow-[0_0_40px_rgba(111,236,6,0.4)]",
-    gradient: "from-[#6FEC06]/20 via-[#4a9f10]/10 to-transparent",
-  },
-  common: {
-    border: "border-white/20",
-    bg: "bg-white/5",
-    text: "text-white/60",
-    glow: "",
-    gradient: "from-white/5 to-transparent",
-  },
-};
+>;
 
 // Chart/DEX links for Solana tokens
 const getChartLinks = (tokenMint: string) => ({

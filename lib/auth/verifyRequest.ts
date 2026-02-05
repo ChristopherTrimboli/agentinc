@@ -99,3 +99,15 @@ export function isAuthResult(
 ): result is AuthResult {
   return "userId" in result;
 }
+
+/**
+ * Verify authentication and return just the user ID.
+ * Convenience wrapper for routes that only need the userId string.
+ * Use this instead of duplicating verifyAuth logic in each route file.
+ */
+export async function verifyAuthUserId(
+  req: NextRequest,
+): Promise<string | null> {
+  const auth = await verifyAuth(req);
+  return auth?.userId ?? null;
+}

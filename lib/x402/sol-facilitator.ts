@@ -13,6 +13,7 @@ import {
   LAMPORTS_PER_SOL,
 } from "@solana/web3.js";
 import { SOLANA_RPC_URL } from "@/lib/constants/solana";
+import { SolPaymentPayloadSchema } from "./validation";
 
 // Cache SOL price for 5 seconds to keep prices fresh while avoiding rate limits
 let cachedSolPrice: { price: number; timestamp: number } | null = null;
@@ -180,29 +181,32 @@ function getConnection(network: "solana" | "solana-devnet"): Connection {
 export function extractPaymentFromHeaders(
   headers: Headers,
 ): SolPaymentPayload | null {
-  // Try X-PAYMENT header first (x402 v1 standard)
-  const xPayment = headers.get("X-PAYMENT");
-  if (xPayment) {
-    try {
-      const decoded = Buffer.from(xPayment, "base64").toString("utf-8");
-      return JSON.parse(decoded);
-    } catch {
+  // Try X-PAYMENT header first (x402 v1 standard), then PAYMENT-SIGNATURE (v2)
+  const rawHeader =
+    headers.get("X-PAYMENT") || headers.get("PAYMENT-SIGNATURE");
+
+  if (!rawHeader) return null;
+
+  try {
+    const decoded = Buffer.from(rawHeader, "base64").toString("utf-8");
+    const parsed = JSON.parse(decoded);
+
+    // Validate against Zod schema to ensure type safety
+    const result = SolPaymentPayloadSchema.safeParse(parsed);
+    if (!result.success) {
+      console.warn(
+        "[x402] Invalid payment payload:",
+        result.error.issues
+          .map((i) => `${i.path.join(".")}: ${i.message}`)
+          .join("; "),
+      );
       return null;
     }
-  }
 
-  // Try PAYMENT-SIGNATURE header (x402 v2 standard)
-  const paymentSignature = headers.get("PAYMENT-SIGNATURE");
-  if (paymentSignature) {
-    try {
-      const decoded = Buffer.from(paymentSignature, "base64").toString("utf-8");
-      return JSON.parse(decoded);
-    } catch {
-      return null;
-    }
+    return result.data;
+  } catch {
+    return null;
   }
-
-  return null;
 }
 
 /**
@@ -221,6 +225,14 @@ export async function verifyPayment(
   try {
     const { network, payload } = paymentPayload;
     const { maxAmountRequired, payTo } = paymentRequirements;
+
+    // Validate network matches server expectation (prevents devnet payments on mainnet)
+    if (network !== paymentRequirements.network) {
+      return {
+        isValid: false,
+        invalidReason: `Network mismatch: expected ${paymentRequirements.network}, got ${network}`,
+      };
+    }
 
     // Decode transaction
     const txBuffer = Buffer.from(payload.transaction, "base64");

@@ -2,22 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateImage } from "ai";
 import { put } from "@vercel/blob";
 import { generateImagePrompt, AgentTraitData } from "@/lib/agentTraits";
-import { getPrivyClient } from "@/lib/auth/verifyRequest";
+import { verifyAuthUserId } from "@/lib/auth/verifyRequest";
 import { withX402Payment, isX402Enabled } from "@/lib/x402";
-
-// Helper to verify auth
-async function verifyAuth(req: NextRequest): Promise<string | null> {
-  const idToken = req.headers.get("privy-id-token");
-  if (!idToken) return null;
-
-  try {
-    const privy = getPrivyClient();
-    const privyUser = await privy.users().get({ id_token: idToken });
-    return privyUser.id;
-  } catch {
-    return null;
-  }
-}
+import { rateLimitByUser } from "@/lib/rateLimit";
 
 interface GenerateImageBody {
   name: string;
@@ -28,11 +15,15 @@ interface GenerateImageBody {
 }
 
 async function generateImageHandler(req: NextRequest) {
-  const userId = await verifyAuth(req);
+  const userId = await verifyAuthUserId(req);
 
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // Rate limit: 10 image generation requests per minute per user
+  const rateLimited = rateLimitByUser(userId, "generate-image", 10);
+  if (rateLimited) return rateLimited;
 
   try {
     const body = (await req.json()) as GenerateImageBody;

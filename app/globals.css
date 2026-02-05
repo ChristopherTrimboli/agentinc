@@ -69,6 +69,21 @@ body {
   --accent-foreground: #000104;
 }
 
+/*
+ * Tailwind Theme Tokens
+ *
+ * Use these instead of hardcoded hex values in Tailwind classes:
+ *   #000028  → bg-background, bg-abyss
+ *   #000104  → bg-surface-dark
+ *   #0a0520  → bg-surface
+ *   #120a35  → bg-surface-light
+ *   #1a1050  → bg-surface-lighter
+ *   #120557  → bg-primary, bg-indigo
+ *   #6FEC06  → bg-coral, bg-accent, text-coral, text-accent, border-coral
+ *   #FFD700  → Use RARITY_* constants from lib/utils/rarity.ts
+ *   #A855F7  → Use RARITY_* constants from lib/utils/rarity.ts
+ *   #3B82F6  → Use RARITY_* constants from lib/utils/rarity.ts
+ */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -79,6 +94,20 @@ body {
   --color-abyss: var(--abyss);
   --color-indigo: var(--indigo);
   --color-coral: var(--coral);
+
+  /* Surface colors - use instead of hardcoded bg-[#0a0520] etc. */
+  --color-surface-dark: var(--surface-dark);
+  --color-surface: var(--surface);
+  --color-surface-light: var(--surface-light);
+  --color-surface-lighter: var(--surface-lighter);
+
+  /* Text hierarchy */
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-text-dimmed: var(--text-dimmed);
+
+  /* shadcn/ui tokens */
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-popover: var(--popover);

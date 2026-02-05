@@ -557,8 +557,9 @@ export const PromptInput = ({
     controller.__registerFileInput(inputRef, () => inputRef.current?.click());
   }, [usingProvider, controller]);
 
-  // Note: File input cannot be programmatically set for security reasons
-  // The syncHiddenInput prop is no longer functional
+  // Clear the native file input when all files are removed.
+  // Note: browsers prevent programmatically *setting* files on an input,
+  // but clearing the value is allowed and necessary so the same file can be re-selected.
   useEffect(() => {
     if (syncHiddenInput && inputRef.current && files.length === 0) {
       inputRef.current.value = "";

@@ -60,9 +60,9 @@ export function checkRateLimit(
 }
 
 /**
- * Clean up expired rate limit entries (call periodically).
+ * Clean up expired rate limit entries (called by internal interval).
  */
-export function cleanupRateLimitStore(): void {
+function cleanupRateLimitStore(): void {
   const now = Date.now();
   for (const [key, entry] of rateLimitStore.entries()) {
     if (now > entry.resetAt) {
@@ -107,14 +107,20 @@ export function buildPaymentRequirements(
 
 /**
  * Create a 402 Payment Required response with native SOL requirements.
+ *
+ * @param usdPrice - Price in USD
+ * @param description - Human-readable description
+ * @param resourceUrl - Resource being purchased
+ * @param precomputedLamports - Optional pre-computed lamports to avoid TOCTOU price drift
  */
 export async function create402Response(
   usdPrice: number,
   description: string,
   resourceUrl: string,
+  precomputedLamports?: bigint,
 ): Promise<NextResponse> {
   const solPrice = await getSolPrice();
-  const lamports = await usdToLamports(usdPrice);
+  const lamports = precomputedLamports ?? (await usdToLamports(usdPrice));
 
   const paymentRequirements = buildPaymentRequirements(
     lamports,
@@ -173,11 +179,8 @@ export function addPaymentReceiptHeader(
 
 /**
  * Convert lamports to SOL string for display.
+ *
+ * @deprecated Use `lamportsToSol` from `@/lib/privy/wallet-service` instead.
+ * This is re-exported for backward compatibility.
  */
-export function lamportsToSolString(lamports: bigint): string {
-  const sol = Number(lamports) / 1e9;
-  if (sol < 0.000001) return "<0.000001";
-  if (sol < 0.001) return sol.toFixed(8);
-  if (sol < 1) return sol.toFixed(6);
-  return sol.toFixed(4);
-}
+export { lamportsToSol as lamportsToSolString } from "@/lib/privy/wallet-service";

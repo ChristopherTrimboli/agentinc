@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   MessageSquare,
@@ -51,13 +51,9 @@ interface ChatHistorySidebarProps {
   refreshTrigger?: number; // Increment this to trigger a refresh
 }
 
-const rarityColors: Record<string, string> = {
-  legendary: "ring-[#FFD700]",
-  epic: "ring-[#A855F7]",
-  rare: "ring-[#3B82F6]",
-  uncommon: "ring-[#6FEC06]",
-  common: "ring-white/20",
-};
+import { RARITY_RING_COLORS } from "@/lib/utils/rarity";
+
+const rarityColors = RARITY_RING_COLORS as Record<string, string>;
 
 export function ChatHistorySidebar({
   currentChatId,
@@ -109,44 +105,49 @@ export function ChatHistorySidebar({
     fetchChats();
   }, [fetchChats, refreshTrigger]);
 
-  // Filter chats by search
-  const filteredChats = chats.filter((chat) => {
-    if (!search) return true;
+  // Filter chats by search (memoized to avoid recomputing on every render)
+  const filteredChats = useMemo(() => {
+    if (!search) return chats;
     const searchLower = search.toLowerCase();
-    return (
-      chat.title?.toLowerCase().includes(searchLower) ||
-      chat.agent?.name.toLowerCase().includes(searchLower) ||
-      chat.lastMessage?.content.toLowerCase().includes(searchLower)
+    return chats.filter(
+      (chat) =>
+        chat.title?.toLowerCase().includes(searchLower) ||
+        chat.agent?.name.toLowerCase().includes(searchLower) ||
+        chat.lastMessage?.content.toLowerCase().includes(searchLower),
     );
-  });
+  }, [chats, search]);
 
-  // Group chats by time periods
-  const groupedChats = filteredChats.reduce(
-    (acc, chat) => {
-      const date = new Date(chat.updatedAt);
-      const now = new Date();
-      const diffDays = Math.floor(
-        (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24),
-      );
+  // Group chats by time periods (memoized)
+  const groupedChats = useMemo(
+    () =>
+      filteredChats.reduce(
+        (acc, chat) => {
+          const date = new Date(chat.updatedAt);
+          const now = new Date();
+          const diffDays = Math.floor(
+            (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24),
+          );
 
-      let group: string;
-      if (diffDays === 0) {
-        group = "Today";
-      } else if (diffDays === 1) {
-        group = "Yesterday";
-      } else if (diffDays < 7) {
-        group = "This Week";
-      } else if (diffDays < 30) {
-        group = "This Month";
-      } else {
-        group = "Older";
-      }
+          let group: string;
+          if (diffDays === 0) {
+            group = "Today";
+          } else if (diffDays === 1) {
+            group = "Yesterday";
+          } else if (diffDays < 7) {
+            group = "This Week";
+          } else if (diffDays < 30) {
+            group = "This Month";
+          } else {
+            group = "Older";
+          }
 
-      if (!acc[group]) acc[group] = [];
-      acc[group].push(chat);
-      return acc;
-    },
-    {} as Record<string, ChatHistoryItem[]>,
+          if (!acc[group]) acc[group] = [];
+          acc[group].push(chat);
+          return acc;
+        },
+        {} as Record<string, ChatHistoryItem[]>,
+      ),
+    [filteredChats],
   );
 
   const handleSelectChat = (chatId: string, agentId?: string | null) => {

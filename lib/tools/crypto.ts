@@ -117,14 +117,18 @@ export const getCryptoPrice = tool({
     const currency = input.currency.toLowerCase();
 
     try {
-      const response = await fetch(
-        `${COINGECKO_API}/simple/price?ids=${coinId}&vs_currencies=${currency}&include_24hr_change=true&include_market_cap=true&include_24hr_vol=true`,
-        {
-          headers: {
-            Accept: "application/json",
-          },
+      const params = new URLSearchParams({
+        ids: coinId,
+        vs_currencies: currency,
+        include_24hr_change: "true",
+        include_market_cap: "true",
+        include_24hr_vol: "true",
+      });
+      const response = await fetch(`${COINGECKO_API}/simple/price?${params}`, {
+        headers: {
+          Accept: "application/json",
         },
-      );
+      });
 
       if (!response.ok) {
         if (response.status === 429) {
@@ -193,14 +197,16 @@ export const getMultipleCryptoPrices = tool({
     const currency = input.currency.toLowerCase();
 
     try {
-      const response = await fetch(
-        `${COINGECKO_API}/simple/price?ids=${coinIds}&vs_currencies=${currency}&include_24hr_change=true`,
-        {
-          headers: {
-            Accept: "application/json",
-          },
+      const params = new URLSearchParams({
+        ids: coinIds,
+        vs_currencies: currency,
+        include_24hr_change: "true",
+      });
+      const response = await fetch(`${COINGECKO_API}/simple/price?${params}`, {
+        headers: {
+          Accept: "application/json",
         },
-      );
+      });
 
       if (!response.ok) {
         if (response.status === 429) {
@@ -520,7 +526,7 @@ export const getTopCoins = tool({
           ath_change_percentage: number;
         }>
       >(
-        `/coins/markets?vs_currency=${input.currency}&order=market_cap_desc&per_page=${input.limit}&page=1&sparkline=false&price_change_percentage=7d`,
+        `/coins/markets?${new URLSearchParams({ vs_currency: input.currency, order: "market_cap_desc", per_page: String(input.limit), page: "1", sparkline: "false", price_change_percentage: "7d" })}`,
       );
 
       return {
@@ -605,7 +611,7 @@ export const getCoinDetails = tool({
           reddit_subscribers: number;
         };
       }>(
-        `/coins/${coinId}?localization=false&tickers=false&market_data=true&community_data=true&developer_data=false`,
+        `/coins/${encodeURIComponent(coinId)}?localization=false&tickers=false&market_data=true&community_data=true&developer_data=false`,
       );
 
       return {
@@ -689,7 +695,7 @@ export const getCoinHistory = tool({
         market_caps: Array<[number, number]>;
         total_volumes: Array<[number, number]>;
       }>(
-        `/coins/${coinId}/market_chart?vs_currency=${input.currency}&days=${input.days}`,
+        `/coins/${encodeURIComponent(coinId)}/market_chart?${new URLSearchParams({ vs_currency: input.currency, days: String(input.days) })}`,
       );
 
       // Sample data points to avoid overwhelming response
@@ -758,7 +764,7 @@ export const getCoinOHLC = tool({
       const data = await fetchCoinGecko<
         Array<[number, number, number, number, number]>
       >(
-        `/coins/${coinId}/ohlc?vs_currency=${input.currency}&days=${input.days}`,
+        `/coins/${encodeURIComponent(coinId)}/ohlc?${new URLSearchParams({ vs_currency: input.currency, days: input.days })}`,
       );
 
       return {
@@ -876,7 +882,7 @@ export const getExchanges = tool({
           trade_volume_24h_btc_normalized: number;
           url: string;
         }>
-      >(`/exchanges?per_page=${input.limit}`);
+      >(`/exchanges?${new URLSearchParams({ per_page: String(input.limit) })}`);
 
       return {
         exchanges: data.map((e) => ({
@@ -985,7 +991,7 @@ export const getTrendingPools = tool({
   execute: async (input) => {
     try {
       const endpoint = input.network
-        ? `/networks/${resolveNetwork(input.network)}/trending_pools`
+        ? `/networks/${encodeURIComponent(resolveNetwork(input.network))}/trending_pools`
         : "/networks/trending_pools";
 
       const data = await fetchGeckoTerminal<{
@@ -1069,7 +1075,7 @@ export const getNewPools = tool({
   execute: async (input) => {
     try {
       const endpoint = input.network
-        ? `/networks/${resolveNetwork(input.network)}/new_pools`
+        ? `/networks/${encodeURIComponent(resolveNetwork(input.network))}/new_pools`
         : "/networks/new_pools";
 
       const data = await fetchGeckoTerminal<{
@@ -1169,7 +1175,9 @@ export const getTokenByContract = tool({
             market_cap_usd: string | null;
           };
         };
-      }>(`/networks/${network}/tokens/${input.address}`);
+      }>(
+        `/networks/${encodeURIComponent(network)}/tokens/${encodeURIComponent(input.address)}`,
+      );
 
       const t = data.data.attributes;
       return {
@@ -1221,7 +1229,7 @@ export const searchPools = tool({
     try {
       let endpoint = `/search/pools?query=${encodeURIComponent(input.query)}`;
       if (input.network) {
-        endpoint += `&network=${resolveNetwork(input.network)}`;
+        endpoint += `&network=${encodeURIComponent(resolveNetwork(input.network))}`;
       }
 
       const data = await fetchGeckoTerminal<{
@@ -1312,7 +1320,9 @@ export const getPoolTrades = tool({
             price_to_in_usd: string;
           };
         }>;
-      }>(`/networks/${network}/pools/${input.poolAddress}/trades`);
+      }>(
+        `/networks/${encodeURIComponent(network)}/pools/${encodeURIComponent(input.poolAddress)}/trades`,
+      );
 
       return {
         network: network,

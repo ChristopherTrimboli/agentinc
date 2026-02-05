@@ -15,7 +15,6 @@ import {
   Sparkles,
   Search,
   MessageSquare,
-  Send,
   Paperclip,
   Zap,
   Wrench,
@@ -29,7 +28,6 @@ import {
   Loader2,
   Star,
   Rocket,
-  SendHorizonal,
   User,
 } from "lucide-react";
 import {
@@ -102,86 +100,24 @@ import {
   type VoiceSettings,
 } from "@/lib/hooks/useSpeechSynthesis";
 
-interface AgentInfo {
-  id: string;
-  name: string;
-  description: string | null;
-  imageUrl: string | null;
-  personality: string | null;
-  rarity: string | null;
-  tokenSymbol: string | null;
-  tokenMint: string | null;
-}
+import type {
+  AgentInfo,
+  PriceData,
+  ToolGroupInfo,
+  SkillInfo,
+  GeneratedImageResult,
+} from "./types";
+import {
+  QUICK_SUGGESTIONS,
+  getStoredApiKeys,
+  saveApiKey,
+  formatPrice,
+  formatMarketCap,
+} from "./types";
 
-interface PriceData {
-  price: number;
-  priceChange24h?: number;
-  marketCap?: number;
-}
+import { RARITY_SELECTOR_STYLES } from "@/lib/utils/rarity";
 
-interface ApiKeyConfigInfo {
-  label: string;
-  helpText?: string;
-  helpUrl?: string;
-  placeholder?: string;
-}
-
-interface ToolGroupInfo {
-  id: string;
-  name: string;
-  description: string;
-  icon: string;
-  category: "AI" | "CRYPTO" | "UTILITIES" | "SOCIAL";
-  logoUrl?: string;
-  source?: string;
-  requiresAuth?: boolean;
-  functions: { id: string; name: string; description: string }[];
-}
-
-interface SkillInfo {
-  id: string;
-  name: string;
-  description: string;
-  icon: string;
-  isConfigured?: boolean;
-  requiresApiKey?: boolean;
-  apiKeyConfig?: ApiKeyConfigInfo;
-}
-
-// Storage key for user API keys
-const API_KEYS_STORAGE_KEY = "agentinc_skill_api_keys";
-
-// Quick suggestions - defined outside component to prevent recreation
-const QUICK_SUGGESTIONS = ["Tell me about yourself", "What can you do?", "Hi!"];
-
-// Helper to get stored API keys
-function getStoredApiKeys(): Record<string, string> {
-  if (typeof window === "undefined") return {};
-  try {
-    const stored = localStorage.getItem(API_KEYS_STORAGE_KEY);
-    return stored ? JSON.parse(stored) : {};
-  } catch {
-    return {};
-  }
-}
-
-// Helper to save API key
-function saveApiKey(skillId: string, apiKey: string) {
-  if (typeof window === "undefined") return;
-  try {
-    const keys = getStoredApiKeys();
-    if (apiKey) {
-      keys[skillId] = apiKey;
-    } else {
-      delete keys[skillId];
-    }
-    localStorage.setItem(API_KEYS_STORAGE_KEY, JSON.stringify(keys));
-  } catch (e) {
-    console.error("Failed to save API key:", e);
-  }
-}
-
-const rarityColors: Record<
+const rarityColors = RARITY_SELECTOR_STYLES as Record<
   string,
   {
     ring: string;
@@ -193,94 +129,7 @@ const rarityColors: Record<
     accent: string;
     hoverOverlay: string;
   }
-> = {
-  legendary: {
-    ring: "ring-[#FFD700]",
-    glow: "shadow-[0_0_30px_rgba(255,215,0,0.4)]",
-    bg: "from-[#FFD700]/20 to-[#FFD700]/5",
-    hoverRing: "hover:ring-[#FFD700]",
-    hoverGlow: "hover:shadow-[0_8px_30px_rgba(255,215,0,0.35)]",
-    hoverText: "group-hover:text-[#FFD700]",
-    accent: "text-[#FFD700]",
-    hoverOverlay: "from-[#FFD700]/20 via-[#FFD700]/5",
-  },
-  epic: {
-    ring: "ring-[#A855F7]",
-    glow: "shadow-[0_0_30px_rgba(168,85,247,0.4)]",
-    bg: "from-[#A855F7]/20 to-[#A855F7]/5",
-    hoverRing: "hover:ring-[#A855F7]",
-    hoverGlow: "hover:shadow-[0_8px_30px_rgba(168,85,247,0.35)]",
-    hoverText: "group-hover:text-[#A855F7]",
-    accent: "text-[#A855F7]",
-    hoverOverlay: "from-[#A855F7]/20 via-[#A855F7]/5",
-  },
-  rare: {
-    ring: "ring-[#3B82F6]",
-    glow: "shadow-[0_0_30px_rgba(59,130,246,0.4)]",
-    bg: "from-[#3B82F6]/20 to-[#3B82F6]/5",
-    hoverRing: "hover:ring-[#3B82F6]",
-    hoverGlow: "hover:shadow-[0_8px_30px_rgba(59,130,246,0.35)]",
-    hoverText: "group-hover:text-[#3B82F6]",
-    accent: "text-[#3B82F6]",
-    hoverOverlay: "from-[#3B82F6]/20 via-[#3B82F6]/5",
-  },
-  uncommon: {
-    ring: "ring-[#6FEC06]",
-    glow: "shadow-[0_0_30px_rgba(111,236,6,0.3)]",
-    bg: "from-[#6FEC06]/20 to-[#6FEC06]/5",
-    hoverRing: "hover:ring-[#6FEC06]",
-    hoverGlow: "hover:shadow-[0_8px_30px_rgba(111,236,6,0.35)]",
-    hoverText: "group-hover:text-[#6FEC06]",
-    accent: "text-[#6FEC06]",
-    hoverOverlay: "from-[#6FEC06]/20 via-[#6FEC06]/5",
-  },
-  common: {
-    ring: "ring-white/20",
-    glow: "",
-    bg: "from-white/10 to-white/5",
-    hoverRing: "hover:ring-white/50",
-    hoverGlow: "hover:shadow-[0_8px_30px_rgba(255,255,255,0.15)]",
-    hoverText: "group-hover:text-white",
-    accent: "text-white/70",
-    hoverOverlay: "from-white/15 via-white/5",
-  },
-};
-
-// Format price for display - compact format for small prices
-function formatPrice(price: number): string {
-  if (price >= 100) {
-    return `$${price.toFixed(0)}`;
-  } else if (price >= 1) {
-    return `$${price.toFixed(2)}`;
-  } else if (price >= 0.01) {
-    return `$${price.toFixed(3)}`;
-  } else if (price >= 0.0001) {
-    return `$${price.toFixed(5)}`;
-  } else {
-    // For very small prices, show significant digits with zero count
-    // e.g., 0.00000274 -> "$0.0{5}27"
-    const str = price.toFixed(12);
-    const match = str.match(/^0\.(0*)([1-9]\d{0,1})/);
-    if (match) {
-      const zeroCount = match[1].length;
-      const significantDigits = match[2];
-      if (zeroCount > 2) {
-        return `$0.0{${zeroCount}}${significantDigits}`;
-      }
-    }
-    return `$${price.toFixed(6)}`;
-  }
-}
-
-// Format market cap for display
-function formatMarketCap(mc: number): string {
-  if (mc >= 1_000_000) {
-    return `$${(mc / 1_000_000).toFixed(2)}M`;
-  } else if (mc >= 1_000) {
-    return `$${(mc / 1_000).toFixed(1)}K`;
-  }
-  return `$${mc.toFixed(0)}`;
-}
+>;
 
 // Agent Card Component - Memoized to prevent re-renders when parent updates
 const AgentCard = React.memo(function AgentCard({
@@ -899,13 +748,6 @@ function isImageToolResult(result: unknown): result is {
 }
 
 // Generated Image Display - shows prominently in chat
-interface GeneratedImageResult {
-  success: boolean;
-  image: { url: string; mediaType: string };
-  prompt: string;
-  enhancedPrompt?: string;
-}
-
 const GeneratedImageDisplay = React.memo(function GeneratedImageDisplay({
   result,
 }: {

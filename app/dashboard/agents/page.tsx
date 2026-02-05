@@ -31,42 +31,12 @@ interface Agent {
   updatedAt: string;
 }
 
-// Rarity colors matching the design system
-const rarityColors: Record<
+import { RARITY_DETAIL_STYLES } from "@/lib/utils/rarity";
+
+const rarityColors = RARITY_DETAIL_STYLES as Record<
   string,
   { border: string; bg: string; text: string; glow: string }
-> = {
-  legendary: {
-    border: "border-[#FFD700]",
-    bg: "bg-[#FFD700]/10",
-    text: "text-[#FFD700]",
-    glow: "shadow-[0_0_20px_rgba(255,215,0,0.3)]",
-  },
-  epic: {
-    border: "border-[#A855F7]",
-    bg: "bg-[#A855F7]/10",
-    text: "text-[#A855F7]",
-    glow: "shadow-[0_0_20px_rgba(168,85,247,0.3)]",
-  },
-  rare: {
-    border: "border-[#3B82F6]",
-    bg: "bg-[#3B82F6]/10",
-    text: "text-[#3B82F6]",
-    glow: "shadow-[0_0_20px_rgba(59,130,246,0.3)]",
-  },
-  uncommon: {
-    border: "border-[#6FEC06]",
-    bg: "bg-[#6FEC06]/10",
-    text: "text-[#6FEC06]",
-    glow: "shadow-[0_0_20px_rgba(111,236,6,0.3)]",
-  },
-  common: {
-    border: "border-white/20",
-    bg: "bg-white/5",
-    text: "text-white/60",
-    glow: "",
-  },
-};
+>;
 
 export default function AgentsPage() {
   const { authFetch, identityToken } = useAuth();

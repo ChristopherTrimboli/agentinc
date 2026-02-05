@@ -8,8 +8,8 @@ import { TwitterApi } from "twitter-api-v2";
 import prisma from "@/lib/prisma";
 import { encrypt } from "@/lib/utils/encryption";
 
-const TWITTER_CLIENT_ID = process.env.TWITTER_CLIENT_ID!;
-const TWITTER_CLIENT_SECRET = process.env.TWITTER_CLIENT_SECRET!;
+const TWITTER_CLIENT_ID = process.env.TWITTER_CLIENT_ID || "";
+const TWITTER_CLIENT_SECRET = process.env.TWITTER_CLIENT_SECRET || "";
 const CALLBACK_URL = process.env.NEXT_PUBLIC_APP_URL
   ? `${process.env.NEXT_PUBLIC_APP_URL}/api/twitter/oauth/callback`
   : "http://localhost:3000/api/twitter/oauth/callback";
@@ -141,15 +141,6 @@ export async function GET(request: NextRequest) {
         code: err.code,
       });
     }
-
-    // Log credentials check (without exposing secrets)
-    console.error("Credentials check:", {
-      hasClientId: !!TWITTER_CLIENT_ID,
-      clientIdLength: TWITTER_CLIENT_ID?.length,
-      hasClientSecret: !!TWITTER_CLIENT_SECRET,
-      clientSecretLength: TWITTER_CLIENT_SECRET?.length,
-      callbackUrl: CALLBACK_URL,
-    });
 
     // Try to preserve context even on error
     const agentIdFromCookie = request.cookies.get(

@@ -14,7 +14,6 @@ export {
   getCurrentNetwork,
   isValidSolanaAddress,
   validateX402Config,
-  logValidationResults,
   MAX_USD_PRICE,
   MIN_USD_PRICE,
 } from "./config";

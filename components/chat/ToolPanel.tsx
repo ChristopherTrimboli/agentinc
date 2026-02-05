@@ -786,13 +786,9 @@ interface ChatHistoryItem {
   messageCount: number;
 }
 
-const rarityColors: Record<string, string> = {
-  legendary: "ring-[#FFD700]",
-  epic: "ring-[#A855F7]",
-  rare: "ring-[#3B82F6]",
-  uncommon: "ring-[#6FEC06]",
-  common: "ring-white/20",
-};
+import { RARITY_RING_COLORS } from "@/lib/utils/rarity";
+
+const rarityColors = RARITY_RING_COLORS as Record<string, string>;
 
 function HistoryTab({
   currentChatId,

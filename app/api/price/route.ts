@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getPrivyClient } from "@/lib/auth/verifyRequest";
+import { verifyAuthUserId } from "@/lib/auth/verifyRequest";
 
 // SOL mint address
 const SOL_MINT = "So11111111111111111111111111111111111111112";
@@ -17,6 +17,9 @@ function getFromCache(mint: string): CacheEntry | null {
   const cached = priceCache.get(mint);
 
   if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+    // LRU: re-insert to move to end of Map iteration order
+    priceCache.delete(mint);
+    priceCache.set(mint, cached);
     return cached;
   }
 
@@ -29,32 +32,21 @@ function getFromCache(mint: string): CacheEntry | null {
 }
 
 function setCache(mint: string, price: number | null): void {
+  // Delete first to ensure it's at the end (most recently used)
+  priceCache.delete(mint);
   priceCache.set(mint, { price, timestamp: Date.now() });
 
-  // Clean up old cache entries (keep max 50)
-  if (priceCache.size > 50) {
-    const oldestKey = priceCache.keys().next().value;
-    if (oldestKey) priceCache.delete(oldestKey);
-  }
-}
-
-// Helper to verify auth
-async function verifyAuth(req: NextRequest): Promise<string | null> {
-  const idToken = req.headers.get("privy-id-token");
-  if (!idToken) return null;
-
-  try {
-    const privy = getPrivyClient();
-    const privyUser = await privy.users().get({ id_token: idToken });
-    return privyUser.id;
-  } catch {
-    return null;
+  // Evict least recently used entries (at the front of Map iteration order)
+  while (priceCache.size > 50) {
+    const lruKey = priceCache.keys().next().value;
+    if (lruKey) priceCache.delete(lruKey);
+    else break;
   }
 }
 
 // GET /api/price - Get token price from DexScreener with caching
 export async function GET(req: NextRequest) {
-  const userId = await verifyAuth(req);
+  const userId = await verifyAuthUserId(req);
 
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

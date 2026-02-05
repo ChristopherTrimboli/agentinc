@@ -188,9 +188,9 @@ export async function calculateCost(
 
 /**
  * Check if usage-based billing via AI Gateway is available.
- * This only requires the gateway SDK, no API key needed.
+ *
+ * @deprecated Always returns true. Remove calls to this and replace with `true`.
  */
 export function isAIGatewayBillingEnabled(): boolean {
-  // AI Gateway pricing is always available when using the gateway SDK
   return true;
 }

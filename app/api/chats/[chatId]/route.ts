@@ -1,20 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { getPrivyClient } from "@/lib/auth/verifyRequest";
-
-// Helper to verify auth and get user ID
-async function verifyAuth(req: NextRequest): Promise<string | null> {
-  const idToken = req.headers.get("privy-id-token");
-  if (!idToken) return null;
-
-  try {
-    const privy = getPrivyClient();
-    const privyUser = await privy.users().get({ id_token: idToken });
-    return privyUser.id;
-  } catch {
-    return null;
-  }
-}
+import { verifyAuthUserId } from "@/lib/auth/verifyRequest";
 
 type RouteContext = {
   params: Promise<{ chatId: string }>;
@@ -23,7 +9,7 @@ type RouteContext = {
 // GET /api/chats/[chatId] - Get a specific chat with all messages
 export async function GET(req: NextRequest, context: RouteContext) {
   const { chatId } = await context.params;
-  const userId = await verifyAuth(req);
+  const userId = await verifyAuthUserId(req);
 
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -79,7 +65,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
 // PATCH /api/chats/[chatId] - Update chat (e.g., title)
 export async function PATCH(req: NextRequest, context: RouteContext) {
   const { chatId } = await context.params;
-  const userId = await verifyAuth(req);
+  const userId = await verifyAuthUserId(req);
 
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -129,7 +115,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
 // DELETE /api/chats/[chatId] - Delete a chat
 export async function DELETE(req: NextRequest, context: RouteContext) {
   const { chatId } = await context.params;
-  const userId = await verifyAuth(req);
+  const userId = await verifyAuthUserId(req);
 
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

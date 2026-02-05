@@ -668,4 +668,4 @@ export const AVAILABLE_TOOLS = TOOL_GROUPS.flatMap((g) =>
   g.functions.map((f) => f.id),
 );
 
-export type AvailableTool = string;
+export type AvailableTool = (typeof AVAILABLE_TOOLS)[number];

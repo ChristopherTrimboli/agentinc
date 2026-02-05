@@ -68,9 +68,26 @@ export const SOL_NETWORK: SolNetwork = getCurrentNetwork();
 
 /**
  * Treasury wallet address that receives payments.
- * Validated at startup to catch misconfiguration early.
+ * Logs a clear error at startup if missing or invalid so misconfiguration
+ * is caught immediately rather than silently sending payments to nowhere.
  */
-export const TREASURY_ADDRESS = process.env.X402_TREASURY_ADDRESS || "";
+export const TREASURY_ADDRESS: string = (() => {
+  const addr = process.env.X402_TREASURY_ADDRESS || "";
+  if (!addr) {
+    console.error(
+      "[x402] CRITICAL: X402_TREASURY_ADDRESS is not set. Payments will be rejected until configured.",
+    );
+  } else {
+    try {
+      new PublicKey(addr);
+    } catch {
+      console.error(
+        `[x402] CRITICAL: X402_TREASURY_ADDRESS is not a valid Solana address: "${addr}"`,
+      );
+    }
+  }
+  return addr;
+})();
 
 /**
  * Treasury wallet ID for Privy (enables auto-refunds from treasury)
@@ -183,14 +200,6 @@ export function validateX402Config(): ValidationResult {
     errors,
     warnings,
   };
-}
-
-/**
- * Get validation results for startup checks.
- * Returns the validation result for the caller to handle as needed.
- */
-export function logValidationResults(): ValidationResult {
-  return validateX402Config();
 }
 
 // =============================================================================
