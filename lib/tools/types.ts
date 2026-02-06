@@ -13,8 +13,3 @@ export interface ToolEntry {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   tool: Tool<any, any>;
 }
-
-/**
- * @deprecated Use ToolEntry instead. These types are identical.
- */
-export type AgentTool = ToolEntry;

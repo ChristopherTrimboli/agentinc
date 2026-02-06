@@ -124,23 +124,9 @@ export const getCryptoPrice = tool({
         include_market_cap: "true",
         include_24hr_vol: "true",
       });
-      const response = await fetch(`${COINGECKO_API}/simple/price?${params}`, {
-        headers: {
-          Accept: "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        if (response.status === 429) {
-          return {
-            error: "Rate limit exceeded. Please try again in a minute.",
-            coin: input.coin,
-          };
-        }
-        throw new Error(`API error: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await fetchCoinGecko<Record<string, Record<string, number>>>(
+        `/simple/price?${params}`,
+      );
 
       if (!data[coinId]) {
         return {
@@ -202,22 +188,9 @@ export const getMultipleCryptoPrices = tool({
         vs_currencies: currency,
         include_24hr_change: "true",
       });
-      const response = await fetch(`${COINGECKO_API}/simple/price?${params}`, {
-        headers: {
-          Accept: "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        if (response.status === 429) {
-          return {
-            error: "Rate limit exceeded. Please try again in a minute.",
-          };
-        }
-        throw new Error(`API error: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await fetchCoinGecko<Record<string, Record<string, number>>>(
+        `/simple/price?${params}`,
+      );
 
       const prices = input.coins.map((coin) => {
         const coinId = resolveCoinId(coin);

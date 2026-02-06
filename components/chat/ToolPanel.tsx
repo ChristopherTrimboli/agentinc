@@ -843,15 +843,17 @@ function HistoryTab({
   }, [fetchChats, refreshTrigger]);
 
   // Filter chats by search
-  const filteredChats = chats.filter((chat) => {
-    if (!search) return true;
-    const searchLower = search.toLowerCase();
-    return (
-      chat.title?.toLowerCase().includes(searchLower) ||
-      chat.agent?.name.toLowerCase().includes(searchLower) ||
-      chat.lastMessage?.content.toLowerCase().includes(searchLower)
-    );
-  });
+  const filteredChats = useMemo(() => {
+    return chats.filter((chat) => {
+      if (!search) return true;
+      const searchLower = search.toLowerCase();
+      return (
+        chat.title?.toLowerCase().includes(searchLower) ||
+        chat.agent?.name.toLowerCase().includes(searchLower) ||
+        chat.lastMessage?.content.toLowerCase().includes(searchLower)
+      );
+    });
+  }, [chats, search]);
 
   // Group chats by time periods
   const groupedChats = filteredChats.reduce(

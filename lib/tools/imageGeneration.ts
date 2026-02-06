@@ -27,8 +27,8 @@ const generateImageSchema = z.object({
 });
 
 /**
- * Lazily upload image to Vercel Blob storage (fire-and-forget)
- * Returns immediately, upload happens in background
+ * Upload image to Vercel Blob storage.
+ * Awaited before returning the tool result so the URL is available immediately.
  */
 async function persistImageToBlob(
   base64: string,

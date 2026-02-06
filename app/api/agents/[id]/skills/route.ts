@@ -5,7 +5,7 @@ import {
   AVAILABLE_SKILLS,
   type AvailableSkill,
 } from "@/lib/skills";
-import { getPrivyClient } from "@/lib/auth/verifyRequest";
+import { verifyAuthUserId } from "@/lib/auth/verifyRequest";
 
 /**
  * GET /api/agents/[id]/skills
@@ -15,19 +15,9 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const idToken = req.headers.get("privy-id-token");
-
-  if (!idToken) {
+  const userId = await verifyAuthUserId(req);
+  if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  let userId: string;
-  try {
-    const privy = getPrivyClient();
-    const privyUser = await privy.users().get({ id_token: idToken });
-    userId = privyUser.id;
-  } catch {
-    return NextResponse.json({ error: "Invalid token" }, { status: 401 });
   }
 
   const { id: agentId } = await params;
@@ -84,19 +74,9 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const idToken = req.headers.get("privy-id-token");
-
-  if (!idToken) {
+  const userId = await verifyAuthUserId(req);
+  if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  let userId: string;
-  try {
-    const privy = getPrivyClient();
-    const privyUser = await privy.users().get({ id_token: idToken });
-    userId = privyUser.id;
-  } catch {
-    return NextResponse.json({ error: "Invalid token" }, { status: 401 });
   }
 
   const { id: agentId } = await params;
@@ -185,19 +165,9 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const idToken = req.headers.get("privy-id-token");
-
-  if (!idToken) {
+  const userId = await verifyAuthUserId(req);
+  if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  let userId: string;
-  try {
-    const privy = getPrivyClient();
-    const privyUser = await privy.users().get({ id_token: idToken });
-    userId = privyUser.id;
-  } catch {
-    return NextResponse.json({ error: "Invalid token" }, { status: 401 });
   }
 
   const { id: agentId } = await params;
