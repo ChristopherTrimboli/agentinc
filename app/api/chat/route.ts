@@ -18,6 +18,7 @@ import {
   createTwitterConnectionBrokenTool,
   refreshTwitterToken,
 } from "@/lib/tools/twitter";
+import { createKnowledgeTools } from "@/lib/tools/knowledge";
 import { safeDecrypt, encrypt } from "@/lib/utils/encryption";
 import type { AvailableSkill } from "@/lib/skills";
 import { getPrivyClient } from "@/lib/auth/verifyRequest";
@@ -340,6 +341,30 @@ async function chatHandler(req: RequestWithBilling) {
       }),
     );
     tools = { ...tools, ...deferredGroupTools };
+
+    // Add Knowledge tools if the knowledge group is enabled
+    // Knowledge tools are created dynamically with userId/agentId context
+    if (enabledToolGroups.includes("knowledge")) {
+      try {
+        const knowledgeTools = createKnowledgeTools(userId, agentId);
+
+        // Mark knowledge tools as deferred for tool search
+        const deferredKnowledgeTools = Object.fromEntries(
+          Object.entries(knowledgeTools).map(([name, tool]) => [
+            name,
+            {
+              ...tool,
+              providerOptions: {
+                anthropic: { deferLoading: true },
+              },
+            },
+          ]),
+        );
+        tools = { ...tools, ...deferredKnowledgeTools };
+      } catch (error) {
+        console.error("[Chat API] Failed to load Knowledge tools:", error);
+      }
+    }
 
     // Add Twitter tools if the twitter group is enabled
     // Always include onboarding tools so the AI can help users connect

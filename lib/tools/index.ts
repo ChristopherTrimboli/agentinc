@@ -35,6 +35,7 @@ import { imageGenerationTools } from "./imageGeneration";
 import { webSearchTools } from "./webSearch";
 import { twilioTools } from "./twilio";
 // Note: Twitter tools are created dynamically with user OAuth token via createTwitterTools()
+// Note: Knowledge tools are created dynamically with userId/agentId via createKnowledgeTools()
 
 // Export types
 export * from "./types";
@@ -92,6 +93,8 @@ export {
   refreshTwitterToken,
   type TwitterOnboardingContext,
 } from "./twitter";
+// Knowledge base (RAG)
+export { createKnowledgeTools } from "./knowledge";
 // Twilio Communications (SMS, MMS, Voice, WhatsApp)
 export {
   // SMS
@@ -311,6 +314,35 @@ export const TOOL_GROUPS: ToolGroup[] = [
         id: "getPoolTrades",
         name: "Pool Trades",
         description: "Recent trades for a pool",
+      },
+    ],
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // KNOWLEDGE
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    id: "knowledge",
+    name: "Knowledge Base",
+    description: "Store and retrieve information using semantic search (RAG)",
+    icon: "🧠",
+    category: "AI",
+    source: "pgvector",
+    functions: [
+      {
+        id: "addResource",
+        name: "Add Knowledge",
+        description: "Store information in the knowledge base",
+      },
+      {
+        id: "getInformation",
+        name: "Search Knowledge",
+        description: "Search the knowledge base for relevant info",
+      },
+      {
+        id: "removeResource",
+        name: "Remove Knowledge",
+        description: "Delete a resource from the knowledge base",
       },
     ],
   },

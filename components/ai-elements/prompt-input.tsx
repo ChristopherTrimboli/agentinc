@@ -37,7 +37,6 @@ import { cn } from "@/lib/utils";
 import type { ChatStatus, FileUIPart, SourceDocumentUIPart } from "ai";
 import {
   CornerDownLeftIcon,
-  ImageIcon,
   Loader2Icon,
   PlusIcon,
   SquareIcon,
@@ -304,7 +303,7 @@ export type PromptInputActionAddAttachmentsProps = ComponentProps<
 };
 
 export const PromptInputActionAddAttachments = ({
-  label = "Add photos or files",
+  label = "Add images or documents",
   ...props
 }: PromptInputActionAddAttachmentsProps) => {
   const attachments = usePromptInputAttachments();
@@ -317,7 +316,7 @@ export const PromptInputActionAddAttachments = ({
         attachments.openFileDialog();
       }}
     >
-      <ImageIcon className="mr-2 size-4" /> {label}
+      <PlusIcon className="mr-2 size-4" /> {label}
     </DropdownMenuItem>
   );
 };

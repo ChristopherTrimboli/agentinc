@@ -57,11 +57,15 @@ async function geocode(location: string): Promise<GeoResult> {
   const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1&language=en&format=json`;
   const res = await fetch(url);
   if (!res.ok) {
-    throw new Error(`Geocoding request failed: ${res.status} ${res.statusText}`);
+    throw new Error(
+      `Geocoding request failed: ${res.status} ${res.statusText}`,
+    );
   }
   const data = await res.json();
   if (!data.results || data.results.length === 0) {
-    throw new Error(`Could not find location: "${location}". Try a different city name.`);
+    throw new Error(
+      `Could not find location: "${location}". Try a different city name.`,
+    );
   }
   const r = data.results[0];
   return {

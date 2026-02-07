@@ -30,8 +30,9 @@ model User {
   twitterConnectedAt       DateTime? // When user connected Twitter
 
   // Relations
-  agents Agent[]
-  chats  Chat[]
+  agents    Agent[]
+  chats     Chat[]
+  resources Resource[]
 
   @@index([twitterUserId])
   @@index([twitterUsername])
@@ -122,7 +123,8 @@ model Agent {
   corporation   Corporation? @relation(fields: [corporationId], references: [id], onDelete: SetNull)
 
   // Chats with this agent
-  chats Chat[]
+  chats     Chat[]
+  resources Resource[]
 
   @@index([createdById])
   @@index([tokenMint])
@@ -206,4 +208,41 @@ model SwarmEvent {
   @@index([type])
   @@index([type, timestamp])
   @@index([sourceAgentId, timestamp])
+}
+
+// Knowledge base resource - source material for RAG
+model Resource {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Owner - each user has their own knowledge per agent
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Optional agent scope - null means global user knowledge
+  agentId String?
+  agent   Agent?  @relation(fields: [agentId], references: [id], onDelete: SetNull)
+
+  // Embedding chunks
+  embeddings Embedding[]
+
+  @@index([userId])
+  @@index([agentId])
+  @@index([userId, agentId])
+  @@index([createdAt])
+}
+
+// Vector embedding chunk for similarity search
+model Embedding {
+  id         String @id @default(cuid())
+  content    String @db.Text // The plain text chunk
+  // embedding vector(1536) managed via raw SQL (pgvector, text-embedding-3-large with reduced dimensions)
+
+  // Parent resource
+  resourceId String
+  resource   Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  @@index([resourceId])
 }

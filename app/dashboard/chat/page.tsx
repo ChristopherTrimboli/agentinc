@@ -29,6 +29,8 @@ import {
   Star,
   Rocket,
   User,
+  XIcon,
+  FileTextIcon,
 } from "lucide-react";
 import {
   Select,
@@ -425,43 +427,118 @@ function AttachmentsPreview() {
 
   if (files.length === 0) return null;
 
+  /** Check if a file is an image based on its mediaType */
+  const isImage = (mediaType?: string) =>
+    mediaType?.startsWith("image/") ?? false;
+
+  /** Get a short display name for the file */
+  const getShortName = (filename?: string) => {
+    const name = filename || "File";
+    return name.length > 15 ? `${name.slice(0, 12)}...${name.slice(-4)}` : name;
+  };
+
+  /** Get file extension for badge */
+  const getExt = (filename?: string) =>
+    filename?.split(".").pop()?.toUpperCase() || "FILE";
+
+  /** Get accent color for file type */
+  const getExtColor = (filename?: string) => {
+    const ext = filename?.split(".").pop()?.toLowerCase();
+    const colors: Record<string, string> = {
+      pdf: "text-red-400 bg-red-400/15 border-red-400/30",
+      md: "text-purple-400 bg-purple-400/15 border-purple-400/30",
+      txt: "text-slate-300 bg-slate-400/15 border-slate-400/30",
+      csv: "text-green-400 bg-green-400/15 border-green-400/30",
+      json: "text-amber-400 bg-amber-400/15 border-amber-400/30",
+      ts: "text-blue-400 bg-blue-400/15 border-blue-400/30",
+      tsx: "text-cyan-400 bg-cyan-400/15 border-cyan-400/30",
+      js: "text-yellow-400 bg-yellow-400/15 border-yellow-400/30",
+      jsx: "text-cyan-400 bg-cyan-400/15 border-cyan-400/30",
+      py: "text-green-400 bg-green-400/15 border-green-400/30",
+      html: "text-red-400 bg-red-400/15 border-red-400/30",
+      css: "text-blue-400 bg-blue-400/15 border-blue-400/30",
+      sql: "text-orange-400 bg-orange-400/15 border-orange-400/30",
+      xml: "text-orange-400 bg-orange-400/15 border-orange-400/30",
+    };
+    return (
+      colors[ext || ""] || "text-[#6FEC06] bg-[#6FEC06]/15 border-[#6FEC06]/30"
+    );
+  };
+
   return (
     <PromptInputHeader className="px-4 pt-3 pb-2">
-      <Attachments variant="grid" className="gap-2.5 w-full justify-start">
+      <div className="flex flex-wrap gap-2.5 w-full justify-start">
         {files.map((file, index) => {
-          const fileName = file.filename || "Image";
-          const shortName =
-            fileName.length > 15
-              ? `${fileName.slice(0, 12)}...${fileName.slice(-4)}`
-              : fileName;
+          const fileName = file.filename || "File";
+          const shortName = getShortName(fileName);
+
+          if (isImage(file.mediaType)) {
+            // Image thumbnail preview
+            return (
+              <Attachments key={file.id} variant="grid">
+                <Attachment
+                  data={file}
+                  onRemove={() => remove(file.id)}
+                  className="size-20 rounded-xl border border-[#6FEC06]/30 bg-gradient-to-br from-[#0a0520] to-[#0a0520]/60 overflow-hidden ring-1 ring-inset ring-white/5 hover:ring-[#6FEC06]/40 hover:border-[#6FEC06]/50 hover:shadow-[0_0_20px_rgba(111,236,6,0.15)] transition-all duration-300 hover:-translate-y-0.5"
+                  style={{
+                    animation: `slideInUp 0.3s ease-out ${index * 0.05}s both`,
+                  }}
+                  title={fileName}
+                >
+                  <AttachmentPreview className="size-full" />
+                  <AttachmentRemove className="transition-all duration-200" />
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/95 to-transparent px-1.5 py-1.5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                    <p className="text-[9px] text-white/90 font-medium truncate leading-tight">
+                      {shortName}
+                    </p>
+                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/30 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                </Attachment>
+              </Attachments>
+            );
+          }
+
+          // Document file pill
+          const ext = getExt(fileName);
+          const extColor = getExtColor(fileName);
 
           return (
-            <Attachment
+            <div
               key={file.id}
-              data={file}
-              onRemove={() => remove(file.id)}
-              className="size-20 rounded-xl border border-[#6FEC06]/30 bg-gradient-to-br from-[#0a0520] to-[#0a0520]/60 overflow-hidden ring-1 ring-inset ring-white/5 hover:ring-[#6FEC06]/40 hover:border-[#6FEC06]/50 hover:shadow-[0_0_20px_rgba(111,236,6,0.15)] transition-all duration-300 hover:-translate-y-0.5"
+              className="group relative flex items-center gap-2.5 h-12 pl-3 pr-2 rounded-xl border border-white/[0.1] bg-gradient-to-r from-white/[0.04] to-white/[0.02] hover:border-[#6FEC06]/30 hover:bg-white/[0.06] hover:shadow-[0_0_16px_rgba(111,236,6,0.08)] transition-all duration-300"
               style={{
                 animation: `slideInUp 0.3s ease-out ${index * 0.05}s both`,
               }}
               title={fileName}
             >
-              <AttachmentPreview className="size-full" />
-              <AttachmentRemove className="transition-all duration-200" />
+              {/* File type badge */}
+              <span
+                className={`shrink-0 text-[9px] font-bold tracking-wider px-1.5 py-0.5 rounded border ${extColor}`}
+              >
+                {ext}
+              </span>
 
-              {/* Filename label at bottom */}
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-black/95 to-transparent px-1.5 py-1.5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                <p className="text-[9px] text-white/90 font-medium truncate leading-tight">
-                  {shortName}
-                </p>
-              </div>
+              {/* Filename */}
+              <span className="text-xs text-white/80 font-medium truncate max-w-[120px]">
+                {shortName}
+              </span>
 
-              {/* Top overlay gradient for better remove button contrast */}
-              <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/30 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-            </Attachment>
+              {/* Remove button */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  remove(file.id);
+                }}
+                className="shrink-0 ml-0.5 p-1 rounded-lg text-white/30 hover:text-white/80 hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-all duration-200"
+                aria-label={`Remove ${fileName}`}
+              >
+                <XIcon className="w-3.5 h-3.5" />
+              </button>
+            </div>
           );
         })}
-      </Attachments>
+      </div>
     </PromptInputHeader>
   );
 }
@@ -552,8 +629,11 @@ const ChatInputArea = React.memo(function ChatInputArea({
       {isDraggingOver && (
         <div className="absolute inset-0 z-30 flex items-center justify-center bg-[#6FEC06]/10 backdrop-blur-sm border-2 border-dashed border-[#6FEC06] rounded-2xl mx-3 sm:mx-4 md:mx-6 my-2 sm:my-3 pointer-events-none">
           <div className="flex flex-col items-center gap-3 text-[#6FEC06]">
-            <ImageIcon className="w-12 h-12 animate-bounce" />
-            <p className="text-lg font-semibold">Drop images here</p>
+            <Paperclip className="w-12 h-12 animate-bounce" />
+            <p className="text-lg font-semibold">Drop files here</p>
+            <p className="text-sm text-[#6FEC06]/60">
+              Images, PDFs, documents, code files
+            </p>
           </div>
         </div>
       )}
@@ -572,7 +652,7 @@ const ChatInputArea = React.memo(function ChatInputArea({
         >
           <PromptInput
             onSubmit={handleSubmit}
-            accept="image/*"
+            accept="image/*,application/pdf,text/*,application/json,application/xml,.md,.csv,.json,.txt,.pdf,.ts,.tsx,.js,.jsx,.py,.sql,.yml,.yaml,.toml,.sh,.html,.css,.xml"
             multiple
             globalDrop
             className="[&_[data-slot=input-group]]:bg-[#0a0a1f]/90 [&_[data-slot=input-group]]:backdrop-blur-xl [&_[data-slot=input-group]]:!rounded-xl [&_[data-slot=input-group]]:border [&_[data-slot=input-group]]:border-white/[0.08] [&_[data-slot=input-group]]:shadow-[0_4px_20px_rgba(0,0,0,0.3)] [&_[data-slot=input-group]]:transition-all [&_[data-slot=input-group]:focus-within]:border-[#6FEC06]/30 [&_[data-slot=input-group]:focus-within]:shadow-[0_4px_20px_rgba(111,236,6,0.1)] [&_[data-slot=input-group]:focus-within]:ring-0"
@@ -641,7 +721,10 @@ const ChatInputArea = React.memo(function ChatInputArea({
                     <Paperclip className="w-4 h-4" />
                   </PromptInputActionMenuTrigger>
                   <PromptInputActionMenuContent className="bg-[#0a0520]/95 backdrop-blur-xl border-white/[0.12] shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
-                    <PromptInputActionAddAttachments className="hover:bg-[#7fff00]/10 hover:text-[#7fff00]" />
+                    <PromptInputActionAddAttachments
+                      label="Add images or documents"
+                      className="hover:bg-[#7fff00]/10 hover:text-[#7fff00]"
+                    />
                   </PromptInputActionMenuContent>
                 </PromptInputActionMenu>
 
@@ -1703,119 +1786,196 @@ function ChatInterface({
                         )}
 
                         <MessageContent className={isUser ? "text-white" : ""}>
-                          {/* Render file attachments at the top of the message if they exist */}
-                          {message.parts.some((p) => p.type === "file") && (
-                            <div className="mb-3 -mx-1">
-                              <Attachments variant="grid" className="gap-2.5">
-                                {message.parts
-                                  .filter((p) => p.type === "file")
-                                  .map((part, idx) => {
-                                    const filePart = part as {
-                                      type: string;
-                                      url?: string;
-                                      data?: string;
-                                      mediaType?: string;
-                                      filename?: string;
-                                      [key: string]: unknown; // Allow accessing any additional properties
-                                    };
+                          {/* Render file attachments at the top of the message */}
+                          {message.parts.some((p) => p.type === "file") &&
+                            (() => {
+                              const fileParts = message.parts
+                                .filter((p) => p.type === "file")
+                                .map((part) => {
+                                  const fp = part as {
+                                    type: string;
+                                    url?: string;
+                                    data?: string;
+                                    mediaType?: string;
+                                    filename?: string;
+                                    [key: string]: unknown;
+                                  };
+                                  return fp;
+                                });
 
-                                    const fileUrl =
-                                      filePart.url || filePart.data;
-                                    if (!fileUrl) return null;
+                              const imageParts = fileParts.filter(
+                                (fp) =>
+                                  fp.mediaType?.startsWith("image/") &&
+                                  (fp.url || fp.data),
+                              );
+                              const docParts = fileParts.filter(
+                                (fp) => !fp.mediaType?.startsWith("image/"),
+                              );
 
-                                    // Try to find the best URL for opening in new tab
-                                    // Check for original URL, source URL, or fallback to the file URL
-                                    const clickUrl =
-                                      (typeof filePart.url === "string" &&
-                                      filePart.url.startsWith("http")
-                                        ? filePart.url
-                                        : null) ||
-                                      (typeof filePart.data === "string" &&
-                                      filePart.data.startsWith("http")
-                                        ? filePart.data
-                                        : null) ||
-                                      fileUrl;
+                              return (
+                                <div className="mb-3 -mx-1">
+                                  {/* Image attachments - grid thumbnails */}
+                                  {imageParts.length > 0 && (
+                                    <Attachments
+                                      variant="grid"
+                                      className="gap-2.5 mb-2"
+                                    >
+                                      {imageParts.map((filePart, idx) => {
+                                        const fileUrl =
+                                          filePart.url || filePart.data;
+                                        if (!fileUrl) return null;
 
-                                    return (
-                                      <div
-                                        key={`${message.id}-file-${idx}`}
-                                        className="group/image relative"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          if (clickUrl) {
-                                            window.open(
-                                              clickUrl,
-                                              "_blank",
-                                              "noopener,noreferrer",
-                                            );
-                                          }
-                                        }}
-                                      >
-                                        <Attachment
-                                          data={{
-                                            id: `${message.id}-${idx}`,
-                                            type: "file",
-                                            url: fileUrl,
-                                            mediaType:
-                                              filePart.mediaType ||
-                                              "application/octet-stream",
-                                            filename:
-                                              filePart.filename || "attachment",
-                                          }}
-                                          className={`
-                                            rounded-2xl overflow-hidden cursor-pointer
-                                            ${
-                                              isUser
-                                                ? "border border-white/[0.15] shadow-[0_4px_16px_rgba(0,0,0,0.4)] bg-white/[0.04]"
-                                                : "border border-white/[0.08] shadow-[0_4px_16px_rgba(0,0,0,0.25)] bg-white/[0.02]"
-                                            }
-                                            hover:border-white/[0.2] hover:shadow-[0_8px_32px_rgba(0,0,0,0.6)] 
-                                            hover:scale-[1.02] hover:z-10
-                                            transition-all duration-300
-                                            backdrop-blur-sm
-                                            !size-32 sm:!size-40
-                                          `}
-                                        >
-                                          <div className="relative w-full h-full overflow-hidden">
-                                            <AttachmentPreview className="w-full h-full object-cover transition-transform duration-500 group-hover/image:scale-110" />
-                                            {/* Subtle gradient overlay */}
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 pointer-events-none" />
-                                            {/* Zoom hint icon */}
-                                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 pointer-events-none">
-                                              <div className="bg-black/70 backdrop-blur-sm rounded-full p-2.5 shadow-xl animate-pulse">
-                                                <ImageIcon className="w-5 h-5 text-white" />
+                                        const clickUrl =
+                                          (typeof filePart.url === "string" &&
+                                          filePart.url.startsWith("http")
+                                            ? filePart.url
+                                            : null) ||
+                                          (typeof filePart.data === "string" &&
+                                          filePart.data.startsWith("http")
+                                            ? filePart.data
+                                            : null) ||
+                                          fileUrl;
+
+                                        return (
+                                          <div
+                                            key={`${message.id}-img-${idx}`}
+                                            className="group/image relative"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              if (clickUrl) {
+                                                window.open(
+                                                  clickUrl,
+                                                  "_blank",
+                                                  "noopener,noreferrer",
+                                                );
+                                              }
+                                            }}
+                                          >
+                                            <Attachment
+                                              data={{
+                                                id: `${message.id}-img-${idx}`,
+                                                type: "file",
+                                                url: fileUrl,
+                                                mediaType:
+                                                  filePart.mediaType ||
+                                                  "image/png",
+                                                filename:
+                                                  filePart.filename || "image",
+                                              }}
+                                              className={`
+                                                rounded-2xl overflow-hidden cursor-pointer
+                                                ${
+                                                  isUser
+                                                    ? "border border-white/[0.15] shadow-[0_4px_16px_rgba(0,0,0,0.4)] bg-white/[0.04]"
+                                                    : "border border-white/[0.08] shadow-[0_4px_16px_rgba(0,0,0,0.25)] bg-white/[0.02]"
+                                                }
+                                                hover:border-white/[0.2] hover:shadow-[0_8px_32px_rgba(0,0,0,0.6)] 
+                                                hover:scale-[1.02] hover:z-10
+                                                transition-all duration-300
+                                                backdrop-blur-sm
+                                                !size-32 sm:!size-40
+                                              `}
+                                            >
+                                              <div className="relative w-full h-full overflow-hidden">
+                                                <AttachmentPreview className="w-full h-full object-cover transition-transform duration-500 group-hover/image:scale-110" />
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 pointer-events-none">
+                                                  <div className="bg-black/70 backdrop-blur-sm rounded-full p-2.5 shadow-xl animate-pulse">
+                                                    <ImageIcon className="w-5 h-5 text-white" />
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            </Attachment>
+
+                                            {/* Full-size preview on hover */}
+                                            <div className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center p-4 sm:p-8">
+                                              <div className="relative max-w-[90vw] max-h-[90vh] rounded-xl overflow-visible shadow-[0_20px_80px_rgba(0,0,0,0.8),0_0_120px_rgba(111,236,6,0.15)] border border-white/20 bg-gradient-to-br from-white/[0.05] to-white/[0.02] backdrop-blur-sm transform transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] scale-0 group-hover/image:scale-100 opacity-0 group-hover/image:opacity-100 p-1">
+                                                <div className="rounded-xl overflow-hidden">
+                                                  <img
+                                                    src={fileUrl}
+                                                    alt={
+                                                      filePart.filename ||
+                                                      "Full size preview"
+                                                    }
+                                                    className="max-w-full max-h-[90vh] w-auto h-auto object-contain"
+                                                  />
+                                                </div>
+                                              </div>
+                                              <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-xl px-5 py-2.5 rounded-full text-white/90 text-sm font-medium shadow-2xl border border-white/20 transition-all duration-500 ease-out delay-100 opacity-0 group-hover/image:opacity-100 transform translate-y-2 group-hover/image:translate-y-0">
+                                                Click to open in new tab
                                               </div>
                                             </div>
                                           </div>
-                                        </Attachment>
+                                        );
+                                      })}
+                                    </Attachments>
+                                  )}
 
-                                        {/* Full-size preview on hover - simple image popup */}
-                                        <div className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center p-4 sm:p-8">
-                                          {/* Expanded image - clean and simple */}
-                                          <div className="relative max-w-[90vw] max-h-[90vh] rounded-xl overflow-visible shadow-[0_20px_80px_rgba(0,0,0,0.8),0_0_120px_rgba(111,236,6,0.15)] border border-white/20 bg-gradient-to-br from-white/[0.05] to-white/[0.02] backdrop-blur-sm transform transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] scale-0 group-hover/image:scale-100 opacity-0 group-hover/image:opacity-100 p-1">
-                                            <div className="rounded-xl overflow-hidden">
-                                              <img
-                                                src={fileUrl}
-                                                alt={
-                                                  filePart.filename ||
-                                                  "Full size preview"
-                                                }
-                                                className="max-w-full max-h-[90vh] w-auto h-auto object-contain"
-                                              />
-                                            </div>
-                                          </div>
+                                  {/* Document attachments - compact pills */}
+                                  {docParts.length > 0 && (
+                                    <div className="flex flex-wrap gap-2">
+                                      {docParts.map((filePart, idx) => {
+                                        const fileName =
+                                          filePart.filename || "document";
+                                        const ext =
+                                          fileName
+                                            .split(".")
+                                            .pop()
+                                            ?.toUpperCase() || "FILE";
+                                        const shortName =
+                                          fileName.length > 24
+                                            ? `${fileName.slice(0, 20)}...${fileName.slice(-4)}`
+                                            : fileName;
 
-                                          {/* Clean hint text */}
-                                          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-xl px-5 py-2.5 rounded-full text-white/90 text-sm font-medium shadow-2xl border border-white/20 transition-all duration-500 ease-out delay-100 opacity-0 group-hover/image:opacity-100 transform translate-y-2 group-hover/image:translate-y-0">
-                                            Click to open in new tab
+                                        // Color map for file type badges
+                                        const extColorMap: Record<
+                                          string,
+                                          string
+                                        > = {
+                                          PDF: "text-red-400 bg-red-400/15 border-red-400/25",
+                                          MD: "text-purple-400 bg-purple-400/15 border-purple-400/25",
+                                          TXT: "text-slate-300 bg-slate-400/15 border-slate-400/25",
+                                          CSV: "text-green-400 bg-green-400/15 border-green-400/25",
+                                          JSON: "text-amber-400 bg-amber-400/15 border-amber-400/25",
+                                          TS: "text-blue-400 bg-blue-400/15 border-blue-400/25",
+                                          TSX: "text-cyan-400 bg-cyan-400/15 border-cyan-400/25",
+                                          JS: "text-yellow-400 bg-yellow-400/15 border-yellow-400/25",
+                                          PY: "text-green-400 bg-green-400/15 border-green-400/25",
+                                          SQL: "text-orange-400 bg-orange-400/15 border-orange-400/25",
+                                          HTML: "text-red-400 bg-red-400/15 border-red-400/25",
+                                          CSS: "text-blue-400 bg-blue-400/15 border-blue-400/25",
+                                        };
+                                        const extColor =
+                                          extColorMap[ext] ||
+                                          "text-[#6FEC06]/80 bg-[#6FEC06]/10 border-[#6FEC06]/20";
+
+                                        return (
+                                          <div
+                                            key={`${message.id}-doc-${idx}`}
+                                            className={`
+                                              flex items-center gap-2 px-3 py-2 rounded-xl
+                                              ${isUser ? "bg-white/[0.06] border border-white/[0.12]" : "bg-white/[0.03] border border-white/[0.08]"}
+                                              transition-all duration-200
+                                            `}
+                                            title={fileName}
+                                          >
+                                            <FileTextIcon className="w-4 h-4 text-white/40 shrink-0" />
+                                            <span
+                                              className={`text-[9px] font-bold tracking-wider px-1.5 py-0.5 rounded border shrink-0 ${extColor}`}
+                                            >
+                                              {ext}
+                                            </span>
+                                            <span className="text-xs text-white/70 truncate max-w-[160px]">
+                                              {shortName}
+                                            </span>
                                           </div>
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                              </Attachments>
-                            </div>
-                          )}
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })()}
 
                           {/* Render text and other parts */}
                           {message.parts.map((part, i) => {
