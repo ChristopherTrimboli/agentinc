@@ -1,8 +1,15 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import {
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+  lazy,
+  Suspense,
+} from "react";
 import Navigation from "../components/Navigation";
-import SwarmCanvas from "../components/swarm/SwarmCanvas";
+const SwarmCanvas = lazy(() => import("../components/swarm/SwarmCanvas"));
 import SwarmControls from "../components/swarm/SwarmControls";
 import AgentDetails from "../components/swarm/AgentDetails";
 import {
@@ -178,15 +185,23 @@ function SwarmVisualization() {
 
       {/* Main canvas - fullscreen below navbar */}
       <div className="fixed inset-0 top-[72px]">
-        <SwarmCanvas
-          agents={store.agents}
-          corporations={store.corporations}
-          connections={store.connections}
-          physics={store.physics}
-          onTick={handleTick}
-          onAgentClick={handleAgentClick}
-          onAgentHover={handleAgentHover}
-        />
+        <Suspense
+          fallback={
+            <div className="flex items-center justify-center h-full text-zinc-500">
+              Loading swarm...
+            </div>
+          }
+        >
+          <SwarmCanvas
+            agents={store.agents}
+            corporations={store.corporations}
+            connections={store.connections}
+            physics={store.physics}
+            onTick={handleTick}
+            onAgentClick={handleAgentClick}
+            onAgentHover={handleAgentHover}
+          />
+        </Suspense>
       </div>
 
       {/* Loading state */}

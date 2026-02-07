@@ -62,6 +62,16 @@ export function useVoiceInput(options: VoiceInputOptions = {}) {
     return cleanup;
   }, [cleanup]);
 
+  // Use a ref for the recording state to avoid stale closures in the
+  // requestAnimationFrame loop. The loop is started with a specific function
+  // reference, so it would read a stale `state.isRecording` from the closure.
+  const isRecordingRef = useRef(false);
+
+  // Keep the ref in sync with state
+  useEffect(() => {
+    isRecordingRef.current = state.isRecording;
+  }, [state.isRecording]);
+
   // Update audio level visualization
   const updateAudioLevel = useCallback(() => {
     if (!analyserRef.current) return;
@@ -75,10 +85,10 @@ export function useVoiceInput(options: VoiceInputOptions = {}) {
 
     setState((prev) => ({ ...prev, audioLevel: normalizedLevel }));
 
-    if (state.isRecording) {
+    if (isRecordingRef.current) {
       animationFrameRef.current = requestAnimationFrame(updateAudioLevel);
     }
-  }, [state.isRecording]);
+  }, []);
 
   // Transcribe the recorded audio
   const transcribeAudio = useCallback(

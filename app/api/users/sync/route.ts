@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getPrivyClient } from "@/lib/auth/verifyRequest";
 import { isServerSignerConfigured } from "@/lib/privy/wallet-service";
+import { rateLimitByUser } from "@/lib/rateLimit";
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,6 +18,10 @@ export async function POST(req: NextRequest) {
     // Verify identity token and get user data (email comes from verified token)
     const privy = getPrivyClient();
     const privyUser = await privy.users().get({ id_token: idToken });
+
+    // Rate limit: 10 sync requests per minute per user
+    const rateLimited = await rateLimitByUser(privyUser.id, "user-sync", 10);
+    if (rateLimited) return rateLimited;
 
     // Extract email from linked_accounts
     const emailAccount = privyUser.linked_accounts?.find(

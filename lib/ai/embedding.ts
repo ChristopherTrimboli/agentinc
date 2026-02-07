@@ -11,10 +11,12 @@
  */
 
 import { embed, embedMany } from "ai";
+import { gateway } from "@ai-sdk/gateway";
 import prisma from "@/lib/prisma";
 
-// Use AI Gateway model string - routes through AI Gateway with AI_GATEWAY_API_KEY
-const EMBEDDING_MODEL = "openai/text-embedding-3-large";
+// Use AI Gateway embedding model - routes through AI Gateway with AI_GATEWAY_API_KEY
+// The AI SDK's embed/embedMany expect an EmbeddingModel object, not a raw string.
+const EMBEDDING_MODEL = gateway.embeddingModel("openai/text-embedding-3-large");
 const EMBEDDING_DIMENSIONS = 1536;
 const SIMILARITY_THRESHOLD = 0.5;
 const MAX_RESULTS = 4;
@@ -147,18 +149,20 @@ export async function createResource({
     const embeddings = await generateEmbeddings(content);
 
     if (embeddings.length > 0) {
-      // Insert embeddings using raw SQL for the vector column
-      for (const { content: chunkContent, embedding } of embeddings) {
-        const vectorStr = `[${embedding.join(",")}]`;
-        await prisma.$queryRawUnsafe(
-          `INSERT INTO "Embedding" ("id", "resourceId", "content", "embedding")
-           VALUES ($1, $2, $3, $4::vector(${EMBEDDING_DIMENSIONS}))`,
-          crypto.randomUUID(),
-          resource.id,
-          chunkContent,
-          vectorStr,
-        );
-      }
+      // Insert all embeddings atomically — if one fails, none are saved
+      await prisma.$transaction(
+        embeddings.map(({ content: chunkContent, embedding }) => {
+          const vectorStr = `[${embedding.join(",")}]`;
+          return prisma.$queryRawUnsafe(
+            `INSERT INTO "Embedding" ("id", "resourceId", "content", "embedding")
+             VALUES ($1, $2, $3, $4::vector(${EMBEDDING_DIMENSIONS}))`,
+            crypto.randomUUID(),
+            resource.id,
+            chunkContent,
+            vectorStr,
+          );
+        }),
+      );
     }
 
     return `Resource successfully created and embedded (${embeddings.length} chunks).`;
@@ -279,46 +283,34 @@ export async function createResourcesFromFiles({
     content: string;
   }> = [];
 
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i];
-    try {
-      // Create the resource record
-      const resource = await prisma.resource.create({
-        data: {
-          content: file.textContent,
-          userId,
-          agentId: agentId || null,
-        },
-      });
-
-      // Generate chunks for this file
-      const chunks = generateChunks(file.textContent);
-      if (chunks.length === 0) {
-        results.push({
-          filename: file.filename,
-          success: true,
-          resourceId: resource.id,
-          chunks: 0,
+  // Create all resource records in parallel
+  const resourceResults = await Promise.all(
+    files.map(async (file, i) => {
+      try {
+        const resource = await prisma.resource.create({
+          data: {
+            content: file.textContent,
+            userId,
+            agentId: agentId || null,
+          },
         });
-        continue;
-      }
 
-      // Collect chunks for batch embedding
-      for (const chunk of chunks) {
-        allChunks.push({
-          fileIndex: i,
-          resourceId: resource.id,
-          content: chunk,
-        });
+        const chunks = generateChunks(file.textContent);
+        return { file, index: i, resource, chunks, error: null };
+      } catch (error) {
+        return {
+          file,
+          index: i,
+          resource: null,
+          chunks: [] as string[],
+          error,
+        };
       }
+    }),
+  );
 
-      results.push({
-        filename: file.filename,
-        success: true,
-        resourceId: resource.id,
-        chunks: chunks.length,
-      });
-    } catch (error) {
+  for (const { file, index, resource, chunks, error } of resourceResults) {
+    if (error || !resource) {
       console.error(
         `[Knowledge] Failed to create resource for ${file.filename}:`,
         error,
@@ -329,7 +321,33 @@ export async function createResourcesFromFiles({
         chunks: 0,
         error: error instanceof Error ? error.message : "Unknown error",
       });
+      continue;
     }
+
+    if (chunks.length === 0) {
+      results.push({
+        filename: file.filename,
+        success: true,
+        resourceId: resource.id,
+        chunks: 0,
+      });
+      continue;
+    }
+
+    for (const chunk of chunks) {
+      allChunks.push({
+        fileIndex: index,
+        resourceId: resource.id,
+        content: chunk,
+      });
+    }
+
+    results.push({
+      filename: file.filename,
+      success: true,
+      resourceId: resource.id,
+      chunks: chunks.length,
+    });
   }
 
   // Batch embed all chunks at once with embedMany
@@ -343,19 +361,20 @@ export async function createResourcesFromFiles({
         },
       });
 
-      // Insert all embeddings
-      for (let i = 0; i < allChunks.length; i++) {
-        const chunk = allChunks[i];
-        const vectorStr = `[${embeddings[i].join(",")}]`;
-        await prisma.$queryRawUnsafe(
-          `INSERT INTO "Embedding" ("id", "resourceId", "content", "embedding")
-           VALUES ($1, $2, $3, $4::vector(${EMBEDDING_DIMENSIONS}))`,
-          crypto.randomUUID(),
-          chunk.resourceId,
-          chunk.content,
-          vectorStr,
-        );
-      }
+      // Insert all embeddings atomically
+      await prisma.$transaction(
+        allChunks.map((chunk, i) => {
+          const vectorStr = `[${embeddings[i].join(",")}]`;
+          return prisma.$queryRawUnsafe(
+            `INSERT INTO "Embedding" ("id", "resourceId", "content", "embedding")
+             VALUES ($1, $2, $3, $4::vector(${EMBEDDING_DIMENSIONS}))`,
+            crypto.randomUUID(),
+            chunk.resourceId,
+            chunk.content,
+            vectorStr,
+          );
+        }),
+      );
     } catch (error) {
       console.error("[Knowledge] Batch embedding failed:", error);
       // Mark all files with chunks as failed since embedding generation failed

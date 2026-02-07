@@ -36,14 +36,12 @@ const EARNINGS_REDIS_TTL = 300; // 5 minutes
 const MAX_MINTS = 100;
 
 function getCacheKey(mints: string[]): string {
-  return mints.sort().join(",");
+  return [...mints].sort().join(",");
 }
 
 // ── Cache getters (Redis → in-memory fallback) ─────────────────────────
 
-async function getFromCache(
-  mints: string[],
-): Promise<CacheEntry | null> {
+async function getFromCache(mints: string[]): Promise<CacheEntry | null> {
   const key = getCacheKey(mints);
 
   // Try Redis first
@@ -242,10 +240,11 @@ export async function fetchPrices(mints: string | null): Promise<NextResponse> {
 
       if (data.pairs && Array.isArray(data.pairs)) {
         const liquidityMap = new Map<string, number>();
+        const mintSet = new Set(mintList);
 
         for (const pair of data.pairs) {
           const mint = pair.baseToken?.address;
-          if (mint && mintList.includes(mint) && pair.priceUsd) {
+          if (mint && mintSet.has(mint) && pair.priceUsd) {
             const currentLiquidity = liquidityMap.get(mint) || 0;
             const pairLiquidity = pair.liquidity?.usd || 0;
 

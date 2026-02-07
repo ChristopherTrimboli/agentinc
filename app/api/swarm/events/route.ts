@@ -79,10 +79,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verify source agent exists
-    const sourceAgent = await prisma.swarmAgent.findUnique({
-      where: { id: sourceAgentId },
-    });
+    // Verify source and target agents exist in parallel
+    const [sourceAgent, targetAgent] = await Promise.all([
+      prisma.swarmAgent.findUnique({ where: { id: sourceAgentId } }),
+      targetAgentId
+        ? prisma.swarmAgent.findUnique({ where: { id: targetAgentId } })
+        : null,
+    ]);
+
     if (!sourceAgent) {
       return NextResponse.json(
         { error: "Source agent not found" },
@@ -90,17 +94,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verify target agent exists if provided
-    if (targetAgentId) {
-      const targetAgent = await prisma.swarmAgent.findUnique({
-        where: { id: targetAgentId },
-      });
-      if (!targetAgent) {
-        return NextResponse.json(
-          { error: "Target agent not found" },
-          { status: 404 },
-        );
-      }
+    if (targetAgentId && !targetAgent) {
+      return NextResponse.json(
+        { error: "Target agent not found" },
+        { status: 404 },
+      );
     }
 
     // Persist the event

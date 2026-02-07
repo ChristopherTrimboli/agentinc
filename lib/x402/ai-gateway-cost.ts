@@ -75,9 +75,8 @@ async function loadFromRedis(): Promise<boolean> {
 
   try {
     const redis = getRedis();
-    const cached = await redis.get<Record<string, ModelPricing>>(
-      REDIS_CACHE_KEY,
-    );
+    const cached =
+      await redis.get<Record<string, ModelPricing>>(REDIS_CACHE_KEY);
     if (cached && Object.keys(cached).length > 0) {
       memoryPricingCache = new Map(Object.entries(cached));
       memoryCacheTimestamp = Date.now();
@@ -92,9 +91,7 @@ async function loadFromRedis(): Promise<boolean> {
 /**
  * Save pricing to Redis for cross-instance sharing.
  */
-async function saveToRedis(
-  pricing: Map<string, ModelPricing>,
-): Promise<void> {
+async function saveToRedis(pricing: Map<string, ModelPricing>): Promise<void> {
   if (!isRedisConfigured()) return;
 
   try {
@@ -234,9 +231,16 @@ export async function calculateCost(
   const outputTokens = usage.outputTokens || 0;
   const cachedTokens = usage.cachedInputTokens || 0;
 
-  const inputCost = inputTokens * pricing.inputCostPerToken;
+  // Subtract cached tokens from input tokens to avoid double-counting.
+  // Some providers include cached tokens in the inputTokens count,
+  // so we bill non-cached input at full price and cached input at the
+  // discounted rate (or full price if no cached pricing is available).
+  const nonCachedInputTokens = Math.max(0, inputTokens - cachedTokens);
+  const inputCost = nonCachedInputTokens * pricing.inputCostPerToken;
   const outputCost = outputTokens * pricing.outputCostPerToken;
-  const cachedCost = cachedTokens * (pricing.cachedInputCostPerToken || 0);
+  const cachedCost =
+    cachedTokens *
+    (pricing.cachedInputCostPerToken ?? pricing.inputCostPerToken);
 
   return {
     totalCost: inputCost + outputCost + cachedCost,

@@ -1362,6 +1362,14 @@ function ChatInterface({
     setMobileToolPanelOpen(false);
   }, []);
 
+  // Keep a stable ref to speechSynthesis.speak to avoid infinite re-execution.
+  // useSpeechSynthesis returns a new object on every render (due to ...state spread),
+  // so using it directly as a useEffect dependency would re-run the effect every render.
+  const speakRef = useRef(speechSynthesis.speak);
+  useEffect(() => {
+    speakRef.current = speechSynthesis.speak;
+  }, [speechSynthesis.speak]);
+
   // Auto-speak new assistant messages when streaming completes
   useEffect(() => {
     if (
@@ -1382,10 +1390,10 @@ function ChatInterface({
       if (textPart && textPart.type === "text" && textPart.text.trim()) {
         lastAutoSpokenRef.current = lastMessage.id;
         setSpeakingMessageId(lastMessage.id);
-        speechSynthesis.speak(textPart.text);
+        speakRef.current(textPart.text);
       }
     }
-  }, [messages, status, voiceSettings.autoSpeak, speechSynthesis]);
+  }, [messages, status, voiceSettings.autoSpeak]);
 
   // Fetch agent info
   useEffect(() => {

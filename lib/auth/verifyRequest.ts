@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PrivyClient } from "@privy-io/node";
+import { createHash } from "crypto";
 import { isRedisConfigured, getRedis } from "@/lib/redis";
 
 // Singleton Privy client
@@ -41,12 +42,12 @@ const AUTH_CACHE_TTL = 60;
 
 /**
  * Generate a short, stable cache key from the ID token.
- * Uses a hash prefix of the token to avoid storing the full token in Redis.
+ * Uses a SHA-256 hash of the full token to avoid collisions
+ * (the previous last-16-chars approach could collide across different JWTs).
  */
 function authCacheKey(idToken: string): string {
-  // Use last 16 chars of the token as a fingerprint (tokens are JWTs, tail is signature)
-  const fingerprint = idToken.slice(-16);
-  return `auth:${fingerprint}`;
+  const hash = createHash("sha256").update(idToken).digest("hex").slice(0, 32);
+  return `auth:${hash}`;
 }
 
 /**
@@ -77,26 +78,25 @@ export async function verifyAuth(req: NextRequest): Promise<AuthResult | null> {
   try {
     const user = await privy.users().get({ id_token: idToken });
 
-    // Find the Solana embedded wallet
+    // Find the Solana embedded wallet with runtime validation
     const solanaWallet = user.linked_accounts?.find((account) => {
       if (account.type !== "wallet") return false;
 
-      const wallet = account as {
-        chain_type?: string;
-        chainType?: string;
-        chain?: string;
-      };
-
+      // Check for Solana chain across Privy's known field names
+      const w = account as unknown as Record<string, unknown>;
       return (
-        wallet.chain_type === "solana" ||
-        wallet.chainType === "solana" ||
-        wallet.chain === "solana"
+        w.chain_type === "solana" ||
+        w.chainType === "solana" ||
+        w.chain === "solana"
       );
     });
 
-    const walletData = solanaWallet as
-      | { id: string; address: string }
-      | undefined;
+    // Validate wallet shape at runtime instead of unsafe cast
+    const w = solanaWallet as unknown as Record<string, unknown> | undefined;
+    const walletData =
+      w && typeof w.id === "string" && typeof w.address === "string"
+        ? { id: w.id, address: w.address }
+        : undefined;
 
     const result: AuthResult = {
       userId: user.id,

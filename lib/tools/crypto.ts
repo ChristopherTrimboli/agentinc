@@ -1,5 +1,6 @@
 import { tool } from "ai";
 import { z } from "zod";
+import { isRedisConfigured, getRedis } from "@/lib/redis";
 
 /**
  * Crypto tools using CoinGecko's free API (no API key required)
@@ -17,6 +18,74 @@ import { z } from "zod";
 
 const COINGECKO_API = "https://api.coingecko.com/api/v3";
 const GECKO_TERMINAL_API = "https://api.geckoterminal.com/api/v2";
+
+// ── Redis caching for external API calls ─────────────────────────────────
+
+const CRYPTO_CACHE_TTL = 30; // 30 seconds for price data
+const CRYPTO_STATIC_CACHE_TTL = 300; // 5 minutes for trending/search/categories
+
+const cryptoMemoryCache = new Map<
+  string,
+  { data: unknown; expiresAt: number }
+>();
+
+async function cachedFetch<T>(
+  cacheKey: string,
+  ttlSeconds: number,
+  fetcher: () => Promise<T>,
+): Promise<T> {
+  // Check in-memory first (fastest)
+  const memCached = cryptoMemoryCache.get(cacheKey);
+  if (memCached && Date.now() < memCached.expiresAt) {
+    return memCached.data as T;
+  }
+
+  // Check Redis
+  if (isRedisConfigured()) {
+    try {
+      const redis = getRedis();
+      const cached = await redis.get<T>(cacheKey);
+      if (cached !== null && cached !== undefined) {
+        // Populate memory cache from Redis hit
+        cryptoMemoryCache.set(cacheKey, {
+          data: cached,
+          expiresAt: Date.now() + ttlSeconds * 1000,
+        });
+        return cached;
+      }
+    } catch {
+      // Fall through to fetch
+    }
+  }
+
+  // Fetch from API
+  const data = await fetcher();
+
+  // Store in both caches
+  cryptoMemoryCache.set(cacheKey, {
+    data,
+    expiresAt: Date.now() + ttlSeconds * 1000,
+  });
+
+  if (isRedisConfigured()) {
+    try {
+      const redis = getRedis();
+      await redis.set(cacheKey, data, { ex: ttlSeconds });
+    } catch {
+      // Non-critical
+    }
+  }
+
+  // Evict stale memory cache entries periodically
+  if (cryptoMemoryCache.size > 200) {
+    const now = Date.now();
+    for (const [key, entry] of cryptoMemoryCache) {
+      if (now >= entry.expiresAt) cryptoMemoryCache.delete(key);
+    }
+  }
+
+  return data;
+}
 
 // Common coin ID mappings (CoinGecko uses specific IDs)
 const COIN_ALIASES: Record<string, string> = {
@@ -62,8 +131,8 @@ function resolveNetwork(input: string): string {
   return NETWORK_ALIASES[normalized] || normalized;
 }
 
-// Helper for API requests with error handling
-async function fetchCoinGecko<T>(endpoint: string): Promise<T> {
+// Helper for API requests with error handling and Redis caching
+async function fetchCoinGeckoRaw<T>(endpoint: string): Promise<T> {
   const response = await fetch(`${COINGECKO_API}${endpoint}`, {
     headers: { Accept: "application/json" },
   });
@@ -78,7 +147,7 @@ async function fetchCoinGecko<T>(endpoint: string): Promise<T> {
   return response.json();
 }
 
-async function fetchGeckoTerminal<T>(endpoint: string): Promise<T> {
+async function fetchGeckoTerminalRaw<T>(endpoint: string): Promise<T> {
   const response = await fetch(`${GECKO_TERMINAL_API}${endpoint}`, {
     headers: { Accept: "application/json" },
   });
@@ -91,6 +160,26 @@ async function fetchGeckoTerminal<T>(endpoint: string): Promise<T> {
   }
 
   return response.json();
+}
+
+/** Cached CoinGecko fetch (30s TTL for price data) */
+async function fetchCoinGecko<T>(
+  endpoint: string,
+  ttl = CRYPTO_CACHE_TTL,
+): Promise<T> {
+  return cachedFetch<T>(`crypto:cg:${endpoint}`, ttl, () =>
+    fetchCoinGeckoRaw<T>(endpoint),
+  );
+}
+
+/** Cached GeckoTerminal fetch (30s TTL for price data) */
+async function fetchGeckoTerminal<T>(
+  endpoint: string,
+  ttl = CRYPTO_CACHE_TTL,
+): Promise<T> {
+  return cachedFetch<T>(`crypto:gt:${endpoint}`, ttl, () =>
+    fetchGeckoTerminalRaw<T>(endpoint),
+  );
 }
 
 const getCryptoPriceSchema = z.object({
@@ -269,7 +358,7 @@ export const getTrendingCoins = tool({
           name: string;
           market_cap_1h_change?: number;
         }>;
-      }>("/search/trending");
+      }>("/search/trending", CRYPTO_STATIC_CACHE_TTL);
 
       return {
         trending_coins: data.coins.slice(0, 10).map((c) => ({
@@ -336,7 +425,10 @@ export const searchCrypto = tool({
           name: string;
           symbol: string;
         }>;
-      }>(`/search?query=${encodeURIComponent(input.query)}`);
+      }>(
+        `/search?query=${encodeURIComponent(input.query)}`,
+        CRYPTO_STATIC_CACHE_TTL,
+      );
 
       return {
         coins: data.coins.slice(0, 10).map((c) => ({
@@ -397,7 +489,7 @@ export const getGlobalMarketData = tool({
           market_cap_change_percentage_24h_usd: number;
           updated_at: number;
         };
-      }>("/global");
+      }>("/global", CRYPTO_STATIC_CACHE_TTL);
 
       const d = data.data;
       return {
@@ -439,7 +531,7 @@ export const getDeFiGlobalData = tool({
           top_coin_name: string;
           top_coin_defi_dominance: number;
         };
-      }>("/global/decentralized_finance_defi");
+      }>("/global/decentralized_finance_defi", CRYPTO_STATIC_CACHE_TTL);
 
       const d = data.data;
       return {
@@ -585,6 +677,7 @@ export const getCoinDetails = tool({
         };
       }>(
         `/coins/${encodeURIComponent(coinId)}?localization=false&tickers=false&market_data=true&community_data=true&developer_data=false`,
+        CRYPTO_STATIC_CACHE_TTL,
       );
 
       return {
@@ -801,7 +894,7 @@ export const getCategories = tool({
           top_3_coins: string[];
           updated_at: string;
         }>
-      >("/coins/categories?order=market_cap_desc");
+      >("/coins/categories?order=market_cap_desc", CRYPTO_STATIC_CACHE_TTL);
 
       return {
         categories: data.slice(0, input.limit).map((c) => ({
@@ -855,7 +948,10 @@ export const getExchanges = tool({
           trade_volume_24h_btc_normalized: number;
           url: string;
         }>
-      >(`/exchanges?${new URLSearchParams({ per_page: String(input.limit) })}`);
+      >(
+        `/exchanges?${new URLSearchParams({ per_page: String(input.limit) })}`,
+        CRYPTO_STATIC_CACHE_TTL,
+      );
 
       return {
         exchanges: data.map((e) => ({
@@ -897,7 +993,7 @@ export const getExchangeRates = tool({
             type: string;
           }
         >;
-      }>("/exchange_rates");
+      }>("/exchange_rates", CRYPTO_STATIC_CACHE_TTL);
 
       // Return most common currencies
       const commonCurrencies = [

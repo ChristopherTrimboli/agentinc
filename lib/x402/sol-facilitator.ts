@@ -79,10 +79,13 @@ export async function getSolPrice(): Promise<number> {
       { signal: AbortSignal.timeout(5000) },
     );
     const data = await response.json();
-    const price =
+    // Jupiter Price API v2 returns price as a string, not a number
+    const rawPrice =
       data.data?.["So11111111111111111111111111111111111111112"]?.price;
+    const price =
+      typeof rawPrice === "string" ? parseFloat(rawPrice) : rawPrice;
 
-    if (price && typeof price === "number" && price > 0) {
+    if (price && typeof price === "number" && !isNaN(price) && price > 0) {
       memoryCachedSolPrice = { price, timestamp: Date.now() };
       // Store in Redis for other instances
       if (isRedisConfigured()) {
@@ -195,12 +198,19 @@ export interface SettleResponse {
 }
 
 /**
- * Get Solana connection
+ * Get Solana connection (cached per network to avoid per-request instantiation)
  */
+const connectionCache = new Map<string, Connection>();
+
 function getConnection(network: "solana" | "solana-devnet"): Connection {
-  const rpcUrl =
-    network === "solana" ? SOLANA_RPC_URL : "https://api.devnet.solana.com";
-  return new Connection(rpcUrl, "confirmed");
+  let conn = connectionCache.get(network);
+  if (!conn) {
+    const rpcUrl =
+      network === "solana" ? SOLANA_RPC_URL : "https://api.devnet.solana.com";
+    conn = new Connection(rpcUrl, "confirmed");
+    connectionCache.set(network, conn);
+  }
+  return conn;
 }
 
 /**
@@ -422,12 +432,18 @@ export async function settlePayment(
       preflightCommitment: "confirmed",
     });
 
-    // Wait for confirmation
-    const latestBlockhash = await connection.getLatestBlockhash();
+    // Wait for confirmation using the transaction's own blockhash.
+    // Using a newly fetched blockhash would mismatch the transaction's
+    // validity window, causing false positives or timeouts.
+    const txMessage = transaction.message;
+    const txBlockhash = txMessage.recentBlockhash;
+
+    // Get the lastValidBlockHeight for this blockhash
+    const blockheightInfo = await connection.getLatestBlockhash();
     const confirmationStrategy: TransactionConfirmationStrategy = {
       signature,
-      blockhash: latestBlockhash.blockhash,
-      lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
+      blockhash: txBlockhash,
+      lastValidBlockHeight: blockheightInfo.lastValidBlockHeight,
     };
 
     const confirmation = await connection.confirmTransaction(

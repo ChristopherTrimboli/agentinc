@@ -15,51 +15,38 @@ export async function GET(req: NextRequest, context: RouteContext) {
     // Cache agent lookups: 30s TTL with 60s SWR for public agent pages
     const cacheStrategy = { ttl: 30, swr: 60 };
 
-    // Try to find by database ID first, then by tokenMint
-    let agent = await prisma.agent.findUnique({
-      where: { id },
-      include: {
-        createdBy: {
-          select: { id: true },
-        },
-        corporation: {
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            logo: true,
-            color: true,
-            tokenMint: true,
-            tokenSymbol: true,
-          },
+    // Try both lookups in parallel: by database ID and by tokenMint
+    const includeConfig = {
+      createdBy: {
+        select: { id: true },
+      },
+      corporation: {
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          logo: true,
+          color: true,
+          tokenMint: true,
+          tokenSymbol: true,
         },
       },
-      cacheStrategy,
-    });
+    };
 
-    // If not found by ID, try by tokenMint (for agents accessed via tokenMint URL)
-    if (!agent) {
-      agent = await prisma.agent.findUnique({
-        where: { tokenMint: id },
-        include: {
-          createdBy: {
-            select: { id: true },
-          },
-          corporation: {
-            select: {
-              id: true,
-              name: true,
-              description: true,
-              logo: true,
-              color: true,
-              tokenMint: true,
-              tokenSymbol: true,
-            },
-          },
-        },
+    const [agentById, agentByMint] = await Promise.all([
+      prisma.agent.findUnique({
+        where: { id },
+        include: includeConfig,
         cacheStrategy,
-      });
-    }
+      }),
+      prisma.agent.findUnique({
+        where: { tokenMint: id },
+        include: includeConfig,
+        cacheStrategy,
+      }),
+    ]);
+
+    const agent = agentById || agentByMint;
 
     if (!agent) {
       return NextResponse.json({ error: "Agent not found" }, { status: 404 });

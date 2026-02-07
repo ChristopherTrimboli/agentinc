@@ -6,8 +6,6 @@
 
 export {
   isServerSignerConfigured,
-  getCurrentNetwork,
-  getCAIP2ChainId,
   getPrivyWalletClient,
   getWalletBalance,
   signSolTransferTransaction,
@@ -17,5 +15,3 @@ export {
   acquireWalletLock,
   withWalletLock,
 } from "./wallet-service";
-
-export type { SolanaNetwork } from "./wallet-service";

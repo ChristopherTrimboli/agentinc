@@ -34,6 +34,7 @@ model User {
   chats     Chat[]
   resources Resource[]
 
+  @@index([walletId])
   @@index([twitterUserId])
   @@index([twitterUsername])
   @@index([walletAddress])
@@ -77,6 +78,7 @@ model ChatMessage {
 
   @@index([chatId])
   @@index([chatId, createdAt])
+  @@index([chatId, role, createdAt])
 }
 
 model Agent {
@@ -129,10 +131,13 @@ model Agent {
   @@index([createdById])
   @@index([tokenMint])
   @@index([isMinted])
+  @@index([isPublic])
+  @@index([isPublic, createdAt])
   @@index([corporationId])
   @@index([createdAt])
   @@index([isMinted, launchedAt])
   @@index([createdById, createdAt])
+  @@index([isMinted, rarity, createdAt])
 }
 
 // Swarm visualization models
@@ -204,6 +209,7 @@ model SwarmEvent {
 
   @@index([sourceAgentId])
   @@index([targetAgentId])
+  @@index([targetAgentId, timestamp])
   @@index([timestamp])
   @@index([type])
   @@index([type, timestamp])
@@ -231,6 +237,7 @@ model Resource {
   @@index([userId])
   @@index([agentId])
   @@index([userId, agentId])
+  @@index([userId, updatedAt])
   @@index([createdAt])
 }
 

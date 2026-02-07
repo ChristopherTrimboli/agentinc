@@ -13,7 +13,7 @@
  */
 
 import { getPrivyClient } from "@/lib/auth/verifyRequest";
-import { parseFileContent, isDocumentType } from "@/lib/ai/file-parser";
+import { parseFileContent } from "@/lib/ai/file-parser";
 import { createResourcesFromFiles } from "@/lib/ai/embedding";
 import { rateLimitByUser } from "@/lib/rateLimit";
 
@@ -95,47 +95,36 @@ export async function POST(req: Request) {
     error?: string;
   }> = [];
 
-  for (const file of files) {
-    const mediaType = file.type || "application/octet-stream";
+  // Parse all files in parallel
+  const parsedResults = await Promise.all(
+    files.map(async (file) => {
+      const mediaType = file.type || "application/octet-stream";
 
-    // Skip images - they go through the normal chat attachment flow
-    if (mediaType.startsWith("image/")) {
-      parsedFiles.push({
-        filename: file.name,
-        textContent: "",
-        mediaType,
-        success: false,
-        error:
-          "Image files are handled as chat attachments, not knowledge base documents.",
-      });
-      continue;
-    }
+      // Skip images - they go through the normal chat attachment flow
+      if (mediaType.startsWith("image/")) {
+        return {
+          filename: file.name,
+          textContent: "",
+          mediaType,
+          success: false,
+          error:
+            "Image files are handled as chat attachments, not knowledge base documents.",
+        };
+      }
 
-    // Check if it's a supported document type
-    if (!isDocumentType(mediaType)) {
-      // Try parsing anyway - might be a code file with generic MIME type
       const buffer = Buffer.from(await file.arrayBuffer());
       const parsed = await parseFileContent(buffer, mediaType, file.name);
-      parsedFiles.push({
+      return {
         filename: file.name,
         textContent: parsed.textContent,
         mediaType,
         success: parsed.success,
         error: parsed.error,
-      });
-      continue;
-    }
+      };
+    }),
+  );
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const parsed = await parseFileContent(buffer, mediaType, file.name);
-    parsedFiles.push({
-      filename: file.name,
-      textContent: parsed.textContent,
-      mediaType,
-      success: parsed.success,
-      error: parsed.error,
-    });
-  }
+  parsedFiles.push(...parsedResults);
 
   // Filter to successfully parsed files
   const successfulFiles = parsedFiles.filter(

@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
+import { rateLimitByIP } from "@/lib/rateLimit";
 
 const MAX_LIMIT = 500;
 
 // GET /api/swarm/events/history - Get historical events
 export async function GET(request: NextRequest) {
+  const limited = await rateLimitByIP(request, "swarm-events", 30);
+  if (limited) return limited;
+
   try {
     const { searchParams } = new URL(request.url);
     const limit = Math.min(

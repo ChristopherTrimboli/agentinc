@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
+import { rateLimitByIP } from "@/lib/rateLimit";
 
 const DEFAULT_PAGE_SIZE = 50;
 const MAX_PAGE_SIZE = 100;
 
 // GET /api/swarm/corporations - List all corporations with their agents (paginated)
 export async function GET(req: NextRequest) {
+  const limited = await rateLimitByIP(req, "swarm-corps", 30);
+  if (limited) return limited;
+
   try {
     const { searchParams } = new URL(req.url);
     const page = Math.max(1, parseInt(searchParams.get("page") || "1"));

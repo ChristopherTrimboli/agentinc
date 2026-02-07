@@ -35,10 +35,17 @@ export function useAuthFetch(): UseAuthFetchReturn {
       const { headers = {}, ...restOptions } = options;
 
       // Build headers with current token
+      // Only set default Content-Type for non-FormData bodies to avoid
+      // breaking multipart uploads (browser sets Content-Type with boundary automatically)
       const requestHeaders: Record<string, string> = {
-        "Content-Type": "application/json",
         ...headers,
       };
+      if (
+        !requestHeaders["Content-Type"] &&
+        !(restOptions.body instanceof FormData)
+      ) {
+        requestHeaders["Content-Type"] = "application/json";
+      }
       if (identityToken) {
         requestHeaders["privy-id-token"] = identityToken;
       }

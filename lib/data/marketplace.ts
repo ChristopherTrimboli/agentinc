@@ -57,56 +57,63 @@ export interface MarketplaceCorporation {
   creatorWallet: string | null;
 }
 
+export interface MarketplacePagination {
+  page: number;
+  limit: number;
+  totalAgents: number;
+  totalCorporations: number;
+  totalPages: number;
+}
+
 export interface MarketplaceData {
   agents: MarketplaceAgent[];
   corporations: MarketplaceCorporation[];
   tokenMints: string[];
+  pagination: MarketplacePagination;
   timestamp: number;
 }
 
 /**
- * Fetch marketplace/explore data with optimized queries (no N+1)
- * Uses Prisma Accelerate caching for better performance
+ * Fetch marketplace/explore data with optimized, paginated queries (no N+1).
+ * Uses Prisma Accelerate caching for better performance.
  */
-export async function fetchMarketplaceData(): Promise<MarketplaceData> {
+export async function fetchMarketplaceData(
+  opts: { page?: number; limit?: number } = {},
+): Promise<MarketplaceData> {
+  const page = opts.page ?? 1;
+  const limit = opts.limit ?? 50;
+  const offset = (page - 1) * limit;
+
   // Accelerate cache strategy: 60s TTL with 120s SWR
-  // - Data is fresh for 60 seconds
-  // - After 60s, serve stale while revalidating in background for up to 120s more
   const cacheStrategy = { ttl: 60, swr: 120 };
 
-  // Fetch all data in parallel with optimized queries
-  const [agents, corporationsWithCounts] = await Promise.all([
-    // Fetch minted agents with their corporation data
-    prisma.agent.findMany({
-      where: {
-        isMinted: true,
-        tokenMint: { not: null },
-      },
-      orderBy: { launchedAt: "desc" },
-      include: {
-        corporation: {
-          select: {
-            name: true,
-            logo: true,
-          },
+  const agentWhere = { isMinted: true, tokenMint: { not: null } } as const;
+  const corpWhere = { tokenMint: { not: null } } as const;
+
+  // Fetch counts + paginated data in parallel
+  const [agents, agentCount, corporationsWithCounts, corpCount] =
+    await Promise.all([
+      prisma.agent.findMany({
+        where: agentWhere,
+        orderBy: { launchedAt: "desc" },
+        include: {
+          corporation: { select: { name: true, logo: true } },
         },
-      },
-      cacheStrategy,
-    }),
-    // Fetch corporations with agent counts using Prisma's _count
-    prisma.corporation.findMany({
-      where: {
-        tokenMint: { not: null },
-      },
-      orderBy: { launchedAt: "desc" },
-      include: {
-        _count: {
-          select: { agents: true },
-        },
-      },
-      cacheStrategy,
-    }),
-  ]);
+        take: limit,
+        skip: offset,
+        cacheStrategy,
+      }),
+      prisma.agent.count({ where: agentWhere, cacheStrategy }),
+      prisma.corporation.findMany({
+        where: corpWhere,
+        orderBy: { launchedAt: "desc" },
+        include: { _count: { select: { agents: true } } },
+        take: limit,
+        skip: offset,
+        cacheStrategy,
+      }),
+      prisma.corporation.count({ where: corpWhere, cacheStrategy }),
+    ]);
 
   // Get unique token mints for price fetching
   const tokenMints = [
@@ -115,6 +122,8 @@ export async function fetchMarketplaceData(): Promise<MarketplaceData> {
       .filter((c) => c.tokenMint)
       .map((c) => c.tokenMint!),
   ];
+
+  const totalItems = agentCount + corpCount;
 
   return {
     agents: (agents as AgentWithCorporation[]).map((agent) => ({
@@ -149,6 +158,13 @@ export async function fetchMarketplaceData(): Promise<MarketplaceData> {
       }),
     ),
     tokenMints,
+    pagination: {
+      page,
+      limit,
+      totalAgents: agentCount,
+      totalCorporations: corpCount,
+      totalPages: Math.ceil(totalItems / limit),
+    },
     timestamp: Date.now(),
   };
 }

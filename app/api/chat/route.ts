@@ -3,6 +3,7 @@ import {
   convertToModelMessages,
   stepCountIs,
   type UIMessage,
+  type Tool,
 } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import prisma from "@/lib/prisma";
@@ -30,8 +31,15 @@ import {
 } from "@/lib/x402";
 import { rateLimitByUser } from "@/lib/rateLimit";
 
-// Allow streaming responses up to 30 seconds
-export const maxDuration = 30;
+// Allow streaming responses up to 60 seconds (multi-step tool use can be slow)
+export const maxDuration = 60;
+
+// Allowed models to prevent cost abuse via user-controlled model selection
+const ALLOWED_MODELS = new Set([
+  "anthropic/claude-haiku-4.5",
+  "anthropic/claude-sonnet-4",
+  "anthropic/claude-sonnet-4-20250514",
+]);
 
 // Default system prompt when no agent is specified
 const DEFAULT_SYSTEM_PROMPT = `You are a helpful AI assistant for Agent Inc., a platform for AI-powered autonomous startups on chain. 
@@ -117,7 +125,7 @@ async function chatHandler(req: RequestWithBilling) {
   const {
     messages,
     agentId,
-    model = "anthropic/claude-haiku-4.5", // Default to Haiku 4.5
+    model: requestedModel = "anthropic/claude-haiku-4.5",
     enabledSkills = [],
     enabledToolGroups = [],
     skillApiKeys = {},
@@ -129,6 +137,21 @@ async function chatHandler(req: RequestWithBilling) {
     enabledToolGroups?: string[];
     skillApiKeys?: Record<string, string>; // User-provided API keys
   } = requestBody;
+
+  // Validate model against allowlist to prevent cost abuse
+  const model = ALLOWED_MODELS.has(requestedModel)
+    ? requestedModel
+    : "anthropic/claude-haiku-4.5";
+
+  // Validate messages input
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return new Response(
+      JSON.stringify({
+        error: "Messages array is required and must not be empty",
+      }),
+      { status: 400, headers: { "Content-Type": "application/json" } },
+    );
+  }
 
   let baseSystemPrompt = DEFAULT_SYSTEM_PROMPT;
   let agentName = "Agent Inc. Assistant";
@@ -258,11 +281,12 @@ async function chatHandler(req: RequestWithBilling) {
   let systemPrompt = baseSystemPrompt;
 
   // Determine which skills to enable
-  const skillsToEnable = enabledSkills || agentSkills;
+  // Note: enabledSkills defaults to [] which is truthy, so use .length check
+  const skillsToEnable = enabledSkills.length > 0 ? enabledSkills : agentSkills;
 
   // Build tools from enabled skills
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let tools: Record<string, any> = {};
+  let tools: Record<string, Tool<any, any>> = {};
 
   // Add tool search for dynamic tool discovery (Haiku 4.5+ feature)
   tools.toolSearch = anthropic.tools.toolSearchBm25_20251119();

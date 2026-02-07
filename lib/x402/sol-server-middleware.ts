@@ -32,6 +32,7 @@ import {
 import { sanitizeTxSignature } from "@/lib/utils/formatting";
 import {
   usdToLamports,
+  getSolPrice,
   verifyPayment,
   settlePayment,
   extractPaymentFromHeaders,
@@ -142,6 +143,11 @@ async function retryPaymentWithBackoff(
  * Queue a failed payment for later retry.
  * Persisted in Redis so it survives restarts.
  */
+/**
+ * Queue a failed payment for later retry.
+ * Uses Redis RPUSH for atomic append (no read-modify-write race condition).
+ * Falls back to non-atomic load/save if RPUSH is unavailable.
+ */
 export async function queueFailedPayment(
   userId: string,
   walletId: string,
@@ -151,6 +157,33 @@ export async function queueFailedPayment(
   description: string,
   error: string,
 ): Promise<void> {
+  const newEntry: FailedPayment = {
+    userId,
+    walletId,
+    walletAddress,
+    lamports: lamports.toString(),
+    usdCost,
+    description,
+    timestamp: new Date().toISOString(),
+    attempts: 0,
+    lastError: error,
+  };
+
+  // Use atomic Redis list append to avoid read-modify-write race condition
+  if (isRedisConfigured()) {
+    try {
+      const redis = getRedis();
+      const listKey = `${FAILED_PAYMENTS_KEY}:list`;
+      await redis.rpush(listKey, JSON.stringify(newEntry));
+      // Set TTL on the list (refreshed on each append)
+      await redis.expire(listKey, 7 * 24 * 3600);
+      return;
+    } catch {
+      // Fall through to legacy approach
+    }
+  }
+
+  // Legacy fallback (non-atomic, acceptable for local dev)
   const queue = await loadFailedPayments();
 
   const existingIndex = queue.findIndex(
@@ -159,24 +192,12 @@ export async function queueFailedPayment(
 
   if (existingIndex >= 0) {
     const existing = queue[existingIndex];
-    existing.lamports = (
-      BigInt(existing.lamports) + lamports
-    ).toString();
+    existing.lamports = (BigInt(existing.lamports) + lamports).toString();
     existing.usdCost += usdCost;
     existing.lastError = error;
     existing.timestamp = new Date().toISOString();
   } else {
-    queue.push({
-      userId,
-      walletId,
-      walletAddress,
-      lamports: lamports.toString(),
-      usdCost,
-      description,
-      timestamp: new Date().toISOString(),
-      attempts: 0,
-      lastError: error,
-    });
+    queue.push(newEntry);
   }
 
   await saveFailedPayments(queue);
@@ -411,9 +432,7 @@ export async function getPendingRefunds(): Promise<PendingRefund[]> {
 /**
  * Get all refunds for a user
  */
-export async function getUserRefunds(
-  userId: string,
-): Promise<PendingRefund[]> {
+export async function getUserRefunds(userId: string): Promise<PendingRefund[]> {
   const refunds = await loadPendingRefunds();
   return refunds.filter((r) => r.userId === userId);
 }
@@ -980,11 +999,16 @@ export function isUsageBasedBillingEnabled(): boolean {
 export async function getServerPricingWithSol(): Promise<
   Record<PricingKey, { usd: number; lamports: string; sol: string }>
 > {
+  // Fetch SOL price once and compute all conversions locally
+  const solPrice = await getSolPrice();
+  const LAMPORTS = 1_000_000_000; // LAMPORTS_PER_SOL
+
   const result: Record<string, { usd: number; lamports: string; sol: string }> =
     {};
 
   for (const [key, usdPrice] of Object.entries(SOL_PRICING)) {
-    const lamports = await usdToLamports(usdPrice);
+    const solAmount = usdPrice / solPrice;
+    const lamports = BigInt(Math.ceil(solAmount * LAMPORTS));
     result[key] = {
       usd: usdPrice,
       lamports: lamports.toString(),

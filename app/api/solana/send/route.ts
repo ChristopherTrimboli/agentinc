@@ -5,6 +5,7 @@ import {
   sendSignedTransaction,
   getConnection,
 } from "@/lib/solana";
+import { rateLimitByUser } from "@/lib/rateLimit";
 
 // POST /api/solana/send - Sign and send a transaction server-side
 export async function POST(req: NextRequest) {
@@ -14,6 +15,10 @@ export async function POST(req: NextRequest) {
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // Rate limit: 5 transaction submissions per minute per user
+  const rateLimited = await rateLimitByUser(auth.userId, "solana-send", 5);
+  if (rateLimited) return rateLimited;
 
   try {
     const body = await req.json();

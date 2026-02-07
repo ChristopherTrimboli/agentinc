@@ -283,6 +283,19 @@ const addToListSchema = z.object({
 export function createTwitterTools(accessToken: string) {
   const client = new TwitterApi(accessToken);
 
+  // Cache the authenticated user's ID and username to avoid redundant
+  // client.v2.me() API calls. Each call consumes a rate limit token,
+  // so calling it in every tool wastes 2x the rate budget.
+  let cachedMe: { id: string; username: string } | null = null;
+
+  async function getMe(): Promise<{ id: string; username: string }> {
+    if (!cachedMe) {
+      const me = await client.v2.me();
+      cachedMe = { id: me.data.id, username: me.data.username };
+    }
+    return cachedMe;
+  }
+
   return {
     postTweet: tool({
       description:
@@ -307,14 +320,14 @@ export function createTwitterTools(accessToken: string) {
 
           const tweet = await client.v2.tweet(tweetData);
 
-          // Get the username for the tweet URL
-          const me = await client.v2.me();
+          // Get the username for the tweet URL (cached)
+          const me = await getMe();
           return {
             success: true,
             tweet: {
               id: tweet.data.id,
               text: tweet.data.text,
-              url: `https://twitter.com/${me.data.username}/status/${tweet.data.id}`,
+              url: `https://twitter.com/${me.username}/status/${tweet.data.id}`,
             },
           };
         } catch (error: unknown) {
@@ -367,8 +380,8 @@ export function createTwitterTools(accessToken: string) {
       inputSchema: tweetIdSchema,
       execute: async (input: z.infer<typeof tweetIdSchema>) => {
         try {
-          const me = await client.v2.me();
-          await client.v2.like(me.data.id, input.tweetId);
+          const me = await getMe();
+          await client.v2.like(me.id, input.tweetId);
           return { success: true, message: "Tweet liked successfully" };
         } catch (error: unknown) {
           const err = error as Error;
@@ -382,8 +395,8 @@ export function createTwitterTools(accessToken: string) {
       inputSchema: tweetIdSchema,
       execute: async (input: z.infer<typeof tweetIdSchema>) => {
         try {
-          const me = await client.v2.me();
-          await client.v2.unlike(me.data.id, input.tweetId);
+          const me = await getMe();
+          await client.v2.unlike(me.id, input.tweetId);
           return { success: true, message: "Tweet unliked successfully" };
         } catch (error: unknown) {
           const err = error as Error;
@@ -397,8 +410,8 @@ export function createTwitterTools(accessToken: string) {
       inputSchema: tweetIdSchema,
       execute: async (input: z.infer<typeof tweetIdSchema>) => {
         try {
-          const me = await client.v2.me();
-          await client.v2.retweet(me.data.id, input.tweetId);
+          const me = await getMe();
+          await client.v2.retweet(me.id, input.tweetId);
           return { success: true, message: "Retweeted successfully" };
         } catch (error: unknown) {
           const err = error as Error;
@@ -412,8 +425,8 @@ export function createTwitterTools(accessToken: string) {
       inputSchema: tweetIdSchema,
       execute: async (input: z.infer<typeof tweetIdSchema>) => {
         try {
-          const me = await client.v2.me();
-          await client.v2.unretweet(me.data.id, input.tweetId);
+          const me = await getMe();
+          await client.v2.unretweet(me.id, input.tweetId);
           return { success: true, message: "Unretweet successful" };
         } catch (error: unknown) {
           const err = error as Error;
@@ -455,8 +468,8 @@ export function createTwitterTools(accessToken: string) {
       inputSchema: timelineSchema,
       execute: async (input: z.infer<typeof timelineSchema>) => {
         try {
-          const me = await client.v2.me();
-          const timeline = await client.v2.userTimeline(me.data.id, {
+          const me = await getMe();
+          const timeline = await client.v2.userTimeline(me.id, {
             max_results: input.maxResults,
             "tweet.fields": ["created_at", "public_metrics", "conversation_id"],
             expansions: ["author_id"],
@@ -556,9 +569,9 @@ export function createTwitterTools(accessToken: string) {
       inputSchema: usernameSchema,
       execute: async (input: z.infer<typeof usernameSchema>) => {
         try {
-          const me = await client.v2.me();
+          const me = await getMe();
           const targetUser = await client.v2.userByUsername(input.username);
-          await client.v2.follow(me.data.id, targetUser.data.id);
+          await client.v2.follow(me.id, targetUser.data.id);
           return { success: true, message: `Now following @${input.username}` };
         } catch (error: unknown) {
           const err = error as Error;
@@ -572,9 +585,9 @@ export function createTwitterTools(accessToken: string) {
       inputSchema: usernameSchema,
       execute: async (input: z.infer<typeof usernameSchema>) => {
         try {
-          const me = await client.v2.me();
+          const me = await getMe();
           const targetUser = await client.v2.userByUsername(input.username);
-          await client.v2.unfollow(me.data.id, targetUser.data.id);
+          await client.v2.unfollow(me.id, targetUser.data.id);
           return { success: true, message: `Unfollowed @${input.username}` };
         } catch (error: unknown) {
           const err = error as Error;
@@ -594,8 +607,8 @@ export function createTwitterTools(accessToken: string) {
             const user = await client.v2.userByUsername(input.username);
             userId = user.data.id;
           } else {
-            const me = await client.v2.me();
-            userId = me.data.id;
+            const me = await getMe();
+            userId = me.id;
           }
 
           const followers = await client.v2.followers(userId, {
@@ -631,8 +644,8 @@ export function createTwitterTools(accessToken: string) {
             const user = await client.v2.userByUsername(input.username);
             userId = user.data.id;
           } else {
-            const me = await client.v2.me();
-            userId = me.data.id;
+            const me = await getMe();
+            userId = me.id;
           }
 
           const following = await client.v2.following(userId, {

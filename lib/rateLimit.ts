@@ -20,6 +20,9 @@ interface RateLimitEntry {
 
 const memoryStore = new Map<string, RateLimitEntry>();
 
+/** Hard cap to prevent unbounded memory growth under high-cardinality keys */
+const MAX_MEMORY_ENTRIES = 10_000;
+
 if (typeof setInterval !== "undefined") {
   setInterval(
     () => {
@@ -41,6 +44,11 @@ function memoryRateLimit(
   const entry = memoryStore.get(key);
 
   if (!entry || now > entry.resetAt) {
+    // Evict oldest entries if at capacity
+    if (memoryStore.size >= MAX_MEMORY_ENTRIES) {
+      const firstKey = memoryStore.keys().next().value;
+      if (firstKey) memoryStore.delete(firstKey);
+    }
     memoryStore.set(key, { count: 1, resetAt: now + windowMs });
     return { limited: false, remaining: limit - 1, resetAt: now + windowMs };
   }
@@ -121,7 +129,10 @@ export async function rateLimitByUser(
       void remaining;
       return null;
     } catch (error) {
-      console.warn("[RateLimit] Redis rate limit failed, using fallback:", error);
+      console.warn(
+        "[RateLimit] Redis rate limit failed, using fallback:",
+        error,
+      );
       // Fall through to in-memory
     }
   }
@@ -169,11 +180,16 @@ export async function checkRateLimit(
       // Convert windowMs to a rate limiter - for non-60s windows,
       // create a one-off limiter with appropriate window
       const windowSeconds = Math.ceil(windowMs / 1000);
-      const limiter = new Ratelimit({
-        redis: getRedis(),
-        limiter: Ratelimit.slidingWindow(limit, `${windowSeconds} s`),
-        prefix: "ratelimit",
-      });
+      const cacheKey = `rl:custom:${limit}:${windowSeconds}`;
+      let limiter = rateLimiters.get(cacheKey);
+      if (!limiter) {
+        limiter = new Ratelimit({
+          redis: getRedis(),
+          limiter: Ratelimit.slidingWindow(limit, `${windowSeconds} s`),
+          prefix: "ratelimit",
+        });
+        rateLimiters.set(cacheKey, limiter);
+      }
 
       const { success, remaining, reset } = await limiter.limit(key);
       return {
@@ -187,4 +203,102 @@ export async function checkRateLimit(
   }
 
   return memoryRateLimit(key, limit, windowMs);
+}
+
+// ── IP-based rate limiting for public (unauthenticated) endpoints ────────
+
+import { NextRequest } from "next/server";
+
+/**
+ * Extract the client IP from a Next.js request.
+ *
+ * Uses req.ip (set by Vercel from the true client IP) when available.
+ * Falls back to the LAST entry in x-forwarded-for (added by your reverse proxy),
+ * NOT the first entry which is client-controlled and can be spoofed.
+ */
+function getClientIP(req: NextRequest): string {
+  // On Vercel, x-real-ip is set from the true client IP and is trustworthy
+  const realIp = req.headers.get("x-real-ip");
+  if (realIp) return realIp;
+
+  // Take the LAST x-forwarded-for entry (the one added by the reverse proxy)
+  // The first entry is client-controlled and can be spoofed
+  const xff = req.headers.get("x-forwarded-for");
+  if (xff) {
+    const parts = xff.split(",").map((s) => s.trim());
+    return parts[parts.length - 1] || "unknown";
+  }
+
+  return req.headers.get("x-real-ip") || "unknown";
+}
+
+/**
+ * IP-based rate limiter for public/unauthenticated endpoints.
+ * Returns a 429 Response if rate limited, or null if allowed.
+ *
+ * @param req       - The incoming Next.js request
+ * @param route     - Route identifier for namespacing (e.g. "explore")
+ * @param maxPerMin - Maximum requests per minute per IP (default 30)
+ */
+export async function rateLimitByIP(
+  req: NextRequest,
+  route: string,
+  maxPerMin = 30,
+): Promise<Response | null> {
+  const ip = getClientIP(req);
+  const identifier = `ip:${route}:${ip}`;
+
+  if (isRedisConfigured()) {
+    try {
+      const limiter = getRateLimiter(maxPerMin);
+      const { success, reset } = await limiter.limit(identifier);
+
+      if (!success) {
+        const retryAfter = Math.ceil((reset - Date.now()) / 1000);
+        return new Response(
+          JSON.stringify({
+            error: "Rate limit exceeded. Please try again later.",
+            retryAfterSeconds: retryAfter,
+          }),
+          {
+            status: 429,
+            headers: {
+              "Content-Type": "application/json",
+              "Retry-After": String(Math.max(retryAfter, 1)),
+              "X-RateLimit-Remaining": "0",
+            },
+          },
+        );
+      }
+      return null;
+    } catch (error) {
+      console.warn(
+        "[RateLimit] Redis IP rate limit failed, using fallback:",
+        error,
+      );
+    }
+  }
+
+  // In-memory fallback
+  const { limited, resetAt } = memoryRateLimit(identifier, maxPerMin, 60_000);
+
+  if (limited) {
+    const retryAfter = Math.ceil((resetAt - Date.now()) / 1000);
+    return new Response(
+      JSON.stringify({
+        error: "Rate limit exceeded. Please try again later.",
+        retryAfterSeconds: retryAfter,
+      }),
+      {
+        status: 429,
+        headers: {
+          "Content-Type": "application/json",
+          "Retry-After": String(Math.max(retryAfter, 1)),
+          "X-RateLimit-Remaining": "0",
+        },
+      },
+    );
+  }
+
+  return null;
 }

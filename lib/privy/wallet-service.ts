@@ -22,11 +22,8 @@ import {
 } from "@solana/web3.js";
 import { SOLANA_RPC_URL } from "@/lib/constants/solana";
 import { getPrivyClient } from "@/lib/auth/verifyRequest";
-import {
-  getCurrentNetwork as getNetworkFromConfig,
-  type SolNetwork,
-} from "@/lib/x402/config";
 import { validatePrivySignResponse } from "@/lib/x402/validation";
+import { isRedisConfigured, getRedis } from "@/lib/redis";
 
 /**
  * Transaction fee buffer in lamports (0.001 SOL = 1,000,000 lamports).
@@ -35,33 +32,84 @@ import { validatePrivySignResponse } from "@/lib/x402/validation";
 export const TRANSACTION_FEE_BUFFER_LAMPORTS = BigInt(1_000_000);
 
 /**
- * Wallet lock mechanism to prevent race conditions.
- * Ensures only one payment per wallet can be processed at a time.
+ * Distributed wallet lock using Redis SET NX EX.
+ *
+ * In serverless environments each request can hit a different instance,
+ * making in-memory locks useless. This uses Redis for a distributed
+ * mutex with automatic TTL expiration as a safety net.
+ *
+ * Falls back to in-memory promise-chaining when Redis is unavailable
+ * (e.g. local dev without Redis).
  */
-const walletLocks = new Map<string, Promise<void>>();
+
+const WALLET_LOCK_TTL_SECONDS = 30;
+const WALLET_LOCK_RETRY_DELAY_MS = 100;
+const WALLET_LOCK_MAX_RETRIES = 50; // 50 * 100ms = 5s max wait
+
+// In-memory fallback for when Redis is unavailable
+const memoryWalletLocks = new Map<string, Promise<void>>();
 
 /**
- * Acquire a lock for a wallet address.
+ * Acquire a distributed lock for a wallet address via Redis.
  * Returns a release function that must be called when done.
+ *
+ * Uses Redis SET NX EX for atomic acquire with TTL safety net.
+ * Falls back to in-memory promise-chaining if Redis is unavailable.
  */
 export async function acquireWalletLock(
   walletAddress: string,
 ): Promise<() => void> {
-  // Wait for any existing lock to be released
-  while (walletLocks.has(walletAddress)) {
-    await walletLocks.get(walletAddress);
+  // Use distributed Redis lock when available
+  if (isRedisConfigured()) {
+    const redis = getRedis();
+    const lockKey = `wallet-lock:${walletAddress}`;
+    const lockValue = crypto.randomUUID();
+
+    for (let i = 0; i < WALLET_LOCK_MAX_RETRIES; i++) {
+      try {
+        const acquired = await redis.set(lockKey, lockValue, {
+          nx: true,
+          ex: WALLET_LOCK_TTL_SECONDS,
+        });
+        if (acquired) {
+          // Return release function that only deletes if we still hold the lock
+          return async () => {
+            try {
+              const current = await redis.get(lockKey);
+              if (current === lockValue) {
+                await redis.del(lockKey);
+              }
+            } catch {
+              // Best-effort release; TTL will clean up
+            }
+          };
+        }
+      } catch (error) {
+        // Redis error — fall through to in-memory
+        console.warn(
+          "[WalletLock] Redis lock failed, using in-memory fallback:",
+          error,
+        );
+        break;
+      }
+      await new Promise((r) => setTimeout(r, WALLET_LOCK_RETRY_DELAY_MS));
+    }
   }
 
-  // Create a new lock
+  // In-memory fallback (for local dev or Redis failure)
   let releaseLock: () => void;
-  const lockPromise = new Promise<void>((resolve) => {
+  const gate = new Promise<void>((resolve) => {
     releaseLock = resolve;
   });
-  walletLocks.set(walletAddress, lockPromise);
 
-  // Return the release function
+  const prev = memoryWalletLocks.get(walletAddress) ?? Promise.resolve();
+  memoryWalletLocks.set(walletAddress, gate);
+  await prev;
+
   return () => {
-    walletLocks.delete(walletAddress);
+    if (memoryWalletLocks.get(walletAddress) === gate) {
+      memoryWalletLocks.delete(walletAddress);
+    }
     releaseLock!();
   };
 }
@@ -82,9 +130,6 @@ export async function withWalletLock<T>(
   }
 }
 
-/** @deprecated Use SolNetwork from @/lib/x402/config instead */
-export type SolanaNetwork = SolNetwork;
-
 /**
  * Check if server signer is configured
  */
@@ -93,23 +138,6 @@ export function isServerSignerConfigured(): boolean {
     process.env.PRIVY_AUTHORIZATION_PRIVATE_KEY &&
     process.env.PRIVY_SIGNER_KEY_QUORUM_ID
   );
-}
-
-/**
- * Get the current network.
- * Delegates to the canonical implementation in @/lib/x402/config.
- */
-export function getCurrentNetwork(): SolNetwork {
-  return getNetworkFromConfig();
-}
-
-/**
- * Get CAIP-2 chain ID for the current network
- */
-export function getCAIP2ChainId(network: SolanaNetwork): string {
-  return network === "solana"
-    ? "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp" // Mainnet
-    : "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1"; // Devnet
 }
 
 /**

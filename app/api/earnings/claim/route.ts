@@ -4,11 +4,39 @@ import { Connection } from "@solana/web3.js";
 import { SOLANA_RPC_URL } from "@/lib/constants/solana";
 import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
 import { isValidPublicKey, validatePublicKey } from "@/lib/utils/validation";
+import { rateLimitByUser } from "@/lib/rateLimit";
+
+// Reuse Connection and SDK instances across requests
+let _connection: Connection | null = null;
+let _sdk: BagsSDK | null = null;
+let _sdkApiKey: string | null = null;
+
+function getConnectionAndSDK(): {
+  connection: Connection;
+  sdk: BagsSDK;
+} | null {
+  const apiKey = process.env.BAGS_API_KEY;
+  if (!apiKey) return null;
+
+  if (!_connection) {
+    _connection = new Connection(SOLANA_RPC_URL);
+  }
+  if (!_sdk || _sdkApiKey !== apiKey) {
+    _sdk = new BagsSDK(apiKey, _connection, "confirmed");
+    _sdkApiKey = apiKey;
+  }
+
+  return { connection: _connection, sdk: _sdk };
+}
 
 // POST /api/earnings/claim - Generate claim transactions for all positions or specific token
 export async function POST(req: NextRequest) {
   const auth = await requireAuth(req);
   if (!isAuthResult(auth)) return auth;
+
+  // Rate limit: 5 claim requests per minute per user
+  const rateLimited = await rateLimitByUser(auth.userId, "earnings-claim", 5);
+  if (rateLimited) return rateLimited;
 
   try {
     const body = await req.json();
@@ -37,17 +65,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const apiKey = process.env.BAGS_API_KEY;
-    if (!apiKey) {
+    const clients = getConnectionAndSDK();
+    if (!clients) {
       return NextResponse.json(
         { error: "Bags API key not configured" },
         { status: 500 },
       );
     }
 
-    // Initialize Bags SDK
-    const connection = new Connection(SOLANA_RPC_URL);
-    const sdk = new BagsSDK(apiKey, connection, "confirmed");
+    const { sdk } = clients;
 
     // Get all claimable positions for the wallet
     const walletPubkey = validatePublicKey(wallet, "wallet");
@@ -82,17 +108,17 @@ export async function POST(req: NextRequest) {
       tokenMint: string;
     }> = [];
 
-    for (const position of positionsToProcess) {
-      try {
-        const claimTxs = await sdk.fee.getClaimTransaction(
-          walletPubkey,
-          position,
-        );
+    // Generate claim transactions for all positions in parallel
+    const txResults = await Promise.all(
+      positionsToProcess.map(async (position) => {
+        try {
+          const claimTxs = await sdk.fee.getClaimTransaction(
+            walletPubkey,
+            position,
+          );
 
-        if (claimTxs && claimTxs.length > 0) {
-          for (const tx of claimTxs) {
-            // Serialize without requiring signatures - user will sign on frontend
-            allTransactions.push({
+          if (claimTxs && claimTxs.length > 0) {
+            return claimTxs.map((tx) => ({
               transaction: Buffer.from(
                 tx.serialize({
                   requireAllSignatures: false,
@@ -100,16 +126,21 @@ export async function POST(req: NextRequest) {
                 }),
               ).toString("base64"),
               tokenMint: position.baseMint,
-            });
+            }));
           }
+          return [];
+        } catch (txError) {
+          console.error(
+            `[Earnings] Error generating claim tx for ${position.baseMint}:`,
+            txError,
+          );
+          return [];
         }
-      } catch (txError) {
-        console.error(
-          `[Earnings] Error generating claim tx for ${position.baseMint}:`,
-          txError,
-        );
-        // Continue with other positions
-      }
+      }),
+    );
+
+    for (const txs of txResults) {
+      allTransactions.push(...txs);
     }
 
     return NextResponse.json({

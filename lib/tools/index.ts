@@ -25,7 +25,7 @@
  * ```
  */
 
-import type { Tool } from "ai";
+import type { AnyTool, ToolMap } from "./types";
 import { weatherTools } from "./weather";
 import { cryptoTools } from "./crypto";
 import { geolocationTools } from "./geolocation";
@@ -611,14 +611,13 @@ export const TOOL_GROUPS: ToolGroup[] = [
 ];
 
 /**
- * Get all available tools as a single object
- * Tools are simple utilities that work with any model
+ * Get all available tools as a single object.
+ * Tools are simple utilities that work with any model.
  *
  * NOTE: Twitter tools are NOT included here because they require user OAuth credentials.
  * Twitter tools are dynamically created via createTwitterTools() in the chat API route.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function getAllTools(): Record<string, Tool<any, any>> {
+export function getAllTools(): ToolMap {
   return {
     ...weatherTools,
     ...cryptoTools,
@@ -633,17 +632,13 @@ export function getAllTools(): Record<string, Tool<any, any>> {
 }
 
 /**
- * Get tools for specific groups
+ * Get tools for specific groups.
  *
  * NOTE: Twitter tools are handled separately in the chat API route
  * because they require user OAuth credentials.
  */
-export function getToolsForGroups(
-  groupIds: string[],
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): Record<string, Tool<any, any>> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const toolModules: Record<string, Record<string, Tool<any, any>>> = {
+export function getToolsForGroups(groupIds: string[]): ToolMap {
+  const toolModules: Record<string, ToolMap> = {
     // AI
     imageGeneration: imageGenerationTools,
     webSearch: webSearchTools,
@@ -660,8 +655,7 @@ export function getToolsForGroups(
     // Note: twitter group is handled separately in chat API (requires OAuth token)
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result: Record<string, Tool<any, any>> = {};
+  const result: ToolMap = {};
   for (const groupId of groupIds) {
     const tools = toolModules[groupId];
     if (tools) {
