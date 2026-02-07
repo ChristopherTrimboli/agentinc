@@ -1,45 +1,65 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAuthUserId } from "@/lib/auth/verifyRequest";
+import { isRedisConfigured, getRedis } from "@/lib/redis";
 
 // SOL mint address
 const SOL_MINT = "So11111111111111111111111111111111111111112";
 
-// In-memory cache for prices (30 second TTL)
+const CACHE_TTL_SECONDS = 30;
+
+// ── Cache helpers (Redis → in-memory fallback) ─────────────────────────
+
 interface CacheEntry {
   price: number | null;
   timestamp: number;
 }
 
-const priceCache = new Map<string, CacheEntry>();
-const CACHE_TTL_MS = 30 * 1000; // 30 seconds
+const memoryCache = new Map<string, CacheEntry>();
+const MEMORY_TTL_MS = 30_000;
+const MAX_MEMORY_SIZE = 50;
 
-function getFromCache(mint: string): CacheEntry | null {
-  const cached = priceCache.get(mint);
+function redisCacheKey(mint: string): string {
+  return `price:single:${mint}`;
+}
 
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
-    // LRU: re-insert to move to end of Map iteration order
-    priceCache.delete(mint);
-    priceCache.set(mint, cached);
-    return cached;
+async function getFromCache(mint: string): Promise<CacheEntry | null> {
+  // Try Redis
+  if (isRedisConfigured()) {
+    try {
+      const cached = await getRedis().get<CacheEntry>(redisCacheKey(mint));
+      if (cached) return cached;
+    } catch {
+      // Fall through
+    }
   }
 
-  // Clean up expired entry
-  if (cached) {
-    priceCache.delete(mint);
-  }
-
+  // In-memory fallback
+  const mem = memoryCache.get(mint);
+  if (mem && Date.now() - mem.timestamp < MEMORY_TTL_MS) return mem;
+  if (mem) memoryCache.delete(mint);
   return null;
 }
 
-function setCache(mint: string, price: number | null): void {
-  // Delete first to ensure it's at the end (most recently used)
-  priceCache.delete(mint);
-  priceCache.set(mint, { price, timestamp: Date.now() });
+async function setCache(mint: string, price: number | null): Promise<void> {
+  const entry: CacheEntry = { price, timestamp: Date.now() };
 
-  // Evict least recently used entries (at the front of Map iteration order)
-  while (priceCache.size > 50) {
-    const lruKey = priceCache.keys().next().value;
-    if (lruKey) priceCache.delete(lruKey);
+  // Write to Redis
+  if (isRedisConfigured()) {
+    try {
+      await getRedis().set(redisCacheKey(mint), entry, {
+        ex: CACHE_TTL_SECONDS,
+      });
+    } catch {
+      // Non-critical
+    }
+  }
+
+  // In-memory L1
+  memoryCache.delete(mint);
+  memoryCache.set(mint, entry);
+  while (memoryCache.size > MAX_MEMORY_SIZE) {
+    const lruKey = memoryCache.keys().next().value;
+    if (lruKey) memoryCache.delete(lruKey);
     else break;
   }
 }
@@ -57,7 +77,7 @@ export async function GET(req: NextRequest) {
     const mint = searchParams.get("mint") || SOL_MINT;
 
     // Check cache first
-    const cached = getFromCache(mint);
+    const cached = await getFromCache(mint);
     if (cached) {
       const response = NextResponse.json({
         mint,
@@ -77,7 +97,7 @@ export async function GET(req: NextRequest) {
       `https://api.dexscreener.com/latest/dex/tokens/${mint}`,
       {
         headers: { "Content-Type": "application/json" },
-        next: { revalidate: 30 }, // Next.js fetch cache
+        next: { revalidate: 30 },
       },
     );
 
@@ -113,7 +133,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Cache the result
-    setCache(mint, price);
+    await setCache(mint, price);
 
     const jsonResponse = NextResponse.json({
       mint,

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isRedisConfigured, getRedis } from "@/lib/redis";
 
 export interface PriceData {
   price: number;
@@ -9,66 +10,146 @@ export interface PriceData {
   earnings?: number;
 }
 
+// ── In-memory fallback cache ──────────────────────────────────────────
+
 interface CacheEntry {
   prices: Record<string, PriceData>;
   timestamp: number;
 }
 
-// In-memory cache for prices (30 second TTL)
-const priceCache = new Map<string, CacheEntry>();
-const CACHE_TTL_MS = 30 * 1000;
+const memoryPriceCache = new Map<string, CacheEntry>();
+const MEMORY_CACHE_TTL_MS = 30 * 1000;
+const MAX_MEMORY_CACHE_SIZE = 100;
 
-// Longer cache for earnings (5 minutes) since it changes less frequently
-const earningsCache = new Map<
+const memoryEarningsCache = new Map<
   string,
   { earnings: number; timestamp: number }
 >();
-const EARNINGS_CACHE_TTL_MS = 5 * 60 * 1000;
+const EARNINGS_MEMORY_TTL_MS = 5 * 60 * 1000;
+
+// ── Redis TTLs ──────────────────────────────────────────────────────────
+
+const PRICE_REDIS_TTL = 30; // 30 seconds
+const EARNINGS_REDIS_TTL = 300; // 5 minutes
 
 // Max mints per request
 const MAX_MINTS = 100;
-
-// Max cache size before eviction
-const MAX_CACHE_SIZE = 100;
 
 function getCacheKey(mints: string[]): string {
   return mints.sort().join(",");
 }
 
-function getFromCache(mints: string[]): CacheEntry | null {
-  const key = getCacheKey(mints);
-  const cached = priceCache.get(key);
+// ── Cache getters (Redis → in-memory fallback) ─────────────────────────
 
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
-    return cached;
+async function getFromCache(
+  mints: string[],
+): Promise<CacheEntry | null> {
+  const key = getCacheKey(mints);
+
+  // Try Redis first
+  if (isRedisConfigured()) {
+    try {
+      const redis = getRedis();
+      const cached = await redis.get<CacheEntry>(`prices:${key}`);
+      if (cached) return cached;
+    } catch {
+      // Fall through to memory
+    }
   }
 
-  if (cached) {
-    priceCache.delete(key);
+  // In-memory fallback
+  const memCached = memoryPriceCache.get(key);
+  if (memCached && Date.now() - memCached.timestamp < MEMORY_CACHE_TTL_MS) {
+    return memCached;
+  }
+  if (memCached) {
+    memoryPriceCache.delete(key);
   }
 
   return null;
 }
 
-function setCache(mints: string[], prices: Record<string, PriceData>): void {
+async function setCache(
+  mints: string[],
+  prices: Record<string, PriceData>,
+): Promise<void> {
   const key = getCacheKey(mints);
-  priceCache.set(key, { prices, timestamp: Date.now() });
+  const entry: CacheEntry = { prices, timestamp: Date.now() };
 
-  if (priceCache.size > MAX_CACHE_SIZE) {
-    const oldestKey = priceCache.keys().next().value;
-    if (oldestKey) priceCache.delete(oldestKey);
+  // Write to Redis
+  if (isRedisConfigured()) {
+    try {
+      const redis = getRedis();
+      await redis.set(`prices:${key}`, entry, { ex: PRICE_REDIS_TTL });
+    } catch {
+      // Non-critical
+    }
+  }
+
+  // Also update in-memory for ultra-fast reads
+  memoryPriceCache.set(key, entry);
+  if (memoryPriceCache.size > MAX_MEMORY_CACHE_SIZE) {
+    const oldestKey = memoryPriceCache.keys().next().value;
+    if (oldestKey) memoryPriceCache.delete(oldestKey);
   }
 }
 
-// Fetch earnings from Bags API for a single token
+// ── Earnings cache (Redis → in-memory fallback) ────────────────────────
+
+async function getCachedEarnings(
+  tokenMint: string,
+): Promise<number | undefined> {
+  // Try Redis first
+  if (isRedisConfigured()) {
+    try {
+      const redis = getRedis();
+      const cached = await redis.get<number>(`earnings:${tokenMint}`);
+      if (cached !== null && cached !== undefined) return cached;
+    } catch {
+      // Fall through
+    }
+  }
+
+  // In-memory fallback
+  const memCached = memoryEarningsCache.get(tokenMint);
+  if (memCached && Date.now() - memCached.timestamp < EARNINGS_MEMORY_TTL_MS) {
+    return memCached.earnings;
+  }
+
+  return undefined;
+}
+
+async function setCachedEarnings(
+  tokenMint: string,
+  earnings: number,
+): Promise<void> {
+  // Write to Redis
+  if (isRedisConfigured()) {
+    try {
+      const redis = getRedis();
+      await redis.set(`earnings:${tokenMint}`, earnings, {
+        ex: EARNINGS_REDIS_TTL,
+      });
+    } catch {
+      // Non-critical
+    }
+  }
+
+  // Also keep in memory
+  memoryEarningsCache.set(tokenMint, {
+    earnings,
+    timestamp: Date.now(),
+  });
+}
+
+// ── Fetch earnings from Bags API ────────────────────────────────────────
+
 async function fetchEarningsFromBags(
   tokenMint: string,
 ): Promise<number | undefined> {
-  // Check earnings cache first
-  const cached = earningsCache.get(tokenMint);
-  if (cached && Date.now() - cached.timestamp < EARNINGS_CACHE_TTL_MS) {
-    return cached.earnings;
-  }
+  // Check cache first
+  const cached = await getCachedEarnings(tokenMint);
+  if (cached !== undefined) return cached;
 
   const apiKey = process.env.BAGS_API_KEY;
   if (!apiKey) {
@@ -94,10 +175,7 @@ async function fetchEarningsFromBags(
         const earningsSol = Number(earningsLamports) / 1e9;
 
         // Cache the result
-        earningsCache.set(tokenMint, {
-          earnings: earningsSol,
-          timestamp: Date.now(),
-        });
+        await setCachedEarnings(tokenMint, earningsSol);
 
         return earningsSol;
       }
@@ -134,7 +212,7 @@ export async function fetchPrices(mints: string | null): Promise<NextResponse> {
     }
 
     // Check cache first
-    const cached = getFromCache(mintList);
+    const cached = await getFromCache(mintList);
     if (cached) {
       const response = NextResponse.json({
         prices: cached.prices,
@@ -207,7 +285,7 @@ export async function fetchPrices(mints: string | null): Promise<NextResponse> {
     }
 
     // Cache the results
-    setCache(mintList, prices);
+    await setCache(mintList, prices);
 
     const jsonResponse = NextResponse.json({
       prices,

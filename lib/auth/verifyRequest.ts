@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PrivyClient } from "@privy-io/node";
+import { isRedisConfigured, getRedis } from "@/lib/redis";
 
 // Singleton Privy client
 let _privyClient: PrivyClient | null = null;
@@ -31,12 +32,45 @@ export interface AuthResult {
 }
 
 /**
+ * Cache TTL for auth results in seconds.
+ * Short TTL (60s) balances performance with security:
+ * - Avoids hitting Privy API on every request
+ * - Token revocations take effect within 60s
+ */
+const AUTH_CACHE_TTL = 60;
+
+/**
+ * Generate a short, stable cache key from the ID token.
+ * Uses a hash prefix of the token to avoid storing the full token in Redis.
+ */
+function authCacheKey(idToken: string): string {
+  // Use last 16 chars of the token as a fingerprint (tokens are JWTs, tail is signature)
+  const fingerprint = idToken.slice(-16);
+  return `auth:${fingerprint}`;
+}
+
+/**
  * Verify authentication from request headers.
  * Returns user info if authenticated, null otherwise.
+ *
+ * Caches successful verifications in Redis for 60s to avoid
+ * hitting Privy API on every request. Cache misses fall through
+ * to Privy verification as before.
  */
 export async function verifyAuth(req: NextRequest): Promise<AuthResult | null> {
   const idToken = req.headers.get("privy-id-token");
   if (!idToken) return null;
+
+  // Try Redis cache first
+  if (isRedisConfigured()) {
+    try {
+      const redis = getRedis();
+      const cached = await redis.get<AuthResult>(authCacheKey(idToken));
+      if (cached) return cached;
+    } catch {
+      // Cache miss or error — fall through to Privy
+    }
+  }
 
   const privy = getPrivyClient();
 
@@ -64,11 +98,23 @@ export async function verifyAuth(req: NextRequest): Promise<AuthResult | null> {
       | { id: string; address: string }
       | undefined;
 
-    return {
+    const result: AuthResult = {
       userId: user.id,
       walletAddress: walletData?.address,
       walletId: walletData?.id,
     };
+
+    // Cache successful auth in Redis
+    if (isRedisConfigured()) {
+      try {
+        const redis = getRedis();
+        await redis.set(authCacheKey(idToken), result, { ex: AUTH_CACHE_TTL });
+      } catch {
+        // Non-critical — just skip caching
+      }
+    }
+
+    return result;
   } catch (error) {
     console.error("[Auth] verifyAuth error:", error);
     return null;

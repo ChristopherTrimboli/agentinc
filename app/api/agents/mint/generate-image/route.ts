@@ -22,7 +22,7 @@ async function generateImageHandler(req: NextRequest) {
   }
 
   // Rate limit: 10 image generation requests per minute per user
-  const rateLimited = rateLimitByUser(userId, "generate-image", 10);
+  const rateLimited = await rateLimitByUser(userId, "generate-image", 10);
   if (rateLimited) return rateLimited;
 
   try {

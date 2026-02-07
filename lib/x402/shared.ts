@@ -13,68 +13,8 @@ import {
   type SolPaymentRequirements,
 } from "./sol-facilitator";
 
-/**
- * Simple in-memory rate limiter.
- * For production, consider using Redis-based rate limiting (@upstash/ratelimit).
- */
-interface RateLimitEntry {
-  count: number;
-  resetAt: number;
-}
-
-const rateLimitStore = new Map<string, RateLimitEntry>();
-
-/**
- * Check if a request should be rate limited.
- *
- * @param key - Unique identifier (e.g., IP address)
- * @param limit - Maximum requests allowed
- * @param windowMs - Time window in milliseconds
- * @returns Object indicating if limited and remaining requests
- */
-export function checkRateLimit(
-  key: string,
-  limit: number,
-  windowMs: number,
-): { limited: boolean; remaining: number; resetAt: number } {
-  const now = Date.now();
-  const entry = rateLimitStore.get(key);
-
-  if (!entry || now > entry.resetAt) {
-    // New window
-    const resetAt = now + windowMs;
-    rateLimitStore.set(key, { count: 1, resetAt });
-    return { limited: false, remaining: limit - 1, resetAt };
-  }
-
-  if (entry.count >= limit) {
-    return { limited: true, remaining: 0, resetAt: entry.resetAt };
-  }
-
-  entry.count++;
-  return {
-    limited: false,
-    remaining: limit - entry.count,
-    resetAt: entry.resetAt,
-  };
-}
-
-/**
- * Clean up expired rate limit entries (called by internal interval).
- */
-function cleanupRateLimitStore(): void {
-  const now = Date.now();
-  for (const [key, entry] of rateLimitStore.entries()) {
-    if (now > entry.resetAt) {
-      rateLimitStore.delete(key);
-    }
-  }
-}
-
-// Cleanup every 5 minutes
-if (typeof setInterval !== "undefined") {
-  setInterval(cleanupRateLimitStore, 5 * 60 * 1000);
-}
+// Re-export the shared rate limiter (now backed by Redis with in-memory fallback)
+export { checkRateLimit } from "@/lib/rateLimit";
 
 /**
  * Build x402-compliant payment requirements.

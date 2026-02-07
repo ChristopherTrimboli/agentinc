@@ -43,7 +43,7 @@ async function speechHandler(req: Request) {
   }
 
   // Rate limit: 20 TTS requests per minute per user
-  const rateLimited = rateLimitByUser(privyUserId, "speech", 20);
+  const rateLimited = await rateLimitByUser(privyUserId, "speech", 20);
   if (rateLimited) return rateLimited;
 
   let requestBody;

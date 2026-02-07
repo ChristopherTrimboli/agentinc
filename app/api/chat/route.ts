@@ -101,7 +101,7 @@ async function chatHandler(req: RequestWithBilling) {
   }
 
   // Rate limit: 30 chat requests per minute per user
-  const rateLimited = rateLimitByUser(userId, "chat", 30);
+  const rateLimited = await rateLimitByUser(userId, "chat", 30);
   if (rateLimited) return rateLimited;
 
   let requestBody;

@@ -4,12 +4,12 @@
  * Uses Vercel AI Gateway's model discovery to get pricing,
  * then calculates costs from token usage returned by AI SDK.
  *
- * This is simpler than calling a separate API - we just:
- * 1. Get model pricing via gateway.getAvailableModels()
- * 2. Calculate: (inputTokens * inputPrice) + (outputTokens * outputPrice)
+ * Pricing data is cached in Redis (shared across instances, 1-hour TTL)
+ * with an in-memory L1 cache for ultra-fast reads within the same process.
  */
 
 import { gateway } from "@ai-sdk/gateway";
+import { isRedisConfigured, getRedis } from "@/lib/redis";
 
 /**
  * Model pricing information
@@ -50,14 +50,64 @@ export interface CalculatedCost {
   modelId: string;
 }
 
-// Cache for model pricing (refreshes every 1 hour)
-let pricingCache: Map<string, ModelPricing> = new Map();
-let pricingCacheTimestamp: number = 0;
-const PRICING_CACHE_TTL = 60 * 60 * 1000; // 1 hour
+// ── Cache layer ─────────────────────────────────────────────────────────
+
+const REDIS_CACHE_KEY = "ai:model:pricing";
+const REDIS_CACHE_TTL = 3600; // 1 hour
+const MEMORY_CACHE_TTL = 60 * 60 * 1000; // 1 hour
+
+// In-memory L1 cache (fast reads within the same process)
+let memoryPricingCache: Map<string, ModelPricing> = new Map();
+let memoryCacheTimestamp = 0;
+
+function isMemoryCacheValid(): boolean {
+  return (
+    memoryPricingCache.size > 0 &&
+    Date.now() - memoryCacheTimestamp < MEMORY_CACHE_TTL
+  );
+}
+
+/**
+ * Load pricing from Redis into memory cache.
+ */
+async function loadFromRedis(): Promise<boolean> {
+  if (!isRedisConfigured()) return false;
+
+  try {
+    const redis = getRedis();
+    const cached = await redis.get<Record<string, ModelPricing>>(
+      REDIS_CACHE_KEY,
+    );
+    if (cached && Object.keys(cached).length > 0) {
+      memoryPricingCache = new Map(Object.entries(cached));
+      memoryCacheTimestamp = Date.now();
+      return true;
+    }
+  } catch {
+    // Fall through
+  }
+  return false;
+}
+
+/**
+ * Save pricing to Redis for cross-instance sharing.
+ */
+async function saveToRedis(
+  pricing: Map<string, ModelPricing>,
+): Promise<void> {
+  if (!isRedisConfigured()) return;
+
+  try {
+    const redis = getRedis();
+    const obj = Object.fromEntries(pricing);
+    await redis.set(REDIS_CACHE_KEY, obj, { ex: REDIS_CACHE_TTL });
+  } catch {
+    // Non-critical
+  }
+}
 
 /**
  * Fetch and cache model pricing from AI Gateway.
- * Uses gateway.getAvailableModels() which doesn't require an API key.
  */
 export async function refreshPricingCache(): Promise<void> {
   try {
@@ -78,11 +128,28 @@ export async function refreshPricingCache(): Promise<void> {
       }
     }
 
-    pricingCache = newCache;
-    pricingCacheTimestamp = Date.now();
+    memoryPricingCache = newCache;
+    memoryCacheTimestamp = Date.now();
+
+    // Persist to Redis for other instances
+    await saveToRedis(newCache);
   } catch {
     // Failed to fetch pricing - will use cached values or return null
   }
+}
+
+/**
+ * Ensure pricing cache is populated (from memory, Redis, or fresh fetch).
+ */
+async function ensurePricingLoaded(): Promise<void> {
+  if (isMemoryCacheValid()) return;
+
+  // Try Redis first (another instance may have fetched recently)
+  const loaded = await loadFromRedis();
+  if (loaded) return;
+
+  // No cache anywhere — fetch fresh
+  await refreshPricingCache();
 }
 
 /**
@@ -109,40 +176,34 @@ function normalizeModelId(modelId: string): string {
 export async function getModelPricing(
   modelId: string,
 ): Promise<ModelPricing | null> {
-  // Refresh cache if expired or empty
-  if (
-    pricingCache.size === 0 ||
-    Date.now() - pricingCacheTimestamp > PRICING_CACHE_TTL
-  ) {
-    await refreshPricingCache();
-  }
+  await ensurePricingLoaded();
 
   // Try exact match first
-  if (pricingCache.has(modelId)) {
-    return pricingCache.get(modelId)!;
+  if (memoryPricingCache.has(modelId)) {
+    return memoryPricingCache.get(modelId)!;
   }
 
   // Try with common prefixes (in case model ID doesn't include provider)
   const prefixes = ["anthropic/", "openai/", "google/", ""];
   for (const prefix of prefixes) {
     const fullId = prefix + modelId;
-    if (pricingCache.has(fullId)) {
-      return pricingCache.get(fullId)!;
+    if (memoryPricingCache.has(fullId)) {
+      return memoryPricingCache.get(fullId)!;
     }
   }
 
   // Try normalized matching (handles version format differences)
   const normalizedInput = normalizeModelId(modelId);
-  for (const [cachedId, pricing] of pricingCache.entries()) {
+  for (const [cachedId, pricing] of memoryPricingCache.entries()) {
     if (normalizeModelId(cachedId) === normalizedInput) {
       return pricing;
     }
   }
 
-  // Try partial match on model name (e.g., "claude-haiku-4.5" matches "anthropic/claude-haiku-4.5-...")
+  // Try partial match on model name
   const inputModelName = modelId.split("/").pop() || modelId;
   const normalizedName = normalizeModelId(inputModelName);
-  for (const [cachedId, pricing] of pricingCache.entries()) {
+  for (const [cachedId, pricing] of memoryPricingCache.entries()) {
     const cachedName = cachedId.split("/").pop() || cachedId;
     if (normalizeModelId(cachedName).startsWith(normalizedName)) {
       return pricing;
@@ -184,13 +245,4 @@ export async function calculateCost(
     cachedCost,
     modelId,
   };
-}
-
-/**
- * Check if usage-based billing via AI Gateway is available.
- *
- * @deprecated Always returns true. Remove calls to this and replace with `true`.
- */
-export function isAIGatewayBillingEnabled(): boolean {
-  return true;
 }

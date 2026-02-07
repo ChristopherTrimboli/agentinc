@@ -14,10 +14,15 @@ import {
 } from "@solana/web3.js";
 import { SOLANA_RPC_URL } from "@/lib/constants/solana";
 import { SolPaymentPayloadSchema } from "./validation";
+import { isRedisConfigured, getRedis } from "@/lib/redis";
 
-// Cache SOL price for 5 seconds to keep prices fresh while avoiding rate limits
-let cachedSolPrice: { price: number; timestamp: number } | null = null;
-const PRICE_CACHE_TTL = 5_000; // 5 seconds
+// In-memory fallback cache for when Redis is unavailable
+let memoryCachedSolPrice: { price: number; timestamp: number } | null = null;
+
+// Redis cache key and TTLs
+const SOL_PRICE_CACHE_KEY = "sol:price:usd";
+const SOL_PRICE_CACHE_TTL = 10; // 10 seconds in Redis (shared across instances)
+const MEMORY_CACHE_TTL = 5_000; // 5 seconds in-memory fallback
 
 /**
  * Emergency fallback SOL price in USD.
@@ -36,46 +41,73 @@ const STALE_CACHE_MAX_AGE = 60 * 60 * 1000;
  * Fetch current SOL price in USD.
  *
  * Priority order:
- * 1. Fresh cached price (< 5 seconds old)
- * 2. Jupiter Price API
- * 3. CoinGecko API
- * 4. Stale cached price (< 1 hour old)
- * 5. Emergency fallback price
+ * 1. Redis cached price (shared across instances, 10s TTL)
+ * 2. In-memory cached price (per-instance fallback, 5s TTL)
+ * 3. Jupiter Price API
+ * 4. CoinGecko API
+ * 5. Stale in-memory cache (< 1 hour old)
+ * 6. Emergency fallback price
  */
 export async function getSolPrice(): Promise<number> {
-  // Return cached price if still valid
+  // Try Redis cache first (shared across all instances)
+  if (isRedisConfigured()) {
+    try {
+      const redis = getRedis();
+      const cached = await redis.get<number>(SOL_PRICE_CACHE_KEY);
+      if (cached && cached > 0) {
+        // Also update memory cache for ultra-fast subsequent reads
+        memoryCachedSolPrice = { price: cached, timestamp: Date.now() };
+        return cached;
+      }
+    } catch {
+      // Redis unavailable — fall through
+    }
+  }
+
+  // In-memory fallback cache
   if (
-    cachedSolPrice &&
-    Date.now() - cachedSolPrice.timestamp < PRICE_CACHE_TTL
+    memoryCachedSolPrice &&
+    Date.now() - memoryCachedSolPrice.timestamp < MEMORY_CACHE_TTL
   ) {
-    return cachedSolPrice.price;
+    return memoryCachedSolPrice.price;
   }
 
   try {
     // Use Jupiter Price API (Solana native, fast, free)
     const response = await fetch(
       "https://api.jup.ag/price/v2?ids=So11111111111111111111111111111111111111112",
-      { signal: AbortSignal.timeout(5000) }, // 5 second timeout
+      { signal: AbortSignal.timeout(5000) },
     );
     const data = await response.json();
     const price =
       data.data?.["So11111111111111111111111111111111111111112"]?.price;
 
     if (price && typeof price === "number" && price > 0) {
-      cachedSolPrice = { price, timestamp: Date.now() };
+      memoryCachedSolPrice = { price, timestamp: Date.now() };
+      // Store in Redis for other instances
+      if (isRedisConfigured()) {
+        getRedis()
+          .set(SOL_PRICE_CACHE_KEY, price, { ex: SOL_PRICE_CACHE_TTL })
+          .catch(() => {});
+      }
       return price;
     }
 
     // Fallback to CoinGecko
     const cgResponse = await fetch(
       "https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd",
-      { signal: AbortSignal.timeout(5000) }, // 5 second timeout
+      { signal: AbortSignal.timeout(5000) },
     );
     const cgData = await cgResponse.json();
     const cgPrice = cgData.solana?.usd;
 
     if (cgPrice && typeof cgPrice === "number" && cgPrice > 0) {
-      cachedSolPrice = { price: cgPrice, timestamp: Date.now() };
+      memoryCachedSolPrice = { price: cgPrice, timestamp: Date.now() };
+      if (isRedisConfigured()) {
+        getRedis()
+          .set(SOL_PRICE_CACHE_KEY, cgPrice, { ex: SOL_PRICE_CACHE_TTL })
+          .catch(() => {});
+      }
       return cgPrice;
     }
 
@@ -83,10 +115,10 @@ export async function getSolPrice(): Promise<number> {
   } catch {
     // If we have a cached price that's not too old, use it
     if (
-      cachedSolPrice &&
-      Date.now() - cachedSolPrice.timestamp < STALE_CACHE_MAX_AGE
+      memoryCachedSolPrice &&
+      Date.now() - memoryCachedSolPrice.timestamp < STALE_CACHE_MAX_AGE
     ) {
-      return cachedSolPrice.price;
+      return memoryCachedSolPrice.price;
     }
 
     // Last resort: use emergency fallback

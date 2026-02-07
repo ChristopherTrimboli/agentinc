@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
   // Apply rate limiting
   const ip =
     req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "anonymous";
-  const rateCheck = checkRateLimit(
+  const rateCheck = await checkRateLimit(
     `price:${ip}`,
     RATE_LIMIT,
     RATE_LIMIT_WINDOW_MS,

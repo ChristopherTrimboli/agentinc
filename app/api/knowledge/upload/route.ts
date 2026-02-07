@@ -36,7 +36,7 @@ export async function POST(req: Request) {
   }
 
   // Rate limit: 10 upload requests per minute per user
-  const rateLimited = rateLimitByUser(userId, "knowledge-upload", 10);
+  const rateLimited = await rateLimitByUser(userId, "knowledge-upload", 10);
   if (rateLimited) return rateLimited;
 
   // Parse multipart form data

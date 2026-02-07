@@ -50,35 +50,58 @@ import {
   buildPaymentRequirements,
   addPaymentReceiptHeader as addReceiptHeader,
 } from "./shared";
+import { isRedisConfigured, getRedis } from "@/lib/redis";
 
 // Re-export for backward compatibility
 export { SOL_NETWORK, type SolNetwork, type PricingKey };
 
 /**
- * Failed payment record for retry queue
+ * Failed payment record for retry queue.
+ * Serializable version uses string for lamports (bigint can't be JSON-serialized).
  */
 interface FailedPayment {
   userId: string;
   walletId: string;
   walletAddress: string;
-  lamports: bigint;
+  lamports: string; // stored as string for JSON serialization
   usdCost: number;
   description: string;
-  timestamp: Date;
+  timestamp: string; // ISO string for serialization
   attempts: number;
   lastError: string;
 }
 
-/**
- * In-memory queue for failed payments (should be persisted in production)
- * TODO: Move to database or Redis for persistence across restarts
- */
-const failedPaymentQueue: FailedPayment[] = [];
+// Redis keys
+const FAILED_PAYMENTS_KEY = "x402:failed_payments";
+const MAX_RETRY_ATTEMPTS = 3;
 
 /**
- * Maximum retry attempts for failed payments
+ * Load failed payments from Redis (or return empty array).
  */
-const MAX_RETRY_ATTEMPTS = 3;
+async function loadFailedPayments(): Promise<FailedPayment[]> {
+  if (!isRedisConfigured()) return [];
+  try {
+    const redis = getRedis();
+    const data = await redis.get<FailedPayment[]>(FAILED_PAYMENTS_KEY);
+    return data || [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Save failed payments to Redis.
+ * TTL of 7 days — after that, failed payments are considered abandoned.
+ */
+async function saveFailedPayments(queue: FailedPayment[]): Promise<void> {
+  if (!isRedisConfigured()) return;
+  try {
+    const redis = getRedis();
+    await redis.set(FAILED_PAYMENTS_KEY, queue, { ex: 7 * 24 * 3600 });
+  } catch {
+    // Non-critical
+  }
+}
 
 /**
  * Retry a payment with exponential backoff
@@ -116,9 +139,10 @@ async function retryPaymentWithBackoff(
 }
 
 /**
- * Queue a failed payment for later retry
+ * Queue a failed payment for later retry.
+ * Persisted in Redis so it survives restarts.
  */
-export function queueFailedPayment(
+export async function queueFailedPayment(
   userId: string,
   walletId: string,
   walletAddress: string,
@@ -126,38 +150,46 @@ export function queueFailedPayment(
   usdCost: number,
   description: string,
   error: string,
-): void {
-  const existingIndex = failedPaymentQueue.findIndex(
+): Promise<void> {
+  const queue = await loadFailedPayments();
+
+  const existingIndex = queue.findIndex(
     (p) => p.userId === userId && p.walletAddress === walletAddress,
   );
 
   if (existingIndex >= 0) {
-    // Update existing entry
-    failedPaymentQueue[existingIndex].lamports += lamports;
-    failedPaymentQueue[existingIndex].usdCost += usdCost;
-    failedPaymentQueue[existingIndex].lastError = error;
-    failedPaymentQueue[existingIndex].timestamp = new Date();
+    const existing = queue[existingIndex];
+    existing.lamports = (
+      BigInt(existing.lamports) + lamports
+    ).toString();
+    existing.usdCost += usdCost;
+    existing.lastError = error;
+    existing.timestamp = new Date().toISOString();
   } else {
-    // Add new entry
-    failedPaymentQueue.push({
+    queue.push({
       userId,
       walletId,
       walletAddress,
-      lamports,
+      lamports: lamports.toString(),
       usdCost,
       description,
-      timestamp: new Date(),
+      timestamp: new Date().toISOString(),
       attempts: 0,
       lastError: error,
     });
   }
+
+  await saveFailedPayments(queue);
 }
 
 /**
  * Get failed payments for a user (for display/retry)
  */
-export function getFailedPayments(userId: string): FailedPayment[] {
-  return failedPaymentQueue.filter((p) => p.userId === userId);
+export async function getFailedPayments(
+  userId: string,
+): Promise<FailedPayment[]> {
+  const queue = await loadFailedPayments();
+  return queue.filter((p) => p.userId === userId);
 }
 
 /**
@@ -172,13 +204,12 @@ export async function processFailedPaymentQueue(): Promise<{
   let succeeded = 0;
   let failed = 0;
 
-  const toProcess = [...failedPaymentQueue];
+  const queue = await loadFailedPayments();
+  const remaining: FailedPayment[] = [];
 
-  for (const payment of toProcess) {
+  for (const payment of queue) {
     if (payment.attempts >= MAX_RETRY_ATTEMPTS) {
-      // Too many attempts - remove from queue
-      const index = failedPaymentQueue.indexOf(payment);
-      if (index >= 0) failedPaymentQueue.splice(index, 1);
+      // Too many attempts — drop from queue
       failed++;
       continue;
     }
@@ -190,20 +221,20 @@ export async function processFailedPaymentQueue(): Promise<{
       payment.walletId,
       payment.walletAddress,
       SOL_TREASURY_ADDRESS,
-      payment.lamports,
+      BigInt(payment.lamports),
     );
 
     if (result.success) {
-      // Remove from queue
-      const index = failedPaymentQueue.indexOf(payment);
-      if (index >= 0) failedPaymentQueue.splice(index, 1);
       succeeded++;
+      // Don't add back to remaining
     } else {
       payment.lastError = result.error || "Unknown error";
-      payment.timestamp = new Date();
+      payment.timestamp = new Date().toISOString();
+      remaining.push(payment);
     }
   }
 
+  await saveFailedPayments(remaining);
   return { processed, succeeded, failed };
 }
 
@@ -215,27 +246,45 @@ export const SOL_TREASURY_ADDRESS = TREASURY_ADDRESS;
 const TREASURY_WALLET_ID = process.env.X402_TREASURY_WALLET_ID || "";
 
 /**
- * Pending refund record for tracking refunds that need processing
+ * Pending refund record for tracking refunds that need processing.
+ * Serializable — lamports stored as string, timestamp as ISO string.
  */
 interface PendingRefund {
   id: string;
   userId: string;
   walletAddress: string;
-  lamports: bigint;
+  lamports: string; // string for JSON serialization
   usdAmount: number;
   reason: string;
   originalTxSignature: string;
-  timestamp: Date;
+  timestamp: string; // ISO string
   status: "pending" | "completed" | "failed";
   refundTxSignature?: string;
   error?: string;
 }
 
-/**
- * In-memory pending refunds (should be persisted in production)
- * TODO: Move to database for persistence
- */
-const pendingRefunds: PendingRefund[] = [];
+const PENDING_REFUNDS_KEY = "x402:pending_refunds";
+
+async function loadPendingRefunds(): Promise<PendingRefund[]> {
+  if (!isRedisConfigured()) return [];
+  try {
+    const redis = getRedis();
+    const data = await redis.get<PendingRefund[]>(PENDING_REFUNDS_KEY);
+    return data || [];
+  } catch {
+    return [];
+  }
+}
+
+async function savePendingRefunds(refunds: PendingRefund[]): Promise<void> {
+  if (!isRedisConfigured()) return;
+  try {
+    const redis = getRedis();
+    await redis.set(PENDING_REFUNDS_KEY, refunds, { ex: 30 * 24 * 3600 }); // 30 day TTL
+  } catch {
+    // Non-critical
+  }
+}
 
 /**
  * Check if auto-refunds from treasury are possible
@@ -283,14 +332,16 @@ export async function issueRefund(
     id: refundId,
     userId,
     walletAddress,
-    lamports,
+    lamports: lamports.toString(),
     usdAmount,
     reason,
     originalTxSignature,
-    timestamp: new Date(),
+    timestamp: new Date().toISOString(),
     status: "pending",
   };
-  pendingRefunds.push(refund);
+
+  const refunds = await loadPendingRefunds();
+  refunds.push(refund);
 
   // Attempt auto-refund if treasury is Privy-managed
   if (isAutoRefundEnabled()) {
@@ -300,6 +351,7 @@ export async function issueRefund(
       if (treasuryBalance < lamports) {
         refund.status = "failed";
         refund.error = "Treasury insufficient balance";
+        await savePendingRefunds(refunds);
         return {
           success: false,
           error: "Treasury insufficient balance",
@@ -318,10 +370,12 @@ export async function issueRefund(
       if (refundResult.success) {
         refund.status = "completed";
         refund.refundTxSignature = refundResult.signature;
+        await savePendingRefunds(refunds);
         return { success: true, refundTxSignature: refundResult.signature };
       } else {
         refund.status = "failed";
         refund.error = refundResult.error;
+        await savePendingRefunds(refunds);
         return {
           success: false,
           error: refundResult.error,
@@ -332,11 +386,13 @@ export async function issueRefund(
       const errorMsg = error instanceof Error ? error.message : "Unknown error";
       refund.status = "failed";
       refund.error = errorMsg;
+      await savePendingRefunds(refunds);
       return { success: false, error: errorMsg, manualRequired: true };
     }
   }
 
   // Auto-refund not available - queue for manual processing
+  await savePendingRefunds(refunds);
   return {
     success: false,
     error: "Auto-refund not configured - queued for manual processing",
@@ -347,15 +403,19 @@ export async function issueRefund(
 /**
  * Get pending refunds (for admin dashboard or cron job)
  */
-export function getPendingRefunds(): PendingRefund[] {
-  return pendingRefunds.filter((r) => r.status === "pending");
+export async function getPendingRefunds(): Promise<PendingRefund[]> {
+  const refunds = await loadPendingRefunds();
+  return refunds.filter((r) => r.status === "pending");
 }
 
 /**
  * Get all refunds for a user
  */
-export function getUserRefunds(userId: string): PendingRefund[] {
-  return pendingRefunds.filter((r) => r.userId === userId);
+export async function getUserRefunds(
+  userId: string,
+): Promise<PendingRefund[]> {
+  const refunds = await loadPendingRefunds();
+  return refunds.filter((r) => r.userId === userId);
 }
 
 // Re-export pricing for backward compatibility (canonical source is config.ts)
@@ -495,7 +555,7 @@ export async function chargeForUsage(
 
       if (!sendResult.success) {
         // All retries failed - queue for later
-        queueFailedPayment(
+        await queueFailedPayment(
           userId,
           walletId,
           walletAddress,

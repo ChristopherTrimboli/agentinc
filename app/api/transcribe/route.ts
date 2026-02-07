@@ -43,7 +43,7 @@ async function transcribeHandler(req: Request) {
   }
 
   // Rate limit: 20 transcription requests per minute per user
-  const rateLimited = rateLimitByUser(privyUserId, "transcribe", 20);
+  const rateLimited = await rateLimitByUser(privyUserId, "transcribe", 20);
   if (rateLimited) return rateLimited;
 
   try {

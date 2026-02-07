@@ -61,7 +61,6 @@ export {
   calculateCost,
   getModelPricing,
   refreshPricingCache,
-  isAIGatewayBillingEnabled,
 } from "./ai-gateway-cost";
 
 export type {

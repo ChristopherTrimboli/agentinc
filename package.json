@@ -38,6 +38,8 @@
     "@streamdown/math": "^1.0.1",
     "@streamdown/mermaid": "^1.0.1",
     "@tanstack/react-table": "^8.21.3",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.36.2",
     "@vercel/analytics": "^1.6.1",
     "@vercel/blob": "^2.2.0",
     "ai": "^6.0.76",
