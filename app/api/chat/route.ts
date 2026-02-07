@@ -340,7 +340,7 @@ async function chatHandler(req: RequestWithBilling) {
 
   // Add tools from enabled tool groups - only add what's explicitly enabled
   if (enabledToolGroups.length > 0) {
-    const groupTools = getToolsForGroups(enabledToolGroups);
+    const groupTools = getToolsForGroups(enabledToolGroups, billingContext);
 
     // Separate provider-defined tools from regular tools
     // Provider-defined tools like web_search should NOT be deferred
@@ -370,7 +370,11 @@ async function chatHandler(req: RequestWithBilling) {
     // Knowledge tools are created dynamically with userId/agentId context
     if (enabledToolGroups.includes("knowledge")) {
       try {
-        const knowledgeTools = createKnowledgeTools(userId, agentId);
+        const knowledgeTools = createKnowledgeTools(
+          userId,
+          agentId,
+          billingContext,
+        );
 
         // Mark knowledge tools as deferred for tool search
         const deferredKnowledgeTools = Object.fromEntries(
@@ -492,7 +496,10 @@ async function chatHandler(req: RequestWithBilling) {
           }
 
           if (accessToken) {
-            const twitterApiTools = createTwitterTools(accessToken);
+            const twitterApiTools = createTwitterTools(
+              accessToken,
+              billingContext,
+            );
 
             // Mark Twitter API tools as deferred for tool search
             const deferredTwitterTools = Object.fromEntries(

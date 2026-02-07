@@ -1,23 +1,48 @@
 {
   "name": "agentinc",
   "version": "0.1.0",
-  "private": true,
+  "description": "Mint AI agents, form corporations, and launch tokens on Solana",
+  "license": "MIT",
+  "author": "cjft",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ChristopherTrimboli/agentinc.git"
+  },
+  "homepage": "https://agentinc.fun",
+  "bugs": {
+    "url": "https://github.com/ChristopherTrimboli/agentinc/issues"
+  },
+  "keywords": [
+    "ai",
+    "agents",
+    "solana",
+    "web3",
+    "nft",
+    "token-launcher",
+    "chatbot",
+    "nextjs",
+    "x402",
+    "bags"
+  ],
+  "engines": {
+    "bun": ">=1.0.0"
+  },
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "postinstall": "prisma generate",
-    "start": "next start",
-    "lint": "eslint",
-    "format": "prettier --write .",
-    "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
-    "db:push": "prisma db push",
-    "db:studio": "prisma studio"
+    "dev": "bun next dev",
+    "build": "bun next build",
+    "postinstall": "bun prisma generate",
+    "start": "bun next start",
+    "lint": "bun eslint",
+    "format": "bun prettier --write .",
+    "db:generate": "bun prisma generate",
+    "db:migrate": "bun prisma migrate dev",
+    "db:push": "bun prisma db push",
+    "db:studio": "bun prisma studio"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.38",
     "@ai-sdk/openai": "^3.0.26",
-    "@ai-sdk/react": "^3.0.78",
+    "@ai-sdk/react": "^3.0.79",
     "@bagsfm/bags-sdk": "^1.2.7",
     "@prisma/client": "^7.3.0",
     "@prisma/extension-accelerate": "^3.0.1",
@@ -42,7 +67,8 @@
     "@upstash/redis": "^1.36.2",
     "@vercel/analytics": "^1.6.1",
     "@vercel/blob": "^2.2.0",
-    "ai": "^6.0.76",
+    "@xdevplatform/xdk": "^0.4.0",
+    "ai": "^6.0.77",
     "bs58": "^6.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -60,7 +86,6 @@
     "streamdown": "^2.1.0",
     "tailwind-merge": "^3.4.0",
     "twilio": "^5.12.1",
-    "twitter-api-v2": "^1.29.0",
     "use-stick-to-bottom": "^1.1.3",
     "zod": "^4.3.6"
   },

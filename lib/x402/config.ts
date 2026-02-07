@@ -134,6 +134,129 @@ export const PRICING = {
 } as const;
 
 /**
+ * X API (Twitter) per-tool pricing in USD.
+ *
+ * Based on X's pay-per-use pricing pilot (January 2026).
+ * Source: https://pricetimeline.com/data/price/x-api
+ *
+ * Costs reflect the actual X API charges per endpoint category:
+ *   Posts: Read          $0.005/resource
+ *   User: Read           $0.010/resource
+ *   Following/Followers  $0.010/resource
+ *   Content: Create      $0.010/request
+ *   User Interaction     $0.015/request  (like, follow, repost)
+ *   DM Interaction       $0.015/request
+ *   Interaction: Delete  $0.010/request
+ *   Bookmark             $0.005/request
+ *   List: Create         $0.010/request
+ *   List: Manage         $0.005/request
+ *   Media Metadata       $0.005/request
+ *
+ * Where a tool makes multiple API calls (e.g. followUser = user lookup +
+ * follow), the cost is the sum of all underlying operations.
+ */
+export const X_API_PRICING = {
+  // Read operations
+  getTweet: 0.005, // Posts: Read ($0.005)
+  searchTweets: 0.005, // Posts: Read/search ($0.005)
+  getHomeTimeline: 0.005, // Posts: Read ($0.005)
+  getUserProfile: 0.01, // User: Read ($0.010)
+  getMyProfile: 0.01, // User: Read ($0.010)
+  getFollowers: 0.01, // Following/Followers: Read ($0.010)
+  getFollowing: 0.01, // Following/Followers: Read ($0.010)
+
+  // Write operations
+  postTweet: 0.01, // Content: Create ($0.010)
+  deleteTweet: 0.01, // Interaction: Delete ($0.010)
+  likeTweet: 0.015, // User Interaction: Create ($0.015)
+  unlikeTweet: 0.01, // Interaction: Delete ($0.010)
+  retweet: 0.015, // User Interaction: Create ($0.015)
+  unretweet: 0.01, // Interaction: Delete ($0.010)
+  bookmarkTweet: 0.005, // Bookmark ($0.005)
+  removeBookmark: 0.005, // Bookmark ($0.005)
+  followUser: 0.025, // User: Read + User Interaction ($0.010 + $0.015)
+  unfollowUser: 0.02, // User: Read + Interaction: Delete ($0.010 + $0.010)
+  sendDirectMessage: 0.025, // User: Read + DM Interaction ($0.010 + $0.015)
+
+  // Media & lists
+  uploadMedia: 0.005, // Media Metadata ($0.005)
+  createList: 0.01, // List: Create ($0.010)
+  addToList: 0.015, // User: Read + List: Manage ($0.010 + $0.005)
+} as const;
+
+export type XApiPricingKey = keyof typeof X_API_PRICING;
+
+/**
+ * Twilio per-tool pricing in USD.
+ *
+ * Based on Twilio's current pay-as-you-go rates (US).
+ * Source: https://www.twilio.com/en-us/sms/pricing/us
+ *         https://www.twilio.com/en-us/voice/pricing/us
+ *         https://www.twilio.com/en-us/whatsapp/pricing
+ *
+ * Rates:
+ *   SMS outbound:      $0.0083/message
+ *   MMS outbound:      $0.0220/message
+ *   Voice outbound:    $0.0140/min (billed per call, assume ~1 min min)
+ *   WhatsApp:          $0.0050/message (Twilio fee) + Meta template fees
+ *   Status/history:    Free (Twilio API reads)
+ */
+export const TWILIO_PRICING = {
+  // Messaging
+  sendSms: 0.0083, // SMS outbound ($0.0083/msg)
+  sendMms: 0.022, // MMS outbound ($0.0220/msg)
+  sendImage: 0.022, // MMS image ($0.0220/msg, same as MMS)
+
+  // Voice
+  makeCall: 0.014, // Voice outbound ($0.014/min, 1 min minimum)
+  playAudioCall: 0.014, // Voice outbound ($0.014/min, 1 min minimum)
+
+  // WhatsApp
+  sendWhatsApp: 0.005, // WhatsApp ($0.005 Twilio fee + Meta fees)
+
+  // Read-only / status (free — no Twilio charge for reads)
+  checkMessageStatus: 0,
+  checkCallStatus: 0,
+  getMessageHistory: 0,
+  checkTwilioConfig: 0,
+} as const;
+
+export type TwilioPricingKey = keyof typeof TWILIO_PRICING;
+
+/**
+ * Image Generation per-tool pricing in USD.
+ *
+ * Based on Black Forest Labs Flux Pro 1.1 API pricing.
+ * Source: https://bfl.ai/pricing/api
+ *
+ * Rate: $0.04 per image (Flux Pro 1.1 standard)
+ */
+export const IMAGE_GEN_PRICING = {
+  generateImage: 0.04, // BFL Flux Pro 1.1 ($0.04/image)
+} as const;
+
+export type ImageGenPricingKey = keyof typeof IMAGE_GEN_PRICING;
+
+/**
+ * Knowledge Base (RAG) per-tool pricing in USD.
+ *
+ * Based on OpenAI text-embedding-3-large pricing.
+ * Source: https://platform.openai.com/docs/models/text-embedding-3-large
+ *
+ * Rate: $0.00013 per 1K tokens (~$0.0001 per typical embedding)
+ * addResource chunks text and creates multiple embeddings, so slightly higher.
+ * getInformation creates one embedding for the query.
+ * removeResource is a DB-only operation (free).
+ */
+export const KNOWLEDGE_PRICING = {
+  addResource: 0.0005, // ~5 chunks × $0.0001/embedding avg
+  getInformation: 0.0001, // 1 embedding query ($0.0001)
+  removeResource: 0, // DB delete only (free)
+} as const;
+
+export type KnowledgePricingKey = keyof typeof KNOWLEDGE_PRICING;
+
+/**
  * Human-readable descriptions for each route
  */
 export const ROUTE_DESCRIPTIONS: Record<PricingKey, string> = {

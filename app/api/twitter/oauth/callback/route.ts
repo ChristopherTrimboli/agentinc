@@ -1,10 +1,11 @@
 /**
  * Twitter OAuth 2.0 Callback - Step 2
  * Handles the redirect from Twitter after authorization
+ * Uses @xdevplatform/xdk for token exchange and user info
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { TwitterApi } from "twitter-api-v2";
+import { OAuth2, Client } from "@xdevplatform/xdk";
 import prisma from "@/lib/prisma";
 import { encrypt } from "@/lib/utils/encryption";
 
@@ -70,29 +71,47 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Exchange authorization code for access token
-    const client = new TwitterApi({
+    // Exchange authorization code for access token using XDK OAuth2
+    const oauth2 = new OAuth2({
       clientId: TWITTER_CLIENT_ID,
       clientSecret: TWITTER_CLIENT_SECRET,
+      redirectUri: CALLBACK_URL,
+      scope: [
+        "tweet.read",
+        "tweet.write",
+        "users.read",
+        "follows.read",
+        "follows.write",
+        "offline.access",
+        "like.read",
+        "like.write",
+        "bookmark.read",
+        "bookmark.write",
+        "dm.read",
+        "dm.write",
+        "list.read",
+        "list.write",
+      ],
     });
 
-    const { accessToken, refreshToken, expiresIn } =
-      await client.loginWithOAuth2({
-        code,
-        codeVerifier,
-        redirectUri: CALLBACK_URL,
-      });
+    const tokens = await oauth2.exchangeCode(code, codeVerifier);
 
-    // Get user info from Twitter
-    const authenticatedClient = new TwitterApi(accessToken);
-    const { data: twitterUser } = await authenticatedClient.v2.me();
+    // Get user info from Twitter using XDK Client
+    const xClient = new Client({ accessToken: tokens.access_token });
+    const meResponse = await xClient.users.getMe({
+      userFields: ["id", "username"],
+    });
+
+    const twitterUser = meResponse.data!;
 
     // Calculate token expiration
-    const expiresAt = new Date(Date.now() + expiresIn * 1000);
+    const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
 
     // Encrypt tokens before storing in database
-    const encryptedAccessToken = encrypt(accessToken);
-    const encryptedRefreshToken = refreshToken ? encrypt(refreshToken) : null;
+    const encryptedAccessToken = encrypt(tokens.access_token);
+    const encryptedRefreshToken = tokens.refresh_token
+      ? encrypt(tokens.refresh_token)
+      : null;
 
     // Store encrypted tokens in database
     await prisma.user.update({
@@ -128,17 +147,18 @@ export async function GET(request: NextRequest) {
     // Log detailed error for debugging
     console.error("Twitter OAuth callback error:", error);
 
-    // Extract more details from twitter-api-v2 errors
+    // Extract more details from XDK API errors
     const err = error as Error & {
+      status?: number;
+      statusText?: string;
       data?: { error?: string; error_description?: string };
-      code?: number;
     };
 
     if (err.data) {
-      console.error("Twitter API error details:", {
+      console.error("X API error details:", {
         error: err.data.error,
         description: err.data.error_description,
-        code: err.code,
+        status: err.status,
       });
     }
 

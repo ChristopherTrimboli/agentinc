@@ -25,15 +25,19 @@
  * ```
  */
 
-import type { AnyTool, ToolMap } from "./types";
+import type { ToolMap } from "./types";
+import type { BillingContext } from "@/lib/x402";
 import { weatherTools } from "./weather";
 import { cryptoTools } from "./crypto";
 import { geolocationTools } from "./geolocation";
 import { wikipediaTools } from "./wikipedia";
 import { datetimeTools } from "./datetime";
-import { imageGenerationTools } from "./imageGeneration";
+import {
+  createImageGenerationTools,
+  imageGenerationTools,
+} from "./imageGeneration";
 import { webSearchTools } from "./webSearch";
-import { twilioTools } from "./twilio";
+import { createTwilioTools, twilioTools } from "./twilio";
 // Note: Twitter tools are created dynamically with user OAuth token via createTwitterTools()
 // Note: Knowledge tools are created dynamically with userId/agentId via createKnowledgeTools()
 
@@ -85,7 +89,11 @@ export {
   formatDate,
   datetimeTools,
 } from "./datetime";
-export { generateImageTool, imageGenerationTools } from "./imageGeneration";
+export {
+  generateImageTool,
+  imageGenerationTools,
+  createImageGenerationTools,
+} from "./imageGeneration";
 export { createWebSearchTool, webSearchTools } from "./webSearch";
 export {
   createTwitterTools,
@@ -97,28 +105,10 @@ export {
 export { createKnowledgeTools } from "./knowledge";
 // Twilio Communications (SMS, MMS, Voice, WhatsApp)
 export {
-  // SMS
-  sendSms,
-  // MMS / Rich Media
-  sendMms,
-  sendImage,
-  // Voice Calls
-  makeCall,
-  playAudioCall,
-  // WhatsApp
-  sendWhatsApp,
-  // Status & History
-  checkMessageStatus,
-  checkCallStatus,
-  getMessageHistory,
-  // Configuration
-  checkTwilioConfig,
-  // Tool bundles
+  // Factory (preferred — supports billing)
+  createTwilioTools,
+  // Default bundle (no billing, backward compat)
   twilioTools,
-  smsTools,
-  mmsTools,
-  voiceTools,
-  whatsAppTools,
 } from "./twilio";
 
 /**
@@ -637,21 +627,24 @@ export function getAllTools(): ToolMap {
  * NOTE: Twitter tools are handled separately in the chat API route
  * because they require user OAuth credentials.
  */
-export function getToolsForGroups(groupIds: string[]): ToolMap {
+export function getToolsForGroups(
+  groupIds: string[],
+  billingContext?: BillingContext,
+): ToolMap {
   const toolModules: Record<string, ToolMap> = {
-    // AI
-    imageGeneration: imageGenerationTools,
+    // AI (paid — use factories with billing)
+    imageGeneration: createImageGenerationTools(billingContext),
     webSearch: webSearchTools,
-    // CRYPTO
+    // CRYPTO (free)
     crypto: cryptoTools,
     onchainDEX: cryptoTools,
-    // UTILITIES
+    // UTILITIES (free)
     weather: weatherTools,
     geolocation: geolocationTools,
     wikipedia: wikipediaTools,
     datetime: datetimeTools,
-    // SOCIAL
-    twilio: twilioTools,
+    // SOCIAL (paid — use factory with billing)
+    twilio: createTwilioTools(billingContext),
     // Note: twitter group is handled separately in chat API (requires OAuth token)
   };
 

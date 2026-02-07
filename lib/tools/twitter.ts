@@ -1,18 +1,19 @@
 /**
- * Twitter Tools
+ * Twitter/X Tools
  *
- * Comprehensive Twitter API integration using twitter-api-v2
+ * Comprehensive X API integration using @xdevplatform/xdk (official SDK)
  * Supports OAuth 2.0 with PKCE flow for user authentication
  *
  * Features:
- * - Tweet management (post, read, delete, retweet, quote)
+ * - Post management (create, read, delete, repost, quote)
  * - Replies and threading
  * - Likes and bookmarks
- * - Timeline and search
- * - User profiles and followers
+ * - Timeline and search (recent + full archive)
+ * - User profiles, followers, and following
  * - Direct messages
  * - Lists
  * - Media uploads
+ * - Post analytics & insights (NEW - XDK only)
  *
  * Note: These tools require user authentication via OAuth 2.0.
  * Users must connect their Twitter account before using these tools.
@@ -24,7 +25,10 @@
 
 import { tool } from "ai";
 import { z } from "zod";
-import { TwitterApi } from "twitter-api-v2";
+import { Client } from "@xdevplatform/xdk";
+import { billedTool } from "./billedTool";
+import { X_API_PRICING } from "@/lib/x402/config";
+import type { BillingContext } from "@/lib/x402";
 
 // ============================================================================
 // Twitter Onboarding Tools
@@ -277,499 +281,683 @@ const addToListSchema = z.object({
 });
 
 /**
- * Helper to get Twitter client with user's stored credentials
- * This should be called from the chat API route which has access to the user context
+ * Create Twitter API tools using the official @xdevplatform/xdk SDK
+ *
+ * Each tool is wrapped with billedTool() which auto-charges the user
+ * the real X API pay-per-use cost via x402 when the tool succeeds.
+ * Costs are sourced from X_API_PRICING (lib/x402/config.ts).
+ *
+ * @param accessToken - The user's OAuth 2.0 access token
+ * @param billingContext - Optional x402 billing context for usage charging
  */
-export function createTwitterTools(accessToken: string) {
-  const client = new TwitterApi(accessToken);
+export function createTwitterTools(
+  accessToken: string,
+  billingContext?: BillingContext,
+) {
+  const client = new Client({ accessToken });
 
   // Cache the authenticated user's ID and username to avoid redundant
-  // client.v2.me() API calls. Each call consumes a rate limit token,
+  // client.users.getMe() API calls. Each call consumes a rate limit token,
   // so calling it in every tool wastes 2x the rate budget.
   let cachedMe: { id: string; username: string } | null = null;
 
   async function getMe(): Promise<{ id: string; username: string }> {
     if (!cachedMe) {
-      const me = await client.v2.me();
-      cachedMe = { id: me.data.id, username: me.data.username };
+      const response = await client.users.getMe({
+        userFields: ["id", "username"],
+      });
+      cachedMe = {
+        id: response.data!.id!,
+        username: response.data!.username!,
+      };
     }
     return cachedMe;
   }
 
   return {
-    postTweet: tool({
-      description:
-        "Post a new tweet to Twitter. Can include media attachments.",
-      inputSchema: postTweetSchema,
-      execute: async (input: z.infer<typeof postTweetSchema>) => {
-        try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const tweetData: any = { text: input.text };
+    postTweet: billedTool(
+      "postTweet",
+      {
+        description:
+          "Post a new tweet to Twitter/X. Can include media attachments, replies, and quote tweets.",
+        inputSchema: postTweetSchema,
+        category: "X API",
+        cost: X_API_PRICING.postTweet,
+        execute: async (input: z.infer<typeof postTweetSchema>) => {
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const tweetBody: any = { text: input.text };
 
-          if (input.mediaIds && input.mediaIds.length > 0) {
-            tweetData.media = { media_ids: input.mediaIds };
-          }
+            if (input.mediaIds && input.mediaIds.length > 0) {
+              tweetBody.media = { mediaIds: input.mediaIds };
+            }
 
-          if (input.replyToTweetId) {
-            tweetData.reply = { in_reply_to_tweet_id: input.replyToTweetId };
-          }
+            if (input.replyToTweetId) {
+              tweetBody.reply = { inReplyToTweetId: input.replyToTweetId };
+            }
 
-          if (input.quoteTweetId) {
-            tweetData.quote_tweet_id = input.quoteTweetId;
-          }
+            if (input.quoteTweetId) {
+              tweetBody.quoteTweetId = input.quoteTweetId;
+            }
 
-          const tweet = await client.v2.tweet(tweetData);
+            const result = await client.posts.create(tweetBody);
 
-          // Get the username for the tweet URL (cached)
-          const me = await getMe();
-          return {
-            success: true,
-            tweet: {
-              id: tweet.data.id,
-              text: tweet.data.text,
-              url: `https://twitter.com/${me.username}/status/${tweet.data.id}`,
-            },
-          };
-        } catch (error: unknown) {
-          const err = error as Error & { data?: unknown };
-          return {
-            error: `Failed to post tweet: ${err.message}`,
-            details: err.data || err,
-          };
-        }
-      },
-    }),
-
-    deleteTweet: tool({
-      description: "Delete one of your tweets",
-      inputSchema: tweetIdSchema,
-      execute: async (input: z.infer<typeof tweetIdSchema>) => {
-        try {
-          await client.v2.deleteTweet(input.tweetId);
-          return { success: true, message: "Tweet deleted successfully" };
-        } catch (error: unknown) {
-          const err = error as Error;
-          return { error: `Failed to delete tweet: ${err.message}` };
-        }
-      },
-    }),
-
-    getTweet: tool({
-      description: "Get details about a specific tweet",
-      inputSchema: getTweetSchema,
-      execute: async (input: z.infer<typeof getTweetSchema>) => {
-        try {
-          const tweet = await client.v2.singleTweet(input.tweetId, {
-            expansions: ["author_id", "attachments.media_keys"],
-            "tweet.fields": input.includeMetrics
-              ? ["created_at", "public_metrics", "conversation_id"]
-              : ["created_at", "conversation_id"],
-            "user.fields": ["username", "name", "profile_image_url"],
-          });
-
-          return { success: true, tweet: tweet.data };
-        } catch (error: unknown) {
-          const err = error as Error;
-          return { error: `Failed to get tweet: ${err.message}` };
-        }
-      },
-    }),
-
-    likeTweet: tool({
-      description: "Like a tweet",
-      inputSchema: tweetIdSchema,
-      execute: async (input: z.infer<typeof tweetIdSchema>) => {
-        try {
-          const me = await getMe();
-          await client.v2.like(me.id, input.tweetId);
-          return { success: true, message: "Tweet liked successfully" };
-        } catch (error: unknown) {
-          const err = error as Error;
-          return { error: `Failed to like tweet: ${err.message}` };
-        }
-      },
-    }),
-
-    unlikeTweet: tool({
-      description: "Unlike a tweet",
-      inputSchema: tweetIdSchema,
-      execute: async (input: z.infer<typeof tweetIdSchema>) => {
-        try {
-          const me = await getMe();
-          await client.v2.unlike(me.id, input.tweetId);
-          return { success: true, message: "Tweet unliked successfully" };
-        } catch (error: unknown) {
-          const err = error as Error;
-          return { error: `Failed to unlike tweet: ${err.message}` };
-        }
-      },
-    }),
-
-    retweet: tool({
-      description: "Retweet a tweet",
-      inputSchema: tweetIdSchema,
-      execute: async (input: z.infer<typeof tweetIdSchema>) => {
-        try {
-          const me = await getMe();
-          await client.v2.retweet(me.id, input.tweetId);
-          return { success: true, message: "Retweeted successfully" };
-        } catch (error: unknown) {
-          const err = error as Error;
-          return { error: `Failed to retweet: ${err.message}` };
-        }
-      },
-    }),
-
-    unretweet: tool({
-      description: "Remove a retweet",
-      inputSchema: tweetIdSchema,
-      execute: async (input: z.infer<typeof tweetIdSchema>) => {
-        try {
-          const me = await getMe();
-          await client.v2.unretweet(me.id, input.tweetId);
-          return { success: true, message: "Unretweet successful" };
-        } catch (error: unknown) {
-          const err = error as Error;
-          return { error: `Failed to unretweet: ${err.message}` };
-        }
-      },
-    }),
-
-    bookmarkTweet: tool({
-      description: "Bookmark a tweet for later",
-      inputSchema: tweetIdSchema,
-      execute: async (input: z.infer<typeof tweetIdSchema>) => {
-        try {
-          await client.v2.bookmark(input.tweetId);
-          return { success: true, message: "Tweet bookmarked successfully" };
-        } catch (error: unknown) {
-          const err = error as Error;
-          return { error: `Failed to bookmark tweet: ${err.message}` };
-        }
-      },
-    }),
-
-    removeBookmark: tool({
-      description: "Remove a bookmark from a tweet",
-      inputSchema: tweetIdSchema,
-      execute: async (input: z.infer<typeof tweetIdSchema>) => {
-        try {
-          await client.v2.deleteBookmark(input.tweetId);
-          return { success: true, message: "Bookmark removed successfully" };
-        } catch (error: unknown) {
-          const err = error as Error;
-          return { error: `Failed to remove bookmark: ${err.message}` };
-        }
-      },
-    }),
-
-    getHomeTimeline: tool({
-      description: "Get tweets from the authenticated user's home timeline",
-      inputSchema: timelineSchema,
-      execute: async (input: z.infer<typeof timelineSchema>) => {
-        try {
-          const me = await getMe();
-          const timeline = await client.v2.userTimeline(me.id, {
-            max_results: input.maxResults,
-            "tweet.fields": ["created_at", "public_metrics", "conversation_id"],
-            expansions: ["author_id"],
-            "user.fields": ["username", "name", "profile_image_url"],
-          });
-
-          return {
-            success: true,
-            tweets: timeline.data.data,
-            users: timeline.includes?.users || [],
-          };
-        } catch (error: unknown) {
-          const err = error as Error;
-          return { error: `Failed to get timeline: ${err.message}` };
-        }
-      },
-    }),
-
-    searchTweets: tool({
-      description: "Search for tweets using Twitter's search API",
-      inputSchema: searchTweetsSchema,
-      execute: async (input: z.infer<typeof searchTweetsSchema>) => {
-        try {
-          const search = await client.v2.search(input.query, {
-            max_results: input.maxResults,
-            start_time: input.startTime,
-            "tweet.fields": ["created_at", "public_metrics", "author_id"],
-            expansions: ["author_id"],
-            "user.fields": ["username", "name", "profile_image_url"],
-          });
-
-          return {
-            success: true,
-            tweets: search.data.data || [],
-            users: search.includes?.users || [],
-            meta: search.meta,
-          };
-        } catch (error: unknown) {
-          const err = error as Error;
-          return { error: `Failed to search tweets: ${err.message}` };
-        }
-      },
-    }),
-
-    getUserProfile: tool({
-      description: "Get a Twitter user's profile information",
-      inputSchema: usernameSchema,
-      execute: async (input: z.infer<typeof usernameSchema>) => {
-        try {
-          const user = await client.v2.userByUsername(input.username, {
-            "user.fields": [
-              "created_at",
-              "description",
-              "location",
-              "profile_image_url",
-              "public_metrics",
-              "url",
-              "verified",
-            ],
-          });
-
-          return { success: true, user: user.data };
-        } catch (error: unknown) {
-          const err = error as Error;
-          return { error: `Failed to get user profile: ${err.message}` };
-        }
-      },
-    }),
-
-    getMyProfile: tool({
-      description: "Get the authenticated user's own profile",
-      inputSchema: z.object({}),
-      execute: async () => {
-        try {
-          const me = await client.v2.me({
-            "user.fields": [
-              "created_at",
-              "description",
-              "location",
-              "profile_image_url",
-              "public_metrics",
-              "url",
-              "verified",
-            ],
-          });
-
-          return { success: true, user: me.data };
-        } catch (error: unknown) {
-          const err = error as Error;
-          return { error: `Failed to get profile: ${err.message}` };
-        }
-      },
-    }),
-
-    followUser: tool({
-      description: "Follow a Twitter user",
-      inputSchema: usernameSchema,
-      execute: async (input: z.infer<typeof usernameSchema>) => {
-        try {
-          const me = await getMe();
-          const targetUser = await client.v2.userByUsername(input.username);
-          await client.v2.follow(me.id, targetUser.data.id);
-          return { success: true, message: `Now following @${input.username}` };
-        } catch (error: unknown) {
-          const err = error as Error;
-          return { error: `Failed to follow user: ${err.message}` };
-        }
-      },
-    }),
-
-    unfollowUser: tool({
-      description: "Unfollow a Twitter user",
-      inputSchema: usernameSchema,
-      execute: async (input: z.infer<typeof usernameSchema>) => {
-        try {
-          const me = await getMe();
-          const targetUser = await client.v2.userByUsername(input.username);
-          await client.v2.unfollow(me.id, targetUser.data.id);
-          return { success: true, message: `Unfollowed @${input.username}` };
-        } catch (error: unknown) {
-          const err = error as Error;
-          return { error: `Failed to unfollow user: ${err.message}` };
-        }
-      },
-    }),
-
-    getFollowers: tool({
-      description: "Get a list of followers for a user",
-      inputSchema: followersSchema,
-      execute: async (input: z.infer<typeof followersSchema>) => {
-        try {
-          let userId: string;
-
-          if (input.username) {
-            const user = await client.v2.userByUsername(input.username);
-            userId = user.data.id;
-          } else {
+            // Get the username for the tweet URL (cached)
             const me = await getMe();
-            userId = me.id;
+            return {
+              success: true,
+              tweet: {
+                id: result.data?.id,
+                text: result.data?.text,
+                url: `https://x.com/${me.username}/status/${result.data?.id}`,
+              },
+            };
+          } catch (error: unknown) {
+            const err = error as Error & { data?: unknown };
+            return {
+              error: `Failed to post tweet: ${err.message}`,
+              details: err.data || err,
+            };
           }
-
-          const followers = await client.v2.followers(userId, {
-            max_results: input.maxResults,
-            "user.fields": [
-              "username",
-              "name",
-              "profile_image_url",
-              "public_metrics",
-            ],
-          });
-
-          return {
-            success: true,
-            followers: followers.data || [],
-            meta: followers.meta,
-          };
-        } catch (error: unknown) {
-          const err = error as Error;
-          return { error: `Failed to get followers: ${err.message}` };
-        }
+        },
       },
-    }),
+      billingContext,
+    ),
 
-    getFollowing: tool({
-      description: "Get a list of users that someone is following",
-      inputSchema: followersSchema,
-      execute: async (input: z.infer<typeof followersSchema>) => {
-        try {
-          let userId: string;
+    deleteTweet: billedTool(
+      "deleteTweet",
+      {
+        description: "Delete one of your tweets",
+        inputSchema: tweetIdSchema,
+        category: "X API",
+        cost: X_API_PRICING.deleteTweet,
+        execute: async (input: z.infer<typeof tweetIdSchema>) => {
+          try {
+            await client.posts.delete(input.tweetId);
+            return { success: true, message: "Tweet deleted successfully" };
+          } catch (error: unknown) {
+            const err = error as Error;
+            return { error: `Failed to delete tweet: ${err.message}` };
+          }
+        },
+      },
+      billingContext,
+    ),
 
-          if (input.username) {
-            const user = await client.v2.userByUsername(input.username);
-            userId = user.data.id;
-          } else {
+    getTweet: billedTool(
+      "getTweet",
+      {
+        description: "Get details about a specific tweet",
+        inputSchema: getTweetSchema,
+        category: "X API",
+        cost: X_API_PRICING.getTweet,
+        execute: async (input: z.infer<typeof getTweetSchema>) => {
+          try {
+            const tweet = await client.posts.getById(input.tweetId, {
+              expansions: ["author_id", "attachments.media_keys"],
+              tweetFields: input.includeMetrics
+                ? ["created_at", "public_metrics", "conversation_id"]
+                : ["created_at", "conversation_id"],
+              userFields: ["username", "name", "profile_image_url"],
+            });
+
+            return { success: true, tweet: tweet.data };
+          } catch (error: unknown) {
+            const err = error as Error;
+            return { error: `Failed to get tweet: ${err.message}` };
+          }
+        },
+      },
+      billingContext,
+    ),
+
+    likeTweet: billedTool(
+      "likeTweet",
+      {
+        description: "Like a tweet",
+        inputSchema: tweetIdSchema,
+        category: "X API",
+        cost: X_API_PRICING.likeTweet,
+        execute: async (input: z.infer<typeof tweetIdSchema>) => {
+          try {
             const me = await getMe();
-            userId = me.id;
+            await client.users.likePost(me.id, {
+              body: { tweetId: input.tweetId },
+            });
+            return { success: true, message: "Tweet liked successfully" };
+          } catch (error: unknown) {
+            const err = error as Error;
+            return { error: `Failed to like tweet: ${err.message}` };
           }
-
-          const following = await client.v2.following(userId, {
-            max_results: input.maxResults,
-            "user.fields": [
-              "username",
-              "name",
-              "profile_image_url",
-              "public_metrics",
-            ],
-          });
-
-          return {
-            success: true,
-            following: following.data || [],
-            meta: following.meta,
-          };
-        } catch (error: unknown) {
-          const err = error as Error;
-          return { error: `Failed to get following: ${err.message}` };
-        }
+        },
       },
-    }),
+      billingContext,
+    ),
 
-    uploadMedia: tool({
-      description:
-        "Upload media (image, video, or GIF) to Twitter for use in tweets",
-      inputSchema: uploadMediaSchema,
-      execute: async (input: z.infer<typeof uploadMediaSchema>) => {
-        try {
-          // Fetch the media
-          const response = await fetch(input.mediaUrl);
-          if (!response.ok) {
-            return { error: "Failed to fetch media from URL" };
+    unlikeTweet: billedTool(
+      "unlikeTweet",
+      {
+        description: "Unlike a tweet",
+        inputSchema: tweetIdSchema,
+        category: "X API",
+        cost: X_API_PRICING.unlikeTweet,
+        execute: async (input: z.infer<typeof tweetIdSchema>) => {
+          try {
+            const me = await getMe();
+            await client.users.unlikePost(me.id, input.tweetId);
+            return { success: true, message: "Tweet unliked successfully" };
+          } catch (error: unknown) {
+            const err = error as Error;
+            return { error: `Failed to unlike tweet: ${err.message}` };
           }
-
-          const buffer = Buffer.from(await response.arrayBuffer());
-
-          // Upload to Twitter
-          const mediaId = await client.v1.uploadMedia(buffer, {
-            mimeType: input.mediaType,
-          });
-
-          return {
-            success: true,
-            mediaId,
-            message:
-              "Media uploaded successfully. Use this mediaId when posting a tweet.",
-          };
-        } catch (error: unknown) {
-          const err = error as Error;
-          return { error: `Failed to upload media: ${err.message}` };
-        }
+        },
       },
-    }),
+      billingContext,
+    ),
 
-    sendDirectMessage: tool({
-      description: "Send a direct message to a Twitter user",
-      inputSchema: sendDMSchema,
-      execute: async (input: z.infer<typeof sendDMSchema>) => {
-        try {
-          const targetUser = await client.v2.userByUsername(input.username);
-          const dm = await client.v2.sendDmToParticipant(targetUser.data.id, {
-            text: input.text,
-          });
-
-          return {
-            success: true,
-            messageId: dm.dm_event_id,
-            message: "Direct message sent successfully",
-          };
-        } catch (error: unknown) {
-          const err = error as Error;
-          return { error: `Failed to send DM: ${err.message}` };
-        }
+    retweet: billedTool(
+      "retweet",
+      {
+        description: "Repost/retweet a tweet",
+        inputSchema: tweetIdSchema,
+        category: "X API",
+        cost: X_API_PRICING.retweet,
+        execute: async (input: z.infer<typeof tweetIdSchema>) => {
+          try {
+            const me = await getMe();
+            await client.users.repostPost(me.id, {
+              body: { tweetId: input.tweetId },
+            });
+            return { success: true, message: "Reposted successfully" };
+          } catch (error: unknown) {
+            const err = error as Error;
+            return { error: `Failed to repost: ${err.message}` };
+          }
+        },
       },
-    }),
+      billingContext,
+    ),
 
-    createList: tool({
-      description: "Create a new Twitter list",
-      inputSchema: createListSchema,
-      execute: async (input: z.infer<typeof createListSchema>) => {
-        try {
-          const list = await client.v2.createList({
-            name: input.name,
-            description: input.description,
-            private: input.private,
-          });
-
-          return {
-            success: true,
-            list: list.data,
-            message: "List created successfully",
-          };
-        } catch (error: unknown) {
-          const err = error as Error;
-          return { error: `Failed to create list: ${err.message}` };
-        }
+    unretweet: billedTool(
+      "unretweet",
+      {
+        description: "Remove a repost/retweet",
+        inputSchema: tweetIdSchema,
+        category: "X API",
+        cost: X_API_PRICING.unretweet,
+        execute: async (input: z.infer<typeof tweetIdSchema>) => {
+          try {
+            const me = await getMe();
+            await client.users.unrepostPost(me.id, input.tweetId);
+            return { success: true, message: "Unrepost successful" };
+          } catch (error: unknown) {
+            const err = error as Error;
+            return { error: `Failed to unrepost: ${err.message}` };
+          }
+        },
       },
-    }),
+      billingContext,
+    ),
 
-    addToList: tool({
-      description: "Add a user to a Twitter list",
-      inputSchema: addToListSchema,
-      execute: async (input: z.infer<typeof addToListSchema>) => {
-        try {
-          const user = await client.v2.userByUsername(input.username);
-          await client.v2.addListMember(input.listId, user.data.id);
-
-          return {
-            success: true,
-            message: `@${input.username} added to list successfully`,
-          };
-        } catch (error: unknown) {
-          const err = error as Error;
-          return { error: `Failed to add to list: ${err.message}` };
-        }
+    bookmarkTweet: billedTool(
+      "bookmarkTweet",
+      {
+        description: "Bookmark a tweet for later",
+        inputSchema: tweetIdSchema,
+        category: "X API",
+        cost: X_API_PRICING.bookmarkTweet,
+        execute: async (input: z.infer<typeof tweetIdSchema>) => {
+          try {
+            const me = await getMe();
+            await client.users.createBookmark(me.id, {
+              tweetId: input.tweetId,
+            });
+            return { success: true, message: "Tweet bookmarked successfully" };
+          } catch (error: unknown) {
+            const err = error as Error;
+            return { error: `Failed to bookmark tweet: ${err.message}` };
+          }
+        },
       },
-    }),
+      billingContext,
+    ),
+
+    removeBookmark: billedTool(
+      "removeBookmark",
+      {
+        description: "Remove a bookmark from a tweet",
+        inputSchema: tweetIdSchema,
+        category: "X API",
+        cost: X_API_PRICING.removeBookmark,
+        execute: async (input: z.infer<typeof tweetIdSchema>) => {
+          try {
+            const me = await getMe();
+            await client.users.deleteBookmark(me.id, input.tweetId);
+            return { success: true, message: "Bookmark removed successfully" };
+          } catch (error: unknown) {
+            const err = error as Error;
+            return { error: `Failed to remove bookmark: ${err.message}` };
+          }
+        },
+      },
+      billingContext,
+    ),
+
+    getHomeTimeline: billedTool(
+      "getHomeTimeline",
+      {
+        description:
+          "Get tweets from the authenticated user's reverse-chronological home timeline",
+        inputSchema: timelineSchema,
+        category: "X API",
+        cost: X_API_PRICING.getHomeTimeline,
+        execute: async (input: z.infer<typeof timelineSchema>) => {
+          try {
+            const me = await getMe();
+            const timeline = await client.users.getTimeline(me.id, {
+              maxResults: input.maxResults,
+              tweetFields: ["created_at", "public_metrics", "conversation_id"],
+              expansions: ["author_id"],
+              userFields: ["username", "name", "profile_image_url"],
+            });
+
+            return {
+              success: true,
+              tweets: timeline.data || [],
+              users: timeline.includes?.users || [],
+            };
+          } catch (error: unknown) {
+            const err = error as Error;
+            return { error: `Failed to get timeline: ${err.message}` };
+          }
+        },
+      },
+      billingContext,
+    ),
+
+    searchTweets: billedTool(
+      "searchTweets",
+      {
+        description:
+          "Search for recent tweets using X's search API (last 7 days)",
+        inputSchema: searchTweetsSchema,
+        category: "X API",
+        cost: X_API_PRICING.searchTweets,
+        execute: async (input: z.infer<typeof searchTweetsSchema>) => {
+          try {
+            const search = await client.posts.searchRecent(input.query, {
+              maxResults: input.maxResults,
+              startTime: input.startTime,
+              tweetFields: ["created_at", "public_metrics", "author_id"],
+              expansions: ["author_id"],
+              userFields: ["username", "name", "profile_image_url"],
+            });
+
+            return {
+              success: true,
+              tweets: search.data || [],
+              users: search.includes?.users || [],
+              meta: search.meta,
+            };
+          } catch (error: unknown) {
+            const err = error as Error;
+            return { error: `Failed to search tweets: ${err.message}` };
+          }
+        },
+      },
+      billingContext,
+    ),
+
+    getUserProfile: billedTool(
+      "getUserProfile",
+      {
+        description: "Get a Twitter user's profile information",
+        inputSchema: usernameSchema,
+        category: "X API",
+        cost: X_API_PRICING.getUserProfile,
+        execute: async (input: z.infer<typeof usernameSchema>) => {
+          try {
+            const user = await client.users.getByUsername(input.username, {
+              userFields: [
+                "created_at",
+                "description",
+                "location",
+                "profile_image_url",
+                "public_metrics",
+                "url",
+                "verified",
+              ],
+            });
+
+            return { success: true, user: user.data };
+          } catch (error: unknown) {
+            const err = error as Error;
+            return { error: `Failed to get user profile: ${err.message}` };
+          }
+        },
+      },
+      billingContext,
+    ),
+
+    getMyProfile: billedTool(
+      "getMyProfile",
+      {
+        description: "Get the authenticated user's own profile",
+        inputSchema: z.object({}),
+        category: "X API",
+        cost: X_API_PRICING.getMyProfile,
+        execute: async () => {
+          try {
+            const me = await client.users.getMe({
+              userFields: [
+                "created_at",
+                "description",
+                "location",
+                "profile_image_url",
+                "public_metrics",
+                "url",
+                "verified",
+              ],
+            });
+
+            return { success: true, user: me.data };
+          } catch (error: unknown) {
+            const err = error as Error;
+            return { error: `Failed to get profile: ${err.message}` };
+          }
+        },
+      },
+      billingContext,
+    ),
+
+    followUser: billedTool(
+      "followUser",
+      {
+        description: "Follow a Twitter user",
+        inputSchema: usernameSchema,
+        category: "X API",
+        cost: X_API_PRICING.followUser,
+        execute: async (input: z.infer<typeof usernameSchema>) => {
+          try {
+            const me = await getMe();
+            const targetUser = await client.users.getByUsername(input.username);
+            await client.users.followUser(me.id, {
+              body: { targetUserId: targetUser.data!.id! },
+            });
+            return {
+              success: true,
+              message: `Now following @${input.username}`,
+            };
+          } catch (error: unknown) {
+            const err = error as Error;
+            return { error: `Failed to follow user: ${err.message}` };
+          }
+        },
+      },
+      billingContext,
+    ),
+
+    unfollowUser: billedTool(
+      "unfollowUser",
+      {
+        description: "Unfollow a Twitter user",
+        inputSchema: usernameSchema,
+        category: "X API",
+        cost: X_API_PRICING.unfollowUser,
+        execute: async (input: z.infer<typeof usernameSchema>) => {
+          try {
+            const me = await getMe();
+            const targetUser = await client.users.getByUsername(input.username);
+            await client.users.unfollowUser(me.id, targetUser.data!.id!);
+            return { success: true, message: `Unfollowed @${input.username}` };
+          } catch (error: unknown) {
+            const err = error as Error;
+            return { error: `Failed to unfollow user: ${err.message}` };
+          }
+        },
+      },
+      billingContext,
+    ),
+
+    getFollowers: billedTool(
+      "getFollowers",
+      {
+        description: "Get a list of followers for a user",
+        inputSchema: followersSchema,
+        category: "X API",
+        cost: X_API_PRICING.getFollowers,
+        execute: async (input: z.infer<typeof followersSchema>) => {
+          try {
+            let userId: string;
+
+            if (input.username) {
+              const user = await client.users.getByUsername(input.username);
+              userId = user.data!.id!;
+            } else {
+              const me = await getMe();
+              userId = me.id;
+            }
+
+            const followers = await client.users.getFollowers(userId, {
+              maxResults: input.maxResults,
+              userFields: [
+                "username",
+                "name",
+                "profile_image_url",
+                "public_metrics",
+              ],
+            });
+
+            return {
+              success: true,
+              followers: followers.data || [],
+              meta: followers.meta,
+            };
+          } catch (error: unknown) {
+            const err = error as Error;
+            return { error: `Failed to get followers: ${err.message}` };
+          }
+        },
+      },
+      billingContext,
+    ),
+
+    getFollowing: billedTool(
+      "getFollowing",
+      {
+        description: "Get a list of users that someone is following",
+        inputSchema: followersSchema,
+        category: "X API",
+        cost: X_API_PRICING.getFollowing,
+        execute: async (input: z.infer<typeof followersSchema>) => {
+          try {
+            let userId: string;
+
+            if (input.username) {
+              const user = await client.users.getByUsername(input.username);
+              userId = user.data!.id!;
+            } else {
+              const me = await getMe();
+              userId = me.id;
+            }
+
+            const following = await client.users.getFollowing(userId, {
+              maxResults: input.maxResults,
+              userFields: [
+                "username",
+                "name",
+                "profile_image_url",
+                "public_metrics",
+              ],
+            });
+
+            return {
+              success: true,
+              following: following.data || [],
+              meta: following.meta,
+            };
+          } catch (error: unknown) {
+            const err = error as Error;
+            return { error: `Failed to get following: ${err.message}` };
+          }
+        },
+      },
+      billingContext,
+    ),
+
+    uploadMedia: billedTool(
+      "uploadMedia",
+      {
+        description:
+          "Upload media (image, video, or GIF) to Twitter for use in tweets",
+        inputSchema: uploadMediaSchema,
+        category: "X API",
+        cost: X_API_PRICING.uploadMedia,
+        execute: async (input: z.infer<typeof uploadMediaSchema>) => {
+          try {
+            // Fetch the media from the URL
+            const response = await fetch(input.mediaUrl);
+            if (!response.ok) {
+              return { error: "Failed to fetch media from URL" };
+            }
+
+            const buffer = Buffer.from(await response.arrayBuffer());
+
+            // Upload to Twitter using v1.1 media upload endpoint
+            // This works with OAuth 2.0 access tokens
+            const formData = new FormData();
+            formData.append("media_data", buffer.toString("base64"));
+
+            const uploadResponse = await fetch(
+              "https://upload.twitter.com/1.1/media/upload.json",
+              {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${accessToken}`,
+                },
+                body: formData,
+              },
+            );
+
+            if (!uploadResponse.ok) {
+              const errorText = await uploadResponse.text();
+              return {
+                error: `Media upload failed: ${uploadResponse.status} ${errorText}`,
+              };
+            }
+
+            const uploadResult = await uploadResponse.json();
+            const mediaId = uploadResult.media_id_string;
+
+            return {
+              success: true,
+              mediaId,
+              message:
+                "Media uploaded successfully. Use this mediaId when posting a tweet.",
+            };
+          } catch (error: unknown) {
+            const err = error as Error;
+            return { error: `Failed to upload media: ${err.message}` };
+          }
+        },
+      },
+      billingContext,
+    ),
+
+    sendDirectMessage: billedTool(
+      "sendDirectMessage",
+      {
+        description: "Send a direct message to a Twitter user",
+        inputSchema: sendDMSchema,
+        category: "X API",
+        cost: X_API_PRICING.sendDirectMessage,
+        execute: async (input: z.infer<typeof sendDMSchema>) => {
+          try {
+            const targetUser = await client.users.getByUsername(input.username);
+            const dm = await client.directMessages.createByParticipantId(
+              targetUser.data!.id!,
+              {
+                body: { text: input.text },
+              },
+            );
+
+            return {
+              success: true,
+              messageId: dm.data?.dmEventId ?? dm.data?.dm_event_id,
+              message: "Direct message sent successfully",
+            };
+          } catch (error: unknown) {
+            const err = error as Error;
+            return { error: `Failed to send DM: ${err.message}` };
+          }
+        },
+      },
+      billingContext,
+    ),
+
+    createList: billedTool(
+      "createList",
+      {
+        description: "Create a new Twitter list",
+        inputSchema: createListSchema,
+        category: "X API",
+        cost: X_API_PRICING.createList,
+        execute: async (input: z.infer<typeof createListSchema>) => {
+          try {
+            const list = await client.lists.create({
+              body: {
+                name: input.name,
+                description: input.description,
+                private: input.private,
+              },
+            });
+
+            return {
+              success: true,
+              list: list.data,
+              message: "List created successfully",
+            };
+          } catch (error: unknown) {
+            const err = error as Error;
+            return { error: `Failed to create list: ${err.message}` };
+          }
+        },
+      },
+      billingContext,
+    ),
+
+    addToList: billedTool(
+      "addToList",
+      {
+        description: "Add a user to a Twitter list",
+        inputSchema: addToListSchema,
+        category: "X API",
+        cost: X_API_PRICING.addToList,
+        execute: async (input: z.infer<typeof addToListSchema>) => {
+          try {
+            const user = await client.users.getByUsername(input.username);
+            await client.lists.addMember(input.listId, {
+              body: { userId: user.data!.id! },
+            });
+
+            return {
+              success: true,
+              message: `@${input.username} added to list successfully`,
+            };
+          } catch (error: unknown) {
+            const err = error as Error;
+            return { error: `Failed to add to list: ${err.message}` };
+          }
+        },
+      },
+      billingContext,
+    ),
   };
 }
 
 /**
  * Helper function to refresh an expired Twitter access token
+ * Uses direct OAuth 2.0 token endpoint (no library dependency)
  * Returns the new access token and expiration, or null if refresh fails
  */
 export async function refreshTwitterToken(refreshToken: string): Promise<{
@@ -778,21 +966,35 @@ export async function refreshTwitterToken(refreshToken: string): Promise<{
   expiresIn: number;
 } | null> {
   try {
-    const client = new TwitterApi({
-      clientId: process.env.TWITTER_CLIENT_ID!,
-      clientSecret: process.env.TWITTER_CLIENT_SECRET!,
+    const clientId = process.env.TWITTER_CLIENT_ID!;
+    const clientSecret = process.env.TWITTER_CLIENT_SECRET!;
+
+    const response = await fetch("https://api.x.com/2/oauth2/token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString("base64")}`,
+      },
+      body: new URLSearchParams({
+        grant_type: "refresh_token",
+        refresh_token: refreshToken,
+      }),
     });
 
-    const {
-      accessToken,
-      refreshToken: newRefreshToken,
-      expiresIn,
-    } = await client.refreshOAuth2Token(refreshToken);
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error(
+        `Twitter token refresh failed: ${response.status} ${errorData}`,
+      );
+      return null;
+    }
+
+    const data = await response.json();
 
     return {
-      accessToken,
-      refreshToken: newRefreshToken || refreshToken,
-      expiresIn,
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token || refreshToken,
+      expiresIn: data.expires_in,
     };
   } catch (error) {
     console.error("Failed to refresh Twitter token:", error);

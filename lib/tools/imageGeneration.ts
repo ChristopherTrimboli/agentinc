@@ -1,13 +1,19 @@
-import { tool, generateImage } from "ai";
+import { generateImage } from "ai";
 import { put } from "@vercel/blob";
 import { z } from "zod";
+import { billedTool } from "./billedTool";
+import { IMAGE_GEN_PRICING } from "@/lib/x402/config";
+import type { BillingContext } from "@/lib/x402";
 
 /**
- * Image Generation Tool
+ * Image Generation Tools
  *
  * Uses AI SDK generateImage to create images from text prompts.
- * Works with AI Gateway image models.
- * Images are persisted to Vercel Blob storage lazily for durability.
+ * Works with AI Gateway image models (Black Forest Labs Flux Pro 1.1).
+ * Images are persisted to Vercel Blob storage for durability.
+ *
+ * Wrapped with billedTool for x402 usage-based billing.
+ * Cost: $0.04 per image (BFL Flux Pro 1.1 standard rate).
  */
 
 const generateImageSchema = z.object({
@@ -61,89 +67,99 @@ async function persistImageToBlob(
 }
 
 /**
- * Generate an image from a text prompt
+ * Create image generation tools with optional x402 billing.
  *
- * Returns base64 encoded image data immediately for fast display,
- * then lazily persists to Vercel Blob storage in the background.
+ * @param billingContext - Optional x402 billing context for usage charging
  */
-export const generateImageTool = tool({
-  description:
-    "Generate an image from a text description. Use this when the user asks you to create, generate, draw, or make an image, picture, illustration, or artwork.",
-  inputSchema: generateImageSchema,
-  execute: async (input: z.infer<typeof generateImageSchema>) => {
-    try {
-      // Enhance the prompt based on style if provided
-      let enhancedPrompt = input.prompt;
-      if (input.style) {
-        const styleEnhancements: Record<string, string> = {
-          vivid: "vibrant colors, high contrast, dramatic lighting",
-          natural: "realistic, natural lighting, true-to-life colors",
-          artistic: "artistic, creative interpretation, expressive style",
-          photorealistic:
-            "photorealistic, highly detailed, professional photography quality",
-        };
-        enhancedPrompt = `${input.prompt}. Style: ${styleEnhancements[input.style]}`;
-      }
+export function createImageGenerationTools(billingContext?: BillingContext) {
+  const generateImageTool = billedTool(
+    "generateImage",
+    {
+      description:
+        "Generate an image from a text description. Use this when the user asks you to create, generate, draw, or make an image, picture, illustration, or artwork.",
+      inputSchema: generateImageSchema,
+      category: "Image Gen",
+      cost: IMAGE_GEN_PRICING.generateImage,
+      execute: async (input: z.infer<typeof generateImageSchema>) => {
+        try {
+          // Enhance the prompt based on style if provided
+          let enhancedPrompt = input.prompt;
+          if (input.style) {
+            const styleEnhancements: Record<string, string> = {
+              vivid: "vibrant colors, high contrast, dramatic lighting",
+              natural: "realistic, natural lighting, true-to-life colors",
+              artistic: "artistic, creative interpretation, expressive style",
+              photorealistic:
+                "photorealistic, highly detailed, professional photography quality",
+            };
+            enhancedPrompt = `${input.prompt}. Style: ${styleEnhancements[input.style]}`;
+          }
 
-      // Use AI Gateway's Black Forest Labs Flux model for high quality images
-      // This model supports various aspect ratios and produces excellent results
-      const result = await generateImage({
-        model: "bfl/flux-pro-1.1",
-        prompt: enhancedPrompt,
-        aspectRatio: input.aspectRatio,
-      });
+          // Use AI Gateway's Black Forest Labs Flux model for high quality images
+          // This model supports various aspect ratios and produces excellent results
+          const result = await generateImage({
+            model: "bfl/flux-pro-1.1",
+            prompt: enhancedPrompt,
+            aspectRatio: input.aspectRatio,
+          });
 
-      // Get the image data
-      const image = result.image;
-      const base64 = image.base64;
+          // Get the image data
+          const image = result.image;
+          const base64 = image.base64;
 
-      // Persist to blob storage - we MUST use the URL to avoid context overflow
-      // Base64 images are huge and will max out LLM context if included in results
-      const blobUrl = await persistImageToBlob(base64, input.prompt);
+          // Persist to blob storage - we MUST use the URL to avoid context overflow
+          // Base64 images are huge and will max out LLM context if included in results
+          const blobUrl = await persistImageToBlob(base64, input.prompt);
 
-      if (!blobUrl) {
-        return {
-          success: false,
-          error: "Failed to save image to storage",
-          prompt: input.prompt,
-          suggestion:
-            "Please try again. The image was generated but could not be saved.",
-        };
-      }
+          if (!blobUrl) {
+            return {
+              success: false,
+              error: "Failed to save image to storage",
+              prompt: input.prompt,
+              suggestion:
+                "Please try again. The image was generated but could not be saved.",
+            };
+          }
 
-      // Return ONLY the URL (not base64) to keep context small
-      // Frontend will load image from the blob URL
-      return {
-        success: true,
-        image: {
-          url: blobUrl,
-          mediaType: "image/png",
-        },
-        prompt: input.prompt,
-        enhancedPrompt,
-        aspectRatio: input.aspectRatio,
-      };
-    } catch (error) {
-      console.error("[Image Generation] Error:", error);
+          // Return ONLY the URL (not base64) to keep context small
+          // Frontend will load image from the blob URL
+          return {
+            success: true,
+            image: {
+              url: blobUrl,
+              mediaType: "image/png",
+            },
+            prompt: input.prompt,
+            enhancedPrompt,
+            aspectRatio: input.aspectRatio,
+          };
+        } catch (error) {
+          console.error("[Image Generation] Error:", error);
 
-      // Return a friendly error message
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
+          // Return a friendly error message
+          const errorMessage =
+            error instanceof Error ? error.message : "Unknown error occurred";
 
-      return {
-        success: false,
-        error: errorMessage,
-        prompt: input.prompt,
-        suggestion:
-          "Try rephrasing your prompt or check if the image generation service is available.",
-      };
-    }
-  },
-});
+          return {
+            success: false,
+            error: errorMessage,
+            prompt: input.prompt,
+            suggestion:
+              "Try rephrasing your prompt or check if the image generation service is available.",
+          };
+        }
+      },
+    },
+    billingContext,
+  );
+
+  return {
+    generateImage: generateImageTool,
+  };
+}
 
 /**
- * All image generation tools bundled together
+ * Default image generation tools (no billing) and legacy named export.
  */
-export const imageGenerationTools = {
-  generateImage: generateImageTool,
-};
+export const generateImageTool = createImageGenerationTools().generateImage;
+export const imageGenerationTools = createImageGenerationTools();

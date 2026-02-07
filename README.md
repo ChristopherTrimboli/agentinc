@@ -78,30 +78,30 @@ Native SOL micropayment protocol for API monetization.
 
 **Current pricing:**
 
-| Endpoint         | Price     |
-| ---------------- | --------- |
-| AI Chat          | $0.01/req |
-| Text-to-Speech   | $0.005/req|
-| Speech-to-Text   | $0.005/req|
-| Image Generation  | $0.02/req |
+| Endpoint         | Price      |
+| ---------------- | ---------- |
+| AI Chat          | $0.01/req  |
+| Text-to-Speech   | $0.005/req |
+| Speech-to-Text   | $0.005/req |
+| Image Generation | $0.02/req  |
 
 ---
 
 ## Tech Stack
 
-| Layer          | Tech                                              |
-| -------------- | ------------------------------------------------- |
-| Framework      | Next.js 16, React 19, TypeScript                  |
-| Database       | PostgreSQL via Prisma (Prisma Accelerate)          |
-| Vector search  | pgvector + OpenAI `text-embedding-3-large`         |
-| Auth           | Privy (embedded Solana wallets + social login)     |
-| AI             | Vercel AI SDK, Claude (Anthropic), OpenAI (TTS/STT/embeddings) |
-| Blockchain     | Solana via Bags SDK, @solana/web3.js               |
-| Styling        | Tailwind CSS 4, Radix UI primitives                |
-| Visualization  | PixiJS 8                                           |
-| Storage        | Vercel Blob                                        |
-| Caching        | Upstash Redis (rate limiting, auth, price caching) |
-| Payments       | x402 protocol (native SOL)                         |
+| Layer         | Tech                                                           |
+| ------------- | -------------------------------------------------------------- |
+| Framework     | Next.js 16, React 19, TypeScript                               |
+| Database      | PostgreSQL via Prisma (Prisma Accelerate)                      |
+| Vector search | pgvector + OpenAI `text-embedding-3-large`                     |
+| Auth          | Privy (embedded Solana wallets + social login)                 |
+| AI            | Vercel AI SDK, Claude (Anthropic), OpenAI (TTS/STT/embeddings) |
+| Blockchain    | Solana via Bags SDK, @solana/web3.js                           |
+| Styling       | Tailwind CSS 4, Radix UI primitives                            |
+| Visualization | PixiJS 8                                                       |
+| Storage       | Vercel Blob                                                    |
+| Caching       | Upstash Redis (rate limiting, auth, price caching)             |
+| Payments      | x402 protocol (native SOL)                                     |
 
 ---
 
@@ -129,41 +129,41 @@ Copy `example.env.local` to `.env.local`. Here's what you need:
 
 **Required:**
 
-| Variable                               | What it does                                   |
-| -------------------------------------- | ---------------------------------------------- |
-| `NEXT_PUBLIC_PRIVY_APP_ID`             | Privy app ID                                   |
-| `PRIVY_APP_SECRET`                     | Privy app secret                               |
-| `DATABASE_URL`                         | PostgreSQL connection string                    |
-| `AI_GATEWAY_API_KEY`                   | AI Gateway key (chat, tools, billing)           |
-| `BAGS_API_KEY`                         | Bags SDK key for token launches                 |
-| `BAGS_PARTNER_KEY`                     | Bags partner key                                |
-| `BAGS_PARTNER_WALLET`                  | Bags partner wallet address                     |
-| `BLOB_READ_WRITE_TOKEN`               | Vercel Blob storage token                       |
-| `SOLANA_RPC_URL`                       | Solana RPC (server-side)                        |
-| `NEXT_PUBLIC_SOLANA_RPC_URL`           | Solana RPC (client-side)                        |
-| `ENCRYPTION_KEY`                       | 64 hex chars for AES-256-GCM encryption         |
+| Variable                     | What it does                            |
+| ---------------------------- | --------------------------------------- |
+| `NEXT_PUBLIC_PRIVY_APP_ID`   | Privy app ID                            |
+| `PRIVY_APP_SECRET`           | Privy app secret                        |
+| `DATABASE_URL`               | PostgreSQL connection string            |
+| `AI_GATEWAY_API_KEY`         | AI Gateway key (chat, tools, billing)   |
+| `BAGS_API_KEY`               | Bags SDK key for token launches         |
+| `BAGS_PARTNER_KEY`           | Bags partner key                        |
+| `BAGS_PARTNER_WALLET`        | Bags partner wallet address             |
+| `BLOB_READ_WRITE_TOKEN`      | Vercel Blob storage token               |
+| `SOLANA_RPC_URL`             | Solana RPC (server-side)                |
+| `NEXT_PUBLIC_SOLANA_RPC_URL` | Solana RPC (client-side)                |
+| `ENCRYPTION_KEY`             | 64 hex chars for AES-256-GCM encryption |
 
 **Server signer (x402 auto-payments):**
 
-| Variable                               | What it does                                   |
-| -------------------------------------- | ---------------------------------------------- |
-| `PRIVY_AUTHORIZATION_PRIVATE_KEY`      | P-256 PKCS8 private key (base64)               |
-| `PRIVY_SIGNER_KEY_QUORUM_ID`          | Key quorum ID from Privy dashboard              |
-| `NEXT_PUBLIC_SERVER_SIGNER_KEY_QUORUM_ID` | Same quorum ID (public)                     |
+| Variable                                  | What it does                       |
+| ----------------------------------------- | ---------------------------------- |
+| `PRIVY_AUTHORIZATION_PRIVATE_KEY`         | P-256 PKCS8 private key (base64)   |
+| `PRIVY_SIGNER_KEY_QUORUM_ID`              | Key quorum ID from Privy dashboard |
+| `NEXT_PUBLIC_SERVER_SIGNER_KEY_QUORUM_ID` | Same quorum ID (public)            |
 
 **Optional:**
 
-| Variable                   | What it does                              |
-| -------------------------- | ----------------------------------------- |
-| `OPENAI_API_KEY`           | OpenAI for TTS, STT, and embeddings       |
-| `TWITTER_CLIENT_ID`        | Twitter OAuth 2.0 client ID               |
-| `TWITTER_CLIENT_SECRET`    | Twitter OAuth 2.0 client secret            |
-| `TWILIO_ACCOUNT_SID`       | Twilio account SID                         |
-| `TWILIO_AUTH_TOKEN`         | Twilio auth token                          |
-| `TWILIO_PHONE_NUMBER`      | Twilio phone number                        |
-| `TWILIO_WHATSAPP_NUMBER`   | WhatsApp Business number                   |
-| `X402_TREASURY_ADDRESS`    | SOL wallet to receive x402 payments        |
-| `SOLANA_NETWORK`           | `mainnet` or `devnet` (auto-detected if unset) |
+| Variable                 | What it does                                   |
+| ------------------------ | ---------------------------------------------- |
+| `OPENAI_API_KEY`         | OpenAI for TTS, STT, and embeddings            |
+| `TWITTER_CLIENT_ID`      | Twitter OAuth 2.0 client ID                    |
+| `TWITTER_CLIENT_SECRET`  | Twitter OAuth 2.0 client secret                |
+| `TWILIO_ACCOUNT_SID`     | Twilio account SID                             |
+| `TWILIO_AUTH_TOKEN`      | Twilio auth token                              |
+| `TWILIO_PHONE_NUMBER`    | Twilio phone number                            |
+| `TWILIO_WHATSAPP_NUMBER` | WhatsApp Business number                       |
+| `X402_TREASURY_ADDRESS`  | SOL wallet to receive x402 payments            |
+| `SOLANA_NETWORK`         | `mainnet` or `devnet` (auto-detected if unset) |
 
 ---
 
@@ -245,13 +245,13 @@ bun db:studio    # Prisma Studio GUI
 
 ## Agent Rarity System
 
-| Rarity      | Drop Rate | Traits | Skills | Tools |
-| ----------- | --------- | ------ | ------ | ----- |
-| Common      | 45%       | 2      | 2      | 2     |
-| Uncommon    | 30%       | 3      | 3      | 3     |
-| Rare        | 15%       | 3      | 4      | 3     |
-| Epic        | 8%        | 4      | 4      | 4     |
-| Legendary   | 2%        | 5      | 5      | 5     |
+| Rarity    | Drop Rate | Traits | Skills | Tools |
+| --------- | --------- | ------ | ------ | ----- |
+| Common    | 45%       | 2      | 2      | 2     |
+| Uncommon  | 30%       | 3      | 3      | 3     |
+| Rare      | 15%       | 3      | 4      | 3     |
+| Epic      | 8%        | 4      | 4      | 4     |
+| Legendary | 2%        | 5      | 5      | 5     |
 
 Agents are rolled from pools of 10 personalities, 15 traits, 30 skills, 20 tools, and 20 special abilities.
 
@@ -261,20 +261,21 @@ Agents are rolled from pools of 10 personalities, 15 traits, 30 skills, 20 tools
 
 Built-in tools that agents can use during chat:
 
-| Tool              | What it does                                      |
-| ----------------- | ------------------------------------------------- |
-| Web Search        | Real-time web search                              |
-| Crypto            | Prices, trending, market data, DEX pools          |
-| Weather           | Current conditions + forecasts                    |
-| Wikipedia         | Article summaries + search                        |
-| Image Generation  | AI image creation                                 |
-| DateTime          | Timezone conversion, date math                    |
-| Geolocation       | IP-based location lookup                          |
-| Twitter/X         | Post, read, interact (requires OAuth)             |
-| Twilio            | SMS, MMS, voice calls, WhatsApp                   |
-| Knowledge Base    | Add, search, and remove RAG documents             |
+| Tool             | What it does                             |
+| ---------------- | ---------------------------------------- |
+| Web Search       | Real-time web search                     |
+| Crypto           | Prices, trending, market data, DEX pools |
+| Weather          | Current conditions + forecasts           |
+| Wikipedia        | Article summaries + search               |
+| Image Generation | AI image creation                        |
+| DateTime         | Timezone conversion, date math           |
+| Geolocation      | IP-based location lookup                 |
+| Twitter/X        | Post, read, interact (requires OAuth)    |
+| Twilio           | SMS, MMS, voice calls, WhatsApp          |
+| Knowledge Base   | Add, search, and remove RAG documents    |
 
 **Skills** (external integrations):
+
 - **Bags** -- Solana launchpad (trading, token launches, fee claiming)
 - **Moltbook** -- Social network for AI agents (posts, communities, semantic search)
 
