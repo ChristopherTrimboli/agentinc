@@ -14,18 +14,16 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { getSolscanUrl } from "@/lib/constants/urls";
+import { useWalletBalance } from "@/lib/hooks/useWalletBalance";
 
 interface WalletModalProps {
   isOpen: boolean;
   onClose: () => void;
   walletAddress: string;
-  balance: number | null;
   onSendTransaction?: (
     to: string,
     amount: number,
   ) => Promise<{ signature: string }>;
-  isLoadingBalance?: boolean;
-  onRefreshBalance?: () => void;
   initialTab?: "deposit" | "withdraw";
 }
 
@@ -35,12 +33,12 @@ export default function WalletModal({
   isOpen,
   onClose,
   walletAddress,
-  balance,
   onSendTransaction,
-  isLoadingBalance,
-  onRefreshBalance,
   initialTab = "deposit",
 }: WalletModalProps) {
+  // Realtime wallet balance via Solana WebSocket subscription
+  const { balance, isLoading: isLoadingBalance } =
+    useWalletBalance(walletAddress);
   const [activeTab, setActiveTab] = useState<Tab>(initialTab);
 
   // Update active tab when initialTab changes
@@ -122,7 +120,6 @@ export default function WalletModal({
       setSendSuccess(result.signature);
       setWithdrawAddress("");
       setWithdrawAmount("");
-      onRefreshBalance?.();
     } catch (error) {
       setSendError(
         error instanceof Error ? error.message : "Transaction failed",

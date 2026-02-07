@@ -14,6 +14,7 @@ import {
   DEFAULT_LAUNCH_STEPS,
 } from "@/lib/constants/mint";
 import { useAuth } from "@/lib/auth/AuthProvider";
+import { useWalletBalance } from "@/lib/hooks/useWalletBalance";
 
 export interface LaunchStep {
   id: string;
@@ -70,13 +71,11 @@ export function useMintAgent({ user }: UseMintAgentOptions) {
   const [isRandomizing, setIsRandomizing] = useState(false);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [isLaunching, setIsLaunching] = useState(false);
-  const [isLoadingBalance, setIsLoadingBalance] = useState(false);
 
   // Results and errors
   const [launchError, setLaunchError] = useState("");
   const [launchSteps, setLaunchSteps] = useState<LaunchStep[]>([]);
   const [launchResult, setLaunchResult] = useState<LaunchResult | null>(null);
-  const [walletBalance, setWalletBalance] = useState<number | null>(null);
 
   // Refs for cleanup
   const randomizeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -108,25 +107,12 @@ export function useMintAgent({ user }: UseMintAgentOptions) {
       : null;
   }, [user?.linkedAccounts]);
 
-  // Fetch wallet balance
-  const fetchBalance = useCallback(async () => {
-    if (!walletAddress || !identityToken) return;
-    setIsLoadingBalance(true);
-    try {
-      const response = await authFetch("/api/agents/mint/balance", {
-        method: "POST",
-        body: JSON.stringify({ wallet: walletAddress }),
-      });
-      const data = await response.json();
-      if (data.balanceSol !== undefined) {
-        setWalletBalance(data.balanceSol);
-      }
-    } catch (error) {
-      console.error("Failed to fetch balance:", error);
-    } finally {
-      setIsLoadingBalance(false);
-    }
-  }, [walletAddress, identityToken, authFetch]);
+  // Realtime wallet balance via Solana WebSocket subscription
+  const {
+    balance: walletBalance,
+    isLoading: isLoadingBalance,
+    refresh: fetchBalance,
+  } = useWalletBalance(walletAddress ?? null);
 
   // Initialize with random agent
   useEffect(() => {
@@ -135,11 +121,6 @@ export function useMintAgent({ user }: UseMintAgentOptions) {
       setAgentTraits(generateRandomAgent());
     }
   }, [agentTraits]);
-
-  // Fetch balance when wallet address changes
-  useEffect(() => {
-    fetchBalance();
-  }, [fetchBalance]);
 
   // Generate token symbol from name
   useEffect(() => {

@@ -15,6 +15,7 @@ import {
   Download,
   ImageIcon,
   ExternalLink,
+  Coins,
 } from "lucide-react";
 
 export type ToolState = "pending" | "running" | "complete" | "error";
@@ -28,6 +29,8 @@ export interface ToolExecutionProps {
   state: ToolState;
   startTime?: number;
   endTime?: number;
+  /** USD cost for this tool execution (shown when complete) */
+  cost?: number;
 }
 
 function formatDuration(ms: number): string {
@@ -215,6 +218,21 @@ const stateConfig = {
   },
 };
 
+/**
+ * Format a USD cost for inline display.
+ */
+function formatToolCost(usd: number): string {
+  if (usd <= 0) return "";
+  if (usd < 0.01) {
+    const cents = usd * 100;
+    return `${cents.toFixed(2)}¢`;
+  }
+  if (usd < 1) {
+    return `$${usd.toFixed(4)}`;
+  }
+  return `$${usd.toFixed(2)}`;
+}
+
 export function ToolExecution({
   toolName,
   toolIcon,
@@ -224,6 +242,7 @@ export function ToolExecution({
   state,
   startTime,
   endTime,
+  cost,
 }: ToolExecutionProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const config = stateConfig[state];
@@ -282,8 +301,15 @@ export function ToolExecution({
           )}
         </div>
 
-        {/* Status */}
+        {/* Status + Cost */}
         <div className="flex items-center gap-2">
+          {/* Cost badge - shown when tool has a cost and is complete */}
+          {cost !== undefined && cost > 0 && state === "complete" && (
+            <span className="flex items-center gap-1 text-[10px] font-medium text-amber-400/80 bg-amber-400/[0.08] border border-amber-400/15 px-1.5 py-0.5 rounded-md tabular-nums">
+              <Coins className="w-2.5 h-2.5" />
+              {formatToolCost(cost)}
+            </span>
+          )}
           {duration && (
             <span className="text-[11px] text-white/50 tabular-nums">
               {duration}

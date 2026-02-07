@@ -6,6 +6,7 @@ import { createSolanaRpc, createSolanaRpcSubscriptions } from "@solana/kit";
 import { AuthProvider } from "@/lib/auth/AuthProvider";
 import UserSync from "./components/UserSync";
 import SessionExpiredModal from "./components/SessionExpiredModal";
+import { Toaster } from "sonner";
 
 // Configure Solana connectors (required even if not using external wallets)
 const solanaConnectors = toSolanaWalletConnectors({
@@ -62,6 +63,18 @@ export default function ClientLayout({
       <AuthProvider>
         <UserSync />
         <SessionExpiredModal />
+        <Toaster
+          position="bottom-right"
+          toastOptions={{
+            style: {
+              background: "#000028",
+              border: "1px solid rgba(255,255,255,0.1)",
+              color: "#fff",
+              fontSize: "13px",
+            },
+          }}
+          theme="dark"
+        />
         {children}
       </AuthProvider>
     </PrivyProvider>

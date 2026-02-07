@@ -25,6 +25,7 @@ import {
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import WalletModal from "./WalletModal";
 import { getSolscanUrl } from "@/lib/constants/urls";
+import { useWalletBalance } from "@/lib/hooks/useWalletBalance";
 
 interface ClaimablePosition {
   baseMint: string;
@@ -53,8 +54,6 @@ export default function WalletProfile({
     "deposit" | "withdraw"
   >("deposit");
   const [copied, setCopied] = useState(false);
-  const [balance, setBalance] = useState<number | null>(null);
-  const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   const [solPrice, setSolPrice] = useState<number | null>(null);
   const [earnings, setEarnings] = useState<number | null>(null);
   const [earningsPositions, setEarningsPositions] = useState<
@@ -79,6 +78,13 @@ export default function WalletProfile({
       ? solanaWallet.address
       : null;
   }, [user?.linkedAccounts]);
+
+  // Realtime wallet balance via Solana WebSocket subscription
+  const {
+    balance,
+    isLoading: isLoadingBalance,
+    refresh: refreshBalance,
+  } = useWalletBalance(walletAddress, { showToasts: true });
 
   // Fetch SOL price via backend API with smart caching
   const fetchSolPrice = useCallback(
@@ -164,47 +170,6 @@ export default function WalletProfile({
     [identityToken, walletAddress, authFetch],
   );
 
-  // Fetch balance via backend API (avoids CORS issues)
-  const fetchBalance = useCallback(async () => {
-    if (!walletAddress || !identityToken) return;
-
-    setIsLoadingBalance(true);
-
-    try {
-      const response = await authFetch("/api/agents/mint/balance", {
-        method: "POST",
-        body: JSON.stringify({ wallet: walletAddress }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setBalance(data.balanceSol ?? null);
-      } else {
-        setBalance(null);
-      }
-    } catch {
-      setBalance(null);
-    } finally {
-      setIsLoadingBalance(false);
-    }
-  }, [walletAddress, identityToken, authFetch]);
-
-  // Fetch balance on mount and when wallet/token changes
-  useEffect(() => {
-    fetchBalance();
-  }, [fetchBalance]);
-
-  // Auto-refresh balance every 15 seconds via server route
-  useEffect(() => {
-    if (!walletAddress || !identityToken) return;
-
-    const interval = setInterval(() => {
-      fetchBalance();
-    }, 15000);
-
-    return () => clearInterval(interval);
-  }, [walletAddress, identityToken, fetchBalance]);
-
   // Fetch earnings on mount and periodically
   useEffect(() => {
     if (walletAddress && identityToken) {
@@ -288,10 +253,9 @@ export default function WalletProfile({
       setClaimSuccess(true);
       setTimeout(() => setClaimSuccess(false), 3000);
 
-      // Refresh earnings and balance after claiming
+      // Refresh earnings after claiming (balance updates automatically via WebSocket)
       setTimeout(() => {
         fetchEarnings(true);
-        fetchBalance();
       }, 2000);
     } catch (error) {
       console.error("Claim error:", error);
@@ -304,15 +268,9 @@ export default function WalletProfile({
     earnings,
     solanaWallets,
     signTransaction,
-    fetchBalance,
     fetchEarnings,
     authFetch,
   ]);
-
-  // Manual refresh handler
-  const refreshBalance = () => {
-    fetchBalance();
-  };
 
   // Open modal with specific tab
   const openModal = (tab: "deposit" | "withdraw") => {
@@ -414,23 +372,13 @@ export default function WalletProfile({
 
         const { signature } = await sendResponse.json();
 
-        // Refresh balance after sending
-        setTimeout(() => fetchBalance(), 2000);
-
         return { signature };
       } catch (error) {
         console.error("Send transaction error:", error);
         throw error;
       }
     },
-    [
-      solanaWallets,
-      walletAddress,
-      identityToken,
-      signTransaction,
-      fetchBalance,
-      authFetch,
-    ],
+    [solanaWallets, walletAddress, identityToken, signTransaction, authFetch],
   );
 
   // Copy address to clipboard
@@ -763,9 +711,6 @@ export default function WalletProfile({
             isOpen={isModalOpen}
             onClose={() => setIsModalOpen(false)}
             walletAddress={walletAddress}
-            balance={balance}
-            isLoadingBalance={isLoadingBalance}
-            onRefreshBalance={refreshBalance}
             onSendTransaction={handleSendTransaction}
             initialTab={modalInitialTab}
           />

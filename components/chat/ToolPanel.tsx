@@ -37,6 +37,7 @@ import {
 import Image from "next/image";
 import { formatDistanceToNow } from "date-fns";
 import { TwitterAuthButton } from "./TwitterAuthButton";
+import { getToolCostLabel } from "@/lib/x402/tool-costs";
 
 export interface ApiKeyConfig {
   label: string;
@@ -50,6 +51,7 @@ export interface ToolFunction {
   id: string;
   name: string;
   description: string;
+  cost?: number; // USD cost per use (from x402 pricing)
 }
 
 /** Tool category for organizing groups */
@@ -280,22 +282,33 @@ const ToolGroupCard = React.memo(function ToolGroupCard({
           )}
 
           <div className="pt-1.5 grid grid-cols-2 gap-x-2 gap-y-0.5">
-            {group.functions.map((fn) => (
-              <div
-                key={fn.id}
-                className="flex items-start gap-1 py-0.5 text-[9px] min-w-0"
-              >
-                <span
-                  className={`w-1 h-1 rounded-full mt-[4px] shrink-0 ${group.enabled ? "bg-[#6FEC06]/60" : "bg-white/15"}`}
-                />
-                <span
-                  className={`truncate ${group.enabled ? "text-white/70" : "text-white/50"}`}
-                  title={fn.name}
+            {group.functions.map((fn) => {
+              const costLabel = getToolCostLabel(fn.id);
+              return (
+                <div
+                  key={fn.id}
+                  className="flex items-start gap-1 py-0.5 text-[9px] min-w-0"
                 >
-                  {fn.name}
-                </span>
-              </div>
-            ))}
+                  <span
+                    className={`w-1 h-1 rounded-full mt-[4px] shrink-0 ${group.enabled ? "bg-[#6FEC06]/60" : "bg-white/15"}`}
+                  />
+                  <span
+                    className={`truncate ${group.enabled ? "text-white/70" : "text-white/50"}`}
+                    title={fn.name}
+                  >
+                    {fn.name}
+                  </span>
+                  {costLabel && (
+                    <span
+                      className={`shrink-0 tabular-nums ${group.enabled ? "text-amber-400/60" : "text-white/30"}`}
+                      title={`Cost: ${costLabel} per use`}
+                    >
+                      {costLabel}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
@@ -428,22 +441,33 @@ const SkillCard = React.memo(function SkillCard({
           {/* Functions list */}
           {hasFunctions && (
             <div className="pt-1.5 grid grid-cols-2 gap-x-2 gap-y-0.5">
-              {skill.functions!.map((fn) => (
-                <div
-                  key={fn.id}
-                  className="flex items-start gap-1 py-0.5 text-[9px] min-w-0"
-                >
-                  <span
-                    className={`w-1 h-1 rounded-full mt-[4px] shrink-0 ${skill.enabled ? "bg-[#6FEC06]/60" : "bg-white/15"}`}
-                  />
-                  <span
-                    className={`truncate ${skill.enabled ? "text-white/70" : "text-white/50"}`}
-                    title={fn.name}
+              {skill.functions!.map((fn) => {
+                const costLabel = getToolCostLabel(fn.id);
+                return (
+                  <div
+                    key={fn.id}
+                    className="flex items-start gap-1 py-0.5 text-[9px] min-w-0"
                   >
-                    {fn.name}
-                  </span>
-                </div>
-              ))}
+                    <span
+                      className={`w-1 h-1 rounded-full mt-[4px] shrink-0 ${skill.enabled ? "bg-[#6FEC06]/60" : "bg-white/15"}`}
+                    />
+                    <span
+                      className={`truncate ${skill.enabled ? "text-white/70" : "text-white/50"}`}
+                      title={fn.name}
+                    >
+                      {fn.name}
+                    </span>
+                    {costLabel && (
+                      <span
+                        className={`shrink-0 tabular-nums ${skill.enabled ? "text-amber-400/60" : "text-white/30"}`}
+                        title={`Cost: ${costLabel} per use`}
+                      >
+                        {costLabel}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
 

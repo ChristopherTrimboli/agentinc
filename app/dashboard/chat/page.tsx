@@ -93,6 +93,7 @@ import {
   ToolExecution,
   ToolState,
 } from "@/components/chat";
+import { getToolCost } from "@/lib/x402/tool-costs";
 import { useVoiceInput } from "@/lib/hooks/useVoiceInput";
 import {
   useSpeechSynthesis,
@@ -2119,6 +2120,7 @@ function ChatInterface({
                                             : toolResult
                                         }
                                         state={toolState}
+                                        cost={getToolCost(toolDisplayName)}
                                       />
                                       {/* Display generated image prominently */}
                                       {hasImageResult && (
@@ -2133,6 +2135,57 @@ function ChatInterface({
                             }
                           })}
                         </MessageContent>
+
+                        {/* Tool cost summary for assistant messages */}
+                        {message.role === "assistant" &&
+                          status === "ready" &&
+                          (() => {
+                            const toolCosts = message.parts
+                              .filter((p) => p.type.startsWith("tool-"))
+                              .map((p) => {
+                                const tp = p as {
+                                  toolName?: string;
+                                  title?: string;
+                                  type: string;
+                                  state: string;
+                                };
+                                const name =
+                                  tp.toolName ||
+                                  tp.title ||
+                                  tp.type.replace("tool-", "");
+                                const cost = getToolCost(name);
+                                return { name, cost, state: tp.state };
+                              })
+                              .filter(
+                                (t) => t.cost > 0 && t.state === "result",
+                              );
+
+                            if (toolCosts.length === 0) return null;
+                            const total = toolCosts.reduce(
+                              (sum, t) => sum + t.cost,
+                              0,
+                            );
+                            const cents = total * 100;
+                            const costStr =
+                              total < 0.01
+                                ? `${cents.toFixed(2)}¢`
+                                : total < 1
+                                  ? `$${total.toFixed(4)}`
+                                  : `$${total.toFixed(2)}`;
+
+                            return (
+                              <div className="flex items-center gap-1.5 mt-1 text-[10px] text-white/35">
+                                <Zap className="w-2.5 h-2.5" />
+                                <span className="tabular-nums">{costStr}</span>
+                                <span>
+                                  tool cost
+                                  {toolCosts.length > 1
+                                    ? ` (${toolCosts.length} tools)`
+                                    : ""}
+                                </span>
+                              </div>
+                            );
+                          })()}
 
                         {message.role === "assistant" &&
                           isLastMessage &&

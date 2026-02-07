@@ -73,17 +73,21 @@ export const SOL_NETWORK: SolNetwork = getCurrentNetwork();
  */
 export const TREASURY_ADDRESS: string = (() => {
   const addr = process.env.X402_TREASURY_ADDRESS || "";
-  if (!addr) {
-    console.error(
-      "[x402] CRITICAL: X402_TREASURY_ADDRESS is not set. Payments will be rejected until configured.",
-    );
-  } else {
-    try {
-      new PublicKey(addr);
-    } catch {
+  // Only validate on the server — client bundles don't have access to
+  // non-NEXT_PUBLIC_ env vars, so this check would always false-alarm there.
+  if (typeof window === "undefined") {
+    if (!addr) {
       console.error(
-        `[x402] CRITICAL: X402_TREASURY_ADDRESS is not a valid Solana address: "${addr}"`,
+        "[x402] CRITICAL: X402_TREASURY_ADDRESS is not set. Payments will be rejected until configured.",
       );
+    } else {
+      try {
+        new PublicKey(addr);
+      } catch {
+        console.error(
+          `[x402] CRITICAL: X402_TREASURY_ADDRESS is not a valid Solana address: "${addr}"`,
+        );
+      }
     }
   }
   return addr;
