@@ -1778,3 +1778,142 @@ button[data-streamdown="link"]:hover {
 .attachment-chip:hover .attachment-image-preview {
   transform: scale(1.05);
 }
+
+/* ─── Staking Panel Animations ─── */
+
+@keyframes staking-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes staking-slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 500px;
+  }
+}
+
+@keyframes staking-expand {
+  from {
+    opacity: 0;
+    transform: scaleY(0.95);
+    transform-origin: top;
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1);
+    transform-origin: top;
+  }
+}
+
+@keyframes staking-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes staking-toast-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes staking-number-pop {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes staking-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.staking-fade-in {
+  animation: staking-fade-in 0.3s ease-out forwards;
+}
+
+.staking-slide-down {
+  animation: staking-slide-down 0.25s ease-out forwards;
+}
+
+.staking-expand {
+  animation: staking-expand 0.2s ease-out forwards;
+}
+
+.staking-toast-in {
+  animation: staking-toast-in 0.25s ease-out forwards;
+}
+
+.staking-toast-out {
+  animation: staking-toast-out 0.2s ease-in forwards;
+}
+
+.staking-number-pop {
+  animation: staking-number-pop 0.3s ease-out;
+}
+
+.staking-skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(111, 236, 6, 0.03) 0%,
+    rgba(111, 236, 6, 0.08) 50%,
+    rgba(111, 236, 6, 0.03) 100%
+  );
+  background-size: 200% 100%;
+  animation: staking-shimmer 1.8s ease-in-out infinite;
+  border-radius: 0.5rem;
+}
+
+.staking-tab-indicator {
+  transition:
+    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Collapsible panel */
+.staking-collapsible {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s ease-out;
+}
+
+.staking-collapsible.open {
+  grid-template-rows: 1fr;
+}
+
+.staking-collapsible > div {
+  overflow: hidden;
+}

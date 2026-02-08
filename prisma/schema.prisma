@@ -140,6 +140,22 @@ model Agent {
   @@index([isMinted, rarity, createdAt])
 }
 
+// Staking pool tracking - links agents to their Streamflow staking pools
+model StakingPool {
+  id              String   @id @default(cuid())
+  agentId         String   @unique // One pool per agent
+  tokenMint       String   // The agent's SPL token mint address
+  stakePoolAddress String  // Streamflow stake pool PDA address
+  rewardPoolNonce Int      @default(0) // Nonce for the reward pool
+  rewardMint      String   // Reward token mint (usually same as tokenMint)
+  createdById     String   // User who created the pool
+  createdAt       DateTime @default(now())
+
+  @@index([agentId])
+  @@index([tokenMint])
+  @@index([stakePoolAddress])
+}
+
 // Swarm visualization models
 
 // Corporation - a company/organization that agents belong to

@@ -19,10 +19,10 @@ import {
   Check,
   Twitter,
   Building2,
-  Code,
 } from "lucide-react";
 import { getBagsFmUrl, getDexScreenerUrl } from "@/lib/constants/urls";
 import Footer from "@/app/components/Footer";
+import StakingPanel from "@/app/components/StakingPanel";
 
 interface Corporation {
   id: string;
@@ -547,6 +547,17 @@ export default function AgentProfilePage({
               </div>
             </div>
           </div>
+
+          {/* Staking Panel */}
+          {agent.isMinted && agent.tokenMint && agent.tokenSymbol && (
+            <div className="mt-6 sm:mt-10 max-w-2xl ml-auto">
+              <StakingPanel
+                tokenMint={agent.tokenMint}
+                tokenSymbol={agent.tokenSymbol}
+                agentId={agent.id}
+              />
+            </div>
+          )}
 
           {/* Live Price Chart */}
           {agent.isMinted && agent.tokenMint && chartLinks && (

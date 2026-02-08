@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
           { status: 400 },
         );
       }
+
       const result = await serverSignAndSend(auth.walletId, transaction);
       signature = result.signature;
     } else if (signedTransaction) {
@@ -60,8 +61,15 @@ export async function POST(req: NextRequest) {
       );
 
       if (confirmation.value.err) {
+        console.error(
+          "[Solana Send] Transaction failed on-chain:",
+          JSON.stringify(confirmation.value.err),
+        );
         return NextResponse.json(
-          { error: "Transaction failed", details: confirmation.value.err },
+          {
+            error: "Transaction failed on-chain",
+            details: confirmation.value.err,
+          },
           { status: 400 },
         );
       }
