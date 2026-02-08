@@ -1,0 +1,159 @@
+---
+description: "Prisma schema, database queries, migrations, and pgvector conventions"
+globs: "{prisma,lib}/**/*.{ts,prisma}"
+alwaysApply: false
+---
+
+# Database & Prisma Patterns
+
+## Prisma Setup
+
+- **Schema**: `prisma/schema.prisma`
+- **Generated client**: `app/generated/prisma/` (custom output path — do NOT import from `@prisma/client` directly)
+- **Connection**: Prisma Accelerate for connection pooling (all queries go through the accelerate proxy)
+- **Singleton**: `lib/prisma.ts` — always import from here, never instantiate `PrismaClient` elsewhere.
+
+```typescript
+import prisma from "@/lib/prisma";
+```
+
+## Schema Conventions
+
+### IDs
+
+- Use `@id @default(cuid())` for auto-generated IDs.
+- Exception: `User.id` uses Privy DID strings (`"did:privy:xxx"`) — set as `@id` without `@default`.
+
+### Field Types
+
+- Short strings with limits: `@db.VarChar(32)`, `@db.VarChar(100)`, etc.
+- Long text: `@db.Text`
+- JSON blobs: `Json?` (nullable — use for flexible/optional structured data like `ChatMessage.parts`)
+- Arrays: `String[]` (Prisma native array support on PostgreSQL)
+- Timestamps: `DateTime @default(now())` for `createdAt`, `DateTime @updatedAt` for `updatedAt`
+
+### Relations
+
+- Always define both sides of a relation.
+- Use `onDelete: Cascade` for owned data (messages belong to chat, etc.).
+- Use `onDelete: SetNull` for optional associations (agent removed from corporation).
+- Add `@@index` for foreign keys and commonly queried fields.
+
+```prisma
+model Chat {
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, updatedAt])
+}
+```
+
+### Indexes
+
+- Always index foreign key fields.
+- Add compound indexes for common query patterns (e.g., `@@index([userId, updatedAt])` for sorted listings).
+- For boolean + sort queries, use compound indexes: `@@index([isMinted, createdAt])`.
+
+## Query Patterns
+
+### Caching with Prisma Accelerate
+
+Use `cacheStrategy` on read queries to leverage Accelerate's edge cache:
+
+```typescript
+const agents = await prisma.agent.findMany({
+  where: { createdById: userId },
+  cacheStrategy: { ttl: 10, swr: 30 }, // 10s TTL, 30s stale-while-revalidate
+});
+```
+
+- **Short TTL** (10-30s) for user-specific data that should feel fresh.
+- **Longer TTL** (60-300s) for public/explore data that changes slowly.
+- Writes automatically invalidate cache for the affected table.
+
+### Select Only What You Need
+
+Always use `select: {}` to pick specific fields instead of fetching entire rows:
+
+```typescript
+const agent = await prisma.agent.findUnique({
+  where: { id: agentId },
+  select: {
+    id: true,
+    name: true,
+    systemPrompt: true,
+    isPublic: true,
+    createdById: true,
+  },
+});
+```
+
+### Parallel Queries
+
+Use `Promise.all()` for independent queries (e.g., data + count for pagination):
+
+```typescript
+const [agents, total] = await Promise.all([
+  prisma.agent.findMany({ where, take: limit, skip: offset, select, cacheStrategy }),
+  prisma.agent.count({ where, cacheStrategy }),
+]);
+```
+
+### Pagination
+
+Standard pagination pattern:
+
+```typescript
+const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
+const limit = Math.min(MAX_PAGE_SIZE, Math.max(1, parseInt(searchParams.get("limit") || "20")));
+const offset = (page - 1) * limit;
+
+// Return pagination metadata
+return NextResponse.json({
+  agents,
+  pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+});
+```
+
+## pgvector (Embeddings)
+
+The `Embedding` model stores vector embeddings for RAG. The `embedding` column is managed via raw SQL because Prisma doesn't natively support `vector(1536)`:
+
+- Model: `text-embedding-3-large` with 1536 dimensions
+- Vector column added via migration raw SQL
+- Similarity search uses cosine distance (`<=>` operator)
+
+```sql
+-- Adding vector column (in migrations)
+ALTER TABLE "Embedding" ADD COLUMN "embedding" vector(1536);
+CREATE INDEX ON "Embedding" USING ivfflat ("embedding" vector_cosine_ops);
+
+-- Similarity search
+SELECT id, content, 1 - ("embedding" <=> $1::vector) AS similarity
+FROM "Embedding"
+WHERE "resourceId" IN (...)
+ORDER BY "embedding" <=> $1::vector
+LIMIT 5;
+```
+
+## Migrations
+
+```bash
+bun db:migrate     # Create + apply migrations (dev)
+bun db:push        # Push schema changes without migration (prototyping only)
+bun db:generate    # Regenerate Prisma client after schema changes
+bun db:studio      # Open Prisma Studio for visual data browsing
+```
+
+- Always create proper migrations for schema changes that will be deployed.
+- Migration files live in `prisma/migrations/`.
+- The `postinstall` script runs `prisma generate` automatically on `bun install`.
+
+## Seed Data
+
+`prisma/seed.ts` contains seed data for development. Run with:
+
+```bash
+bun tsx prisma/seed.ts
+```

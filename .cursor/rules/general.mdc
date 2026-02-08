@@ -1,0 +1,146 @@
+---
+description: "Core project conventions for Agent Inc. — tech stack, imports, error handling, and coding standards"
+alwaysApply: true
+---
+
+# Agent Inc. — Project Conventions
+
+## Project Overview
+
+Agent Inc. is a full-stack Web3 AI agent platform built on Solana. Users mint AI agents with randomized traits, launch tokens via Bags.fm, form corporations, chat with agents using tool-augmented AI, and interact through an x402 micropayment protocol.
+
+- **Live site**: https://agentinc.fun
+- **Repo**: https://github.com/ChristopherTrimboli/agentinc
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Framework | Next.js 16 (App Router) |
+| Language | TypeScript 5.9 (strict mode) |
+| Runtime / Package Manager | Bun (`bun` for all commands, never `npm`/`yarn`/`pnpm`) |
+| Database | PostgreSQL via Prisma 7 + Prisma Accelerate |
+| Vector Search | pgvector (text-embedding-3-large, 1536 dims) |
+| Auth | Privy (email-only login, embedded Solana wallets) |
+| AI | Vercel AI SDK 6 + Anthropic Claude via AI Gateway |
+| Blockchain | Solana (`@solana/web3.js` 1.x + `@solana/kit` 5.x) |
+| Token Launch | Bags SDK (`@bagsfm/bags-sdk`) |
+| Staking | Streamflow (`@streamflow/staking`) |
+| Styling | Tailwind CSS 4 (no config file — uses CSS `@import`) |
+| UI Components | shadcn/ui (New York style) + Radix UI primitives |
+| Icons | Lucide React |
+| State | React hooks + Zustand-like store for swarm visualization |
+| Storage | Vercel Blob |
+| Caching | Upstash Redis |
+| Payments | x402 protocol (native SOL micropayments) |
+| Visualization | PixiJS 8 (swarm network graph) |
+
+## Path Aliases
+
+Use `@/*` to import from the project root. This is configured in `tsconfig.json`.
+
+```typescript
+// Good
+import prisma from "@/lib/prisma";
+import { Button } from "@/components/ui/button";
+import { requireAuth } from "@/lib/auth/verifyRequest";
+
+// Bad — never use relative paths that climb more than one level
+import prisma from "../../../lib/prisma";
+```
+
+## File Organization
+
+```
+app/                    # Next.js App Router pages + API routes
+  api/                  # API routes organized by feature domain
+  dashboard/            # Protected dashboard pages
+  components/           # Page-specific components (not shared)
+  generated/prisma/     # Prisma-generated client (do NOT edit)
+components/             # Shared React components
+  ui/                   # shadcn/ui primitives (do NOT edit manually — use CLI)
+  ai-elements/          # Chat UI components
+  chat/                 # Chat feature components
+  mint/                 # Minting wizard components
+lib/                    # Core business logic
+  auth/                 # Privy authentication (client + server)
+  hooks/                # Custom React hooks
+  tools/                # AI agent tools (simple utilities)
+  skills/               # AI agent skills (complex API integrations)
+  solana/               # Solana connection helpers
+  privy/                # Server-side wallet operations
+  x402/                 # Payment protocol (middleware, facilitator)
+  utils/                # Pure utility functions
+  constants/            # Shared constants
+  prices/               # Token price fetching
+  swarm/                # Swarm visualization state + physics
+prisma/                 # Schema, migrations, seed
+public/                 # Static assets
+```
+
+## Coding Standards
+
+### TypeScript
+
+- Strict mode is enabled — never use `@ts-ignore`. Use `@ts-expect-error` with a comment only when absolutely necessary.
+- Prefer `interface` over `type` for object shapes unless you need union/intersection types.
+- Use `const` by default. Only use `let` when reassignment is needed. Never use `var`.
+- Always type function parameters and return types for exported functions.
+- Use template literals over string concatenation.
+
+### Naming Conventions
+
+- **Files**: `camelCase.ts` for modules, `PascalCase.tsx` for React components, `UPPER_CASE.ts` only for pure constants files.
+- **Variables/functions**: `camelCase`
+- **React components**: `PascalCase`
+- **Types/Interfaces**: `PascalCase`
+- **Constants**: `UPPER_SNAKE_CASE`
+- **Database columns**: `camelCase` (Prisma convention)
+- **API routes**: kebab-case directories (`/api/agents/mint/send-transaction/`)
+
+### Error Handling
+
+- Always wrap API route handlers in `try/catch` blocks.
+- Log errors with context: `console.error("[ModuleName] descriptive message:", error)`.
+- Return structured JSON error responses: `{ error: "Human-readable message" }`.
+- Use appropriate HTTP status codes: 400 (bad input), 401 (no auth), 403 (forbidden), 404 (not found), 429 (rate limited), 500 (server error).
+- Never expose internal error details to the client in production.
+
+### Imports
+
+- Group imports: 1) external packages, 2) `@/` path aliases, 3) relative imports. Separate groups with a blank line.
+- Use named exports except for default page/layout exports required by Next.js.
+
+### Comments
+
+- Use `/** JSDoc */` for exported functions and complex types.
+- Use `//` inline comments sparingly — only when the "why" isn't obvious.
+- Use `// ── Section Name ──` style dividers for large files (see `lib/rateLimit.ts` for example).
+
+## Environment Variables
+
+- Server-only secrets: no prefix (e.g., `PRIVY_APP_SECRET`, `DATABASE_URL`).
+- Client-exposed values: `NEXT_PUBLIC_` prefix (e.g., `NEXT_PUBLIC_PRIVY_APP_ID`).
+- Reference `example.env.local` for the full list of required/optional variables.
+- Never hardcode secrets. Never commit `.env.local`.
+
+## Running the Project
+
+```bash
+bun install              # Install dependencies
+bun db:generate          # Generate Prisma client
+bun db:migrate           # Run migrations
+bun dev                  # Start dev server
+bun lint                 # Run ESLint
+bun format               # Run Prettier
+bun db:studio            # Open Prisma Studio
+```
+
+## Key Architectural Decisions
+
+1. **Prisma Accelerate** — All DB queries go through Prisma Accelerate for connection pooling. Use `cacheStrategy: { ttl, swr }` on reads for performance.
+2. **Auth via `requireAuth`** — Every authenticated API route should start with `requireAuth(req)` + `isAuthResult()` guard. See `lib/auth/verifyRequest.ts`.
+3. **Rate limiting** — Use `rateLimitByUser()` for authenticated routes, `rateLimitByIP()` for public routes. Falls back to in-memory when Redis is unavailable.
+4. **Tools vs Skills** — `lib/tools/` are simple stateless utilities. `lib/skills/` are complex API integrations with their own system prompts. Don't mix them.
+5. **x402 payments** — Privy users get usage-based billing (charged actual AI Gateway costs). External users pay flat-rate upfront via x402 protocol.
+6. **Streaming AI responses** — Chat uses `streamText()` from Vercel AI SDK with SSE transport. Always return `result.toUIMessageStreamResponse()`.

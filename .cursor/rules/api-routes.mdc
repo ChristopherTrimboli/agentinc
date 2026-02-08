@@ -1,0 +1,154 @@
+---
+description: "Patterns for Next.js API route handlers — auth guards, validation, error handling, rate limiting"
+globs: "app/api/**/*.ts"
+alwaysApply: false
+---
+
+# API Route Patterns
+
+## Route File Structure
+
+Every API route follows this structure. Reference `app/api/agents/route.ts` as the canonical example.
+
+```typescript
+import { NextRequest, NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
+import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
+import { rateLimitByUser } from "@/lib/rateLimit";
+
+export async function GET(req: NextRequest) {
+  // 1. Authenticate
+  const auth = await requireAuth(req);
+  if (!isAuthResult(auth)) return auth; // Returns 401 response
+
+  // 2. Rate limit (optional but recommended for expensive operations)
+  const rateLimited = await rateLimitByUser(auth.userId, "route-name", 30);
+  if (rateLimited) return rateLimited;
+
+  try {
+    // 3. Parse & validate input
+    // 4. Business logic
+    // 5. Return success response
+    return NextResponse.json({ data });
+  } catch (error) {
+    console.error("[RouteName] Failed to do X:", error);
+    return NextResponse.json(
+      { error: "Human-readable error message" },
+      { status: 500 },
+    );
+  }
+}
+```
+
+## Authentication
+
+- **Authenticated routes**: Use `requireAuth(req)` + `isAuthResult()` type guard from `@/lib/auth/verifyRequest`.
+- **Public routes**: Use `rateLimitByIP(req, "route-name")` from `@/lib/rateLimit`.
+- **Mixed routes** (like chat): May use `withUsageBasedPayment()` middleware which handles auth internally.
+- The auth result provides `{ userId, walletAddress?, walletId? }`.
+- Auth tokens are passed via `privy-id-token` header (set by `useAuthFetch` hook on client).
+
+```typescript
+// Standard auth guard — use in every protected route
+const auth = await requireAuth(req);
+if (!isAuthResult(auth)) return auth;
+
+// Now safely use auth.userId, auth.walletAddress, etc.
+```
+
+## Request Validation
+
+- Validate request body fields manually with clear error messages. The project does not use Zod for API route validation (Zod is used in AI tool definitions).
+- Return 400 with a descriptive `{ error }` message for invalid input.
+- Use `Math.max`/`Math.min` to clamp pagination params.
+
+```typescript
+const body = await req.json();
+const { name, systemPrompt } = body;
+
+if (!name || typeof name !== "string" || name.trim().length === 0) {
+  return NextResponse.json(
+    { error: "Agent name is required" },
+    { status: 400 },
+  );
+}
+```
+
+## Response Patterns
+
+- Always return `NextResponse.json()` — never raw `new Response()` for JSON (except rate limiter which returns raw `Response` for performance).
+- Use HTTP 201 for successful creation: `NextResponse.json({ agent }, { status: 201 })`.
+- Paginated responses return `{ data, pagination: { page, limit, total, totalPages } }`.
+- Error responses always use `{ error: string }` shape.
+
+## Rate Limiting
+
+- `rateLimitByUser(userId, routeName, maxPerMinute)` — for authenticated routes.
+- `rateLimitByIP(req, routeName, maxPerMinute?)` — for public/unauthenticated routes.
+- Both return `Response | null`. If non-null, return it immediately (429 response).
+- Rate limiters use Redis sliding window, with in-memory fallback for local dev.
+
+## Prisma Query Patterns
+
+- Import the singleton: `import prisma from "@/lib/prisma"`.
+- Use `cacheStrategy: { ttl: seconds, swr: seconds }` on read queries for Accelerate caching.
+- Use `select: {}` to pick only needed fields — never fetch full rows unnecessarily.
+- Use `Promise.all()` for independent parallel queries (e.g., data + count for pagination).
+- Use `onDelete: Cascade` or `SetNull` in Prisma schema — don't do manual cascade in routes.
+
+## Streaming Responses (Chat API)
+
+The chat route (`app/api/chat/route.ts`) uses a special pattern for streaming:
+
+```typescript
+import { streamText } from "ai";
+
+const result = streamText({
+  model,            // String format like "anthropic/claude-haiku-4.5"
+  system: prompt,
+  messages: await convertToModelMessages(messages),
+  tools,
+  stopWhen: stepCountIs(5),
+});
+
+return result.toUIMessageStreamResponse({
+  sendReasoning: true,
+  sendSources: true,
+});
+```
+
+## x402 Payment Middleware
+
+For paid endpoints, wrap the handler with payment middleware:
+
+```typescript
+import { withSolPayment } from "@/lib/x402";
+
+async function handler(req: NextRequest) { /* ... */ }
+
+// Flat-rate: charge $0.01 per request
+export const POST = withSolPayment(handler, { priceUsd: 0.01 });
+```
+
+For usage-based billing (chat):
+
+```typescript
+import { withUsageBasedPayment, type RequestWithBilling } from "@/lib/x402";
+
+async function chatHandler(req: RequestWithBilling) {
+  const billingContext = req.billingContext; // Injected by middleware
+  // ... use billingContext.chargeUsage() after generation
+}
+
+export const POST = isUsageBasedBillingEnabled()
+  ? withUsageBasedPayment(chatHandler, "chat")
+  : chatHandler;
+```
+
+## Common Pitfalls
+
+- Never create a new `PrismaClient` in a route — always import the singleton from `@/lib/prisma`.
+- Never create a new `PrivyClient` in a route — use `getPrivyClient()` from `@/lib/auth/verifyRequest`.
+- Always handle `req.json()` parsing inside try/catch — malformed bodies will throw.
+- Don't forget `encodeURIComponent()` when setting custom response headers with user data.
+- Export only the HTTP method handlers (`GET`, `POST`, `PUT`, `DELETE`, `PATCH`) — Next.js infers allowed methods.

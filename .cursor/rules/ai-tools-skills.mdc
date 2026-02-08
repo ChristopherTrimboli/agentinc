@@ -1,0 +1,207 @@
+---
+description: "AI SDK integration — tools, skills, streaming chat, and agent system prompt conventions"
+globs: "{lib/tools,lib/skills,app/api/chat}/**/*.ts"
+alwaysApply: false
+---
+
+# AI Tools & Skills Patterns
+
+## Architecture: Tools vs Skills
+
+The project separates AI capabilities into two layers:
+
+| | Tools (`lib/tools/`) | Skills (`lib/skills/`) |
+|---|---|---|
+| **Complexity** | Simple, stateless utilities | Complex API integrations |
+| **API Keys** | None or shared server keys | Per-skill API keys (server or user-provided) |
+| **System Prompt** | No special prompt needed | Each skill injects its own system prompt |
+| **Examples** | Weather, crypto prices, datetime, geolocation | Bags.fm token operations, Moltbook betting |
+| **Registration** | Grouped by domain, exported from index | Registered in `skillRegistry` on import |
+
+**Never put a simple tool in `lib/skills/`** and never put a complex API integration in `lib/tools/`.
+
+## Vercel AI SDK Usage
+
+The project uses **Vercel AI SDK 6** (`ai` package) with the Anthropic provider:
+
+```typescript
+import { streamText, convertToModelMessages, type UIMessage, type Tool } from "ai";
+import { anthropic } from "@ai-sdk/anthropic";
+```
+
+### Model Format
+
+Models are referenced as strings in AI Gateway format:
+
+```typescript
+const model = "anthropic/claude-haiku-4.5";     // Fast, cheap
+const model = "anthropic/claude-sonnet-4";       // Balanced
+```
+
+Allowed models are validated against `ALLOWED_MODELS` set to prevent cost abuse.
+
+### Streaming Pattern
+
+```typescript
+const result = streamText({
+  model,
+  system: systemPrompt,
+  messages: await convertToModelMessages(messages),
+  tools,
+  stopWhen: stepCountIs(5),  // Max 5 tool-use steps
+  onFinish: async ({ usage }) => {
+    // Post-generation: calculate cost, charge user, etc.
+  },
+});
+
+return result.toUIMessageStreamResponse({
+  sendReasoning: true,
+  sendSources: true,
+});
+```
+
+## Creating a New Tool
+
+Tools live in `lib/tools/` as individual modules. Each module exports a tool map.
+
+### Step 1: Create the tool file
+
+```typescript
+// lib/tools/myTool.ts
+import { tool } from "ai";
+import { z } from "zod";
+import type { ToolMap } from "./types";
+
+export const myTools: ToolMap = {
+  myToolName: tool({
+    description: "Clear, concise description of what this tool does. The AI reads this to decide when to use it.",
+    parameters: z.object({
+      param1: z.string().describe("What this parameter is for"),
+      param2: z.number().optional().describe("Optional parameter"),
+    }),
+    execute: async ({ param1, param2 }) => {
+      // Implementation — return structured data
+      return { result: "data" };
+    },
+  }),
+};
+```
+
+### Step 2: Register in index
+
+Add to `lib/tools/index.ts`:
+
+1. Import the tool module.
+2. Add to the `toolGroups` map.
+3. Export from the barrel file.
+
+### Tool Guidelines
+
+- **Descriptions matter**: The AI decides which tool to use based on the `description` field. Be specific and include example use cases.
+- **Zod for parameters**: Always use Zod schemas with `.describe()` on each field.
+- **Return structured data**: Return objects, not formatted strings. The AI formats the output for the user.
+- **Error handling**: Catch errors inside `execute` and return `{ error: "message" }` — don't let exceptions bubble up.
+- **Billing-aware tools**: Some tools accept `BillingContext` for usage-based charging. See `createImageGenerationTools()` for the pattern.
+
+## Creating a New Skill
+
+Skills live in `lib/skills/` and are more complex than tools.
+
+### Step 1: Create the skill file
+
+```typescript
+// lib/skills/mySkill.ts
+import type { Skill, SkillConfig, SkillTools } from "./types";
+
+export const MY_SKILL_SYSTEM_PROMPT = `
+## MySkill Integration
+You have access to MySkill tools. Use them when the user asks about...
+`;
+
+function createTools(config: SkillConfig): SkillTools {
+  const apiKey = config.apiKey;
+  if (!apiKey) return {};
+
+  return {
+    mySkill_action: tool({
+      description: "...",
+      parameters: z.object({ /* ... */ }),
+      execute: async (params) => {
+        // Use apiKey to call external API
+      },
+    }),
+  };
+}
+
+export const mySkill: Skill = {
+  id: "myskill",
+  name: "MySkill",
+  description: "Description shown to users in the skill picker",
+  systemPrompt: MY_SKILL_SYSTEM_PROMPT,
+  createTools,
+};
+```
+
+### Step 2: Register in index
+
+Add to `lib/skills/index.ts`:
+
+```typescript
+import { mySkill } from "./mySkill";
+registerSkill(mySkill);
+```
+
+### Skill Guidelines
+
+- Each skill provides its own system prompt appended to the agent's prompt when enabled.
+- Skills are user-toggleable in the chat UI.
+- API keys can come from environment variables (server-side) or user input (client-side).
+- Skill tool names should be namespaced: `skillName_actionName` (e.g., `bags_getTokenPrice`).
+
+## Tool Search (Anthropic)
+
+The chat API enables Anthropic's `toolSearchBm25` for dynamic tool discovery:
+
+```typescript
+tools.toolSearch = anthropic.tools.toolSearchBm25_20251119();
+```
+
+Most tools are marked as `deferred` so they're only loaded when relevant:
+
+```typescript
+const deferredTools = Object.fromEntries(
+  Object.entries(myTools).map(([name, tool]) => [
+    name,
+    {
+      ...tool,
+      providerOptions: {
+        anthropic: { deferLoading: true },
+      },
+    },
+  ]),
+);
+```
+
+**Provider-defined tools** (like `web_search`) should NOT be deferred.
+
+## Dynamic Tools
+
+Some tools are created dynamically with user context:
+
+- **Twitter tools**: `createTwitterTools(accessToken)` — needs OAuth token.
+- **Knowledge tools**: `createKnowledgeTools(userId, agentId)` — needs user/agent scope for RAG queries.
+- **Image generation**: `createImageGenerationTools(billingContext)` — needs billing context for charging.
+
+These are instantiated per-request in the chat route handler.
+
+## Agent System Prompts
+
+Agent system prompts are composed in layers:
+
+1. **Identity preamble** — auto-generated from agent metadata (name, traits, rarity, token info)
+2. **User-defined system prompt** — the agent's custom instructions from the creator
+3. **Skill prompts** — appended for each enabled skill
+4. **Tool usage guidelines** — universal instructions for using tools correctly
+5. **Available tools list** — auto-generated from registered tools
+
+Never hardcode agent identity in system prompts — it's built dynamically from the database.

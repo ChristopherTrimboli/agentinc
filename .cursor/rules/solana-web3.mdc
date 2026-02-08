@@ -1,0 +1,123 @@
+---
+description: "Solana blockchain integration — wallet operations, token launches, staking, and transaction patterns"
+globs: "{lib/solana,lib/privy,lib/staking,app/api/solana,app/api/staking,app/api/incorporate,app/api/agents/mint}/**/*.ts"
+alwaysApply: false
+---
+
+# Solana & Web3 Patterns
+
+## Solana Libraries
+
+The project uses TWO Solana libraries for different purposes:
+
+| Library | Version | Use Case |
+|---------|---------|----------|
+| `@solana/web3.js` | 1.x | Legacy API — transactions, connections, keypairs. Used by Bags SDK and most existing code. |
+| `@solana/kit` | 5.x | Modern API — newer Solana operations, Streamflow staking integration. |
+
+**Do not mix them in the same function** unless necessary. Prefer `@solana/web3.js` 1.x for consistency with existing code unless integrating with a library that requires `@solana/kit`.
+
+## RPC Connection
+
+```typescript
+import { getConnection } from "@/lib/solana/connection";
+
+const connection = getConnection(); // Singleton, uses SOLANA_RPC_URL env var
+```
+
+- Server-side: `SOLANA_RPC_URL` (Helius RPC)
+- Client-side: `NEXT_PUBLIC_SOLANA_RPC_URL` (same or different RPC)
+- Network auto-detected from RPC URL, or override with `SOLANA_NETWORK` env var.
+
+## Wallet Operations (Privy)
+
+Users have **Privy embedded Solana wallets**. Server-side operations use authorization keys:
+
+```typescript
+import { sendSolWithPrivy } from "@/lib/privy/serverWallet";
+```
+
+### Server Signer Pattern
+
+For server-side wallet operations (x402 payments):
+
+1. User's wallet is created by Privy on signup.
+2. Server has an authorization key (P-256 keypair) registered with Privy.
+3. Server can sign transactions on behalf of the user (with their consent via `walletSignerAdded` flag).
+4. This enables automatic micropayments without user interaction.
+
+**Never store or log private keys.** Authorization keys are in environment variables only.
+
+## Token Launches (Bags SDK)
+
+Agents and corporations can launch SPL tokens via `@bagsfm/bags-sdk`:
+
+```typescript
+import { BagsClient } from "@bagsfm/bags-sdk";
+```
+
+The launch flow is multi-step:
+1. **Generate metadata** → upload to IPFS via Bags API
+2. **Create transaction** → Bags SDK builds the launch transaction
+3. **Sign & send** → User signs on client, OR server signs via Privy
+4. **Save** → Store `tokenMint`, `tokenSymbol`, `launchSignature` in DB
+
+Key fields on `Agent` / `Corporation` models:
+- `tokenMint` — SPL token mint address (unique)
+- `tokenSymbol` — Display symbol (e.g., `$AGNT`)
+- `tokenMetadata` — IPFS metadata URL
+- `launchWallet` — Wallet that launched the token
+- `launchSignature` — Transaction signature
+- `launchedAt` — Timestamp
+
+## Staking (Streamflow)
+
+Staking pools are created via `@streamflow/staking` for agent tokens:
+
+- Pool data tracked in the `StakingPool` model.
+- One pool per agent (`agentId @unique`).
+- Uses `@solana/kit` 5.x (required by Streamflow SDK).
+- Client-side staking operations in `lib/staking/client.ts`.
+
+## Transaction Patterns
+
+### Client-Side Signing
+
+For user-initiated transactions (minting, launching tokens):
+
+1. Build transaction on server → return serialized transaction
+2. Client deserializes + signs with Privy wallet
+3. Client sends signed transaction back to server
+4. Server submits to Solana network
+
+### Server-Side Signing
+
+For automated transactions (x402 payments, fee-sharing):
+
+1. Server builds transaction
+2. Server signs with Privy authorization key
+3. Server submits to Solana network
+4. No user interaction needed
+
+### Confirmation
+
+Always confirm transactions before updating DB state:
+
+```typescript
+const signature = await connection.sendRawTransaction(signedTx);
+await connection.confirmTransaction(signature, "confirmed");
+
+// Only update DB after confirmation
+await prisma.agent.update({
+  where: { id: agentId },
+  data: { tokenMint, launchSignature: signature },
+});
+```
+
+## Common Pitfalls
+
+- **Lamports vs SOL**: Solana uses lamports (1 SOL = 1,000,000,000 lamports). Always convert correctly.
+- **Blockhash expiry**: Transactions have a ~60s window. Fetch a fresh blockhash close to submission time.
+- **Rate limits**: Helius and other RPC providers have rate limits. Use `getConnection()` singleton to avoid connection proliferation.
+- **Devnet vs Mainnet**: Check `SOLANA_NETWORK` or auto-detect from RPC URL. Never hardcode network.
+- **Base58 encoding**: Use `bs58` package for encoding/decoding Solana addresses and signatures.
