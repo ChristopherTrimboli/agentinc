@@ -33,7 +33,6 @@ interface UserAgent {
   imageUrl: string | null;
   rarity: string | null;
   personality: string | null;
-  traits: string[];
   isMinted: boolean;
   tokenSymbol: string | null;
 }
@@ -175,25 +174,6 @@ function AgentCard({
                   </span>
                 )}
               </div>
-
-              {/* Traits preview */}
-              {agent.traits && agent.traits.length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {agent.traits.slice(0, 2).map((trait, i) => (
-                    <span
-                      key={i}
-                      className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#120557]/50 text-white/60 border border-white/10"
-                    >
-                      {trait}
-                    </span>
-                  ))}
-                  {agent.traits.length > 2 && (
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-medium text-white/30">
-                      +{agent.traits.length - 2}
-                    </span>
-                  )}
-                </div>
-              )}
             </div>
           </div>
         </div>

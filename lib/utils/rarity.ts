@@ -82,7 +82,7 @@ export const RARITY_RING_COLORS: Record<Rarity, string> = {
 };
 
 // =============================================================================
-// BADGE STYLES (for marketplace/listing cards)
+// BADGE STYLES (for listing cards)
 // =============================================================================
 
 export interface RarityBadgeStyle {

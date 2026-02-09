@@ -1,6 +1,6 @@
 /**
- * Shared marketplace/explore data fetching logic
- * Used by both /api/marketplace and /api/explore routes
+ * Explore data fetching logic
+ * Used by /api/explore and /dashboard routes
  */
 import prisma from "@/lib/prisma";
 import { Prisma } from "@/app/generated/prisma/client";
@@ -26,14 +26,13 @@ type CorporationWithCount = Prisma.CorporationGetPayload<{
   };
 }>;
 
-export interface MarketplaceAgent {
+export interface ExploreAgent {
   id: string;
   name: string;
   description: string | null;
   imageUrl: string | null;
   rarity: string | null;
   personality: string | null;
-  traits: string[];
   tokenMint: string | null;
   tokenSymbol: string | null;
   launchedAt: Date | null;
@@ -43,7 +42,7 @@ export interface MarketplaceAgent {
   corporationLogo: string | null;
 }
 
-export interface MarketplaceCorporation {
+export interface ExploreCorporation {
   id: string;
   name: string;
   description: string | null;
@@ -57,7 +56,7 @@ export interface MarketplaceCorporation {
   creatorWallet: string | null;
 }
 
-export interface MarketplacePagination {
+export interface ExplorePagination {
   page: number;
   limit: number;
   totalAgents: number;
@@ -65,21 +64,21 @@ export interface MarketplacePagination {
   totalPages: number;
 }
 
-export interface MarketplaceData {
-  agents: MarketplaceAgent[];
-  corporations: MarketplaceCorporation[];
+export interface ExploreData {
+  agents: ExploreAgent[];
+  corporations: ExploreCorporation[];
   tokenMints: string[];
-  pagination: MarketplacePagination;
+  pagination: ExplorePagination;
   timestamp: number;
 }
 
 /**
- * Fetch marketplace/explore data with optimized, paginated queries (no N+1).
+ * Fetch explore data with optimized, paginated queries (no N+1).
  * Uses Prisma Accelerate caching for better performance.
  */
-export async function fetchMarketplaceData(
+export async function fetchExploreData(
   opts: { page?: number; limit?: number } = {},
-): Promise<MarketplaceData> {
+): Promise<ExploreData> {
   const page = opts.page ?? 1;
   const limit = opts.limit ?? 50;
   const offset = (page - 1) * limit;
@@ -133,7 +132,6 @@ export async function fetchMarketplaceData(
       imageUrl: agent.imageUrl,
       rarity: agent.rarity,
       personality: agent.personality,
-      traits: agent.traits,
       tokenMint: agent.tokenMint,
       tokenSymbol: agent.tokenSymbol,
       launchedAt: agent.launchedAt,

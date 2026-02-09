@@ -66,8 +66,6 @@ export default function WalletProfile({
   // Use ref for cache timestamp to avoid dependency loops
   const lastPriceFetchRef = useRef<number>(0);
   const lastEarningsFetchRef = useRef<number>(0);
-  const PRICE_CACHE_TTL = 30 * 1000; // 30 seconds
-  const EARNINGS_CACHE_TTL = 60 * 1000; // 60 seconds
 
   // Get the Solana wallet address from linked accounts (needed early for other hooks)
   const walletAddress = useMemo(() => {
@@ -93,6 +91,7 @@ export default function WalletProfile({
 
       // Skip if data is fresh (unless forced)
       const now = Date.now();
+      const PRICE_CACHE_TTL = 30 * 1000;
       if (!force && now - lastPriceFetchRef.current < PRICE_CACHE_TTL) {
         return;
       }
@@ -115,6 +114,7 @@ export default function WalletProfile({
 
   // Fetch SOL price on mount and every 30 seconds (only when visible)
   useEffect(() => {
+    const PRICE_CACHE_TTL = 30 * 1000;
     fetchSolPrice(true);
 
     const interval = setInterval(() => {
@@ -145,6 +145,7 @@ export default function WalletProfile({
 
       // Skip if data is fresh (unless forced)
       const now = Date.now();
+      const EARNINGS_CACHE_TTL = 60 * 1000;
       if (!force && now - lastEarningsFetchRef.current < EARNINGS_CACHE_TTL) {
         return;
       }

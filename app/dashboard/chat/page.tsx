@@ -114,7 +114,6 @@ import {
   QUICK_SUGGESTIONS,
   getStoredApiKeys,
   saveApiKey,
-  formatPrice,
   formatMarketCap,
 } from "./types";
 
@@ -1900,6 +1899,7 @@ function ChatInterface({
                                             <div className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center p-4 sm:p-8">
                                               <div className="relative max-w-[90vw] max-h-[90vh] rounded-xl overflow-visible shadow-[0_20px_80px_rgba(0,0,0,0.8),0_0_120px_rgba(111,236,6,0.15)] border border-white/20 bg-gradient-to-br from-white/[0.05] to-white/[0.02] backdrop-blur-sm transform transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] scale-0 group-hover/image:scale-100 opacity-0 group-hover/image:opacity-100 p-1">
                                                 <div className="rounded-xl overflow-hidden">
+                                                  {/* eslint-disable-next-line @next/next/no-img-element */}
                                                   <img
                                                     src={fileUrl}
                                                     alt={

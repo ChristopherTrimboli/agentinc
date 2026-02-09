@@ -7,7 +7,6 @@ import {
   Clock,
   AlertCircle,
   Loader2,
-  Code,
   ArrowRight,
   Copy,
   Check,

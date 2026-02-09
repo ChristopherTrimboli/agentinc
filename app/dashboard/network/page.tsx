@@ -117,12 +117,7 @@ function SwarmVisualization() {
     } else if (store.agents.size > 0 || store.corporations.size > 0) {
       setIsLoading(false);
     }
-  }, [
-    physicsInitialized.current,
-    actions,
-    store.agents.size,
-    store.corporations.size,
-  ]);
+  }, [actions, store.agents.size, store.corporations.size]);
 
   // Create simulation and auto-start it
   useEffect(() => {

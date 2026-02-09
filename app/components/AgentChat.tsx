@@ -230,7 +230,8 @@ export default function AgentChat({
   const isVipTab = activeTab === "vip";
   const currentMessages = isVipTab ? vipMessages : generalMessages;
   const isCurrentLoading = isVipTab ? vipLoading : generalLoading;
-  const uniqueWallets = new Set(currentMessages.map((m) => m.walletAddress)).size;
+  const uniqueWallets = new Set(currentMessages.map((m) => m.walletAddress))
+    .size;
 
   // Can the user send in the current tab?
   const canSend = isVipTab ? hasVipAccess : authenticated;
@@ -238,9 +239,9 @@ export default function AgentChat({
   // ── Render ────────────────────────────────────────────────────────
 
   return (
-    <div className="rounded-2xl overflow-hidden border border-white/10 bg-[#0a0520] transition-all duration-300">
+    <div className="rounded-2xl overflow-hidden border border-white/10 bg-[#0a0520] transition-all duration-300 h-full flex flex-col">
       {/* Tab header */}
-      <div className="flex items-stretch border-b border-white/5">
+      <div className="flex items-stretch border-b border-white/5 flex-shrink-0">
         {/* General tab */}
         <button
           onClick={() => setActiveTab("general")}
@@ -278,9 +279,7 @@ export default function AgentChat({
           }`}
         >
           <Crown
-            className={`w-4 h-4 ${
-              activeTab === "vip" ? "text-amber-400" : ""
-            }`}
+            className={`w-4 h-4 ${activeTab === "vip" ? "text-amber-400" : ""}`}
           />
           <span>VIP</span>
           {hasVipAccess && (
@@ -298,9 +297,9 @@ export default function AgentChat({
       </div>
 
       {/* Content area */}
-      <div className="border-t border-white/5">
+      <div className="border-t border-white/5 flex-1 flex flex-col min-h-0">
         {isCurrentLoading ? (
-          <div className="flex items-center justify-center py-12">
+          <div className="flex items-center justify-center py-12 flex-1">
             <Loader2
               className={`w-5 h-5 animate-spin ${
                 isVipTab ? "text-amber-400/60" : "text-white/40"
@@ -309,7 +308,7 @@ export default function AgentChat({
           </div>
         ) : isVipTab && !authenticated ? (
           /* VIP tab: Not logged in */
-          <div className="p-6 text-center">
+          <div className="p-6 text-center flex-1 flex flex-col justify-center">
             <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-amber-500/10 to-[#120557]/30 flex items-center justify-center border border-amber-500/20">
               <Lock className="w-7 h-7 text-amber-400/50" />
             </div>
@@ -330,7 +329,7 @@ export default function AgentChat({
           </div>
         ) : isVipTab && !hasVipAccess ? (
           /* VIP tab: Authenticated but not enough tokens */
-          <div className="p-6 text-center">
+          <div className="p-6 text-center flex-1 flex flex-col justify-center">
             <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-amber-500/10 to-[#120557]/30 flex items-center justify-center border border-amber-500/20">
               <ShieldCheck className="w-7 h-7 text-amber-400/50" />
             </div>
@@ -370,7 +369,7 @@ export default function AgentChat({
           </div>
         ) : !isVipTab && !authenticated ? (
           /* General tab: Not logged in */
-          <div className="p-6 text-center">
+          <div className="p-6 text-center flex-1 flex flex-col justify-center">
             <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10">
               <MessagesSquare className="w-7 h-7 text-white/30" />
             </div>
@@ -390,7 +389,7 @@ export default function AgentChat({
           </div>
         ) : (
           /* Chat is accessible - show messages */
-          <div className="flex flex-col" style={{ height: "400px" }}>
+          <div className="flex flex-col flex-1 min-h-0">
             {/* Online indicator bar */}
             <div
               className={`px-4 py-2 flex items-center gap-2 border-b border-white/5 ${

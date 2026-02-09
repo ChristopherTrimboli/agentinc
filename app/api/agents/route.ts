@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
           imageUrl: true,
           rarity: true,
           personality: true,
-          traits: true,
+          personalityScores: true,
           isMinted: true,
           tokenSymbol: true,
           createdAt: true,

@@ -171,9 +171,7 @@ async function chatHandler(req: RequestWithBilling) {
           // Agent identity metadata
           description: true,
           personality: true,
-          traits: true,
-          skills: true,
-          specialAbility: true,
+          personalityScores: true,
           rarity: true,
           // Token/blockchain info
           isMinted: true,
@@ -225,27 +223,32 @@ async function chatHandler(req: RequestWithBilling) {
           }
         }
 
-        // Personality & traits
-        if (agent.personality || (agent.traits && agent.traits.length > 0)) {
+        // Personality — Big Five scores + MBTI type (or legacy fallback)
+        if (
+          agent.personalityScores &&
+          typeof agent.personalityScores === "object"
+        ) {
+          const scores = agent.personalityScores as unknown as Record<
+            string,
+            number
+          >;
+          const { deriveMBTI, MBTI_TYPES, DIMENSIONS } =
+            await import("@/lib/agentTraits");
+          type PS = import("@/lib/agentTraits").PersonalityScores;
+          const mbtiType = deriveMBTI(scores as unknown as PS);
+          const mbti = MBTI_TYPES[mbtiType];
+
+          identityParts.push(`\n## Your Personality Profile (Big Five OCEAN)`);
+          for (const dim of DIMENSIONS) {
+            const score = scores[dim.id] ?? 50;
+            identityParts.push(`- **${dim.name}**: ${score}/100`);
+          }
+          identityParts.push(
+            `\nYour personality type is **${mbti.id} — "${mbti.name}"**: ${mbti.description}.`,
+          );
+        } else if (agent.personality) {
           identityParts.push(`\n## Your Personality & Traits`);
-          if (agent.personality) {
-            identityParts.push(`- **Personality**: ${agent.personality}`);
-          }
-          if (agent.traits && agent.traits.length > 0) {
-            identityParts.push(`- **Traits**: ${agent.traits.join(", ")}`);
-          }
-        }
-
-        // Skills (conceptual abilities, not toolsets)
-        if (agent.skills && agent.skills.length > 0) {
-          identityParts.push(`\n## Your Skills`);
-          identityParts.push(agent.skills.map((s) => `- ${s}`).join("\n"));
-        }
-
-        // Special ability
-        if (agent.specialAbility) {
-          identityParts.push(`\n## Your Special Ability`);
-          identityParts.push(`**${agent.specialAbility}**`);
+          identityParts.push(`- **Personality**: ${agent.personality}`);
         }
 
         // Rarity
@@ -259,7 +262,7 @@ async function chatHandler(req: RequestWithBilling) {
         // Important behavioral note
         identityParts.push(`\n---`);
         identityParts.push(
-          `When someone asks "who are you" or about your identity, introduce yourself as ${agent.name}${agent.tokenSymbol ? ` with token $${agent.tokenSymbol}` : ""}. Share your personality, traits, and capabilities. You ARE this agent - embody its personality in all your responses.`,
+          `When someone asks "who are you" or about your identity, introduce yourself as ${agent.name}${agent.tokenSymbol ? ` with token $${agent.tokenSymbol}` : ""}. Share your personality and capabilities. You ARE this agent - embody its personality in all your responses.`,
         );
         identityParts.push(`---\n`);
 

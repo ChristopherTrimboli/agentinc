@@ -9,7 +9,7 @@ const SERVER_SIGNER_KEY_QUORUM_ID =
   process.env.NEXT_PUBLIC_SERVER_SIGNER_KEY_QUORUM_ID;
 
 export default function UserSync() {
-  const { ready, authenticated, user } = usePrivy();
+  const { ready, authenticated } = usePrivy();
   const { wallets } = useWallets();
   const { addSigners } = useSigners();
   const { authFetch, identityToken } = useAuth();

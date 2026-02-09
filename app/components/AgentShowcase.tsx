@@ -193,13 +193,9 @@ function CompanyCard({
   company: (typeof companyListings)[0];
   index: number;
 }) {
-  const [isHovered, setIsHovered] = useState(false);
-
   return (
     <div
       className="group relative"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
       style={{
         animationDelay: `${index * 100}ms`,
       }}

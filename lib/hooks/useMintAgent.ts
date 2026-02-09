@@ -149,13 +149,10 @@ export function useMintAgent({ user }: UseMintAgentOptions) {
 
       const newTraits = generateRandomAgent();
       if (agentTraits) {
-        if (lockedTraits.has("personality"))
+        if (lockedTraits.has("personality")) {
           newTraits.personality = agentTraits.personality;
-        if (lockedTraits.has("specialAbility"))
-          newTraits.specialAbility = agentTraits.specialAbility;
-        if (lockedTraits.has("traits")) newTraits.traits = agentTraits.traits;
-        if (lockedTraits.has("skills")) newTraits.skills = agentTraits.skills;
-        if (lockedTraits.has("tools")) newTraits.tools = agentTraits.tools;
+          newTraits.personalityScores = agentTraits.personalityScores;
+        }
       }
       if (!lockedTraits.has("name")) {
         setAgentName(generateAgentName());

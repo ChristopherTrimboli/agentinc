@@ -1,13 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import {
-  Check,
-  ExternalLink,
-  Loader2,
-  LogOut,
-  AlertCircle,
-} from "lucide-react";
+import { ExternalLink, Loader2, LogOut, AlertCircle } from "lucide-react";
 import { usePrivy, useIdentityToken } from "@privy-io/react-auth";
 
 interface TwitterAuthButtonProps {

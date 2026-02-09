@@ -9,10 +9,10 @@
  */
 
 import type { Skill, SkillConfig } from "../types";
-import { BAGS_CONFIG, BAGS_JWT_TOKEN_ENV, BAGS_API_KEY_ENV } from "./config";
+import { BAGS_CONFIG, BAGS_JWT_TOKEN_ENV } from "./config";
 import { createBagsTools } from "./tools";
 
-export { BAGS_CONFIG, BAGS_JWT_TOKEN_ENV, BAGS_API_KEY_ENV } from "./config";
+export { BAGS_CONFIG, BAGS_JWT_TOKEN_ENV } from "./config";
 export { createBagsTools } from "./tools";
 
 /**

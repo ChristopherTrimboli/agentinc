@@ -59,12 +59,6 @@ const initialAgents: AgentData[] = [
 export default function AgentArenaChart() {
   const [agents, setAgents] = useState<AgentData[]>(initialAgents);
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
-  const [hoveredPoint, setHoveredPoint] = useState<{
-    x: number;
-    y: number;
-    value: number;
-    agent: string;
-  } | null>(null);
   const chartRef = useRef<SVGSVGElement>(null);
 
   // Animate price updates
@@ -322,22 +316,6 @@ export default function AgentArenaChart() {
               );
             })}
           </svg>
-
-          {/* Hover tooltip */}
-          {hoveredPoint && (
-            <div
-              className="absolute bg-[#000028] border border-[#6FEC06]/30 rounded-lg px-3 py-2 text-sm pointer-events-none z-10"
-              style={{
-                left: hoveredPoint.x,
-                top: hoveredPoint.y - 50,
-              }}
-            >
-              <div className="text-white/60">{hoveredPoint.agent}</div>
-              <div className="text-white font-semibold">
-                ${hoveredPoint.value.toFixed(2)}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Agent Legend / Leaderboard */}

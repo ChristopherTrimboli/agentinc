@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { fetchMarketplaceData } from "@/lib/data/marketplace";
+import { fetchExploreData } from "@/lib/data/explore";
 import { rateLimitByIP } from "@/lib/rateLimit";
 
 // GET /api/explore - Get minted agents and corporations with token data (paginated)
@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
       Math.max(1, parseInt(searchParams.get("limit") || "50")),
     );
 
-    const data = await fetchMarketplaceData({ page, limit });
+    const data = await fetchExploreData({ page, limit });
     return NextResponse.json(data);
   } catch (error) {
     console.error("Error fetching explore data:", error);

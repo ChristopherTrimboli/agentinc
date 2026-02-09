@@ -98,12 +98,9 @@ model Agent {
   isMinted      Boolean  @default(false)
   imageUrl      String?  // AI-generated profile picture
   
-  // Agent traits (stored as JSON)
-  personality   String?  // e.g., "analytical", "creative", "strategic"
-  traits        String[] // Array of trait strings
-  skills        String[] // Array of skill strings
-  tools         String[] // Array of tool strings
-  specialAbility String? // Unique special ability
+  // Agent personality (stored as JSON)
+  personality       String?  // Derived MBTI type (e.g., "INTJ") or legacy personality ID
+  personalityScores Json?    // Big Five OCEAN scores: { openness, conscientiousness, extraversion, agreeableness, neuroticism }
   
   // Rarity/tier
   rarity        String?  // common, uncommon, rare, epic, legendary

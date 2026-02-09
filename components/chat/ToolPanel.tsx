@@ -12,7 +12,6 @@ import {
   Power,
   Search,
   X,
-  ChevronDown,
   ChevronRight,
   Sparkles,
   Key,
@@ -29,7 +28,6 @@ import {
   Plus,
   MessageSquare,
   Bot,
-  Clock,
   Trash2,
   Loader2,
   Link2,
@@ -816,7 +814,6 @@ const rarityColors = RARITY_RING_COLORS as Record<string, string>;
 
 function HistoryTab({
   currentChatId,
-  currentAgentId,
   identityToken,
   onNewChat,
   onSelectChat,

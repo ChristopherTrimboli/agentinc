@@ -100,7 +100,6 @@ export default function SwarmCanvas({
   agents,
   corporations,
   connections,
-  physics,
   onTick,
   onAgentClick,
   onAgentHover,
@@ -316,7 +315,7 @@ export default function SwarmCanvas({
       }
     }
   }, []);
-  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [zoom, setZoom] = useState(1);
@@ -382,12 +381,6 @@ export default function SwarmCanvas({
       world.addChild(connectionGraphics);
       connectionGraphicsRef.current = connectionGraphics;
 
-      // Update dimensions
-      setDimensions({
-        width: app.screen.width,
-        height: app.screen.height,
-      });
-
       setIsLoading(false);
 
       // Animation loop - redraw connections every frame
@@ -403,10 +396,6 @@ export default function SwarmCanvas({
 
       // Handle resize
       const handleResize = () => {
-        setDimensions({
-          width: app.screen.width,
-          height: app.screen.height,
-        });
         // Redraw grid on resize
         if (gridRef.current) {
           drawGrid(
@@ -430,6 +419,7 @@ export default function SwarmCanvas({
     return () => {
       cleanup.then((fn) => fn?.());
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [drawConnections]);
 
   // Create/update corporation graphics

@@ -1,7 +1,6 @@
 import { PrivyClient } from "@privy-io/node";
 import bs58 from "bs58";
 import {
-  SOLANA_RPC_URL,
   JITO_ENDPOINTS,
   FALLBACK_RPC_URLS,
   getConnection,

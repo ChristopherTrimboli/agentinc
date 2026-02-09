@@ -148,7 +148,6 @@ function TypewriterText({ messages }: { messages: string[] }) {
 }
 
 function AgentCard({ agent, index }: { agent: Agent; index: number }) {
-  const [isHovered, setIsHovered] = useState(false);
   const [activityLevel, setActivityLevel] = useState(0);
 
   useEffect(() => {
@@ -159,11 +158,7 @@ function AgentCard({ agent, index }: { agent: Agent; index: number }) {
   }, []);
 
   return (
-    <div
-      className="relative group h-full"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
+    <div className="relative group h-full">
       {/* Glow effect on hover */}
       <div
         className="absolute -inset-0.5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-sm"

@@ -16,6 +16,7 @@ import {
 import Navigation from "../components/Navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { PersonalityBadge } from "@/components/ui/PersonalityRadar";
 
 interface Agent {
   id: string;
@@ -25,7 +26,6 @@ interface Agent {
   imageUrl: string | null;
   rarity: string | null;
   personality: string | null;
-  traits: string[];
   isMinted: boolean;
   tokenSymbol: string | null;
   createdAt: string;
@@ -302,9 +302,9 @@ export default function AgentsPage() {
                             {agent.personality && (
                               <>
                                 <span className="text-white/20">·</span>
-                                <span className="text-xs text-white/40 capitalize">
-                                  {agent.personality}
-                                </span>
+                                <PersonalityBadge
+                                  personality={agent.personality}
+                                />
                               </>
                             )}
                           </div>
@@ -315,25 +315,6 @@ export default function AgentsPage() {
                         <p className="text-white/50 text-sm mb-4 line-clamp-2">
                           {agent.description}
                         </p>
-                      )}
-
-                      {/* Traits */}
-                      {agent.traits && agent.traits.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mb-4">
-                          {agent.traits.slice(0, 3).map((trait) => (
-                            <span
-                              key={trait}
-                              className="px-2 py-0.5 rounded-full bg-[#120557]/50 border border-[#6FEC06]/20 text-[10px] text-white/60 uppercase tracking-wider"
-                            >
-                              {trait}
-                            </span>
-                          ))}
-                          {agent.traits.length > 3 && (
-                            <span className="px-2 py-0.5 rounded-full bg-[#120557]/30 text-[10px] text-white/40">
-                              +{agent.traits.length - 3}
-                            </span>
-                          )}
-                        </div>
                       )}
 
                       {/* Action button */}

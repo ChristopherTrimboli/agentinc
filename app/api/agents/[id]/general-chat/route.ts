@@ -66,13 +66,21 @@ export async function POST(req: NextRequest, context: RouteContext) {
   if (!isAuthResult(authResult)) return authResult;
 
   // Rate limit: 10 messages per minute per user
-  const rlResponse = await rateLimitByUser(authResult.userId, "general-chat", 10);
+  const rlResponse = await rateLimitByUser(
+    authResult.userId,
+    "general-chat",
+    10,
+  );
   if (rlResponse) return rlResponse;
 
   try {
     const { content } = await req.json();
 
-    if (!content || typeof content !== "string" || content.trim().length === 0) {
+    if (
+      !content ||
+      typeof content !== "string" ||
+      content.trim().length === 0
+    ) {
       return NextResponse.json(
         { error: "Message content is required" },
         { status: 400 },

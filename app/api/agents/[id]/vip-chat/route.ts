@@ -49,7 +49,12 @@ async function getTokenBalance(
 async function checkVipAccess(
   walletAddress: string,
   tokenMint: string,
-): Promise<{ hasAccess: boolean; balance: number; totalSupply: number; threshold: number }> {
+): Promise<{
+  hasAccess: boolean;
+  balance: number;
+  totalSupply: number;
+  threshold: number;
+}> {
   const [balance, totalSupply] = await Promise.all([
     getTokenBalance(walletAddress, tokenMint),
     getTokenSupply(tokenMint),
@@ -105,7 +110,12 @@ export async function GET(req: NextRequest, context: RouteContext) {
     }
 
     // Only return messages if user has verified VIP access
-    let messages: { id: string; content: string; walletAddress: string; createdAt: Date }[] = [];
+    let messages: {
+      id: string;
+      content: string;
+      walletAddress: string;
+      createdAt: Date;
+    }[] = [];
     if (vipAccess?.hasAccess) {
       const dbMessages = await prisma.agentChatMessage.findMany({
         where: { agentId: id, isVip: true },
@@ -146,7 +156,11 @@ export async function POST(req: NextRequest, context: RouteContext) {
     // Parse body
     const { content } = await req.json();
 
-    if (!content || typeof content !== "string" || content.trim().length === 0) {
+    if (
+      !content ||
+      typeof content !== "string" ||
+      content.trim().length === 0
+    ) {
       return NextResponse.json(
         { error: "Message content is required" },
         { status: 400 },

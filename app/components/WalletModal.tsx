@@ -75,11 +75,6 @@ export default function WalletModal({
     }
   }, [walletAddress]);
 
-  // Format address for display
-  const formatAddress = (address: string, chars = 8) => {
-    return `${address.slice(0, chars)}...${address.slice(-chars)}`;
-  };
-
   // Format balance
   const formatBalance = (bal: number) => {
     if (bal === 0) return "0";

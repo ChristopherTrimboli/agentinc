@@ -228,7 +228,14 @@ export function useVoiceInput(options: VoiceInputOptions = {}) {
       onError?.(errorMsg);
       cleanup();
     }
-  }, [maxDuration, updateAudioLevel, transcribeAudio, onError, cleanup]);
+  }, [
+    maxDuration,
+    updateAudioLevel,
+    transcribeAudio,
+    onError,
+    cleanup,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  ]);
 
   // Stop recording
   const stopRecording = useCallback(() => {

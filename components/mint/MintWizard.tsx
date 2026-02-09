@@ -21,17 +21,13 @@ import {
   Sparkles,
   PenLine,
 } from "lucide-react";
+import { LEGACY_TO_SCORES } from "@/lib/agentTraits";
 import {
-  RARITIES,
-  getPersonalityById,
-  getTraitById,
-  getSkillById,
-  getToolById,
-  getSpecialAbilityById,
-} from "@/lib/agentTraits";
+  PersonalityRadar,
+  PersonalityBadge,
+} from "@/components/ui/PersonalityRadar";
 import { APP_BASE_URL, MINT_TX_FEE_ESTIMATE } from "@/lib/constants/mint";
 import { UseMintAgentReturn } from "@/lib/hooks/useMintAgent";
-import { TraitPill } from "./TraitPill";
 import { EXTERNAL_APIS } from "@/lib/constants/urls";
 import { RarityBadge } from "./RarityBadge";
 import { AgentPreviewCard } from "./AgentPreviewCard";
@@ -68,7 +64,6 @@ export function MintWizard({ mint, chatPath }: MintWizardProps) {
     walletBalance,
     walletAddress,
     requiredBalance,
-    hasEnoughBalance,
     canProceedToStep1,
     canProceedToStep2,
     canLaunch,
@@ -127,7 +122,7 @@ export function MintWizard({ mint, chatPath }: MintWizardProps) {
           Mint Your <span className="gradient-text-shimmer">AI Agent</span>
         </h1>
         <p className="text-white/50 text-xs sm:text-sm md:text-base mb-3 sm:mb-4 max-w-2xl mx-auto px-2">
-          Randomize traits, generate a unique AI image, and launch your
+          Randomize personality, generate a unique AI image, and launch your
           agent&apos;s token on Solana
         </p>
         <StepIndicator currentStep={currentStep} />
@@ -177,10 +172,10 @@ export function MintWizard({ mint, chatPath }: MintWizardProps) {
                     </div>
                     <div>
                       <h2 className="font-semibold text-sm">
-                        Randomize Traits
+                        Randomize Personality
                       </h2>
                       <p className="text-[10px] text-white/40">
-                        Roll for unique attributes
+                        Roll for unique personality
                       </p>
                     </div>
                   </div>
@@ -227,7 +222,7 @@ export function MintWizard({ mint, chatPath }: MintWizardProps) {
                 </div>
 
                 <div className="space-y-3">
-                  {/* Personality */}
+                  {/* Personality — Radar Chart + MBTI */}
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="text-[10px] uppercase tracking-wider text-white/40 font-semibold">
@@ -244,165 +239,28 @@ export function MintWizard({ mint, chatPath }: MintWizardProps) {
                         )}
                       </button>
                     </div>
-                    {(() => {
-                      const p = getPersonalityById(agentTraits.personality);
-                      return p ? (
-                        <div
-                          className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${isRandomizing && !lockedTraits.has("personality") ? "opacity-50 blur-sm" : ""}`}
-                          style={{
-                            backgroundColor: `${p.color}15`,
-                            borderColor: `${p.color}40`,
-                          }}
-                        >
-                          <span className="text-xl">{p.icon}</span>
-                          <div>
-                            <p
-                              className="font-semibold text-sm"
-                              style={{ color: p.color }}
-                            >
-                              {p.name}
-                            </p>
-                            <p className="text-[10px] text-white/50">
-                              {p.description}
-                            </p>
-                          </div>
-                        </div>
-                      ) : null;
-                    })()}
-                  </div>
-
-                  {/* Traits */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-[10px] uppercase tracking-wider text-white/40 font-semibold">
-                        Traits ({agentTraits.traits.length})
-                      </span>
-                      <button
-                        onClick={() => toggleLock("traits")}
-                        className={`p-0.5 rounded ${lockedTraits.has("traits") ? "text-amber-400" : "text-white/30 hover:text-white/50"}`}
-                      >
-                        {lockedTraits.has("traits") ? (
-                          <Lock className="w-3.5 h-3.5" />
-                        ) : (
-                          <Unlock className="w-3.5 h-3.5" />
-                        )}
-                      </button>
-                    </div>
                     <div
-                      className={`flex flex-wrap gap-1.5 ${isRandomizing && !lockedTraits.has("traits") ? "opacity-50 blur-sm" : ""}`}
+                      className={`rounded-lg border border-white/10 bg-[#120557]/30 p-2 ${isRandomizing && !lockedTraits.has("personality") ? "opacity-50 blur-sm" : ""}`}
                     >
-                      {agentTraits.traits.map((id) => {
-                        const t = getTraitById(id);
-                        return t ? (
-                          <TraitPill key={id} icon={t.icon} name={t.name} />
-                        ) : null;
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Skills */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-[10px] uppercase tracking-wider text-white/40 font-semibold">
-                        Skills ({agentTraits.skills.length})
-                      </span>
-                      <button
-                        onClick={() => toggleLock("skills")}
-                        className={`p-0.5 rounded ${lockedTraits.has("skills") ? "text-amber-400" : "text-white/30 hover:text-white/50"}`}
-                      >
-                        {lockedTraits.has("skills") ? (
-                          <Lock className="w-3.5 h-3.5" />
+                      {(() => {
+                        const radarScores =
+                          agentTraits.personalityScores ??
+                          LEGACY_TO_SCORES[agentTraits.personality] ??
+                          null;
+                        return radarScores ? (
+                          <PersonalityRadar
+                            scores={radarScores}
+                            size="sm"
+                            showMBTI
+                            showValues
+                          />
                         ) : (
-                          <Unlock className="w-3.5 h-3.5" />
-                        )}
-                      </button>
+                          <PersonalityBadge
+                            personality={agentTraits.personality}
+                          />
+                        );
+                      })()}
                     </div>
-                    <div
-                      className={`flex flex-wrap gap-1.5 ${isRandomizing && !lockedTraits.has("skills") ? "opacity-50 blur-sm" : ""}`}
-                    >
-                      {agentTraits.skills.map((id) => {
-                        const s = getSkillById(id);
-                        return s ? (
-                          <TraitPill key={id} icon={s.icon} name={s.name} />
-                        ) : null;
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Tools */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-[10px] uppercase tracking-wider text-white/40 font-semibold">
-                        Tools ({agentTraits.tools.length})
-                      </span>
-                      <button
-                        onClick={() => toggleLock("tools")}
-                        className={`p-0.5 rounded ${lockedTraits.has("tools") ? "text-amber-400" : "text-white/30 hover:text-white/50"}`}
-                      >
-                        {lockedTraits.has("tools") ? (
-                          <Lock className="w-3.5 h-3.5" />
-                        ) : (
-                          <Unlock className="w-3.5 h-3.5" />
-                        )}
-                      </button>
-                    </div>
-                    <div
-                      className={`flex flex-wrap gap-1.5 ${isRandomizing && !lockedTraits.has("tools") ? "opacity-50 blur-sm" : ""}`}
-                    >
-                      {agentTraits.tools.map((id) => {
-                        const t = getToolById(id);
-                        return t ? (
-                          <TraitPill key={id} icon={t.icon} name={t.name} />
-                        ) : null;
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Special Ability */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-[10px] uppercase tracking-wider text-white/40 font-semibold">
-                        Special Ability
-                      </span>
-                      <button
-                        onClick={() => toggleLock("specialAbility")}
-                        className={`p-0.5 rounded ${lockedTraits.has("specialAbility") ? "text-amber-400" : "text-white/30 hover:text-white/50"}`}
-                      >
-                        {lockedTraits.has("specialAbility") ? (
-                          <Lock className="w-3.5 h-3.5" />
-                        ) : (
-                          <Unlock className="w-3.5 h-3.5" />
-                        )}
-                      </button>
-                    </div>
-                    {(() => {
-                      const a = getSpecialAbilityById(
-                        agentTraits.specialAbility,
-                      );
-                      const rarity = RARITIES[agentTraits.rarity];
-                      return a ? (
-                        <div
-                          className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${isRandomizing && !lockedTraits.has("specialAbility") ? "opacity-50 blur-sm" : ""}`}
-                          style={{
-                            backgroundColor: `${rarity.color}10`,
-                            borderColor: `${rarity.color}30`,
-                          }}
-                        >
-                          <span className="text-xl">{a.icon}</span>
-                          <div>
-                            <p
-                              className="font-semibold text-sm"
-                              style={{ color: rarity.color }}
-                            >
-                              {a.name}
-                            </p>
-                            <p className="text-[10px] text-white/50">
-                              {a.description}
-                            </p>
-                          </div>
-                        </div>
-                      ) : null;
-                    })()}
                   </div>
                 </div>
               </div>

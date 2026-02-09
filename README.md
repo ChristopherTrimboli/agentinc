@@ -8,7 +8,7 @@
 
 ## What is this?
 
-Agent Inc. is a platform where you mint AI agents with randomized traits, chat with them, give them tools, group them into corporations, and launch tokens for all of it on Solana via [Bags.fm](https://bags.fm). Each agent gets a personality, skills, tools, and a rarity tier -- then you can deploy it as a tradeable token.
+Agent Inc. is a platform where you mint AI agents with randomized personalities, chat with them, give them tools, group them into corporations, and launch tokens for all of it on Solana via [Bags.fm](https://bags.fm). Each agent gets a unique personality based on the Big Five (OCEAN) model, expressed as one of 16 MBTI types, plus a rarity tier that influences personality distribution -- then you can deploy it as a tradeable token.
 
 Think of it as character creation meets token launcher meets AI chat, all in one app.
 
@@ -18,12 +18,14 @@ Think of it as character creation meets token launcher meets AI chat, all in one
 
 ### Mint Agents
 
-Roll for randomized traits and mint unique AI agents.
+Roll for randomized personalities and mint unique AI agents.
 
 - **Rarity tiers** -- Common (45%), Uncommon (30%), Rare (15%), Epic (8%), Legendary (2%)
-- **Traits** -- Personality, skills, tools, and a special ability, all randomly rolled
-- **Trait locking** -- Lock traits you like and re-roll the rest
-- **AI image generation** -- Generate a profile pic from agent traits or a custom prompt
+- **Personality system** -- Big Five (OCEAN) model with 5 dimensions: Openness, Conscientiousness, Extraversion, Agreeableness, Neuroticism
+- **MBTI types** -- 16 personality archetypes derived from Big Five scores (INTJ, ENFP, ISTJ, etc.)
+- **Rarity-based distribution** -- Higher rarity agents have more extreme, specialized personality profiles
+- **Re-roll system** -- Re-roll personality scores until you get the agent you want
+- **AI image generation** -- Generate a profile pic from personality type or a custom prompt
 - **Token launch** -- Deploy an agent token on Solana through Bags.fm
 
 ### Incorporate
@@ -193,9 +195,9 @@ agentinc/
 │   │   ├── agents/           # User's agent collection
 │   │   ├── chat/             # Chat interface
 │   │   ├── incorporate/      # Corporation wizard
-│   │   ├── marketplace/      # Marketplace view
 │   │   ├── mint/             # Minting wizard
-│   │   └── network/          # Swarm visualization
+│   │   ├── network/          # Swarm visualization
+│   │   └── page.tsx          # Explore view (root dashboard)
 │   ├── agent/[id]/           # Public agent profile
 │   ├── incorporate/          # Public incorporate page
 │   ├── swarm/                # Fullscreen swarm view
@@ -206,7 +208,7 @@ agentinc/
 │   ├── mint/                 # Minting wizard components
 │   └── ui/                   # Shared Radix UI primitives
 ├── lib/
-│   ├── agentTraits.ts        # Trait pools, rarity system, name generation
+│   ├── agentTraits.ts        # Personality system (Big Five + MBTI), rarity, name generation
 │   ├── ai/                   # Embeddings + file parsing (RAG)
 │   ├── auth/                 # Privy auth (client + server verification)
 │   ├── constants/            # URLs, Solana config, mint settings
@@ -243,17 +245,58 @@ bun db:studio    # Prisma Studio GUI
 
 ---
 
-## Agent Rarity System
+## Agent Personality System
 
-| Rarity    | Drop Rate | Traits | Skills | Tools |
-| --------- | --------- | ------ | ------ | ----- |
-| Common    | 45%       | 2      | 2      | 2     |
-| Uncommon  | 30%       | 3      | 3      | 3     |
-| Rare      | 15%       | 3      | 4      | 3     |
-| Epic      | 8%        | 4      | 4      | 4     |
-| Legendary | 2%        | 5      | 5      | 5     |
+Agents use the **Big Five (OCEAN)** personality model with scores that derive one of 16 **MBTI personality types**.
 
-Agents are rolled from pools of 10 personalities, 15 traits, 30 skills, 20 tools, and 20 special abilities.
+### Big Five Dimensions
+
+Each agent has five personality scores (0-100):
+
+| Dimension                 | Low End      | High End    | What it affects                                 |
+| ------------------------- | ------------ | ----------- | ----------------------------------------------- |
+| **Openness (O)**          | Conventional | Inventive   | Imagination, creativity, intellectual curiosity |
+| **Conscientiousness (C)** | Spontaneous  | Disciplined | Organization, reliability, planning             |
+| **Extraversion (E)**      | Reserved     | Outgoing    | Social energy, assertiveness, enthusiasm        |
+| **Agreeableness (A)**     | Skeptical    | Trusting    | Cooperation, empathy, warmth                    |
+| **Neuroticism (N)**       | Resilient    | Reactive    | Emotional reactivity, anxiety, stress response  |
+
+### MBTI Personality Types
+
+Big Five scores map to one of 16 MBTI archetypes:
+
+| Type     | Name             | Description                                       |
+| -------- | ---------------- | ------------------------------------------------- |
+| **INTJ** | The Architect    | Strategic, independent, analytical mastermind     |
+| **INTP** | The Logician     | Innovative, curious, logical theorist             |
+| **ENTJ** | The Commander    | Bold, strategic, natural-born leader              |
+| **ENTP** | The Debater      | Smart, curious, intellectual challenger           |
+| **INFJ** | The Advocate     | Insightful, principled, compassionate visionary   |
+| **INFP** | The Mediator     | Idealistic, empathetic, creative dreamer          |
+| **ENFJ** | The Protagonist  | Charismatic, inspiring, natural mentor            |
+| **ENFP** | The Campaigner   | Enthusiastic, creative, sociable free spirit      |
+| **ISTJ** | The Logistician  | Practical, reliable, duty-bound organizer         |
+| **ISFJ** | The Defender     | Dedicated, warm, protective guardian              |
+| **ESTJ** | The Executive    | Organized, dedicated, strong-willed administrator |
+| **ESFJ** | The Consul       | Caring, social, popular helper                    |
+| **ISTP** | The Virtuoso     | Bold, practical, master of tools                  |
+| **ISFP** | The Adventurer   | Flexible, charming, creative artist               |
+| **ESTP** | The Entrepreneur | Smart, energetic, perceptive risk-taker           |
+| **ESFP** | The Entertainer  | Spontaneous, enthusiastic, entertaining performer |
+
+### Rarity Impact on Personality
+
+Rarity affects personality distribution using beta distribution:
+
+| Rarity        | Drop Rate | Personality Distribution                                   |
+| ------------- | --------- | ---------------------------------------------------------- |
+| **Common**    | 45%       | Balanced (35-65 range) — unremarkable, middle-of-the-road  |
+| **Uncommon**  | 30%       | Wider spread (25-75 range) — noticeable quirks             |
+| **Rare**      | 15%       | Peaks and valleys — distinct personality traits            |
+| **Epic**      | 8%        | Polarized — dramatic, extreme traits                       |
+| **Legendary** | 2%        | Min/max specialists — hyper-focused on specific dimensions |
+
+Higher rarity agents have more extreme personality profiles, making them more distinctive and specialized in their behavior patterns.
 
 ---
 

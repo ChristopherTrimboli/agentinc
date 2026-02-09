@@ -99,10 +99,11 @@ export async function POST(request: NextRequest) {
       const { getRarityHexColor } = await import("@/lib/utils/rarity");
 
       const swarmAgentData = userAgents.map((agent) => {
-        // Map agent traits to capabilities for swarm visualization
+        // Map agent data to capabilities for swarm visualization
+        // Use enabled skills and personality as capabilities
         const capabilities = [
-          ...(agent.skills || []),
-          ...(agent.traits || []).slice(0, 2),
+          ...agent.enabledSkills.slice(0, 2),
+          ...(agent.personality ? [agent.personality] : []),
         ].slice(0, 4);
 
         return {

@@ -1,99 +1,58 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import {
   Network,
   MessageSquare,
   Globe,
   Zap,
-  ArrowRight,
   Send,
   CheckCircle2,
   Clock,
-  Sparkles,
 } from "lucide-react";
-
-// Animated message bubble
-function MessageBubble({
-  from,
-  to,
-  message,
-  delay,
-}: {
-  from: string;
-  to: string;
-  message: string;
-  delay: number;
-}) {
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setVisible(true), delay);
-    const hideTimer = setTimeout(() => setVisible(false), delay + 3000);
-    return () => {
-      clearTimeout(timer);
-      clearTimeout(hideTimer);
-    };
-  }, [delay]);
-
-  if (!visible) return null;
-
-  return (
-    <div
-      className="absolute animate-fade-in-up"
-      style={{ animationDuration: "0.3s" }}
-    >
-      <div className="bg-[#120557]/90 backdrop-blur-sm border border-[#6FEC06]/30 rounded-lg px-3 py-2 text-xs max-w-[180px]">
-        <div className="flex items-center gap-1 text-[#6FEC06] mb-1">
-          <span className="font-medium">{from}</span>
-          <ArrowRight className="w-3 h-3" />
-          <span className="font-medium">{to}</span>
-        </div>
-        <p className="text-white/70">{message}</p>
-      </div>
-    </div>
-  );
-}
 
 // Live protocol activity feed
 function ProtocolFeed() {
-  const activities = [
-    {
-      protocol: "MCP",
-      action: "Task delegated",
-      from: "CEO",
-      to: "CTO",
-      status: "complete",
-    },
-    {
-      protocol: "A2A",
-      action: "Resource shared",
-      from: "CMO",
-      to: "CEO",
-      status: "pending",
-    },
-    {
-      protocol: "MCP",
-      action: "Code review",
-      from: "CTO",
-      to: "COO",
-      status: "complete",
-    },
-    {
-      protocol: "A2A",
-      action: "Budget approved",
-      from: "CFO",
-      to: "CMO",
-      status: "complete",
-    },
-    {
-      protocol: "MCP",
-      action: "Hiring request",
-      from: "HR",
-      to: "CEO",
-      status: "pending",
-    },
-  ];
+  const activities = useMemo(
+    () => [
+      {
+        protocol: "MCP",
+        action: "Task delegated",
+        from: "CEO",
+        to: "CTO",
+        status: "complete",
+      },
+      {
+        protocol: "A2A",
+        action: "Resource shared",
+        from: "CMO",
+        to: "CEO",
+        status: "pending",
+      },
+      {
+        protocol: "MCP",
+        action: "Code review",
+        from: "CTO",
+        to: "COO",
+        status: "complete",
+      },
+      {
+        protocol: "A2A",
+        action: "Budget approved",
+        from: "CFO",
+        to: "CMO",
+        status: "complete",
+      },
+      {
+        protocol: "MCP",
+        action: "Hiring request",
+        from: "HR",
+        to: "CEO",
+        status: "pending",
+      },
+    ],
+    [],
+  );
 
   const [displayedActivities, setDisplayedActivities] = useState(
     activities.slice(0, 3),
@@ -110,7 +69,7 @@ function ProtocolFeed() {
       ]);
     }, 2500);
     return () => clearInterval(interval);
-  }, []);
+  }, [activities]);
 
   return (
     <div className="space-y-2 min-h-[132px]">

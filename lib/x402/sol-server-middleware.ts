@@ -747,7 +747,6 @@ async function handlePrivyPayment(
   handler: (req: NextRequest) => Promise<Response | NextResponse>,
   userId: string,
   usdPrice: number,
-  _description: string,
 ): Promise<Response> {
   // Get user's wallet info from database
   const user = await prisma.user.findUnique({
@@ -960,13 +959,7 @@ export function withServerSolPayment<
     if (isServerSignerConfigured()) {
       const authResult = await verifyAuth(req);
       if (authResult) {
-        return handlePrivyPayment(
-          req,
-          handler,
-          authResult.userId,
-          usdPrice,
-          description,
-        );
+        return handlePrivyPayment(req, handler, authResult.userId, usdPrice);
       }
     }
 

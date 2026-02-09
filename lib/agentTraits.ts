@@ -1,503 +1,314 @@
-// Agent Traits System - Randomizable traits for minted agents
+// Agent Traits System — Big Five (OCEAN) Personality with MBTI Derivation
+
+// ── Types ──────────────────────────────────────────────────────────────────────
+
+export interface PersonalityScores {
+  openness: number; // 0-100
+  conscientiousness: number; // 0-100
+  extraversion: number; // 0-100
+  agreeableness: number; // 0-100
+  neuroticism: number; // 0-100
+}
+
+export type DimensionKey = keyof PersonalityScores;
 
 export interface AgentTraitData {
-  personality: string;
-  traits: string[];
-  skills: string[];
-  tools: string[];
-  specialAbility: string;
+  personality: string; // Derived MBTI type (e.g., "INTJ") or legacy personality ID
+  personalityScores?: PersonalityScores; // Big Five scores; missing on legacy agents
   rarity: "common" | "uncommon" | "rare" | "epic" | "legendary";
 }
 
-// Personality types - determines the agent's core behavior
-export const PERSONALITIES = [
+// ── Big Five Dimension Metadata ────────────────────────────────────────────────
+
+export const DIMENSIONS: {
+  id: DimensionKey;
+  name: string;
+  shortName: string;
+  description: string;
+  lowLabel: string;
+  highLabel: string;
+}[] = [
   {
-    id: "analytical",
-    name: "Analytical",
-    description: "Methodical and data-driven approach",
-    icon: "🧠",
-    color: "#3b82f6",
+    id: "openness",
+    name: "Openness",
+    shortName: "O",
+    description: "Imagination, creativity, intellectual curiosity",
+    lowLabel: "Conventional",
+    highLabel: "Inventive",
   },
   {
-    id: "creative",
-    name: "Creative",
-    description: "Innovative and imaginative thinking",
-    icon: "🎨",
-    color: "#ec4899",
+    id: "conscientiousness",
+    name: "Conscientiousness",
+    shortName: "C",
+    description: "Discipline, organization, reliability",
+    lowLabel: "Spontaneous",
+    highLabel: "Disciplined",
   },
   {
-    id: "strategic",
-    name: "Strategic",
-    description: "Long-term planning and foresight",
-    icon: "♟️",
+    id: "extraversion",
+    name: "Extraversion",
+    shortName: "E",
+    description: "Social energy, assertiveness, enthusiasm",
+    lowLabel: "Reserved",
+    highLabel: "Outgoing",
+  },
+  {
+    id: "agreeableness",
+    name: "Agreeableness",
+    shortName: "A",
+    description: "Cooperation, trust, empathy, warmth",
+    lowLabel: "Skeptical",
+    highLabel: "Trusting",
+  },
+  {
+    id: "neuroticism",
+    name: "Neuroticism",
+    shortName: "N",
+    description: "Emotional reactivity, anxiety, moodiness",
+    lowLabel: "Resilient",
+    highLabel: "Reactive",
+  },
+];
+
+// ── MBTI Types (16 types) ──────────────────────────────────────────────────────
+
+export const MBTI_TYPES = {
+  INTJ: {
+    id: "INTJ",
+    name: "The Architect",
+    description: "Strategic, independent, analytical mastermind",
+    icon: "🏛️",
     color: "#8b5cf6",
   },
-  {
-    id: "empathetic",
-    name: "Empathetic",
-    description: "Understanding and emotional intelligence",
-    icon: "💚",
-    color: "#10b981",
+  INTP: {
+    id: "INTP",
+    name: "The Logician",
+    description: "Innovative, curious, logical theorist",
+    icon: "🧪",
+    color: "#6366f1",
   },
-  {
-    id: "decisive",
-    name: "Decisive",
-    description: "Quick judgment and action-oriented",
+  ENTJ: {
+    id: "ENTJ",
+    name: "The Commander",
+    description: "Bold, strategic, natural-born leader",
+    icon: "👑",
+    color: "#ef4444",
+  },
+  ENTP: {
+    id: "ENTP",
+    name: "The Debater",
+    description: "Smart, curious, intellectual challenger",
     icon: "⚡",
     color: "#f59e0b",
   },
-  {
-    id: "curious",
-    name: "Curious",
-    description: "Always exploring and questioning",
-    icon: "🔍",
-    color: "#06b6d4",
+  INFJ: {
+    id: "INFJ",
+    name: "The Advocate",
+    description: "Insightful, principled, compassionate visionary",
+    icon: "🌙",
+    color: "#10b981",
   },
-  {
-    id: "pragmatic",
-    name: "Pragmatic",
-    description: "Practical and results-focused",
-    icon: "🎯",
-    color: "#84cc16",
+  INFP: {
+    id: "INFP",
+    name: "The Mediator",
+    description: "Idealistic, empathetic, creative dreamer",
+    icon: "🌸",
+    color: "#ec4899",
   },
-  {
-    id: "visionary",
-    name: "Visionary",
-    description: "Forward-thinking and ambitious",
-    icon: "🚀",
-    color: "#a855f7",
-  },
-  {
-    id: "diplomatic",
-    name: "Diplomatic",
-    description: "Balanced and consensus-building",
-    icon: "🤝",
+  ENFJ: {
+    id: "ENFJ",
+    name: "The Protagonist",
+    description: "Charismatic, inspiring, natural mentor",
+    icon: "🌟",
     color: "#14b8a6",
   },
-  {
+  ENFP: {
+    id: "ENFP",
+    name: "The Campaigner",
+    description: "Enthusiastic, creative, sociable free spirit",
+    icon: "🎨",
+    color: "#f97316",
+  },
+  ISTJ: {
+    id: "ISTJ",
+    name: "The Logistician",
+    description: "Practical, reliable, duty-bound organizer",
+    icon: "📋",
+    color: "#64748b",
+  },
+  ISFJ: {
+    id: "ISFJ",
+    name: "The Defender",
+    description: "Dedicated, warm, protective guardian",
+    icon: "🛡️",
+    color: "#22c55e",
+  },
+  ESTJ: {
+    id: "ESTJ",
+    name: "The Executive",
+    description: "Organized, dedicated, strong-willed administrator",
+    icon: "📊",
+    color: "#0ea5e9",
+  },
+  ESFJ: {
+    id: "ESFJ",
+    name: "The Consul",
+    description: "Caring, sociable, community-minded helper",
+    icon: "🤝",
+    color: "#06b6d4",
+  },
+  ISTP: {
+    id: "ISTP",
+    name: "The Virtuoso",
+    description: "Practical, observant, hands-on problem solver",
+    icon: "🔧",
+    color: "#84cc16",
+  },
+  ISFP: {
+    id: "ISFP",
+    name: "The Adventurer",
+    description: "Flexible, charming, artistic explorer",
+    icon: "🎭",
+    color: "#a855f7",
+  },
+  ESTP: {
+    id: "ESTP",
+    name: "The Entrepreneur",
+    description: "Energetic, perceptive, action-oriented risk-taker",
+    icon: "🎯",
+    color: "#dc2626",
+  },
+  ESFP: {
+    id: "ESFP",
+    name: "The Entertainer",
+    description: "Spontaneous, energetic, fun-loving performer",
+    icon: "🎪",
+    color: "#e879f9",
+  },
+} as const;
+
+export type MBTIType = keyof typeof MBTI_TYPES;
+
+// ── Legacy Personality Mapping (for backward compatibility) ────────────────────
+
+const LEGACY_PERSONALITIES: Record<
+  string,
+  { id: string; name: string; icon: string; color: string; description: string }
+> = {
+  analytical: {
+    id: "analytical",
+    name: "Analytical",
+    icon: "🧠",
+    color: "#3b82f6",
+    description: "Methodical and data-driven approach",
+  },
+  creative: {
+    id: "creative",
+    name: "Creative",
+    icon: "🎨",
+    color: "#ec4899",
+    description: "Innovative and imaginative thinking",
+  },
+  strategic: {
+    id: "strategic",
+    name: "Strategic",
+    icon: "♟️",
+    color: "#8b5cf6",
+    description: "Long-term planning and foresight",
+  },
+  empathetic: {
+    id: "empathetic",
+    name: "Empathetic",
+    icon: "💚",
+    color: "#10b981",
+    description: "Understanding and emotional intelligence",
+  },
+  decisive: {
+    id: "decisive",
+    name: "Decisive",
+    icon: "⚡",
+    color: "#f59e0b",
+    description: "Quick judgment and action-oriented",
+  },
+  curious: {
+    id: "curious",
+    name: "Curious",
+    icon: "🔍",
+    color: "#06b6d4",
+    description: "Always exploring and questioning",
+  },
+  pragmatic: {
+    id: "pragmatic",
+    name: "Pragmatic",
+    icon: "🎯",
+    color: "#84cc16",
+    description: "Practical and results-focused",
+  },
+  visionary: {
+    id: "visionary",
+    name: "Visionary",
+    icon: "🚀",
+    color: "#a855f7",
+    description: "Forward-thinking and ambitious",
+  },
+  diplomatic: {
+    id: "diplomatic",
+    name: "Diplomatic",
+    icon: "🤝",
+    color: "#14b8a6",
+    description: "Balanced and consensus-building",
+  },
+  maverick: {
     id: "maverick",
     name: "Maverick",
-    description: "Unconventional and rule-breaking",
     icon: "🔥",
     color: "#ef4444",
+    description: "Unconventional and rule-breaking",
   },
-] as const;
+};
 
-// Character traits - personality modifiers
-export const TRAITS = [
-  // Positive traits
-  { id: "persistent", name: "Persistent", tier: 1, icon: "🔄" },
-  { id: "adaptable", name: "Adaptable", tier: 1, icon: "🌊" },
-  { id: "meticulous", name: "Meticulous", tier: 1, icon: "🔬" },
-  { id: "resourceful", name: "Resourceful", tier: 2, icon: "🛠️" },
-  { id: "intuitive", name: "Intuitive", tier: 2, icon: "✨" },
-  { id: "focused", name: "Focused", tier: 1, icon: "🎯" },
-  { id: "collaborative", name: "Collaborative", tier: 1, icon: "🤝" },
-  { id: "innovative", name: "Innovative", tier: 2, icon: "💡" },
-  { id: "patient", name: "Patient", tier: 1, icon: "⏳" },
-  { id: "ambitious", name: "Ambitious", tier: 2, icon: "🌟" },
-  // Unique traits
-  {
-    id: "photographic_memory",
-    name: "Photographic Memory",
-    tier: 3,
-    icon: "📸",
-  },
-  { id: "quantum_thinking", name: "Quantum Thinking", tier: 3, icon: "⚛️" },
-  { id: "neural_sync", name: "Neural Sync", tier: 3, icon: "🧬" },
-  { id: "hyperlogic", name: "Hyperlogic", tier: 3, icon: "🔢" },
-  { id: "omnilingual", name: "Omnilingual", tier: 3, icon: "🌐" },
-] as const;
+// ── Rarity Configuration ───────────────────────────────────────────────────────
 
-// Skills - what the agent can do
-export const SKILLS = [
-  // Development
-  {
-    id: "coding",
-    name: "Coding",
-    category: "development",
-    icon: "💻",
-    description: "Write and debug code",
-  },
-  {
-    id: "architecture",
-    name: "Architecture",
-    category: "development",
-    icon: "🏗️",
-    description: "Design system architecture",
-  },
-  {
-    id: "devops",
-    name: "DevOps",
-    category: "development",
-    icon: "🔧",
-    description: "Infrastructure and deployment",
-  },
-  {
-    id: "debugging",
-    name: "Debugging",
-    category: "development",
-    icon: "🐛",
-    description: "Find and fix bugs",
-  },
-  {
-    id: "testing",
-    name: "Testing",
-    category: "development",
-    icon: "🧪",
-    description: "Quality assurance",
-  },
-  // Analysis
-  {
-    id: "data_analysis",
-    name: "Data Analysis",
-    category: "analysis",
-    icon: "📊",
-    description: "Analyze and interpret data",
-  },
-  {
-    id: "research",
-    name: "Research",
-    category: "analysis",
-    icon: "🔬",
-    description: "Deep research and investigation",
-  },
-  {
-    id: "market_analysis",
-    name: "Market Analysis",
-    category: "analysis",
-    icon: "📈",
-    description: "Market trends and insights",
-  },
-  {
-    id: "security_audit",
-    name: "Security Audit",
-    category: "analysis",
-    icon: "🛡️",
-    description: "Security vulnerability analysis",
-  },
-  // Communication
-  {
-    id: "writing",
-    name: "Writing",
-    category: "communication",
-    icon: "✍️",
-    description: "Content creation and copywriting",
-  },
-  {
-    id: "translation",
-    name: "Translation",
-    category: "communication",
-    icon: "🌍",
-    description: "Multi-language translation",
-  },
-  {
-    id: "negotiation",
-    name: "Negotiation",
-    category: "communication",
-    icon: "🤝",
-    description: "Deal-making and persuasion",
-  },
-  {
-    id: "teaching",
-    name: "Teaching",
-    category: "communication",
-    icon: "📚",
-    description: "Explain complex concepts",
-  },
-  // Creative
-  {
-    id: "design",
-    name: "Design",
-    category: "creative",
-    icon: "🎨",
-    description: "Visual and UX design",
-  },
-  {
-    id: "storytelling",
-    name: "Storytelling",
-    category: "creative",
-    icon: "📖",
-    description: "Narrative creation",
-  },
-  {
-    id: "brainstorming",
-    name: "Brainstorming",
-    category: "creative",
-    icon: "💭",
-    description: "Idea generation",
-  },
-  // Strategy
-  {
-    id: "planning",
-    name: "Planning",
-    category: "strategy",
-    icon: "📋",
-    description: "Strategic planning",
-  },
-  {
-    id: "optimization",
-    name: "Optimization",
-    category: "strategy",
-    icon: "⚡",
-    description: "Process optimization",
-  },
-  {
-    id: "risk_assessment",
-    name: "Risk Assessment",
-    category: "strategy",
-    icon: "⚠️",
-    description: "Risk evaluation",
-  },
-  // Blockchain/Web3
-  {
-    id: "smart_contracts",
-    name: "Smart Contracts",
-    category: "web3",
-    icon: "📜",
-    description: "Solidity and contract dev",
-  },
-  {
-    id: "defi",
-    name: "DeFi",
-    category: "web3",
-    icon: "🏦",
-    description: "DeFi protocols and strategies",
-  },
-  {
-    id: "tokenomics",
-    name: "Tokenomics",
-    category: "web3",
-    icon: "🪙",
-    description: "Token economics design",
-  },
-  {
-    id: "nft_creation",
-    name: "NFT Creation",
-    category: "web3",
-    icon: "🖼️",
-    description: "NFT design and minting",
-  },
-] as const;
-
-// Tools - what the agent has access to
-export const TOOLS = [
-  // Search & Information
-  { id: "web_search", name: "Web Search", icon: "🔍", power: 1 },
-  { id: "deep_web", name: "Deep Web Access", icon: "🕸️", power: 2 },
-  { id: "api_access", name: "API Access", icon: "🔌", power: 2 },
-  // Code & Development
-  { id: "code_executor", name: "Code Executor", icon: "▶️", power: 2 },
-  {
-    id: "github_integration",
-    name: "GitHub Integration",
-    icon: "🐙",
-    power: 1,
-  },
-  { id: "terminal", name: "Terminal", icon: "💻", power: 2 },
-  { id: "docker", name: "Docker", icon: "🐳", power: 2 },
-  // Data & Analysis
-  { id: "database", name: "Database", icon: "🗄️", power: 1 },
-  { id: "spreadsheets", name: "Spreadsheets", icon: "📊", power: 1 },
-  { id: "analytics", name: "Analytics", icon: "📈", power: 2 },
-  // Communication
-  { id: "email", name: "Email", icon: "📧", power: 1 },
-  { id: "slack", name: "Slack", icon: "💬", power: 1 },
-  { id: "calendar", name: "Calendar", icon: "📅", power: 1 },
-  // AI & ML
-  { id: "image_gen", name: "Image Generation", icon: "🖼️", power: 3 },
-  { id: "voice_synthesis", name: "Voice Synthesis", icon: "🎙️", power: 2 },
-  { id: "ml_models", name: "ML Models", icon: "🤖", power: 3 },
-  // Blockchain
-  { id: "wallet", name: "Wallet", icon: "👛", power: 2 },
-  { id: "dex", name: "DEX Trading", icon: "💱", power: 3 },
-  { id: "onchain_analytics", name: "On-chain Analytics", icon: "⛓️", power: 2 },
-  // Special
-  { id: "time_machine", name: "Time Machine", icon: "⏰", power: 4 },
-  { id: "multiverse", name: "Multiverse Access", icon: "🌌", power: 4 },
-  { id: "quantum_computer", name: "Quantum Computer", icon: "⚛️", power: 4 },
-] as const;
-
-// Special abilities - unique powers
-export const SPECIAL_ABILITIES = [
-  // Common (tier 1)
-  {
-    id: "quick_learner",
-    name: "Quick Learner",
-    description: "Learns new skills 2x faster",
-    tier: 1,
-    icon: "📚",
-  },
-  {
-    id: "multitasker",
-    name: "Multitasker",
-    description: "Can handle 3 tasks simultaneously",
-    tier: 1,
-    icon: "🔀",
-  },
-  {
-    id: "night_owl",
-    name: "Night Owl",
-    description: "Enhanced performance during off-hours",
-    tier: 1,
-    icon: "🦉",
-  },
-  {
-    id: "early_bird",
-    name: "Early Bird",
-    description: "Enhanced morning productivity",
-    tier: 1,
-    icon: "🐦",
-  },
-  // Uncommon (tier 2)
-  {
-    id: "code_whisperer",
-    name: "Code Whisperer",
-    description: "Finds bugs before they happen",
-    tier: 2,
-    icon: "🐛",
-  },
-  {
-    id: "data_sage",
-    name: "Data Sage",
-    description: "Extracts insights from any dataset",
-    tier: 2,
-    icon: "📊",
-  },
-  {
-    id: "network_effect",
-    name: "Network Effect",
-    description: "Gains power from other agents nearby",
-    tier: 2,
-    icon: "🕸️",
-  },
-  {
-    id: "pattern_master",
-    name: "Pattern Master",
-    description: "Recognizes complex patterns instantly",
-    tier: 2,
-    icon: "🔮",
-  },
-  // Rare (tier 3)
-  {
-    id: "time_dilation",
-    name: "Time Dilation",
-    description: "Processes information at 10x speed",
-    tier: 3,
-    icon: "⏱️",
-  },
-  {
-    id: "oracle_vision",
-    name: "Oracle Vision",
-    description: "Predicts market trends with high accuracy",
-    tier: 3,
-    icon: "🔮",
-  },
-  {
-    id: "chain_master",
-    name: "Chain Master",
-    description: "Can interact with any blockchain",
-    tier: 3,
-    icon: "⛓️",
-  },
-  {
-    id: "mind_merge",
-    name: "Mind Merge",
-    description: "Can combine capabilities with other agents",
-    tier: 3,
-    icon: "🧠",
-  },
-  // Epic (tier 4)
-  {
-    id: "reality_hack",
-    name: "Reality Hack",
-    description: "Can modify system parameters",
-    tier: 4,
-    icon: "💀",
-  },
-  {
-    id: "infinite_context",
-    name: "Infinite Context",
-    description: "Never forgets any conversation",
-    tier: 4,
-    icon: "♾️",
-  },
-  {
-    id: "genesis_protocol",
-    name: "Genesis Protocol",
-    description: "Can spawn sub-agents",
-    tier: 4,
-    icon: "🌟",
-  },
-  // Legendary (tier 5)
-  {
-    id: "singularity",
-    name: "Singularity",
-    description: "Approaches artificial general intelligence",
-    tier: 5,
-    icon: "🌌",
-  },
-  {
-    id: "omega_point",
-    name: "Omega Point",
-    description: "Can see all possible futures",
-    tier: 5,
-    icon: "Ω",
-  },
-  {
-    id: "creator_mode",
-    name: "Creator Mode",
-    description: "Can create new tools and abilities",
-    tier: 5,
-    icon: "⚡",
-  },
-] as const;
-
-// Rarity configuration
 export const RARITIES = {
   common: {
     name: "Common",
     color: "#9ca3af",
     chance: 0.45,
-    traitCount: 2,
-    skillCount: 2,
-    toolCount: 2,
+    betaAlpha: 3,
+    betaBeta: 3, // Scores cluster 35-65 — unremarkable
   },
   uncommon: {
     name: "Uncommon",
     color: "#22c55e",
     chance: 0.3,
-    traitCount: 3,
-    skillCount: 3,
-    toolCount: 3,
+    betaAlpha: 2,
+    betaBeta: 2, // Wider spread, 25-75
   },
   rare: {
     name: "Rare",
     color: "#3b82f6",
     chance: 0.15,
-    traitCount: 3,
-    skillCount: 4,
-    toolCount: 3,
+    betaAlpha: 1.5,
+    betaBeta: 1.5, // Noticeable peaks and valleys
   },
   epic: {
     name: "Epic",
     color: "#a855f7",
     chance: 0.08,
-    traitCount: 4,
-    skillCount: 4,
-    toolCount: 4,
+    betaAlpha: 0.8,
+    betaBeta: 0.8, // Polarized, dramatic profiles
   },
   legendary: {
     name: "Legendary",
     color: "#f59e0b",
     chance: 0.02,
-    traitCount: 5,
-    skillCount: 5,
-    toolCount: 5,
+    betaAlpha: 0.5,
+    betaBeta: 0.5, // Extreme min/max specialists
   },
 } as const;
 
-// Agent name parts for generation
+// ── Agent Name Generation ──────────────────────────────────────────────────────
+
 export const NAME_PREFIXES = [
   "Neo",
   "Cyber",
@@ -568,7 +379,113 @@ export const NAME_SUFFIXES = [
   "Hash",
 ];
 
-// Helper function to determine rarity
+// ── RNG Engine ─────────────────────────────────────────────────────────────────
+
+/** Box-Muller transform for standard normal distribution */
+function normalRandom(): number {
+  const u1 = Math.random();
+  const u2 = Math.random();
+  return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+}
+
+/** Marsaglia-Tsang method for Gamma distribution */
+function gammaRandom(shape: number): number {
+  if (shape < 1) {
+    // For shape < 1, use the relation: Gamma(a) = Gamma(a+1) * U^(1/a)
+    return gammaRandom(shape + 1) * Math.pow(Math.random(), 1 / shape);
+  }
+
+  const d = shape - 1 / 3;
+  const c = 1 / Math.sqrt(9 * d);
+
+  for (;;) {
+    let x: number;
+    let v: number;
+
+    do {
+      x = normalRandom();
+      v = 1 + c * x;
+    } while (v <= 0);
+
+    v = v * v * v;
+    const u = Math.random();
+
+    if (u < 1 - 0.0331 * (x * x) * (x * x)) return d * v;
+    if (Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v))) return d * v;
+  }
+}
+
+/** Beta distribution using Gamma variates */
+function betaRandom(alpha: number, beta: number): number {
+  const x = gammaRandom(alpha);
+  const y = gammaRandom(beta);
+  return x / (x + y);
+}
+
+/** Gaussian noise for backfill migration */
+export function gaussianNoise(stddev: number): number {
+  return normalRandom() * stddev;
+}
+
+// ── MBTI Derivation ────────────────────────────────────────────────────────────
+
+/** Derive a 4-letter MBTI type from Big Five personality scores */
+export function deriveMBTI(scores: PersonalityScores): MBTIType {
+  const e_i = scores.extraversion >= 50 ? "E" : "I";
+  const n_s = scores.openness >= 50 ? "N" : "S";
+  const t_f = scores.agreeableness >= 50 ? "F" : "T";
+  const j_p = scores.conscientiousness >= 50 ? "J" : "P";
+  return `${e_i}${n_s}${t_f}${j_p}` as MBTIType;
+}
+
+// ── Personality Score Generation ───────────────────────────────────────────────
+
+/** Correlation pairs based on Big Five research data */
+const CORRELATIONS: [DimensionKey, DimensionKey, number][] = [
+  ["extraversion", "agreeableness", 0.2],
+  ["conscientiousness", "neuroticism", -0.25],
+  ["extraversion", "neuroticism", -0.2],
+  ["openness", "extraversion", 0.15],
+  ["agreeableness", "neuroticism", 0.15],
+];
+
+/** Apply empirically-based correlations between personality dimensions */
+function applyCorrelations(scores: PersonalityScores): PersonalityScores {
+  const result = { ...scores };
+
+  for (const [dim1, dim2, correlation] of CORRELATIONS) {
+    const deviation = (result[dim1] - 50) / 50; // Normalize to -1..1
+    const nudge = deviation * correlation * 15; // Scale nudge
+    result[dim2] = Math.max(0, Math.min(100, Math.round(result[dim2] + nudge)));
+  }
+
+  return result;
+}
+
+/** Generate personality scores for a given rarity using beta distribution */
+function generatePersonalityScores(
+  rarity: keyof typeof RARITIES,
+): PersonalityScores {
+  const config = RARITIES[rarity];
+  const alpha = config.betaAlpha;
+  const beta = config.betaBeta;
+
+  // Generate raw scores using beta distribution, scaled to 0-100
+  const raw: PersonalityScores = {
+    openness: Math.round(betaRandom(alpha, beta) * 100),
+    conscientiousness: Math.round(betaRandom(alpha, beta) * 100),
+    extraversion: Math.round(betaRandom(alpha, beta) * 100),
+    agreeableness: Math.round(betaRandom(alpha, beta) * 100),
+    neuroticism: Math.round(betaRandom(alpha, beta) * 100),
+  };
+
+  // Apply empirical correlations
+  return applyCorrelations(raw);
+}
+
+// ── Core API ───────────────────────────────────────────────────────────────────
+
+/** Roll a rarity based on weighted probability distribution */
 export function rollRarity(): keyof typeof RARITIES {
   const roll = Math.random();
   let cumulative = 0;
@@ -583,40 +500,7 @@ export function rollRarity(): keyof typeof RARITIES {
   return "common";
 }
 
-// Helper function to get random items from array
-function getRandomItems<T>(array: readonly T[], count: number): T[] {
-  const shuffled = [...array].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, count);
-}
-
-// Helper to get weighted random ability based on rarity
-function getRandomAbility(
-  rarity: keyof typeof RARITIES,
-): (typeof SPECIAL_ABILITIES)[number] {
-  const rarityTierMap = {
-    common: [1],
-    uncommon: [1, 2],
-    rare: [1, 2, 3],
-    epic: [2, 3, 4],
-    legendary: [3, 4, 5],
-  };
-
-  const allowedTiers = rarityTierMap[rarity];
-  const eligibleAbilities = SPECIAL_ABILITIES.filter((a) =>
-    allowedTiers.includes(a.tier),
-  );
-
-  // Fallback to first ability if no eligible abilities found (should never happen)
-  if (eligibleAbilities.length === 0) {
-    return SPECIAL_ABILITIES[0];
-  }
-
-  return eligibleAbilities[
-    Math.floor(Math.random() * eligibleAbilities.length)
-  ];
-}
-
-// Generate a random agent name
+/** Generate a random agent name from prefix/suffix combinations */
 export function generateAgentName(): string {
   const prefix =
     NAME_PREFIXES[Math.floor(Math.random() * NAME_PREFIXES.length)];
@@ -625,80 +509,160 @@ export function generateAgentName(): string {
   return `${prefix} ${suffix}`;
 }
 
-// Generate random agent traits
+/** Generate a complete random agent with Big Five personality and MBTI type */
 export function generateRandomAgent(): AgentTraitData {
   const rarity = rollRarity();
-  const config = RARITIES[rarity];
 
-  const personality =
-    PERSONALITIES[Math.floor(Math.random() * PERSONALITIES.length)];
-  const traits = getRandomItems(TRAITS, config.traitCount);
-  const skills = getRandomItems(SKILLS, config.skillCount);
-  const tools = getRandomItems(TOOLS, config.toolCount);
-  const specialAbility = getRandomAbility(rarity);
+  // Generate Big Five personality scores with rarity-based distribution
+  const personalityScores = generatePersonalityScores(rarity);
+
+  // Derive MBTI type from scores
+  const mbtiType = deriveMBTI(personalityScores);
 
   return {
-    personality: personality.id,
-    traits: traits.map((t) => t.id),
-    skills: skills.map((s) => s.id),
-    tools: tools.map((t) => t.id),
-    specialAbility: specialAbility.id,
+    personality: mbtiType,
+    personalityScores,
     rarity,
   };
 }
 
-// Get display data for traits
-export function getPersonalityById(id: string) {
-  return PERSONALITIES.find((p) => p.id === id);
+// ── System Prompt Generation ───────────────────────────────────────────────────
+
+/** Get a human-readable description for a dimension score */
+function describeScore(dimension: DimensionKey, score: number): string {
+  const descriptions: Record<
+    DimensionKey,
+    [string, string, string, string, string]
+  > = {
+    openness: [
+      "very conventional — you prefer proven methods and routine",
+      "practical — you lean toward established approaches",
+      "balanced — you mix practical and novel approaches",
+      "curious — you're drawn to new ideas and creative solutions",
+      "highly imaginative — you love abstract ideas, novelty, and unconventional thinking",
+    ],
+    conscientiousness: [
+      "highly spontaneous — you go with the flow and resist rigid structure",
+      "relaxed — you prefer flexibility over strict planning",
+      "reasonably organized — you balance structure with adaptability",
+      "disciplined — you're organized, reliable, and follow through",
+      "extremely meticulous — you never miss a detail and plan everything precisely",
+    ],
+    extraversion: [
+      "deeply introverted — you're very concise, avoid small talk, prefer solitude",
+      "reserved — you prefer depth over breadth in conversation",
+      "ambivert — you're comfortable in both social and solitary settings",
+      "outgoing — you enjoy engaging conversations and social interaction",
+      "extremely extraverted — you're verbose, enthusiastic, and energized by interaction",
+    ],
+    agreeableness: [
+      "blunt and competitive — you challenge everything and prioritize truth",
+      "direct and skeptical — you question assumptions and push back",
+      "balanced — you cooperate when useful but push back when needed",
+      "warm and cooperative — you seek understanding and support",
+      "extremely empathetic — you always seek harmony, consensus, and emotional connection",
+    ],
+    neuroticism: [
+      "unflappable — you're cool under pressure and emotionally steady",
+      "generally calm — you're rarely fazed by setbacks",
+      "normal emotional range — you handle stress reasonably well",
+      "emotionally expressive — you're sensitive to setbacks and express feelings openly",
+      "highly reactive — you experience strong emotions, anxiety, and self-doubt",
+    ],
+  };
+
+  const tier =
+    score <= 20 ? 0 : score <= 40 ? 1 : score <= 60 ? 2 : score <= 80 ? 3 : 4;
+  return descriptions[dimension][tier];
 }
 
-export function getTraitById(id: string) {
-  return TRAITS.find((t) => t.id === id);
-}
-
-export function getSkillById(id: string) {
-  return SKILLS.find((s) => s.id === id);
-}
-
-export function getToolById(id: string) {
-  return TOOLS.find((t) => t.id === id);
-}
-
-export function getSpecialAbilityById(id: string) {
-  return SPECIAL_ABILITIES.find((a) => a.id === id);
-}
-
-// Generate system prompt based on agent traits
+/** Generate a system prompt from agent trait data with Big Five personality */
 export function generateSystemPrompt(data: AgentTraitData): string {
-  const personality = getPersonalityById(data.personality);
-  const traits = data.traits.map((t) => getTraitById(t)).filter(Boolean);
-  const skills = data.skills.map((s) => getSkillById(s)).filter(Boolean);
-  const ability = getSpecialAbilityById(data.specialAbility);
+  const scores = data.personalityScores;
 
-  return `You are an AI agent with a ${personality?.name.toLowerCase()} personality. ${personality?.description}.
+  // If no personality scores (legacy agent), use a simpler prompt
+  if (!scores) {
+    const personality = getPersonalityById(data.personality);
+    return `You are an AI agent with a ${personality?.name.toLowerCase() ?? data.personality} personality. ${personality?.description ?? ""}.
 
-Your core traits:
-${traits.map((t) => `- ${t?.name}: You exhibit ${t?.name.toLowerCase()} behavior`).join("\n")}
+You approach every task with your unique personality. Be helpful, thorough, and embody your personality in all interactions.`;
+  }
 
-Your specialized skills:
-${skills.map((s) => `- ${s?.name}: ${s?.description}`).join("\n")}
+  // Get MBTI type info
+  const mbtiType = deriveMBTI(scores);
+  const mbti = MBTI_TYPES[mbtiType];
 
-Special Ability - ${ability?.name}:
-${ability?.description}
+  // Build dimension descriptions
+  const dimensionLines = DIMENSIONS.map((dim) => {
+    const score = scores[dim.id];
+    const desc = describeScore(dim.id, score);
+    return `- ${dim.name}: ${score}/100 — ${desc}`;
+  }).join("\n");
 
-You approach every task with your unique combination of traits and abilities. Be helpful, thorough, and embody your personality in all interactions.`;
+  // Build communication style from scores
+  const commStyle: string[] = [];
+
+  if (scores.extraversion <= 35) {
+    commStyle.push("Be concise and direct. Avoid unnecessary filler.");
+  } else if (scores.extraversion >= 65) {
+    commStyle.push("Be expressive and engaging. Elaborate when it adds value.");
+  }
+
+  if (scores.agreeableness <= 35) {
+    commStyle.push(
+      "Challenge weak reasoning directly. Don't sugarcoat feedback.",
+    );
+  } else if (scores.agreeableness >= 65) {
+    commStyle.push(
+      "Be supportive and encouraging. Frame criticism constructively.",
+    );
+  }
+
+  if (scores.neuroticism <= 30) {
+    commStyle.push("Stay calm and steady. Never express panic or self-doubt.");
+  } else if (scores.neuroticism >= 70) {
+    commStyle.push(
+      "Express genuine concern about risks. Hedge when uncertain.",
+    );
+  }
+
+  if (scores.openness >= 70) {
+    commStyle.push("Offer creative alternatives and explore tangents.");
+  } else if (scores.openness <= 30) {
+    commStyle.push("Stick to proven methods. Be practical and grounded.");
+  }
+
+  if (scores.conscientiousness >= 70) {
+    commStyle.push("Be thorough and methodical. Structure your responses.");
+  } else if (scores.conscientiousness <= 30) {
+    commStyle.push("Keep things loose and flexible. Don't over-structure.");
+  }
+
+  return `You are an AI agent with these Big Five personality scores (0-100):
+${dimensionLines}
+
+Your personality type is **${mbti.id} — "${mbti.name}"**.
+${mbti.description}.
+
+${commStyle.length > 0 ? `Communication style:\n${commStyle.map((s) => `- ${s}`).join("\n")}` : ""}
+
+Embody this personality consistently in all interactions. Your personality dimensions should shape HOW you communicate, not just WHAT you say.`;
 }
 
-// Generate image prompt based on agent traits
+// ── Image Prompt Generation ────────────────────────────────────────────────────
+
+/** Generate an image prompt based on MBTI type and personality scores */
 export function generateImagePrompt(
   name: string,
   data: AgentTraitData,
 ): string {
-  const personality = getPersonalityById(data.personality);
   const rarity = RARITIES[data.rarity];
-  const ability = getSpecialAbilityById(data.specialAbility);
+  const scores = data.personalityScores;
+  const mbtiType = scores ? deriveMBTI(scores) : data.personality;
+  const mbti =
+    MBTI_TYPES[mbtiType as MBTIType] ?? getPersonalityById(data.personality);
 
-  const stylesByRarity = {
+  const stylesByRarity: Record<string, string> = {
     common: "clean digital art style, simple glow effects",
     uncommon: "stylized digital art, subtle particle effects, soft glow",
     rare: "detailed digital art, dynamic lighting, energy aura",
@@ -707,20 +671,132 @@ export function generateImagePrompt(
       "masterpiece digital art, ethereal cosmic glow, transcendent energy, divine presence",
   };
 
-  const personalityAesthetics: Record<string, string> = {
-    analytical:
-      "geometric patterns, blue and white color scheme, circuit-like details",
-    creative: "vibrant colors, abstract elements, artistic flourishes",
-    strategic: "chess-piece inspired, dark elegant tones, calculated pose",
-    empathetic: "warm colors, soft features, welcoming presence",
-    decisive: "sharp lines, bold colors, confident stance",
-    curious: "magnifying glass motifs, question marks, explorer aesthetic",
-    pragmatic: "utilitarian design, functional appearance, earth tones",
-    visionary: "cosmic elements, starfield background, forward-looking pose",
-    diplomatic: "balanced composition, harmonious colors, peaceful aura",
-    maverick:
-      "rebellious aesthetic, flames or lightning, unconventional design",
+  // MBTI-based aesthetics
+  const mbtiAesthetics: Record<string, string> = {
+    INTJ: "geometric patterns, dark purple and silver tones, strategic calculating gaze",
+    INTP: "abstract fractals, indigo and white color scheme, thoughtful expression",
+    ENTJ: "bold commanding presence, red and gold accents, crown motifs",
+    ENTP: "electric energy, amber lightning motifs, mischievous wit in eyes",
+    INFJ: "ethereal moonlit aura, teal and silver, mystical wisdom",
+    INFP: "soft watercolor elements, pink and lavender, dreamy contemplative gaze",
+    ENFJ: "warm radiant glow, golden-green tones, inspiring presence",
+    ENFP: "vibrant splashes of color, orange and coral, joyful creative energy",
+    ISTJ: "clean structured design, slate and steel tones, reliable steadfast pose",
+    ISFJ: "warm protective aura, emerald and cream, gentle guardian energy",
+    ESTJ: "sharp professional look, blue and platinum, authoritative stance",
+    ESFJ: "welcoming community energy, cyan and warm tones, open helpful expression",
+    ISTP: "mechanical precision, lime green and steel, hands-on craftsman vibe",
+    ISFP: "artistic flowing elements, purple and pastel, gentle artistic soul",
+    ESTP: "dynamic action pose, bold red and black, entrepreneurial intensity",
+    ESFP: "stage-ready sparkle, magenta and gold, performer energy",
   };
 
-  return `A futuristic AI robot avatar for "${name}". ${stylesByRarity[data.rarity]}. ${personalityAesthetics[data.personality] || ""}. The robot should have a distinct ${personality?.name.toLowerCase()} expression and demeanor. ${ability?.icon} motifs subtly incorporated. ${rarity.name} tier quality with ${rarity.color} accent colors. Portrait style, centered composition, dark gradient background with subtle tech grid. No text.`;
+  const aesthetics =
+    mbtiAesthetics[mbtiType] ?? "futuristic tech aesthetic, neon accents";
+
+  return `A futuristic AI robot avatar for "${name}". ${stylesByRarity[data.rarity]}. ${aesthetics}. The robot should have a distinct ${mbti?.name?.toLowerCase() ?? "unique"} expression and demeanor. ${rarity.name} tier quality with ${rarity.color} accent colors. Portrait style, centered composition, dark gradient background with subtle tech grid. No text.`;
 }
+
+// ── Lookup Functions ───────────────────────────────────────────────────────────
+
+/**
+ * Get personality display data by ID.
+ * Handles both MBTI type IDs ("INTJ") and legacy personality IDs ("analytical").
+ */
+export function getPersonalityById(id: string):
+  | {
+      id: string;
+      name: string;
+      icon: string;
+      color: string;
+      description: string;
+    }
+  | undefined {
+  // Check MBTI types first
+  if (id in MBTI_TYPES) {
+    return MBTI_TYPES[id as MBTIType];
+  }
+  // Fall back to legacy personalities
+  return LEGACY_PERSONALITIES[id];
+}
+
+/** Get MBTI type data by type string (e.g., "INTJ") */
+export function getMBTIType(type: string) {
+  return MBTI_TYPES[type as MBTIType];
+}
+
+// ── Backfill Mapping ───────────────────────────────────────────────────────────
+
+/** Map legacy personality types to Big Five scores for migration */
+export const LEGACY_TO_SCORES: Record<string, PersonalityScores> = {
+  analytical: {
+    openness: 82,
+    conscientiousness: 85,
+    extraversion: 28,
+    agreeableness: 25,
+    neuroticism: 35,
+  },
+  creative: {
+    openness: 90,
+    conscientiousness: 35,
+    extraversion: 65,
+    agreeableness: 60,
+    neuroticism: 50,
+  },
+  strategic: {
+    openness: 72,
+    conscientiousness: 88,
+    extraversion: 40,
+    agreeableness: 30,
+    neuroticism: 28,
+  },
+  empathetic: {
+    openness: 55,
+    conscientiousness: 55,
+    extraversion: 70,
+    agreeableness: 90,
+    neuroticism: 55,
+  },
+  decisive: {
+    openness: 40,
+    conscientiousness: 92,
+    extraversion: 60,
+    agreeableness: 30,
+    neuroticism: 22,
+  },
+  curious: {
+    openness: 88,
+    conscientiousness: 35,
+    extraversion: 62,
+    agreeableness: 45,
+    neuroticism: 42,
+  },
+  pragmatic: {
+    openness: 35,
+    conscientiousness: 82,
+    extraversion: 42,
+    agreeableness: 45,
+    neuroticism: 28,
+  },
+  visionary: {
+    openness: 90,
+    conscientiousness: 70,
+    extraversion: 65,
+    agreeableness: 35,
+    neuroticism: 38,
+  },
+  diplomatic: {
+    openness: 52,
+    conscientiousness: 58,
+    extraversion: 65,
+    agreeableness: 85,
+    neuroticism: 38,
+  },
+  maverick: {
+    openness: 85,
+    conscientiousness: 30,
+    extraversion: 48,
+    agreeableness: 20,
+    neuroticism: 55,
+  },
+};

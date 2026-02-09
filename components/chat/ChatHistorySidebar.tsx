@@ -7,7 +7,6 @@ import {
   Plus,
   Search,
   Trash2,
-  MoreHorizontal,
   Clock,
   Bot,
   ChevronLeft,
@@ -57,7 +56,6 @@ const rarityColors = RARITY_RING_COLORS as Record<string, string>;
 
 export function ChatHistorySidebar({
   currentChatId,
-  currentAgentId,
   onNewChat,
   identityToken,
   collapsed = false,

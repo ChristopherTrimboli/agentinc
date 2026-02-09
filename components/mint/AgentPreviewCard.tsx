@@ -3,15 +3,15 @@
 import { Wand2 } from "lucide-react";
 import {
   RARITIES,
+  LEGACY_TO_SCORES,
   getPersonalityById,
-  getTraitById,
-  getSkillById,
-  getToolById,
-  getSpecialAbilityById,
   AgentTraitData,
 } from "@/lib/agentTraits";
-import { TraitPill } from "./TraitPill";
 import { RarityBadge } from "./RarityBadge";
+import {
+  PersonalityRadar,
+  PersonalityBadge,
+} from "@/components/ui/PersonalityRadar";
 
 interface AgentPreviewCardProps {
   name: string;
@@ -27,7 +27,6 @@ export function AgentPreviewCard({
   isGeneratingImage,
 }: AgentPreviewCardProps) {
   const personality = getPersonalityById(traits.personality);
-  const specialAbility = getSpecialAbilityById(traits.specialAbility);
   const rarityConfig = RARITIES[traits.rarity];
 
   return (
@@ -47,18 +46,10 @@ export function AgentPreviewCard({
       <div className="relative p-4 bg-[#0a0520]/90 backdrop-blur-xl">
         <div className="flex items-center justify-between mb-3">
           <RarityBadge rarity={traits.rarity} />
-          <div
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
-            style={{ backgroundColor: `${personality?.color}20` }}
-          >
-            <span className="text-base">{personality?.icon}</span>
-            <span
-              className="text-xs font-semibold"
-              style={{ color: personality?.color }}
-            >
-              {personality?.name}
-            </span>
-          </div>
+          <PersonalityBadge
+            personality={traits.personality}
+            scores={traits.personalityScores}
+          />
         </div>
 
         <div className="relative mb-4">
@@ -95,68 +86,28 @@ export function AgentPreviewCard({
               </div>
             )}
           </div>
-          <div
-            className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full border backdrop-blur-sm"
-            style={{
-              backgroundColor: `${rarityConfig.color}20`,
-              borderColor: `${rarityConfig.color}50`,
-            }}
-          >
-            <div className="flex items-center gap-1.5">
-              <span className="text-sm">{specialAbility?.icon}</span>
-              <span
-                className="text-xs font-bold"
-                style={{ color: rarityConfig.color }}
-              >
-                {specialAbility?.name}
-              </span>
-            </div>
-          </div>
         </div>
 
         <h2 className="text-xl font-bold text-center mb-4 mt-2">{name}</h2>
 
-        <div className="space-y-3">
-          <div>
-            <p className="text-[10px] uppercase tracking-wider text-white/40 mb-1.5 font-semibold">
-              Traits
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {traits.traits.map((id) => {
-                const t = getTraitById(id);
-                return t ? (
-                  <TraitPill key={id} icon={t.icon} name={t.name} />
-                ) : null;
-              })}
+        {/* Personality Radar Chart */}
+        {(() => {
+          const radarScores =
+            traits.personalityScores ??
+            LEGACY_TO_SCORES[traits.personality] ??
+            null;
+          if (!radarScores) return null;
+          return (
+            <div className="mb-4">
+              <PersonalityRadar
+                scores={radarScores}
+                size="sm"
+                showMBTI
+                showValues
+              />
             </div>
-          </div>
-          <div>
-            <p className="text-[10px] uppercase tracking-wider text-white/40 mb-1.5 font-semibold">
-              Skills
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {traits.skills.map((id) => {
-                const s = getSkillById(id);
-                return s ? (
-                  <TraitPill key={id} icon={s.icon} name={s.name} />
-                ) : null;
-              })}
-            </div>
-          </div>
-          <div>
-            <p className="text-[10px] uppercase tracking-wider text-white/40 mb-1.5 font-semibold">
-              Tools
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {traits.tools.map((id) => {
-                const t = getToolById(id);
-                return t ? (
-                  <TraitPill key={id} icon={t.icon} name={t.name} />
-                ) : null;
-              })}
-            </div>
-          </div>
-        </div>
+          );
+        })()}
       </div>
     </div>
   );

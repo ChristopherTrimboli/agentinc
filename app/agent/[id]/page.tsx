@@ -24,6 +24,11 @@ import { getBagsFmUrl, getDexScreenerUrl } from "@/lib/constants/urls";
 import Footer from "@/app/components/Footer";
 import StakingPanel from "@/app/components/StakingPanel";
 import AgentChat from "@/app/components/AgentChat";
+import {
+  PersonalityRadar,
+  PersonalityBadge,
+} from "@/components/ui/PersonalityRadar";
+import { LEGACY_TO_SCORES, type PersonalityScores } from "@/lib/agentTraits";
 
 interface Corporation {
   id: string;
@@ -44,9 +49,7 @@ interface Agent {
   imageUrl: string | null;
   rarity: string | null;
   personality: string | null;
-  traits: string[];
-  skills: string[];
-  specialAbility: string | null;
+  personalityScores: PersonalityScores | null;
   isMinted: boolean;
   tokenMint: string | null;
   tokenSymbol: string | null;
@@ -276,12 +279,39 @@ export default function AgentProfilePage({
                     <div className="text-[10px] sm:text-xs text-white/40 mb-1">
                       Personality
                     </div>
-                    <div className="text-white text-sm sm:text-base font-medium capitalize truncate">
-                      {agent.personality}
-                    </div>
+                    <PersonalityBadge
+                      personality={agent.personality}
+                      scores={agent.personalityScores ?? undefined}
+                    />
                   </div>
                 )}
               </div>
+
+              {/* Personality Radar - Under Image */}
+              {(() => {
+                const radarScores =
+                  agent.personalityScores ??
+                  (agent.personality
+                    ? LEGACY_TO_SCORES[agent.personality]
+                    : null);
+                if (!radarScores) return null;
+                return (
+                  <div className="mt-4 sm:mt-6 p-4 sm:p-6 rounded-xl sm:rounded-2xl bg-[#0a0520] border border-white/10">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-white/60" />
+                      <h2 className="text-base sm:text-lg font-semibold font-display">
+                        Personality Profile
+                      </h2>
+                    </div>
+                    <PersonalityRadar
+                      scores={radarScores}
+                      size="md"
+                      showMBTI
+                      showValues
+                    />
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Right Column - Info */}
@@ -294,14 +324,6 @@ export default function AgentProfilePage({
                       <Zap className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#6FEC06]" />
                       <span className="text-xs sm:text-sm font-semibold text-[#6FEC06]">
                         {agent.tokenSymbol}
-                      </span>
-                    </div>
-                  )}
-                  {agent.specialAbility && (
-                    <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full bg-[#A855F7]/10 border border-[#A855F7]/30">
-                      <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#A855F7]" />
-                      <span className="text-xs sm:text-sm font-medium text-[#A855F7]">
-                        {agent.specialAbility}
                       </span>
                     </div>
                   )}
@@ -356,43 +378,6 @@ export default function AgentProfilePage({
                     Buy on Bags
                     <ExternalLink className="w-3 h-3" />
                   </a>
-                </div>
-              )}
-
-              {/* Traits & Skills */}
-              {((agent.traits && agent.traits.length > 0) ||
-                (agent.skills && agent.skills.length > 0)) && (
-                <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-[#0a0520] border border-white/10 space-y-2">
-                  {agent.traits && agent.traits.length > 0 && (
-                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                      <span className="text-[10px] sm:text-xs font-semibold text-white/40 uppercase tracking-wider mr-1">
-                        Traits
-                      </span>
-                      {agent.traits.map((trait) => (
-                        <span
-                          key={trait}
-                          className="px-2 py-0.5 sm:py-1 rounded-full bg-[#120557]/50 border border-[#6FEC06]/20 text-xs text-white/70"
-                        >
-                          {trait}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  {agent.skills && agent.skills.length > 0 && (
-                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                      <span className="text-[10px] sm:text-xs font-semibold text-white/40 uppercase tracking-wider mr-1">
-                        Skills
-                      </span>
-                      {agent.skills.map((skill) => (
-                        <span
-                          key={skill}
-                          className="px-2 py-0.5 sm:py-1 rounded-full bg-[#6FEC06]/10 border border-[#6FEC06]/30 text-xs text-[#6FEC06]"
-                        >
-                          {skill}
-                        </span>
-                      ))}
-                    </div>
-                  )}
                 </div>
               )}
 
@@ -499,9 +484,10 @@ export default function AgentProfilePage({
                     <div className="text-xs text-white/40 mb-2">
                       Personality
                     </div>
-                    <div className="text-white font-semibold capitalize">
-                      {agent.personality}
-                    </div>
+                    <PersonalityBadge
+                      personality={agent.personality}
+                      scores={agent.personalityScores ?? undefined}
+                    />
                   </div>
                 )}
                 <div className="p-5 rounded-2xl bg-[#0a0520] border border-white/10">
@@ -542,25 +528,23 @@ export default function AgentProfilePage({
             </div>
           </div>
 
-          {/* Staking Panel */}
+          {/* Staking & Community Chat - Side by Side */}
           {agent.isMinted && agent.tokenMint && agent.tokenSymbol && (
-            <div className="mt-6 sm:mt-10 max-w-2xl ml-auto">
-              <StakingPanel
-                tokenMint={agent.tokenMint}
-                tokenSymbol={agent.tokenSymbol}
-                agentId={agent.id}
-              />
-            </div>
-          )}
-
-          {/* Community Chat */}
-          {agent.isMinted && agent.tokenMint && agent.tokenSymbol && (
-            <div className="mt-6 sm:mt-10">
-              <AgentChat
-                agentId={agent.id}
-                tokenMint={agent.tokenMint}
-                tokenSymbol={agent.tokenSymbol}
-              />
+            <div className="mt-6 sm:mt-10 grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 items-stretch">
+              <div className="h-full">
+                <AgentChat
+                  agentId={agent.id}
+                  tokenMint={agent.tokenMint}
+                  tokenSymbol={agent.tokenSymbol}
+                />
+              </div>
+              <div className="h-full">
+                <StakingPanel
+                  tokenMint={agent.tokenMint}
+                  tokenSymbol={agent.tokenSymbol}
+                  agentId={agent.id}
+                />
+              </div>
             </div>
           )}
 

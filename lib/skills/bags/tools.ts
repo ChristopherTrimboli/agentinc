@@ -249,7 +249,6 @@ async function publicApiRequest<T>(
  */
 export function createBagsTools(config: SkillConfig) {
   const jwtToken = config.apiKey; // JWT token stored as apiKey
-  const agentUsername = config.agentName;
 
   return {
     // ==================== AUTHENTICATION ====================

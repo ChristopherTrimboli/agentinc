@@ -13,7 +13,6 @@ import {
   Zap,
   Terminal,
   CheckCircle2,
-  Sparkles,
   Clock,
   ArrowRight,
   Play,
@@ -120,8 +119,6 @@ function CapabilityCard({
   color: string;
   index: number;
 }) {
-  const [isHovered, setIsHovered] = useState(false);
-
   const getColorClasses = (color: string) => {
     if (color.includes("blue"))
       return { bg: "bg-[#3b82f6]/20", text: "text-[#3b82f6]", glow: "#3b82f6" };
@@ -139,8 +136,6 @@ function CapabilityCard({
   return (
     <div
       className="group relative"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
       style={{ animationDelay: `${index * 50}ms` }}
     >
       {/* Glow effect */}
@@ -240,18 +235,6 @@ function ExecutionStats() {
         </div>
       ))}
     </div>
-  );
-}
-
-// Soon Badge
-function SoonBadge({ className = "" }: { className?: string }) {
-  return (
-    <span
-      className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider bg-[#6FEC06]/20 text-[#6FEC06] rounded-full ${className}`}
-    >
-      <Clock className="w-2.5 h-2.5" />
-      Soon
-    </span>
   );
 }
 

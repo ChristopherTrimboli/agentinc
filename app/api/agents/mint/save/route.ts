@@ -90,12 +90,11 @@ export async function POST(req: NextRequest) {
           isPublic: true, // Minted agents are public by default
           isMinted: true,
 
-          // Traits
+          // Personality
           personality: traits.personality,
-          traits: traits.traits,
-          skills: traits.skills,
-          tools: traits.tools,
-          specialAbility: traits.specialAbility,
+          personalityScores: traits.personalityScores
+            ? (traits.personalityScores as unknown as Record<string, number>)
+            : undefined,
           rarity: traits.rarity,
 
           // Token launch fields

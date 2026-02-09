@@ -50,7 +50,6 @@ interface ExploreAgent {
   imageUrl: string | null;
   rarity: string | null;
   personality: string | null;
-  traits: string[];
   tokenMint: string | null;
   tokenSymbol: string | null;
   launchedAt: string | null;
@@ -469,20 +468,6 @@ function ItemCard({
             <p className="text-white/50 text-sm line-clamp-2 overflow-hidden mb-3">
               {item.description}
             </p>
-          )}
-
-          {/* Traits for agents */}
-          {agent?.traits && agent.traits.length > 0 && (
-            <div className="flex flex-wrap gap-1 mb-3">
-              {agent.traits.slice(0, 3).map((trait) => (
-                <span
-                  key={trait}
-                  className="px-2 py-0.5 rounded-full bg-[#120557]/50 border border-[#6FEC06]/20 text-[10px] text-white/60 uppercase tracking-wider"
-                >
-                  {trait}
-                </span>
-              ))}
-            </div>
           )}
         </div>
 
