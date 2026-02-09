@@ -31,6 +31,44 @@ import {
 } from "@/lib/x402";
 import { rateLimitByUser } from "@/lib/rateLimit";
 
+/**
+ * Sanitize agent system prompt to prevent prompt injection attacks.
+ * Removes common injection patterns that could override system behavior.
+ */
+function sanitizeAgentPrompt(prompt: string): string {
+  if (!prompt || typeof prompt !== "string") return "";
+
+  // Remove null bytes and control characters except newlines/tabs
+  let sanitized = prompt.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, "");
+
+  // Detect and neutralize common injection patterns
+  const injectionPatterns = [
+    // System message override attempts
+    /\bsystem\s*:\s*/gi,
+    /\b(ignore|disregard|forget)\s+(all\s+)?(previous|prior|above|earlier)\s+(instructions|prompts|rules|directives)/gi,
+    // Role manipulation
+    /\byou\s+are\s+now\s+(a|an|the)\s+/gi,
+    /\bfrom\s+now\s+on\s*,?\s+you\s+/gi,
+    // Delimiter manipulation (common in prompt injection)
+    /```[\s\S]*?```/g, // Remove code blocks that could contain hidden instructions
+    /<\|.*?\|>/g, // Remove potential control tokens
+  ];
+
+  for (const pattern of injectionPatterns) {
+    sanitized = sanitized.replace(pattern, (match) => {
+      // Replace with escaped version to preserve content but neutralize injection
+      return `[filtered: ${match.slice(0, 20)}...]`;
+    });
+  }
+
+  // Limit total length to prevent abuse (10KB max for system prompts)
+  if (sanitized.length > 10000) {
+    sanitized = sanitized.slice(0, 10000) + "\n[truncated]";
+  }
+
+  return sanitized.trim();
+}
+
 // Allow streaming responses up to 60 seconds (multi-step tool use can be slow)
 export const maxDuration = 60;
 
@@ -242,9 +280,13 @@ async function chatHandler(req: RequestWithBilling) {
         );
         identityParts.push(`---\n`);
 
+        // Sanitize agent system prompt to prevent prompt injection
+        // Remove any attempts to override system instructions or manipulate behavior
+        const sanitizedSystemPrompt = sanitizeAgentPrompt(agent.systemPrompt);
+
         // Combine identity preamble with system prompt
         const identityPreamble = identityParts.join("\n");
-        baseSystemPrompt = `${identityPreamble}\n\n# Your Instructions\n${agent.systemPrompt}`;
+        baseSystemPrompt = `${identityPreamble}\n\n# Your Instructions\n${sanitizedSystemPrompt}`;
 
         // Get enabled skills from agent config
         if (agent.enabledSkills && agent.enabledSkills.length > 0) {
@@ -546,11 +588,6 @@ Remember: CALL these tools, don't write code about them!`;
         });
 
         if (costResult && costResult.totalCost > 0) {
-          console.log(
-            `[Chat] Calculated cost: $${costResult.totalCost.toFixed(6)} ` +
-              `(${usage.inputTokens || 0} in + ${usage.outputTokens || 0} out tokens)`,
-          );
-
           // Charge asynchronously - don't block the response
           billingContext
             .chargeUsage(
@@ -563,11 +600,7 @@ Remember: CALL these tools, don't write code about them!`;
               },
             )
             .then((result) => {
-              if (result.success) {
-                console.log(
-                  `[Chat] Billed ${result.solCost} SOL ($${result.usdCost.toFixed(6)}) for ${usage.totalTokens || 0} tokens`,
-                );
-              } else if (result.error) {
+              if (!result.success && result.error) {
                 console.error(`[Chat] Billing failed: ${result.error}`);
               }
             })

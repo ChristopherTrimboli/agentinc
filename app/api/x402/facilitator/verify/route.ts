@@ -11,8 +11,13 @@ import {
   VerifyRequestSchema,
   validateRequestBody,
 } from "@/lib/x402/validation";
+import { rateLimitByIP } from "@/lib/rateLimit";
 
 export async function POST(req: NextRequest) {
+  // Rate limit: 30 requests per minute per IP (public endpoint)
+  const rateLimited = await rateLimitByIP(req, "x402-verify", 30);
+  if (rateLimited) return rateLimited;
+
   try {
     const body = await req.json();
 
@@ -39,6 +44,7 @@ export async function POST(req: NextRequest) {
       ...(result.payer && { payer: result.payer }),
     });
   } catch (error) {
+    console.error("[X402 Verify] Error:", error);
     return NextResponse.json(
       createErrorResponse("Verification failed", ERROR_CODES.INTERNAL_ERROR, {
         message: error instanceof Error ? error.message : "Unknown error",

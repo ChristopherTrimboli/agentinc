@@ -30,9 +30,11 @@ model User {
   twitterConnectedAt       DateTime? // When user connected Twitter
 
   // Relations
-  agents    Agent[]
-  chats     Chat[]
-  resources Resource[]
+  agents           Agent[]
+  chats            Chat[]
+  resources        Resource[]
+  agentChatMessages AgentChatMessage[] @relation("UserChatMessages")
+  stakingPools     StakingPool[]      @relation("UserStakingPools")
 
   @@index([walletId])
   @@index([twitterUserId])
@@ -122,8 +124,10 @@ model Agent {
   corporation   Corporation? @relation(fields: [corporationId], references: [id], onDelete: SetNull)
 
   // Chats with this agent
-  chats     Chat[]
-  resources Resource[]
+  chats             Chat[]
+  resources         Resource[]
+  agentChatMessages AgentChatMessage[] @relation("AgentChatMessages")
+  stakingPool       StakingPool?       @relation("AgentStakingPool")
 
   @@index([createdById])
   @@index([tokenMint])
@@ -141,16 +145,19 @@ model Agent {
 model StakingPool {
   id              String   @id @default(cuid())
   agentId         String   @unique // One pool per agent
+  agent           Agent    @relation("AgentStakingPool", fields: [agentId], references: [id], onDelete: Cascade)
   tokenMint       String   // The agent's SPL token mint address
   stakePoolAddress String  // Streamflow stake pool PDA address
   rewardPoolNonce Int      @default(0) // Nonce for the reward pool
   rewardMint      String   // Reward token mint (usually same as tokenMint)
   createdById     String   // User who created the pool
+  createdBy       User     @relation("UserStakingPools", fields: [createdById], references: [id], onDelete: Cascade)
   createdAt       DateTime @default(now())
 
   @@index([agentId])
   @@index([tokenMint])
   @@index([stakePoolAddress])
+  @@index([createdById])
 }
 
 // Swarm visualization models
@@ -239,12 +246,15 @@ model AgentChatMessage {
 
   // Agent relation - each agent has its own chat rooms
   agentId String
+  agent   Agent  @relation("AgentChatMessages", fields: [agentId], references: [id], onDelete: Cascade)
 
   // User relation
   userId String
+  user   User   @relation("UserChatMessages", fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([agentId, isVip, createdAt])
   @@index([walletAddress])
+  @@index([userId])
 }
 
 // Knowledge base resource - source material for RAG

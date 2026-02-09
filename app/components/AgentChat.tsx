@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   Crown,
   Send,
@@ -113,39 +113,57 @@ export default function AgentChat({
   const [error, setError] = useState("");
 
   const messagesContainerRef = useRef<HTMLDivElement>(null);
-  const generalPollRef = useRef<NodeJS.Timeout | null>(null);
-  const vipPollRef = useRef<NodeJS.Timeout | null>(null);
 
   // ── Fetch general messages ────────────────────────────────────────
 
   const fetchGeneralMessages = useCallback(async () => {
+    let isCancelled = false;
+
     try {
       const res = await authFetch(`/api/agents/${agentId}/general-chat`);
-      if (!res.ok) return;
+      if (isCancelled || !res.ok) return;
       const data = await res.json();
-      setGeneralMessages(data.messages ?? []);
+      if (!isCancelled) {
+        setGeneralMessages(data.messages ?? []);
+      }
     } catch {
       // Silent fail on poll
     } finally {
-      setGeneralLoading(false);
+      if (!isCancelled) {
+        setGeneralLoading(false);
+      }
     }
+
+    return () => {
+      isCancelled = true;
+    };
   }, [agentId, authFetch]);
 
   // ── Fetch VIP messages ────────────────────────────────────────────
 
   const fetchVipMessages = useCallback(async () => {
+    let isCancelled = false;
+
     try {
       const res = await authFetch(`/api/agents/${agentId}/vip-chat`);
-      if (!res.ok) return;
+      if (isCancelled || !res.ok) return;
       const data = await res.json();
-      setVipMessages(data.messages ?? []);
-      setVipAccess(data.vipAccess);
-      setThresholdPercent(data.thresholdPercent ?? 0.1);
+      if (!isCancelled) {
+        setVipMessages(data.messages ?? []);
+        setVipAccess(data.vipAccess);
+        setThresholdPercent(data.thresholdPercent ?? 0.1);
+      }
     } catch {
       // Silent fail on poll
     } finally {
-      setVipLoading(false);
+      if (!isCancelled) {
+        setVipLoading(false);
+      }
     }
+
+    return () => {
+      isCancelled = true;
+    };
   }, [agentId, authFetch]);
 
   // Initial load for both
@@ -154,20 +172,27 @@ export default function AgentChat({
     fetchVipMessages();
   }, [fetchGeneralMessages, fetchVipMessages]);
 
-  // Poll general chat
+  // Poll general chat with proper cleanup
   useEffect(() => {
-    generalPollRef.current = setInterval(fetchGeneralMessages, 5000);
+    const intervalId = setInterval(() => {
+      fetchGeneralMessages();
+    }, 5000);
+
     return () => {
-      if (generalPollRef.current) clearInterval(generalPollRef.current);
+      clearInterval(intervalId);
     };
   }, [fetchGeneralMessages]);
 
-  // Poll VIP chat only when user has access
+  // Poll VIP chat only when user has access with proper cleanup
   useEffect(() => {
     if (!vipAccess?.hasAccess) return;
-    vipPollRef.current = setInterval(fetchVipMessages, 5000);
+
+    const intervalId = setInterval(() => {
+      fetchVipMessages();
+    }, 5000);
+
     return () => {
-      if (vipPollRef.current) clearInterval(vipPollRef.current);
+      clearInterval(intervalId);
     };
   }, [vipAccess?.hasAccess, fetchVipMessages]);
 
@@ -181,7 +206,7 @@ export default function AgentChat({
 
   // ── Send message ──────────────────────────────────────────────────
 
-  const sendMessage = async () => {
+  const sendMessage = useCallback(async () => {
     if (!input.trim() || isSending) return;
 
     setIsSending(true);
@@ -215,14 +240,25 @@ export default function AgentChat({
     } finally {
       setIsSending(false);
     }
-  };
+  }, [
+    input,
+    isSending,
+    activeTab,
+    agentId,
+    authFetch,
+    fetchGeneralMessages,
+    fetchVipMessages,
+  ]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  };
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    },
+    [sendMessage],
+  );
 
   // ── Derived state ─────────────────────────────────────────────────
 
@@ -230,8 +266,12 @@ export default function AgentChat({
   const isVipTab = activeTab === "vip";
   const currentMessages = isVipTab ? vipMessages : generalMessages;
   const isCurrentLoading = isVipTab ? vipLoading : generalLoading;
-  const uniqueWallets = new Set(currentMessages.map((m) => m.walletAddress))
-    .size;
+
+  // Memoize unique wallet calculation to avoid recalculating on every render
+  const uniqueWallets = useMemo(
+    () => new Set(currentMessages.map((m) => m.walletAddress)).size,
+    [currentMessages],
+  );
 
   // Can the user send in the current tab?
   const canSend = isVipTab ? hasVipAccess : authenticated;

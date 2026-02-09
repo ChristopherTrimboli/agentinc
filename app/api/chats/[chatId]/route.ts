@@ -41,6 +41,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
           },
         },
       },
+      cacheStrategy: { ttl: 10, swr: 30 },
     });
 
     if (!chat) {

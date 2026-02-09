@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { BagsSDK } from "@bagsfm/bags-sdk";
-import { Connection } from "@solana/web3.js";
 import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
-import { SOLANA_RPC_URL } from "@/lib/constants/solana";
+import { getConnection } from "@/lib/constants/solana";
 import { isValidPublicKey, validatePublicKey } from "@/lib/utils/validation";
 
 // POST /api/agents/mint/launch - Create token launch transaction for agent
@@ -48,8 +47,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Initialize Bags SDK
-    const connection = new Connection(SOLANA_RPC_URL);
+    // Initialize Bags SDK with pooled connection
+    const connection = getConnection();
     const sdk = new BagsSDK(apiKey, connection, "confirmed");
 
     // Convert to PublicKeys (validated above)

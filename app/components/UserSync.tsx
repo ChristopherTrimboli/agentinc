@@ -84,14 +84,12 @@ export default function UserSync() {
           ],
         });
         setSignerAdded(true);
-        console.log("[UserSync] Added server signer to wallet");
 
         // Notify server that signer was added
         try {
           await authFetch("/api/users/signer-status", {
             method: "POST",
           });
-          console.log("[UserSync] Notified server of signer addition");
         } catch {
           // Non-critical - server will still try to sign transactions
         }
@@ -102,7 +100,6 @@ export default function UserSync() {
         // "Duplicate signer" means it was already added - treat as success
         if (errorMessage.includes("Duplicate signer")) {
           setSignerAdded(true);
-          console.log("[UserSync] Server signer already exists on wallet");
 
           // Update server status
           try {
@@ -115,9 +112,8 @@ export default function UserSync() {
         } else if (errorMessage.includes("not initialized")) {
           // Wallet not ready yet - allow retry on next render
           addSignerAttempted.current = false;
-          console.log("[UserSync] Wallet not ready, will retry...");
         } else {
-          console.log("[UserSync] Could not add server signer:", error);
+          console.error("[UserSync] Could not add server signer:", error);
         }
       }
     }

@@ -41,6 +41,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
       where: { agentId: id, isVip: false },
       orderBy: { createdAt: "desc" },
       take: 100,
+      cacheStrategy: { ttl: 30, swr: 60 },
     });
 
     return NextResponse.json({

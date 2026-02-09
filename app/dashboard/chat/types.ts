@@ -85,41 +85,14 @@ export function saveApiKey(skillId: string, apiKey: string) {
   }
 }
 
-// Format price for display - compact format for small prices
-export function formatPrice(price: number): string {
-  if (price >= 100) {
-    return `$${price.toFixed(0)}`;
-  } else if (price >= 1) {
-    return `$${price.toFixed(2)}`;
-  } else if (price >= 0.01) {
-    return `$${price.toFixed(3)}`;
-  } else if (price >= 0.0001) {
-    return `$${price.toFixed(5)}`;
-  } else {
-    // For very small prices, show significant digits with zero count
-    // e.g., 0.00000274 -> "$0.0{5}27"
-    const str = price.toFixed(12);
-    const match = str.match(/^0\.(0*)([1-9]\d{0,1})/);
-    if (match) {
-      const zeroCount = match[1].length;
-      const significantDigits = match[2];
-      if (zeroCount > 2) {
-        return `$0.0{${zeroCount}}${significantDigits}`;
-      }
-    }
-    return `$${price.toFixed(6)}`;
-  }
-}
+import {
+  formatPrice as formatPriceUtil,
+  formatMarketCap as formatMarketCapUtil,
+} from "@/lib/utils/formatting";
 
-// Format market cap for display
-export function formatMarketCap(mc: number): string {
-  if (mc >= 1_000_000) {
-    return `$${(mc / 1_000_000).toFixed(2)}M`;
-  } else if (mc >= 1_000) {
-    return `$${(mc / 1_000).toFixed(1)}K`;
-  }
-  return `$${mc.toFixed(0)}`;
-}
+// Use centralized formatting utilities
+export const formatPrice = formatPriceUtil;
+export const formatMarketCap = formatMarketCapUtil;
 
 export interface GeneratedImageResult {
   success: boolean;

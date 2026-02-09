@@ -109,18 +109,30 @@ export async function GET(req: NextRequest, context: RouteContext) {
       }
     }
 
-    // Only return messages if user has verified VIP access
+    // Only return messages if user has verified VIP access OR is the agent owner
     let messages: {
       id: string;
       content: string;
       walletAddress: string;
       createdAt: Date;
     }[] = [];
-    if (vipAccess?.hasAccess) {
+
+    // Check if user is the agent owner
+    const isOwner = isAuthResult(authResult)
+      ? (
+          await prisma.agent.findUnique({
+            where: { id },
+            select: { createdById: true },
+          })
+        )?.createdById === authResult.userId
+      : false;
+
+    if (vipAccess?.hasAccess || isOwner) {
       const dbMessages = await prisma.agentChatMessage.findMany({
         where: { agentId: id, isVip: true },
         orderBy: { createdAt: "desc" },
         take: 100,
+        cacheStrategy: { ttl: 30, swr: 60 },
       });
       messages = dbMessages.reverse();
     }
@@ -129,6 +141,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
       messages,
       vipAccess,
       thresholdPercent: VIP_THRESHOLD_PERCENT * 100,
+      isOwner,
     });
   } catch (error) {
     console.error("[VipChat] GET error:", error);

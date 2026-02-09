@@ -13,7 +13,10 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const agentId = searchParams.get("agentId");
-    const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 100);
+    const limit = Math.min(
+      parseInt(searchParams.get("limit") || "50") || 50,
+      100,
+    );
     const cursor = searchParams.get("cursor");
 
     const whereClause = {

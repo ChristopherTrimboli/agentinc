@@ -12,12 +12,13 @@ export async function GET(req: NextRequest) {
 
   try {
     const { searchParams } = new URL(req.url);
-    const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1") || 1);
     const limit = Math.min(
       MAX_PAGE_SIZE,
       Math.max(
         1,
-        parseInt(searchParams.get("limit") || String(DEFAULT_PAGE_SIZE)),
+        parseInt(searchParams.get("limit") || String(DEFAULT_PAGE_SIZE)) ||
+          DEFAULT_PAGE_SIZE,
       ),
     );
     const offset = (page - 1) * limit;

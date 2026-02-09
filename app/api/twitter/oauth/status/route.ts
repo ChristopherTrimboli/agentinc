@@ -4,20 +4,26 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { verifyAuth } from "@/lib/auth/verifyRequest";
+import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
+import { rateLimitByUser } from "@/lib/rateLimit";
 import prisma from "@/lib/prisma";
 
 export async function GET(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (!isAuthResult(authResult)) return authResult;
+
+  // Rate limit: 20 requests per minute per user
+  const rateLimited = await rateLimitByUser(
+    authResult.userId,
+    "twitter-status",
+    20,
+  );
+  if (rateLimited) return rateLimited;
+
   try {
-    const auth = await verifyAuth(request);
-
-    if (!auth) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     // Get user's Twitter connection status
     const user = await prisma.user.findUnique({
-      where: { id: auth.userId },
+      where: { id: authResult.userId },
       select: {
         twitterAccessToken: true,
         twitterUsername: true,
@@ -37,7 +43,7 @@ export async function GET(request: NextRequest) {
       tokenExpiresAt: user?.twitterTokenExpiresAt,
     });
   } catch (error) {
-    console.error("Twitter status check error:", error);
+    console.error("[Twitter Status] Check error:", error);
     return NextResponse.json(
       { error: "Failed to check Twitter connection status" },
       { status: 500 },

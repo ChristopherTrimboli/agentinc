@@ -111,20 +111,12 @@ async function speechHandler(req: Request) {
   }
 
   try {
-    console.log("[Speech API] Generating speech:", {
-      textLength: text.length,
-      voice,
-      speed,
-    });
-
     const { audio } = await generateSpeech({
       model: openai.speech("gpt-4o-mini-tts"),
       text,
       voice,
       speed,
     });
-
-    console.log("[Speech API] Speech generated successfully");
 
     // Return the audio as a binary response with proper headers
     // Convert Uint8Array to Buffer for Response compatibility

@@ -46,6 +46,7 @@ export function createKnowledgeTools(
       inputSchema: z.object({
         content: z
           .string()
+          .max(10 * 1024 * 1024, "Content must be less than 10MB")
           .describe(
             "The content or resource to add to the knowledge base. Can be any text: facts, preferences, documents, notes, etc.",
           ),

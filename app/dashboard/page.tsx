@@ -103,15 +103,6 @@ const rarityColors = RARITY_BADGE_STYLES as Record<
   { bg: string; text: string; border: string }
 >;
 
-// Format price with appropriate decimals
-function formatPrice(price: number | undefined): string {
-  if (price === undefined) return "-";
-  if (price >= 1) return `$${price.toFixed(2)}`;
-  if (price >= 0.01) return `$${price.toFixed(4)}`;
-  if (price >= 0.0001) return `$${price.toFixed(6)}`;
-  return `$${price.toFixed(8)}`;
-}
-
 // Format large numbers (market cap, volume)
 function formatNumber(num: number | undefined): string {
   if (num === undefined || num === null) return "-";

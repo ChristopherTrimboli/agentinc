@@ -95,24 +95,33 @@ export default function VipChat({
   const [error, setError] = useState("");
 
   const messagesContainerRef = useRef<HTMLDivElement>(null);
-  const pollRef = useRef<NodeJS.Timeout | null>(null);
 
   // ── Fetch messages ──────────────────────────────────────────────
 
   const fetchMessages = useCallback(async () => {
+    let isCancelled = false;
+
     try {
       const res = await authFetch(`/api/agents/${agentId}/vip-chat`);
-      if (!res.ok) return;
+      if (isCancelled || !res.ok) return;
 
       const data = await res.json();
-      setMessages(data.messages ?? []);
-      setVipAccess(data.vipAccess);
-      setThresholdPercent(data.thresholdPercent ?? 0.1);
+      if (!isCancelled) {
+        setMessages(data.messages ?? []);
+        setVipAccess(data.vipAccess);
+        setThresholdPercent(data.thresholdPercent ?? 0.1);
+      }
     } catch {
       // Silent fail on poll
     } finally {
-      setIsLoading(false);
+      if (!isCancelled) {
+        setIsLoading(false);
+      }
     }
+
+    return () => {
+      isCancelled = true;
+    };
   }, [agentId, authFetch]);
 
   // Initial load
@@ -124,9 +133,12 @@ export default function VipChat({
   useEffect(() => {
     if (!vipAccess?.hasAccess) return;
 
-    pollRef.current = setInterval(fetchMessages, 5000);
+    const intervalId = setInterval(() => {
+      fetchMessages();
+    }, 5000);
+
     return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
+      clearInterval(intervalId);
     };
   }, [vipAccess?.hasAccess, fetchMessages]);
 
@@ -140,7 +152,7 @@ export default function VipChat({
 
   // ── Send message ────────────────────────────────────────────────
 
-  const sendMessage = async () => {
+  const sendMessage = useCallback(async () => {
     if (!input.trim() || isSending) return;
 
     setIsSending(true);
@@ -166,14 +178,17 @@ export default function VipChat({
     } finally {
       setIsSending(false);
     }
-  };
+  }, [input, isSending, agentId, authFetch, fetchMessages]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  };
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    },
+    [sendMessage],
+  );
 
   // ── Render states ───────────────────────────────────────────────
 

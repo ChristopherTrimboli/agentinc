@@ -53,15 +53,15 @@ export async function GET(req: NextRequest, context: RouteContext) {
         cacheStrategy,
       }),
 
-      // Unique users who have chatted with this agent
+      // Unique users who have chatted with this agent (using groupBy for efficiency)
       prisma.chat
-        .findMany({
+        .groupBy({
+          by: ["userId"],
           where: { agentId: agent.id },
-          select: { userId: true },
-          distinct: ["userId"],
+          _count: true,
           cacheStrategy,
         })
-        .then((users) => users.length),
+        .then((groups) => groups.length),
 
       // General community chat messages
       prisma.agentChatMessage.count({

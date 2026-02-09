@@ -1,23 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
-  verifyAuth,
-  serverSignAndSend,
   sendSignedTransaction,
   getConnection,
+  serverSignAndSend,
 } from "@/lib/solana";
+import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
 import { rateLimitByUser } from "@/lib/rateLimit";
 
 // POST /api/solana/send - Sign and send a transaction server-side
 export async function POST(req: NextRequest) {
-  const idToken = req.headers.get("privy-id-token");
-  const auth = await verifyAuth(idToken);
-
-  if (!auth) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const authResult = await requireAuth(req);
+  if (!isAuthResult(authResult)) return authResult;
 
   // Rate limit: 5 transaction submissions per minute per user
-  const rateLimited = await rateLimitByUser(auth.userId, "solana-send", 5);
+  const rateLimited = await rateLimitByUser(
+    authResult.userId,
+    "solana-send",
+    5,
+  );
   if (rateLimited) return rateLimited;
 
   try {
@@ -32,14 +32,14 @@ export async function POST(req: NextRequest) {
 
     // Server-side signing flow (preferred)
     if (transaction) {
-      if (!auth.walletId) {
+      if (!authResult.walletId) {
         return NextResponse.json(
           { error: "No wallet found for server-side signing" },
           { status: 400 },
         );
       }
 
-      const result = await serverSignAndSend(auth.walletId, transaction);
+      const result = await serverSignAndSend(authResult.walletId, transaction);
       signature = result.signature;
     } else if (signedTransaction) {
       // Backwards compatibility

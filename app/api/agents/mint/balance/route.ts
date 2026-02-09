@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Connection, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
-import { SOLANA_RPC_URL } from "@/lib/constants/solana";
+import { getConnection } from "@/lib/constants/solana";
 import { isValidPublicKey, validatePublicKey } from "@/lib/utils/validation";
 
 // POST /api/agents/mint/balance - Check wallet SOL balance
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const connection = new Connection(SOLANA_RPC_URL);
+    const connection = getConnection();
     const walletPubkey = validatePublicKey(wallet, "wallet");
 
     const balanceLamports = await connection.getBalance(walletPubkey);

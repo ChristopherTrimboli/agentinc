@@ -4,20 +4,26 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { verifyAuth } from "@/lib/auth/verifyRequest";
+import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
+import { rateLimitByUser } from "@/lib/rateLimit";
 import prisma from "@/lib/prisma";
 
 export async function POST(request: NextRequest) {
+  const authResult = await requireAuth(request);
+  if (!isAuthResult(authResult)) return authResult;
+
+  // Rate limit: 5 requests per minute per user
+  const rateLimited = await rateLimitByUser(
+    authResult.userId,
+    "twitter-disconnect",
+    5,
+  );
+  if (rateLimited) return rateLimited;
+
   try {
-    const auth = await verifyAuth(request);
-
-    if (!auth) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     // Remove Twitter credentials from database
     await prisma.user.update({
-      where: { id: auth.userId },
+      where: { id: authResult.userId },
       data: {
         twitterAccessToken: null,
         twitterRefreshToken: null,
@@ -33,7 +39,7 @@ export async function POST(request: NextRequest) {
       message: "Twitter account disconnected successfully",
     });
   } catch (error) {
-    console.error("Twitter disconnect error:", error);
+    console.error("[Twitter Disconnect] Error:", error);
     return NextResponse.json(
       { error: "Failed to disconnect Twitter account" },
       { status: 500 },

@@ -1,5 +1,6 @@
 import { PrivyClient } from "@privy-io/node";
 import bs58 from "bs58";
+import { Transaction, VersionedTransaction } from "@solana/web3.js";
 import {
   JITO_ENDPOINTS,
   FALLBACK_RPC_URLS,
@@ -22,11 +23,101 @@ export function getPrivyClient(): PrivyClient {
 // Re-export getConnection from constants
 export { getConnection };
 
+/**
+ * Validate a transaction before signing.
+ * Checks:
+ * - Transaction is valid and can be deserialized
+ * - Transaction size is within Solana limits (1232 bytes)
+ * - Transaction has at least one instruction
+ * - Transaction has a valid recent blockhash
+ */
+export function validateTransaction(transactionBase64: string): {
+  valid: boolean;
+  error?: string;
+} {
+  try {
+    // Check base64 encoding is valid
+    const txBuffer = Buffer.from(transactionBase64, "base64");
+
+    // Check size (Solana max is 1232 bytes)
+    if (txBuffer.length > 1232) {
+      return {
+        valid: false,
+        error: "Transaction too large (max 1232 bytes)",
+      };
+    }
+
+    if (txBuffer.length === 0) {
+      return {
+        valid: false,
+        error: "Transaction is empty",
+      };
+    }
+
+    // Try to deserialize the transaction to verify it's valid
+    let tx: Transaction | VersionedTransaction;
+    try {
+      // Try versioned transaction first (more common)
+      tx = VersionedTransaction.deserialize(txBuffer);
+    } catch {
+      // Fall back to legacy transaction
+      try {
+        tx = Transaction.from(txBuffer);
+      } catch (deserializeError) {
+        return {
+          valid: false,
+          error: "Invalid transaction format",
+        };
+      }
+    }
+
+    // Check for instructions
+    const hasInstructions =
+      "instructions" in tx
+        ? tx.instructions.length > 0
+        : tx.message.compiledInstructions.length > 0;
+
+    if (!hasInstructions) {
+      return {
+        valid: false,
+        error: "Transaction has no instructions",
+      };
+    }
+
+    // Check for recent blockhash (basic check that it's set)
+    const blockhash =
+      "recentBlockhash" in tx ? tx.recentBlockhash : tx.message.recentBlockhash;
+
+    if (!blockhash || blockhash === "11111111111111111111111111111111") {
+      return {
+        valid: false,
+        error: "Transaction has invalid or missing blockhash",
+      };
+    }
+
+    return { valid: true };
+  } catch (error) {
+    return {
+      valid: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Transaction validation failed",
+    };
+  }
+}
+
 // Sign a transaction server-side using Privy embedded wallet
 export async function signTransaction(
   walletId: string,
   transaction: string, // base64 encoded unsigned transaction
 ): Promise<string> {
+  // Validate transaction before signing
+  const validation = validateTransaction(transaction);
+  if (!validation.valid) {
+    throw new Error(`Transaction validation failed: ${validation.error}`);
+  }
+
   const privy = getPrivyClient();
 
   const response = await privy.wallets().solana().signTransaction(walletId, {

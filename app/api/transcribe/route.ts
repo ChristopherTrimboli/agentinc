@@ -84,11 +84,7 @@ async function transcribeHandler(req: Request) {
     );
 
     if (!isSupported && audioData.byteLength > 0) {
-      console.log(
-        "[Transcribe API] Audio type:",
-        audioType,
-        "- allowing anyway",
-      );
+      // Allow anyway - Whisper is flexible with formats
     }
 
     // Check file size (max 25MB for Whisper)
@@ -112,20 +108,9 @@ async function transcribeHandler(req: Request) {
       });
     }
 
-    console.log("[Transcribe API] Transcribing audio:", {
-      size: audioData.byteLength,
-      type: audioType,
-    });
-
     const result = await transcribe({
       model: openai.transcription("gpt-4o-mini-transcribe"),
       audio: new Uint8Array(audioData),
-    });
-
-    console.log("[Transcribe API] Transcription complete:", {
-      textLength: result.text.length,
-      language: result.language,
-      duration: result.durationInSeconds,
     });
 
     return new Response(
