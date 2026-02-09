@@ -142,6 +142,14 @@ export default function AgentProfilePage({
     fetchData();
   }, [resolvedParams.id, identityToken]);
 
+  // Update document title when agent loads
+  useEffect(() => {
+    if (agent) {
+      const title = `${agent.name}${agent.tokenSymbol ? ` ($${agent.tokenSymbol})` : ""} | Agent Inc.`;
+      document.title = title;
+    }
+  }, [agent]);
+
   const getRarityStyle = (rarity: string | null) => {
     return rarityColors[rarity || "common"] || rarityColors.common;
   };
