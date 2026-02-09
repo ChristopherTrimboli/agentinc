@@ -21,11 +21,7 @@ import {
   Sparkles,
   PenLine,
 } from "lucide-react";
-import { LEGACY_TO_SCORES } from "@/lib/agentTraits";
-import {
-  PersonalityRadar,
-  PersonalityBadge,
-} from "@/components/ui/PersonalityRadar";
+import { PersonalityRadar } from "@/components/ui/PersonalityRadar";
 import { APP_BASE_URL, MINT_TX_FEE_ESTIMATE } from "@/lib/constants/mint";
 import { UseMintAgentReturn } from "@/lib/hooks/useMintAgent";
 import { EXTERNAL_APIS } from "@/lib/constants/urls";
@@ -256,24 +252,13 @@ export function MintWizard({ mint, chatPath }: MintWizardProps) {
                     <div
                       className={`${isRandomizing && !lockedTraits.has("personality") ? "opacity-50 blur-sm" : ""}`}
                     >
-                      {(() => {
-                        const radarScores =
-                          agentTraits.personalityScores ??
-                          LEGACY_TO_SCORES[agentTraits.personality] ??
-                          null;
-                        return radarScores ? (
-                          <PersonalityRadar
-                            scores={radarScores}
-                            size="sm"
-                            showMBTI
-                            showValues
-                          />
-                        ) : (
-                          <PersonalityBadge
-                            personality={agentTraits.personality}
-                          />
-                        );
-                      })()}
+                      {agentTraits.personalityScores && (
+                        <PersonalityRadar
+                          scores={agentTraits.personalityScores}
+                          size="sm"
+                          variant="full"
+                        />
+                      )}
                     </div>
                   </div>
                 </div>

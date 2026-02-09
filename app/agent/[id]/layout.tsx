@@ -55,8 +55,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       `Meet ${agent.name}, an AI agent on Agent Inc. Chat, trade tokens, and explore autonomous AI-powered startups on Solana.`;
 
     // Use absolute URL for OG images and canonical URL
-    const baseUrl =
-      process.env.NEXT_PUBLIC_BASE_URL || "https://agentinc.fun";
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://agentinc.fun";
     const ogImage = agent.imageUrl || `${baseUrl}/og-image.png`;
     const canonicalUrl = `${baseUrl}/agent/${agent.tokenMint || id}`;
 

@@ -99,7 +99,7 @@ model Agent {
   imageUrl      String?  // AI-generated profile picture
   
   // Agent personality (stored as JSON)
-  personality       String?  // Derived MBTI type (e.g., "INTJ") or legacy personality ID
+  personality       String?  // MBTI type (e.g., "INTJ", "ENTP")
   personalityScores Json?    // Big Five OCEAN scores: { openness, conscientiousness, extraversion, agreeableness, neuroticism }
   
   // Rarity/tier

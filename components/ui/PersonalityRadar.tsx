@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -16,64 +17,19 @@ import {
 } from "@/components/ui/chart";
 import {
   type PersonalityScores,
-  type MBTIType,
   DIMENSIONS,
   MBTI_TYPES,
-  LEGACY_TO_SCORES,
   deriveMBTI,
 } from "@/lib/agentTraits";
-
-/**
- * Resolve any personality identifier to MBTI type data and scores.
- * Handles: explicit scores, MBTI type strings ("INTJ"), and legacy types ("maverick").
- */
-function resolvePersonality(
-  personality: string,
-  scores?: PersonalityScores,
-): { mbti: (typeof MBTI_TYPES)[MBTIType]; scores: PersonalityScores } | null {
-  // 1. Explicit scores provided — derive MBTI from them
-  if (scores) {
-    const type = deriveMBTI(scores);
-    return { mbti: MBTI_TYPES[type], scores };
-  }
-
-  // 2. Personality string is already an MBTI type
-  if (personality in MBTI_TYPES) {
-    // No scores available — use neutral 50s (will show badge only, no radar)
-    const defaultScores: PersonalityScores = {
-      openness: 50,
-      conscientiousness: 50,
-      extraversion: 50,
-      agreeableness: 50,
-      neuroticism: 50,
-    };
-    return { mbti: MBTI_TYPES[personality as MBTIType], scores: defaultScores };
-  }
-
-  // 3. Legacy personality type — map to OCEAN scores and derive MBTI
-  const legacyScores = LEGACY_TO_SCORES[personality];
-  if (legacyScores) {
-    const type = deriveMBTI(legacyScores);
-    return { mbti: MBTI_TYPES[type], scores: legacyScores };
-  }
-
-  return null;
-}
 
 interface PersonalityRadarProps {
   scores: PersonalityScores;
   /** Override the color of the radar fill (defaults to MBTI type color) */
   color?: string;
-  /** Show the MBTI type badge below the chart */
-  showMBTI?: boolean;
   /** CSS className for the container */
   className?: string;
   /** Size variant */
   size?: "sm" | "md" | "lg";
-  /** Show score values on the axis labels */
-  showValues?: boolean;
-  /** Legacy personality ID for fallback display if no scores */
-  legacyPersonality?: string;
   /** Display variant - full with all details or compact for cards */
   variant?: "full" | "compact";
 }
@@ -94,14 +50,13 @@ const SIZE_CLASSES = {
 export function PersonalityRadar({
   scores,
   color,
-  showMBTI = true,
   className = "",
   size = "md",
-  showValues = false,
   variant = "full",
 }: PersonalityRadarProps) {
   const [mounted, setMounted] = useState(false);
   const [hoveredDim, setHoveredDim] = useState<string | null>(null);
+  const [animationKey, setAnimationKey] = useState(0);
 
   const mbtiType = deriveMBTI(scores);
   const mbti = MBTI_TYPES[mbtiType];
@@ -124,6 +79,13 @@ export function PersonalityRadar({
     setMounted(true);
   }, []);
 
+  // Trigger animation when scores change
+  useEffect(() => {
+    if (mounted) {
+      setAnimationKey((prev) => prev + 1);
+    }
+  }, [scores, mounted]);
+
   // Compact version for cards
   if (variant === "compact") {
     return (
@@ -145,6 +107,7 @@ export function PersonalityRadar({
               stroke={`${fillColor}20`}
               strokeWidth={1}
               gridType="polygon"
+              style={{ transition: "stroke 0.7s ease" }}
             />
 
             <PolarAngleAxis
@@ -184,10 +147,11 @@ export function PersonalityRadar({
                       y={y + 7}
                       textAnchor="middle"
                       dominantBaseline="central"
-                      className="font-mono font-semibold tabular-nums transition-all duration-200"
+                      className="font-mono font-semibold tabular-nums"
                       style={{
                         fill: isHovered ? fillColor : "rgba(255,255,255,0.4)",
                         fontSize: isHovered ? "10px" : "9px",
+                        transition: "fill 0.3s ease, font-size 0.3s ease",
                       }}
                     >
                       {score}
@@ -213,19 +177,21 @@ export function PersonalityRadar({
 
             {/* Glow layer */}
             <Radar
+              key={`glow-${animationKey}`}
               dataKey="score"
               stroke={fillColor}
               fill={fillColor}
               fillOpacity={0.08}
               strokeWidth={0}
-              isAnimationActive={mounted}
-              animationDuration={1000}
-              animationEasing="ease-out"
+              isAnimationActive={true}
+              animationDuration={800}
+              animationEasing="ease-in-out"
               hide
             />
 
             {/* Main radar */}
             <Radar
+              key={`main-${animationKey}`}
               name="Score"
               dataKey="score"
               stroke={fillColor}
@@ -238,9 +204,9 @@ export function PersonalityRadar({
                 strokeWidth: 1.5,
                 stroke: "rgba(0,0,0,0.4)",
               }}
-              isAnimationActive={mounted}
-              animationDuration={1000}
-              animationEasing="ease-out"
+              isAnimationActive={true}
+              animationDuration={800}
+              animationEasing="ease-in-out"
               style={{
                 filter: `drop-shadow(0 0 5px ${fillColor}60)`,
               }}
@@ -263,7 +229,7 @@ export function PersonalityRadar({
     >
       {/* Outer glow effect */}
       <div
-        className="absolute inset-0 rounded-2xl blur-2xl opacity-20 pointer-events-none"
+        className="absolute inset-0 rounded-2xl blur-2xl opacity-20 pointer-events-none transition-all duration-700"
         style={{
           background: `radial-gradient(circle at center, ${fillColor}, transparent 70%)`,
           animation: "pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite",
@@ -274,7 +240,7 @@ export function PersonalityRadar({
       <div className="relative w-full rounded-2xl bg-gradient-to-br from-white/[0.03] to-white/[0.01] backdrop-blur-sm border border-white/5 p-6 shadow-2xl">
         {/* Grid pattern overlay */}
         <div
-          className="absolute inset-0 opacity-[0.02] pointer-events-none rounded-2xl"
+          className="absolute inset-0 opacity-[0.02] pointer-events-none rounded-2xl transition-all duration-700"
           style={{
             backgroundImage: `linear-gradient(${fillColor} 1px, transparent 1px), linear-gradient(90deg, ${fillColor} 1px, transparent 1px)`,
             backgroundSize: "20px 20px",
@@ -285,15 +251,17 @@ export function PersonalityRadar({
         <div className="flex items-center justify-between mb-4 relative z-10">
           <div className="flex items-center gap-3">
             <div
-              className="w-10 h-10 rounded-lg flex items-center justify-center text-xl font-bold relative overflow-hidden"
+              className="w-10 h-10 rounded-lg flex items-center justify-center text-xl font-bold relative overflow-hidden transition-all duration-700"
               style={{
                 background: `linear-gradient(135deg, ${fillColor}20, ${fillColor}10)`,
                 boxShadow: `0 0 20px ${fillColor}20, inset 0 0 20px ${fillColor}10`,
               }}
             >
-              <span className="relative z-10">{mbti.icon}</span>
+              <span className="relative z-10 transition-all duration-500">
+                {mbti.icon}
+              </span>
               <div
-                className="absolute inset-0 opacity-30"
+                className="absolute inset-0 opacity-30 transition-all duration-700"
                 style={{
                   background: `radial-gradient(circle at 30% 30%, ${fillColor}, transparent)`,
                 }}
@@ -304,7 +272,7 @@ export function PersonalityRadar({
                 PERSONALITY_MATRIX
               </p>
               <p
-                className="text-sm font-bold tracking-wide"
+                className="text-sm font-bold tracking-wide transition-colors duration-500"
                 style={{ color: fillColor }}
               >
                 {mbti.id} · {mbti.name}
@@ -319,7 +287,7 @@ export function PersonalityRadar({
             </p>
             <div className="flex items-baseline gap-1">
               <span
-                className="text-2xl font-bold tabular-nums"
+                className="text-2xl font-bold tabular-nums transition-all duration-500"
                 style={{ color: fillColor }}
               >
                 {avgScore}
@@ -351,16 +319,18 @@ export function PersonalityRadar({
                 stroke={`${fillColor}15`}
                 strokeWidth={1}
                 gridType="polygon"
+                style={{ transition: "stroke 0.7s ease" }}
               />
               <PolarGrid
                 stroke={`${fillColor}08`}
                 strokeWidth={2}
                 gridType="circle"
+                style={{ transition: "stroke 0.7s ease" }}
               />
 
               <PolarAngleAxis
                 dataKey="dimension"
-                tick={({ x, y, payload, index }) => {
+                tick={({ x, y, payload }) => {
                   const dim = DIMENSIONS.find(
                     (d) => d.shortName === payload.value,
                   );
@@ -411,12 +381,13 @@ export function PersonalityRadar({
                         y={y + 6}
                         textAnchor="middle"
                         dominantBaseline="central"
-                        className="font-mono font-semibold tabular-nums transition-all duration-200"
+                        className="font-mono font-semibold tabular-nums"
                         style={{
                           fill: isHovered
                             ? fillColor
                             : "rgba(255,255,255,0.35)",
                           fontSize: isHovered ? "12px" : "9px",
+                          transition: "fill 0.3s ease, font-size 0.3s ease",
                         }}
                       >
                         {score}
@@ -488,19 +459,21 @@ export function PersonalityRadar({
 
               {/* Outer glow radar */}
               <Radar
+                key={`glow-${animationKey}`}
                 dataKey="score"
                 stroke={fillColor}
                 fill={fillColor}
                 fillOpacity={0.05}
                 strokeWidth={0}
-                isAnimationActive={mounted}
-                animationDuration={1200}
-                animationEasing="ease-out"
+                isAnimationActive={true}
+                animationDuration={1000}
+                animationEasing="ease-in-out"
                 hide
               />
 
               {/* Main radar with animated stroke */}
               <Radar
+                key={`main-${animationKey}`}
                 name="Score"
                 dataKey="score"
                 stroke={fillColor}
@@ -513,9 +486,9 @@ export function PersonalityRadar({
                   strokeWidth: 2,
                   stroke: "rgba(0,0,0,0.5)",
                 }}
-                isAnimationActive={mounted}
+                isAnimationActive={true}
                 animationDuration={1000}
-                animationEasing="ease-out"
+                animationEasing="ease-in-out"
                 style={{
                   filter: `drop-shadow(0 0 6px ${fillColor}60)`,
                 }}
@@ -546,13 +519,13 @@ export function PersonalityRadar({
                   <span className="text-white/40 tracking-wider uppercase">
                     {dim.shortName}
                   </span>
-                  <span className="text-white/60 font-bold tabular-nums">
+                  <span className="text-white/60 font-bold tabular-nums transition-all duration-500">
                     {score}
                   </span>
                 </div>
                 <div className="h-1 bg-white/5 rounded-full overflow-hidden relative">
                   <div
-                    className="h-full rounded-full transition-all duration-500"
+                    className="h-full rounded-full transition-all duration-700 ease-out"
                     style={{
                       width: `${percentage}%`,
                       background: `linear-gradient(90deg, ${fillColor}80, ${fillColor})`,
@@ -607,28 +580,22 @@ export function PersonalityRadar({
 }
 
 /**
- * Compact version for use in cards and list items.
- * Always shows MBTI type — legacy personality types are auto-converted.
+ * Compact badge showing MBTI type.
  */
 export function PersonalityBadge({
-  personality,
   scores,
   className = "",
 }: {
-  personality: string;
-  scores?: PersonalityScores;
+  scores: PersonalityScores;
   className?: string;
 }) {
   const [mounted, setMounted] = useState(false);
-  const resolved = resolvePersonality(personality, scores);
+  const mbtiType = deriveMBTI(scores);
+  const mbti = MBTI_TYPES[mbtiType];
 
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  if (!resolved) return null;
-
-  const { mbti } = resolved;
 
   return (
     <span

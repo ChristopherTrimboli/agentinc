@@ -1620,7 +1620,9 @@ function ChatInterface({
 
             {/* Agent profile link - clickable avatar and name */}
             <button
-              onClick={() => router.push(`/agent/${agentInfo?.tokenMint || agentId}`)}
+              onClick={() =>
+                router.push(`/agent/${agentInfo?.tokenMint || agentId}`)
+              }
               className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 group"
               title="View agent profile"
             >

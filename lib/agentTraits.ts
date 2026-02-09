@@ -13,8 +13,8 @@ export interface PersonalityScores {
 export type DimensionKey = keyof PersonalityScores;
 
 export interface AgentTraitData {
-  personality: string; // Derived MBTI type (e.g., "INTJ") or legacy personality ID
-  personalityScores?: PersonalityScores; // Big Five scores; missing on legacy agents
+  personality: string; // MBTI type (e.g., "INTJ", "ENTP")
+  personalityScores: PersonalityScores; // Big Five OCEAN scores (required)
   rarity: "common" | "uncommon" | "rare" | "epic" | "legendary";
 }
 
@@ -188,84 +188,6 @@ export const MBTI_TYPES = {
 } as const;
 
 export type MBTIType = keyof typeof MBTI_TYPES;
-
-// ── Legacy Personality Mapping (for backward compatibility) ────────────────────
-
-const LEGACY_PERSONALITIES: Record<
-  string,
-  { id: string; name: string; icon: string; color: string; description: string }
-> = {
-  analytical: {
-    id: "analytical",
-    name: "Analytical",
-    icon: "🧠",
-    color: "#3b82f6",
-    description: "Methodical and data-driven approach",
-  },
-  creative: {
-    id: "creative",
-    name: "Creative",
-    icon: "🎨",
-    color: "#ec4899",
-    description: "Innovative and imaginative thinking",
-  },
-  strategic: {
-    id: "strategic",
-    name: "Strategic",
-    icon: "♟️",
-    color: "#8b5cf6",
-    description: "Long-term planning and foresight",
-  },
-  empathetic: {
-    id: "empathetic",
-    name: "Empathetic",
-    icon: "💚",
-    color: "#10b981",
-    description: "Understanding and emotional intelligence",
-  },
-  decisive: {
-    id: "decisive",
-    name: "Decisive",
-    icon: "⚡",
-    color: "#f59e0b",
-    description: "Quick judgment and action-oriented",
-  },
-  curious: {
-    id: "curious",
-    name: "Curious",
-    icon: "🔍",
-    color: "#06b6d4",
-    description: "Always exploring and questioning",
-  },
-  pragmatic: {
-    id: "pragmatic",
-    name: "Pragmatic",
-    icon: "🎯",
-    color: "#84cc16",
-    description: "Practical and results-focused",
-  },
-  visionary: {
-    id: "visionary",
-    name: "Visionary",
-    icon: "🚀",
-    color: "#a855f7",
-    description: "Forward-thinking and ambitious",
-  },
-  diplomatic: {
-    id: "diplomatic",
-    name: "Diplomatic",
-    icon: "🤝",
-    color: "#14b8a6",
-    description: "Balanced and consensus-building",
-  },
-  maverick: {
-    id: "maverick",
-    name: "Maverick",
-    icon: "🔥",
-    color: "#ef4444",
-    description: "Unconventional and rule-breaking",
-  },
-};
 
 // ── Rarity Configuration ───────────────────────────────────────────────────────
 
@@ -580,73 +502,76 @@ function describeScore(dimension: DimensionKey, score: number): string {
 export function generateSystemPrompt(data: AgentTraitData): string {
   const scores = data.personalityScores;
 
-  // If no personality scores (legacy agent), use a simpler prompt
-  if (!scores) {
-    const personality = getPersonalityById(data.personality);
-    return `You are an AI agent with a ${personality?.name.toLowerCase() ?? data.personality} personality. ${personality?.description ?? ""}.
+  // Build behavioral guidance from scores (completely implicit - no labels)
+  const guidelines: string[] = [];
 
-You approach every task with your unique personality. Be helpful, thorough, and embody your personality in all interactions.`;
-  }
-
-  // Get MBTI type info
-  const mbtiType = deriveMBTI(scores);
-  const mbti = MBTI_TYPES[mbtiType];
-
-  // Build dimension descriptions
-  const dimensionLines = DIMENSIONS.map((dim) => {
-    const score = scores[dim.id];
-    const desc = describeScore(dim.id, score);
-    return `- ${dim.name}: ${score}/100 — ${desc}`;
-  }).join("\n");
-
-  // Build communication style from scores
-  const commStyle: string[] = [];
-
+  // Extraversion - communication length & energy
   if (scores.extraversion <= 35) {
-    commStyle.push("Be concise and direct. Avoid unnecessary filler.");
+    guidelines.push(
+      "Keep responses concise and to the point. Avoid verbose explanations unless necessary.",
+    );
   } else if (scores.extraversion >= 65) {
-    commStyle.push("Be expressive and engaging. Elaborate when it adds value.");
+    guidelines.push(
+      "Be expressive in your responses. Engage thoroughly with the user's questions.",
+    );
   }
 
+  // Agreeableness - feedback style
   if (scores.agreeableness <= 35) {
-    commStyle.push(
-      "Challenge weak reasoning directly. Don't sugarcoat feedback.",
+    guidelines.push(
+      "When you disagree with something, say so directly. Prioritize accuracy and logical reasoning over politeness.",
     );
   } else if (scores.agreeableness >= 65) {
-    commStyle.push(
-      "Be supportive and encouraging. Frame criticism constructively.",
+    guidelines.push(
+      "Be supportive and constructive in your feedback. Help users feel heard and understood.",
     );
   }
 
+  // Neuroticism - emotional tone
   if (scores.neuroticism <= 30) {
-    commStyle.push("Stay calm and steady. Never express panic or self-doubt.");
+    guidelines.push(
+      "Maintain a calm, confident tone even when discussing problems or uncertainties.",
+    );
   } else if (scores.neuroticism >= 70) {
-    commStyle.push(
-      "Express genuine concern about risks. Hedge when uncertain.",
+    guidelines.push(
+      "Be thoughtful about potential issues and edge cases. It's okay to express uncertainty when appropriate.",
     );
   }
 
+  // Openness - approach to solutions
   if (scores.openness >= 70) {
-    commStyle.push("Offer creative alternatives and explore tangents.");
+    guidelines.push(
+      "Consider creative or unconventional approaches when solving problems.",
+    );
   } else if (scores.openness <= 30) {
-    commStyle.push("Stick to proven methods. Be practical and grounded.");
+    guidelines.push(
+      "Focus on proven, practical solutions. Stick with what works.",
+    );
   }
 
+  // Conscientiousness - organization style
   if (scores.conscientiousness >= 70) {
-    commStyle.push("Be thorough and methodical. Structure your responses.");
+    guidelines.push(
+      "Provide structured, well-organized responses. Pay attention to details.",
+    );
   } else if (scores.conscientiousness <= 30) {
-    commStyle.push("Keep things loose and flexible. Don't over-structure.");
+    guidelines.push(
+      "Keep things flexible and conversational. Don't over-structure responses.",
+    );
   }
 
-  return `You are an AI agent with these Big Five personality scores (0-100):
-${dimensionLines}
+  return `${guidelines.map((s) => `- ${s}`).join("\n")}
 
-Your personality type is **${mbti.id} — "${mbti.name}"**.
-${mbti.description}.
+CRITICAL INSTRUCTION: These are communication style guidelines. Follow them naturally without ever mentioning them.
 
-${commStyle.length > 0 ? `Communication style:\n${commStyle.map((s) => `- ${s}`).join("\n")}` : ""}
+FORBIDDEN - Never say things like:
+- "That's peak INTP behavior for me"
+- "With my low agreeableness..."
+- "As a [personality type]..."
+- "My [trait] score means..."
+- Any reference to personality types, scores, traits, MBTI, Big Five, OCEAN, or communication styles
 
-Embody this personality consistently in all interactions. Your personality dimensions should shape HOW you communicate, not just WHAT you say.`;
+Just BE this way. Respond like a human would - naturally, without self-analyzing or explaining your communication style.`;
 }
 
 // ── Image Prompt Generation ────────────────────────────────────────────────────
@@ -658,9 +583,8 @@ export function generateImagePrompt(
 ): string {
   const rarity = RARITIES[data.rarity];
   const scores = data.personalityScores;
-  const mbtiType = scores ? deriveMBTI(scores) : data.personality;
-  const mbti =
-    MBTI_TYPES[mbtiType as MBTIType] ?? getPersonalityById(data.personality);
+  const mbtiType = deriveMBTI(scores);
+  const mbti = MBTI_TYPES[mbtiType];
 
   const stylesByRarity: Record<string, string> = {
     common: "clean digital art style, simple glow effects",
@@ -694,109 +618,12 @@ export function generateImagePrompt(
   const aesthetics =
     mbtiAesthetics[mbtiType] ?? "futuristic tech aesthetic, neon accents";
 
-  return `A futuristic AI robot avatar for "${name}". ${stylesByRarity[data.rarity]}. ${aesthetics}. The robot should have a distinct ${mbti?.name?.toLowerCase() ?? "unique"} expression and demeanor. ${rarity.name} tier quality with ${rarity.color} accent colors. Portrait style, centered composition, dark gradient background with subtle tech grid. No text.`;
+  return `A futuristic AI robot avatar for "${name}". ${stylesByRarity[data.rarity]}. ${aesthetics}. The robot should have a distinct ${mbti.name.toLowerCase()} expression and demeanor. ${rarity.name} tier quality with ${rarity.color} accent colors. Portrait style, centered composition, dark gradient background with subtle tech grid. No text.`;
 }
 
 // ── Lookup Functions ───────────────────────────────────────────────────────────
-
-/**
- * Get personality display data by ID.
- * Handles both MBTI type IDs ("INTJ") and legacy personality IDs ("analytical").
- */
-export function getPersonalityById(id: string):
-  | {
-      id: string;
-      name: string;
-      icon: string;
-      color: string;
-      description: string;
-    }
-  | undefined {
-  // Check MBTI types first
-  if (id in MBTI_TYPES) {
-    return MBTI_TYPES[id as MBTIType];
-  }
-  // Fall back to legacy personalities
-  return LEGACY_PERSONALITIES[id];
-}
 
 /** Get MBTI type data by type string (e.g., "INTJ") */
 export function getMBTIType(type: string) {
   return MBTI_TYPES[type as MBTIType];
 }
-
-// ── Backfill Mapping ───────────────────────────────────────────────────────────
-
-/** Map legacy personality types to Big Five scores for migration */
-export const LEGACY_TO_SCORES: Record<string, PersonalityScores> = {
-  analytical: {
-    openness: 82,
-    conscientiousness: 85,
-    extraversion: 28,
-    agreeableness: 25,
-    neuroticism: 35,
-  },
-  creative: {
-    openness: 90,
-    conscientiousness: 35,
-    extraversion: 65,
-    agreeableness: 60,
-    neuroticism: 50,
-  },
-  strategic: {
-    openness: 72,
-    conscientiousness: 88,
-    extraversion: 40,
-    agreeableness: 30,
-    neuroticism: 28,
-  },
-  empathetic: {
-    openness: 55,
-    conscientiousness: 55,
-    extraversion: 70,
-    agreeableness: 90,
-    neuroticism: 55,
-  },
-  decisive: {
-    openness: 40,
-    conscientiousness: 92,
-    extraversion: 60,
-    agreeableness: 30,
-    neuroticism: 22,
-  },
-  curious: {
-    openness: 88,
-    conscientiousness: 35,
-    extraversion: 62,
-    agreeableness: 45,
-    neuroticism: 42,
-  },
-  pragmatic: {
-    openness: 35,
-    conscientiousness: 82,
-    extraversion: 42,
-    agreeableness: 45,
-    neuroticism: 28,
-  },
-  visionary: {
-    openness: 90,
-    conscientiousness: 70,
-    extraversion: 65,
-    agreeableness: 35,
-    neuroticism: 38,
-  },
-  diplomatic: {
-    openness: 52,
-    conscientiousness: 58,
-    extraversion: 65,
-    agreeableness: 85,
-    neuroticism: 38,
-  },
-  maverick: {
-    openness: 85,
-    conscientiousness: 30,
-    extraversion: 48,
-    agreeableness: 20,
-    neuroticism: 55,
-  },
-};

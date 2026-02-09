@@ -1,17 +1,14 @@
 "use client";
 
-import { Wand2, Sparkles } from "lucide-react";
+import { Wand2 } from "lucide-react";
 import {
   RARITIES,
-  LEGACY_TO_SCORES,
-  getPersonalityById,
+  MBTI_TYPES,
   AgentTraitData,
+  type MBTIType,
 } from "@/lib/agentTraits";
 import { RarityBadge } from "./RarityBadge";
-import {
-  PersonalityRadar,
-  PersonalityBadge,
-} from "@/components/ui/PersonalityRadar";
+import { PersonalityRadar } from "@/components/ui/PersonalityRadar";
 
 interface AgentPreviewCardProps {
   name: string;
@@ -34,11 +31,9 @@ export function AgentPreviewCard({
   tokenSymbol,
   mintedAt,
 }: AgentPreviewCardProps) {
-  const personality = getPersonalityById(traits.personality);
+  const personality = MBTI_TYPES[traits.personality as MBTIType];
   const rarityConfig = RARITIES[traits.rarity];
-
-  const radarScores =
-    traits.personalityScores ?? LEGACY_TO_SCORES[traits.personality] ?? null;
+  const radarScores = traits.personalityScores;
 
   // Format wallet address: show first 4 and last 4 chars
   const formatAddress = (address: string) => {

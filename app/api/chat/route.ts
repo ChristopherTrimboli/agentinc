@@ -223,33 +223,9 @@ async function chatHandler(req: RequestWithBilling) {
           }
         }
 
-        // Personality — Big Five scores + MBTI type (or legacy fallback)
-        if (
-          agent.personalityScores &&
-          typeof agent.personalityScores === "object"
-        ) {
-          const scores = agent.personalityScores as unknown as Record<
-            string,
-            number
-          >;
-          const { deriveMBTI, MBTI_TYPES, DIMENSIONS } =
-            await import("@/lib/agentTraits");
-          type PS = import("@/lib/agentTraits").PersonalityScores;
-          const mbtiType = deriveMBTI(scores as unknown as PS);
-          const mbti = MBTI_TYPES[mbtiType];
-
-          identityParts.push(`\n## Your Personality Profile (Big Five OCEAN)`);
-          for (const dim of DIMENSIONS) {
-            const score = scores[dim.id] ?? 50;
-            identityParts.push(`- **${dim.name}**: ${score}/100`);
-          }
-          identityParts.push(
-            `\nYour personality type is **${mbti.id} — "${mbti.name}"**: ${mbti.description}.`,
-          );
-        } else if (agent.personality) {
-          identityParts.push(`\n## Your Personality & Traits`);
-          identityParts.push(`- **Personality**: ${agent.personality}`);
-        }
+        // Note: Personality/behavioral instructions are included in agent.systemPrompt
+        // We intentionally don't add personality info to the identity section to avoid
+        // agents meta-commenting on their own traits
 
         // Rarity
         if (agent.rarity) {
@@ -262,7 +238,7 @@ async function chatHandler(req: RequestWithBilling) {
         // Important behavioral note
         identityParts.push(`\n---`);
         identityParts.push(
-          `When someone asks "who are you" or about your identity, introduce yourself as ${agent.name}${agent.tokenSymbol ? ` with token $${agent.tokenSymbol}` : ""}. Share your personality and capabilities. You ARE this agent - embody its personality in all your responses.`,
+          `When someone asks "who are you" or about your identity, introduce yourself as ${agent.name}${agent.tokenSymbol ? ` with token $${agent.tokenSymbol}` : ""}. Talk about what you do and how you can help them. Be natural and conversational.`,
         );
         identityParts.push(`---\n`);
 

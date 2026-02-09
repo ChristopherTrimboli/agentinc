@@ -25,7 +25,7 @@ import Footer from "@/app/components/Footer";
 import StakingPanel from "@/app/components/StakingPanel";
 import AgentChat from "@/app/components/AgentChat";
 import { PersonalityRadar } from "@/components/ui/PersonalityRadar";
-import { LEGACY_TO_SCORES, type PersonalityScores } from "@/lib/agentTraits";
+import { type PersonalityScores } from "@/lib/agentTraits";
 
 interface Corporation {
   id: string;
@@ -398,24 +398,15 @@ export default function AgentProfilePage({
               </div>
 
               {/* Personality Radar - Under Image */}
-              {(() => {
-                const radarScores =
-                  agent.personalityScores ??
-                  (agent.personality
-                    ? LEGACY_TO_SCORES[agent.personality]
-                    : null);
-                if (!radarScores) return null;
-                return (
-                  <div className="mt-4 sm:mt-6 w-full bg-[#0a0520] rounded-xl sm:rounded-2xl">
-                    <PersonalityRadar
-                      scores={radarScores}
-                      size="md"
-                      showMBTI
-                      showValues
-                    />
-                  </div>
-                );
-              })()}
+              {agent.personalityScores && (
+                <div className="mt-4 sm:mt-6 w-full bg-[#0a0520] rounded-xl sm:rounded-2xl">
+                  <PersonalityRadar
+                    scores={agent.personalityScores}
+                    size="md"
+                    variant="full"
+                  />
+                </div>
+              )}
             </div>
 
             {/* Right Column - Info */}

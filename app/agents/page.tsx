@@ -17,6 +17,7 @@ import Navigation from "../components/Navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { PersonalityBadge } from "@/components/ui/PersonalityRadar";
+import { type PersonalityScores } from "@/lib/agentTraits";
 
 interface Agent {
   id: string;
@@ -26,6 +27,7 @@ interface Agent {
   imageUrl: string | null;
   rarity: string | null;
   personality: string | null;
+  personalityScores: PersonalityScores | null;
   isMinted: boolean;
   tokenSymbol: string | null;
   createdAt: string;
@@ -299,11 +301,11 @@ export default function AgentsPage() {
                                 </>
                               )}
                             </span>
-                            {agent.personality && (
+                            {agent.personalityScores && (
                               <>
                                 <span className="text-white/20">·</span>
                                 <PersonalityBadge
-                                  personality={agent.personality}
+                                  scores={agent.personalityScores}
                                 />
                               </>
                             )}
