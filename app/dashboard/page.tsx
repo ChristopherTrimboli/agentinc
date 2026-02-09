@@ -164,7 +164,7 @@ function PriceTicker({
               key={`${item.id}-${i}`}
               href={
                 item.type === "agent"
-                  ? `/agent/${item.id}`
+                  ? `/agent/${item.tokenMint || item.id}`
                   : `/dashboard/network`
               }
               className="flex items-center gap-2 px-3 py-1 hover:bg-white/5 rounded-lg transition-colors"
@@ -363,7 +363,7 @@ function ItemCard({
 
   return (
     <Link
-      href={isAgent ? `/agent/${item.id}` : `/dashboard/network`}
+      href={isAgent ? `/agent/${item.tokenMint || item.id}` : `/dashboard/network`}
       className={`group relative rounded-2xl bg-[#0a0520] border ${
         agent?.rarity && agent.rarity !== "common"
           ? rarityStyle.border
@@ -581,7 +581,7 @@ export default function ExplorePage() {
 
           return (
             <Link
-              href={isAgent ? `/agent/${item.id}` : `/dashboard/network`}
+              href={isAgent ? `/agent/${item.tokenMint || item.id}` : `/dashboard/network`}
               className="flex items-center gap-3 group/link"
             >
               <div className="relative flex-shrink-0">

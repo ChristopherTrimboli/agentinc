@@ -42,6 +42,7 @@ export async function GET(req: NextRequest) {
           personality: true,
           personalityScores: true,
           isMinted: true,
+          tokenMint: true,
           tokenSymbol: true,
           createdAt: true,
           updatedAt: true,

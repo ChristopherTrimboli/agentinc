@@ -477,7 +477,7 @@ export default function AgentProfilePage({
                       <ExternalLink className="w-3 h-3" />
                     </a>
                     <a
-                      href={`https://twitter.com/intent/tweet?text=Check out ${encodeURIComponent(agent.name)} on Agent Inc!&url=${encodeURIComponent(`${typeof window !== "undefined" ? window.location.origin : ""}/agent/${agent.id}`)}`}
+                      href={`https://twitter.com/intent/tweet?text=Check out ${encodeURIComponent(agent.name)} on Agent Inc!&url=${encodeURIComponent(`${typeof window !== "undefined" ? window.location.origin : ""}/agent/${agent.tokenMint || agent.id}`)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-2 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white/70 text-sm font-semibold hover:bg-white/10 transition-all"
