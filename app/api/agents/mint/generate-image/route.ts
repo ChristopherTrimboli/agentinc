@@ -3,7 +3,7 @@ import { generateImage } from "ai";
 import { put } from "@vercel/blob";
 import { generateImagePrompt, AgentTraitData } from "@/lib/agentTraits";
 import { verifyAuthUserId } from "@/lib/auth/verifyRequest";
-import { withX402Payment, isX402Enabled } from "@/lib/x402";
+import { withServerSolPayment, isServerSolPaymentEnabled } from "@/lib/x402";
 import { rateLimitByUser } from "@/lib/rateLimit";
 
 interface GenerateImageBody {
@@ -149,6 +149,6 @@ async function generateImageHandler(req: NextRequest) {
 }
 
 // Export POST with x402 payment wrapper if enabled
-export const POST = isX402Enabled()
-  ? withX402Payment(generateImageHandler, "generateImage")
+export const POST = isServerSolPaymentEnabled()
+  ? withServerSolPayment(generateImageHandler, "generateImage")
   : generateImageHandler;

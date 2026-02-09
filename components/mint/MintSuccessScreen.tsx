@@ -15,6 +15,7 @@ interface MintSuccessScreenProps {
   imageUrl: string;
   onMintAnother: () => void;
   chatPath?: string; // Optional custom chat path
+  creatorAddress?: string;
 }
 
 export function MintSuccessScreen({
@@ -25,6 +26,7 @@ export function MintSuccessScreen({
   imageUrl,
   onMintAnother,
   chatPath,
+  creatorAddress,
 }: MintSuccessScreenProps) {
   const router = useRouter();
   const chatUrl = chatPath || `/dashboard/chat?agent=${launchResult.agentId}`;
@@ -53,6 +55,11 @@ export function MintSuccessScreen({
             name={agentName}
             traits={agentTraits}
             imageUrl={imageUrl}
+            creatorAddress={
+              creatorAddress || launchResult.signature.slice(0, 44)
+            }
+            description=""
+            tokenSymbol={tokenSymbol}
           />
         </div>
 

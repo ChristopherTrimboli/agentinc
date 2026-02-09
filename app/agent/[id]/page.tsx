@@ -24,10 +24,7 @@ import { getBagsFmUrl, getDexScreenerUrl } from "@/lib/constants/urls";
 import Footer from "@/app/components/Footer";
 import StakingPanel from "@/app/components/StakingPanel";
 import AgentChat from "@/app/components/AgentChat";
-import {
-  PersonalityRadar,
-  PersonalityBadge,
-} from "@/components/ui/PersonalityRadar";
+import { PersonalityRadar } from "@/components/ui/PersonalityRadar";
 import { LEGACY_TO_SCORES, type PersonalityScores } from "@/lib/agentTraits";
 
 interface Corporation {
@@ -58,9 +55,23 @@ interface Agent {
   updatedAt: string;
   createdBy: {
     id: string;
-    email: string | null;
+    walletAddress: string | null;
   };
   corporation: Corporation | null;
+}
+
+interface AgentStats {
+  chats: {
+    totalSessions: number;
+    totalMessages: number;
+    uniqueUsers: number;
+    averageMessagesPerSession: number;
+  };
+  community: {
+    generalMessages: number;
+    vipMessages: number;
+    totalMessages: number;
+  };
 }
 
 import { RARITY_DETAIL_STYLES } from "@/lib/utils/rarity";
@@ -85,33 +96,42 @@ export default function AgentProfilePage({
   const resolvedParams = use(params);
   const { identityToken } = useIdentityToken();
   const [agent, setAgent] = useState<Agent | null>(null);
+  const [stats, setStats] = useState<AgentStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
-  const [copied, setCopied] = useState(false);
+  const [copiedItem, setCopiedItem] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchAgent() {
+    async function fetchData() {
       try {
         const headers: HeadersInit = {};
         if (identityToken) {
           headers["privy-id-token"] = identityToken;
         }
 
-        const response = await fetch(`/api/agents/${resolvedParams.id}`, {
-          headers,
-        });
+        // Fetch agent and stats in parallel
+        const [agentResponse, statsResponse] = await Promise.all([
+          fetch(`/api/agents/${resolvedParams.id}`, { headers }),
+          fetch(`/api/agents/${resolvedParams.id}/stats`),
+        ]);
 
-        if (!response.ok) {
-          if (response.status === 404) {
+        if (!agentResponse.ok) {
+          if (agentResponse.status === 404) {
             throw new Error("Agent not found");
-          } else if (response.status === 403) {
+          } else if (agentResponse.status === 403) {
             throw new Error("This agent is private");
           }
           throw new Error("Failed to fetch agent");
         }
 
-        const data = await response.json();
-        setAgent(data.agent);
+        const agentData = await agentResponse.json();
+        setAgent(agentData.agent);
+
+        // Stats are optional - don't fail if they're unavailable
+        if (statsResponse.ok) {
+          const statsData = await statsResponse.json();
+          setStats(statsData.stats);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load agent");
       } finally {
@@ -119,17 +139,17 @@ export default function AgentProfilePage({
       }
     }
 
-    fetchAgent();
+    fetchData();
   }, [resolvedParams.id, identityToken]);
 
   const getRarityStyle = (rarity: string | null) => {
     return rarityColors[rarity || "common"] || rarityColors.common;
   };
 
-  const copyToClipboard = async (text: string) => {
+  const copyToClipboard = async (text: string, itemId: string) => {
     await navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setCopiedItem(itemId);
+    setTimeout(() => setCopiedItem(null), 2000);
   };
 
   if (isLoading) {
@@ -181,33 +201,75 @@ export default function AgentProfilePage({
       />
 
       {/* Navigation */}
-      <nav className="flex-shrink-0 z-50 backdrop-blur-xl bg-[var(--background)]/80 border-b border-white/5">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-2">
-          <Link
-            href="/"
-            className="flex items-center gap-1.5 sm:gap-2 text-white/60 hover:text-white transition-colors shrink-0"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="text-sm">Back</span>
-          </Link>
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            {agent.isMinted && chartLinks && (
-              <a
-                href={chartLinks.dexscreener}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 sm:py-2 bg-white/5 border border-white/10 rounded-full text-white/70 text-xs sm:text-sm font-medium hover:bg-white/10 transition-all"
+      <nav className="flex-shrink-0 z-50 backdrop-blur-xl bg-[var(--background)]/90 border-b border-white/5 shadow-lg shadow-black/10">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5 sm:py-3">
+          <div className="flex items-center justify-between gap-4">
+            {/* Logo */}
+            <Link href="/" className="group flex items-center shrink-0">
+              <Image
+                src="/agentinc.png"
+                alt="Agent Inc."
+                width={150}
+                height={38}
+                className="h-5 w-auto transition-transform duration-200 group-hover:scale-[1.02] brightness-100 group-hover:brightness-110"
+              />
+            </Link>
+
+            {/* Section Links */}
+            <div className="hidden md:flex items-center gap-3">
+              <button
+                onClick={() => {
+                  document
+                    .getElementById("overview")
+                    ?.scrollIntoView({ behavior: "smooth" });
+                }}
+                className="text-[13px] font-medium text-white/70 hover:text-white transition-colors duration-200 active:scale-95"
               >
-                <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                <span className="hidden xs:inline sm:inline">Chart</span>
-              </a>
-            )}
+                Overview
+              </button>
+              {agent.isMinted && agent.tokenMint && (
+                <>
+                  <span className="text-white/20 text-sm">/</span>
+                  <button
+                    onClick={() => {
+                      document
+                        .getElementById("community")
+                        ?.scrollIntoView({ behavior: "smooth" });
+                    }}
+                    className="text-[13px] font-medium text-white/70 hover:text-white transition-colors duration-200 active:scale-95"
+                  >
+                    Community
+                  </button>
+                  <span className="text-white/20 text-sm">/</span>
+                  <button
+                    onClick={() => {
+                      document
+                        .getElementById("chart")
+                        ?.scrollIntoView({ behavior: "smooth" });
+                    }}
+                    className="text-[13px] font-medium text-white/70 hover:text-white transition-colors duration-200 active:scale-95"
+                  >
+                    Chart
+                  </button>
+                </>
+              )}
+            </div>
+
+            {/* Chat Button */}
             <Link
               href={`/dashboard/chat?agent=${agent.id}`}
-              className="flex items-center gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-[#6FEC06] to-[#4a9f10] rounded-full text-black text-xs sm:text-sm font-semibold hover:opacity-90 transition-all"
+              className="group relative flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-[#6FEC06] via-[#5dd105] to-[#4ab804] rounded-full text-black text-sm font-bold shadow-lg shadow-[#6FEC06]/25 hover:shadow-xl hover:shadow-[#6FEC06]/40 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] overflow-hidden"
             >
-              <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span className="hidden xs:inline sm:inline">Chat</span>
+              {/* Animated gradient overlay */}
+              <div className="absolute inset-0 bg-gradient-to-r from-[#7fff20] to-[#6FEC06] opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+
+              <MessageSquare className="w-4 h-4 relative z-10 group-hover:-rotate-6 transition-transform duration-200" />
+              <span className="relative z-10 whitespace-nowrap">
+                Chat with {agent.name}
+              </span>
+
+              {/* Shine effect */}
+              <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out bg-gradient-to-r from-transparent via-white/20 to-transparent" />
             </Link>
           </div>
         </div>
@@ -217,11 +279,14 @@ export default function AgentProfilePage({
       <div className="flex-1 overflow-y-auto">
         {/* Main Content */}
         <main className="relative max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
-          <div className="grid lg:grid-cols-5 gap-6 sm:gap-8 lg:gap-12 w-full min-w-0">
+          <div
+            id="overview"
+            className="grid lg:grid-cols-5 gap-6 sm:gap-8 lg:gap-12 w-full min-w-0"
+          >
             {/* Left Column - Image */}
-            <div className="lg:col-span-2 max-w-[260px] sm:max-w-[300px] md:max-w-none mx-auto lg:mx-0 min-w-0">
+            <div className="lg:col-span-2 w-full min-w-0">
               <div
-                className={`relative aspect-square rounded-2xl sm:rounded-3xl overflow-hidden ${rarityStyle.border} border-2 ${rarityStyle.glow} bg-[#0a0520]`}
+                className={`relative aspect-square w-full rounded-2xl sm:rounded-3xl overflow-hidden ${rarityStyle.border} border-2 ${rarityStyle.glow} bg-[#0a0520]`}
               >
                 {agent.imageUrl ? (
                   <Image
@@ -251,40 +316,77 @@ export default function AgentProfilePage({
               </div>
 
               {/* Quick Stats - Mobile */}
-              <div className="lg:hidden mt-4 sm:mt-6 grid grid-cols-2 gap-3 sm:gap-4">
-                <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-[#0a0520] border border-white/10">
-                  <div className="text-[10px] sm:text-xs text-white/40 mb-1">
-                    Status
-                  </div>
-                  <div className="flex items-center gap-1.5 sm:gap-2">
-                    {agent.isPublic ? (
-                      <>
-                        <Globe className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#6FEC06]" />
-                        <span className="text-[#6FEC06] text-sm sm:text-base font-medium">
-                          Public
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white/40" />
-                        <span className="text-white/60 text-sm sm:text-base font-medium">
-                          Private
-                        </span>
-                      </>
-                    )}
-                  </div>
-                </div>
-                {agent.personality && (
+              <div className="lg:hidden mt-4 sm:mt-6 space-y-3 sm:space-y-4 w-full">
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
                   <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-[#0a0520] border border-white/10">
                     <div className="text-[10px] sm:text-xs text-white/40 mb-1">
-                      Personality
+                      Status
                     </div>
-                    <PersonalityBadge
-                      personality={agent.personality}
-                      scores={agent.personalityScores ?? undefined}
-                    />
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                      {agent.isPublic ? (
+                        <>
+                          <Globe className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#6FEC06]" />
+                          <span className="text-[#6FEC06] text-sm sm:text-base font-medium">
+                            Public
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white/40" />
+                          <span className="text-white/60 text-sm sm:text-base font-medium">
+                            Private
+                          </span>
+                        </>
+                      )}
+                    </div>
                   </div>
-                )}
+                  {agent.createdBy.walletAddress && (
+                    <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-[#0a0520] border border-white/10">
+                      <div className="text-[10px] sm:text-xs text-white/40 mb-1">
+                        Creator
+                      </div>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <code className="text-xs sm:text-sm text-white/80 font-mono truncate">
+                          {agent.createdBy.walletAddress.slice(0, 4)}...
+                          {agent.createdBy.walletAddress.slice(-4)}
+                        </code>
+                        <button
+                          onClick={() =>
+                            copyToClipboard(
+                              agent.createdBy.walletAddress!,
+                              "creator-mobile",
+                            )
+                          }
+                          className="p-1 rounded-md bg-[#120557]/30 text-white/60 hover:text-white hover:bg-[#120557]/50 transition-colors shrink-0"
+                          title="Copy address"
+                        >
+                          {copiedItem === "creator-mobile" ? (
+                            <Check className="w-3 h-3" />
+                          ) : (
+                            <Copy className="w-3 h-3" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div
+                  className={`p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-[#0a0520] border ${agent.corporation ? "border-[#A855F7]/20" : "border-white/10"}`}
+                >
+                  <div className="text-[10px] sm:text-xs text-white/40 mb-1">
+                    Corporation
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Building2
+                      className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${agent.corporation ? "text-[#A855F7]" : "text-white/40"}`}
+                    />
+                    <span
+                      className={`text-sm sm:text-base font-medium truncate ${agent.corporation ? "text-[#A855F7]" : "text-white/40"}`}
+                    >
+                      {agent.corporation ? agent.corporation.name : "N/A"}
+                    </span>
+                  </div>
+                </div>
               </div>
 
               {/* Personality Radar - Under Image */}
@@ -296,13 +398,7 @@ export default function AgentProfilePage({
                     : null);
                 if (!radarScores) return null;
                 return (
-                  <div className="mt-4 sm:mt-6 p-4 sm:p-6 rounded-xl sm:rounded-2xl bg-[#0a0520] border border-white/10">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-white/60" />
-                      <h2 className="text-base sm:text-lg font-semibold font-display">
-                        Personality Profile
-                      </h2>
-                    </div>
+                  <div className="mt-4 sm:mt-6 w-full bg-[#0a0520] rounded-xl sm:rounded-2xl">
                     <PersonalityRadar
                       scores={radarScores}
                       size="md"
@@ -321,9 +417,8 @@ export default function AgentProfilePage({
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
                   {agent.isMinted && agent.tokenSymbol && (
                     <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full bg-[#6FEC06]/10 border border-[#6FEC06]/30">
-                      <Zap className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#6FEC06]" />
                       <span className="text-xs sm:text-sm font-semibold text-[#6FEC06]">
-                        {agent.tokenSymbol}
+                        ${agent.tokenSymbol}
                       </span>
                     </div>
                   )}
@@ -341,7 +436,7 @@ export default function AgentProfilePage({
               {/* Token Info */}
               {agent.isMinted && agent.tokenMint && chartLinks && (
                 <div className="p-4 sm:p-6 rounded-xl sm:rounded-2xl bg-[#0a0520] border border-white/10">
-                  <div className="flex items-center gap-2 mb-3 sm:mb-4">
+                  <div className="flex items-center gap-2 mb-3 sm:mb-2">
                     <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-white/60" />
                     <h2 className="text-base sm:text-lg font-semibold font-display">
                       Token Details
@@ -356,11 +451,13 @@ export default function AgentProfilePage({
                         {agent.tokenMint}
                       </code>
                       <button
-                        onClick={() => copyToClipboard(agent.tokenMint!)}
+                        onClick={() =>
+                          copyToClipboard(agent.tokenMint!, "token-mint")
+                        }
                         className="p-1.5 sm:p-2 rounded-lg bg-[#120557]/30 text-white/60 hover:text-white hover:bg-[#120557]/50 transition-colors shrink-0"
                         title="Copy address"
                       >
-                        {copied ? (
+                        {copiedItem === "token-mint" ? (
                           <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#6FEC06]" />
                         ) : (
                           <Copy className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -368,16 +465,28 @@ export default function AgentProfilePage({
                       </button>
                     </div>
                   </div>
-                  <a
-                    href={chartLinks.bags}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#6FEC06]/10 border border-[#6FEC06]/30 rounded-xl text-[#6FEC06] text-sm font-semibold hover:bg-[#6FEC06]/20 transition-all"
-                  >
-                    <Zap className="w-4 h-4" />
-                    Buy on Bags
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
+                  <div className="flex flex-wrap gap-2 sm:gap-3">
+                    <a
+                      href={chartLinks.bags}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#6FEC06]/10 border border-[#6FEC06]/30 rounded-xl text-[#6FEC06] text-sm font-semibold hover:bg-[#6FEC06]/20 transition-all"
+                    >
+                      <Zap className="w-4 h-4" />
+                      Buy on Bags
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                    <a
+                      href={`https://twitter.com/intent/tweet?text=Check out ${encodeURIComponent(agent.name)} on Agent Inc!&url=${encodeURIComponent(`${typeof window !== "undefined" ? window.location.origin : ""}/agent/${agent.id}`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white/70 text-sm font-semibold hover:bg-white/10 transition-all"
+                    >
+                      <Twitter className="w-4 h-4" />
+                      Share on X
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
                 </div>
               )}
 
@@ -457,80 +566,161 @@ export default function AgentProfilePage({
                 </div>
               )}
 
-              {/* Details Grid - Desktop */}
-              <div className="hidden lg:grid grid-cols-3 gap-4">
-                <div className="p-5 rounded-2xl bg-[#0a0520] border border-white/10">
-                  <div className="text-xs text-white/40 mb-2">Status</div>
-                  <div className="flex items-center gap-2">
-                    {agent.isPublic ? (
-                      <>
-                        <Globe className="w-5 h-5 text-[#6FEC06]" />
-                        <span className="text-[#6FEC06] font-semibold">
-                          Public
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <Lock className="w-5 h-5 text-white/40" />
-                        <span className="text-white/60 font-semibold">
-                          Private
-                        </span>
-                      </>
-                    )}
-                  </div>
-                </div>
-                {agent.personality && (
-                  <div className="p-5 rounded-2xl bg-[#0a0520] border border-white/10">
-                    <div className="text-xs text-white/40 mb-2">
-                      Personality
+              {/* Analytics Stats */}
+              {stats && (
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-3 sm:mb-6">
+                  {/* Total Chats */}
+                  <div className="p-4 sm:p-5 rounded-xl sm:rounded-2xl bg-[#0a0520] border border-white/10">
+                    <div className="flex items-center gap-2 mb-2 sm:mb-3">
+                      <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-[#6FEC06]" />
+                      <div className="text-xs text-white/40">Chats</div>
                     </div>
-                    <PersonalityBadge
-                      personality={agent.personality}
-                      scores={agent.personalityScores ?? undefined}
-                    />
+                    <div className="text-xl sm:text-2xl font-bold text-white mb-1">
+                      {stats.chats.totalSessions.toLocaleString()}
+                    </div>
+                    <div className="text-xs text-white/50">
+                      {stats.chats.uniqueUsers}{" "}
+                      {stats.chats.uniqueUsers === 1 ? "user" : "users"}
+                    </div>
                   </div>
-                )}
-                <div className="p-5 rounded-2xl bg-[#0a0520] border border-white/10">
-                  <div className="text-xs text-white/40 mb-2">Created</div>
-                  <div className="text-white font-semibold">
-                    {new Date(agent.createdAt).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
+
+                  {/* Total Messages */}
+                  <div className="p-4 sm:p-5 rounded-xl sm:rounded-2xl bg-[#0a0520] border border-white/10">
+                    <div className="flex items-center gap-2 mb-2 sm:mb-3">
+                      <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#6FEC06]" />
+                      <div className="text-xs text-white/40">Messages</div>
+                    </div>
+                    <div className="text-xl sm:text-2xl font-bold text-white mb-1">
+                      {stats.chats.totalMessages.toLocaleString()}
+                    </div>
+                    <div className="text-xs text-white/50">
+                      {stats.chats.averageMessagesPerSession} avg per chat
+                    </div>
+                  </div>
+
+                  {/* Community Activity */}
+                  {stats.community.totalMessages > 0 && (
+                    <>
+                      <div className="p-4 sm:p-5 rounded-xl sm:rounded-2xl bg-[#0a0520] border border-white/10">
+                        <div className="flex items-center gap-2 mb-2 sm:mb-3">
+                          <Globe className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
+                          <div className="text-xs text-white/40">Community</div>
+                        </div>
+                        <div className="text-xl sm:text-2xl font-bold text-white mb-1">
+                          {stats.community.generalMessages.toLocaleString()}
+                        </div>
+                        <div className="text-xs text-white/50">
+                          general messages
+                        </div>
+                      </div>
+
+                      {stats.community.vipMessages > 0 && (
+                        <div className="p-4 sm:p-5 rounded-xl sm:rounded-2xl bg-[#0a0520] border border-[#6FEC06]/20">
+                          <div className="flex items-center gap-2 mb-2 sm:mb-3">
+                            <Star className="w-4 h-4 sm:w-5 sm:h-5 text-[#6FEC06]" />
+                            <div className="text-xs text-white/40">
+                              VIP Chat
+                            </div>
+                          </div>
+                          <div className="text-xl sm:text-2xl font-bold text-white mb-1">
+                            {stats.community.vipMessages.toLocaleString()}
+                          </div>
+                          <div className="text-xs text-white/50">
+                            VIP messages
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Details Grid - Desktop */}
+              <div className="hidden lg:block space-y-4">
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="p-5 rounded-2xl bg-[#0a0520] border border-white/10">
+                    <div className="text-xs text-white/40 mb-2">Status</div>
+                    <div className="flex items-center gap-2">
+                      {agent.isPublic ? (
+                        <>
+                          <Globe className="w-5 h-5 text-[#6FEC06]" />
+                          <span className="text-[#6FEC06] font-semibold">
+                            Public
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <Lock className="w-5 h-5 text-white/40" />
+                          <span className="text-white/60 font-semibold">
+                            Private
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  {agent.createdBy.walletAddress && (
+                    <div className="p-5 rounded-2xl bg-[#0a0520] border border-white/10">
+                      <div className="text-xs text-white/40 mb-2">Creator</div>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <code className="text-sm text-white/80 font-mono truncate">
+                          {agent.createdBy.walletAddress.slice(0, 4)}...
+                          {agent.createdBy.walletAddress.slice(-4)}
+                        </code>
+                        <button
+                          onClick={() =>
+                            copyToClipboard(
+                              agent.createdBy.walletAddress!,
+                              "creator-desktop",
+                            )
+                          }
+                          className="p-1.5 rounded-lg bg-[#120557]/30 text-white/60 hover:text-white hover:bg-[#120557]/50 transition-colors shrink-0"
+                          title="Copy address"
+                        >
+                          {copiedItem === "creator-desktop" ? (
+                            <Check className="w-4 h-4 text-[#6FEC06]" />
+                          ) : (
+                            <Copy className="w-4 h-4" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  <div className="p-5 rounded-2xl bg-[#0a0520] border border-white/10">
+                    <div className="text-xs text-white/40 mb-2">Created</div>
+                    <div className="text-white font-semibold">
+                      {new Date(agent.createdAt).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </div>
                   </div>
                 </div>
-              </div>
-
-              {/* Share Actions */}
-              <div className="flex flex-wrap gap-2 sm:gap-3 pt-3 sm:pt-4 border-t border-white/10">
-                <button
-                  onClick={() =>
-                    copyToClipboard(
-                      `${window.location.origin}/agent/${agent.id}`,
-                    )
-                  }
-                  className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-white/5 border border-white/10 rounded-lg sm:rounded-xl text-white/70 text-xs sm:text-sm font-medium hover:bg-white/10 transition-all"
+                <div
+                  className={`p-5 rounded-2xl bg-[#0a0520] border ${agent.corporation ? "border-[#A855F7]/20" : "border-white/10"}`}
                 >
-                  <Copy className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  Copy Link
-                </button>
-                <a
-                  href={`https://twitter.com/intent/tweet?text=Check out ${encodeURIComponent(agent.name)} on Agent Inc!&url=${encodeURIComponent(`${typeof window !== "undefined" ? window.location.origin : ""}/agent/${agent.id}`)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-white/5 border border-white/10 rounded-lg sm:rounded-xl text-white/70 text-xs sm:text-sm font-medium hover:bg-white/10 transition-all"
-                >
-                  <Twitter className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                  Share on X
-                </a>
+                  <div className="text-xs text-white/40 mb-2">Corporation</div>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Building2
+                      className={`w-5 h-5 ${agent.corporation ? "text-[#A855F7]" : "text-white/40"}`}
+                    />
+                    <span
+                      className={`font-semibold truncate ${agent.corporation ? "text-[#A855F7]" : "text-white/40"}`}
+                    >
+                      {agent.corporation ? agent.corporation.name : "N/A"}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
           {/* Staking & Community Chat - Side by Side */}
           {agent.isMinted && agent.tokenMint && agent.tokenSymbol && (
-            <div className="mt-6 sm:mt-10 grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 items-stretch">
+            <div
+              id="community"
+              className="mt-6 sm:mt-10 grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 items-stretch"
+            >
               <div className="h-full">
                 <AgentChat
                   agentId={agent.id}
@@ -550,30 +740,19 @@ export default function AgentProfilePage({
 
           {/* Live Price Chart */}
           {agent.isMinted && agent.tokenMint && chartLinks && (
-            <div className="mt-8 sm:mt-12 overflow-hidden">
-              <div className="flex flex-col gap-4 mb-4 sm:mb-6">
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-[#6FEC06]/10 border border-[#6FEC06]/30">
-                    <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-[#6FEC06]" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg sm:text-xl font-bold font-display">
-                      Live Price Chart
-                    </h2>
-                    <p className="text-xs sm:text-sm text-white/50">
-                      {agent.tokenSymbol || agent.name} / SOL
-                    </p>
-                  </div>
+            <div id="chart" className="mt-8 sm:mt-12 overflow-hidden">
+              <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+                <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-[#6FEC06]/10 border border-[#6FEC06]/30">
+                  <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-[#6FEC06]" />
                 </div>
-                <a
-                  href={chartLinks.dexscreener}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm text-white/60 hover:text-white transition-colors"
-                >
-                  Full chart
-                  <ExternalLink className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                </a>
+                <div>
+                  <h2 className="text-lg sm:text-xl font-bold font-display">
+                    Live Price Chart
+                  </h2>
+                  <p className="text-xs sm:text-sm text-white/50">
+                    {agent.tokenSymbol || agent.name} / SOL
+                  </p>
+                </div>
               </div>
               <div className="rounded-xl sm:rounded-2xl overflow-hidden border border-[#6FEC06]/20 bg-[#0a0520]">
                 <iframe
