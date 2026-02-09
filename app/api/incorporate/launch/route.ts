@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { BagsSDK } from "@bagsfm/bags-sdk";
-import { Connection } from "@solana/web3.js";
-import { SOLANA_RPC_URL } from "@/lib/constants/solana";
+import { getConnection } from "@/lib/constants/solana";
 import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
 import { isValidPublicKey, validatePublicKey } from "@/lib/utils/validation";
+import { rateLimitByUser } from "@/lib/rateLimit";
 
 // POST /api/incorporate/launch - Create token launch transaction for corporation
 export async function POST(request: NextRequest) {
   // Require authentication
   const auth = await requireAuth(request);
   if (!isAuthResult(auth)) return auth;
+
+  const limited = await rateLimitByUser(auth.userId, "incorporate-launch", 10);
+  if (limited) return limited;
 
   try {
     // Get API key from environment
@@ -55,7 +58,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Initialize Bags SDK
-    const connection = new Connection(SOLANA_RPC_URL);
+    const connection = getConnection();
     const sdk = new BagsSDK(apiKey, connection, "confirmed");
 
     // Convert to PublicKeys (validated above)
@@ -83,28 +86,15 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Error creating launch transaction:", error);
 
-    // Extract detailed error info from SDK errors
-    let errorMessage = "Failed to create launch transaction";
-    if (error && typeof error === "object") {
-      const err = error as {
-        message?: string;
-        data?: unknown;
-        status?: number;
-      };
-      if (err.data) {
-        console.error(
-          "[Launch] API Error data:",
-          JSON.stringify(err.data, null, 2),
-        );
-        // Try to extract message from nested error data
-        const data = err.data as { error?: string; message?: string };
-        errorMessage =
-          data.error || data.message || err.message || errorMessage;
-      } else if (err.message) {
-        errorMessage = err.message;
-      }
-    }
+    // Sanitize error message - don't expose internal SDK details
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "Failed to create launch transaction";
 
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to create launch transaction" },
+      { status: 500 },
+    );
   }
 }

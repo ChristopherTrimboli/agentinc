@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { verifyAuthUserId } from "@/lib/auth/verifyRequest";
+import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
+import { rateLimitByUser } from "@/lib/rateLimit";
 
 // GET /api/chats - List user's chats (optionally filtered by agentId)
 export async function GET(req: NextRequest) {
-  const userId = await verifyAuthUserId(req);
+  const auth = await requireAuth(req);
+  if (!isAuthResult(auth)) return auth;
 
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const limited = await rateLimitByUser(auth.userId, "chats-list", 30);
+  if (limited) return limited;
 
   try {
     const { searchParams } = new URL(req.url);
@@ -20,7 +21,7 @@ export async function GET(req: NextRequest) {
     const cursor = searchParams.get("cursor");
 
     const whereClause = {
-      userId,
+      userId: auth.userId,
       ...(agentId && { agentId }),
     };
 
@@ -86,11 +87,11 @@ export async function GET(req: NextRequest) {
 
 // POST /api/chats - Create a new chat
 export async function POST(req: NextRequest) {
-  const userId = await verifyAuthUserId(req);
+  const auth = await requireAuth(req);
+  if (!isAuthResult(auth)) return auth;
 
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const limited = await rateLimitByUser(auth.userId, "chats-create", 20);
+  if (limited) return limited;
 
   try {
     let body;
@@ -113,7 +114,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Agent not found" }, { status: 404 });
       }
 
-      if (!agent.isPublic && agent.createdById !== userId) {
+      if (!agent.isPublic && agent.createdById !== auth.userId) {
         return NextResponse.json(
           { error: "Access denied to this agent" },
           { status: 403 },
@@ -123,7 +124,7 @@ export async function POST(req: NextRequest) {
 
     const chat = await prisma.chat.create({
       data: {
-        userId,
+        userId: auth.userId,
         agentId: agentId || null,
         title: title || null,
       },

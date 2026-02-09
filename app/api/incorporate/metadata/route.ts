@@ -1,15 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { BagsSDK } from "@bagsfm/bags-sdk";
-import { Connection } from "@solana/web3.js";
 import { put } from "@vercel/blob";
 import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
-import { SOLANA_RPC_URL } from "@/lib/constants/solana";
+import { getConnection } from "@/lib/constants/solana";
+import { rateLimitByUser } from "@/lib/rateLimit";
 
 // POST /api/incorporate/metadata - Create token info and metadata on Bags for corporation
 export async function POST(request: NextRequest) {
   // Require authentication
   const auth = await requireAuth(request);
   if (!isAuthResult(auth)) return auth;
+
+  const limited = await rateLimitByUser(
+    auth.userId,
+    "incorporate-metadata",
+    10,
+  );
+  if (limited) return limited;
 
   try {
     // Get API key from environment
@@ -93,7 +100,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Initialize Bags SDK
-    const connection = new Connection(SOLANA_RPC_URL);
+    const connection = getConnection();
     const sdk = new BagsSDK(apiKey, connection, "confirmed");
 
     // Create token info and metadata using SDK (same as agent mint)

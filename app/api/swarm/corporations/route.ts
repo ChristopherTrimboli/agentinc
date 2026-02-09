@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
-import { rateLimitByIP } from "@/lib/rateLimit";
+import { rateLimitByIP, rateLimitByUser } from "@/lib/rateLimit";
 
 const DEFAULT_PAGE_SIZE = 50;
 const MAX_PAGE_SIZE = 100;
@@ -62,6 +62,9 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const auth = await requireAuth(req);
   if (!isAuthResult(auth)) return auth;
+
+  const limited = await rateLimitByUser(auth.userId, "swarm-corp-create", 10);
+  if (limited) return limited;
 
   let body;
   try {

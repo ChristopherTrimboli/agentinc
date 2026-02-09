@@ -4,6 +4,7 @@ import { PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
 import { getConnection } from "@/lib/constants/solana";
 import { isValidPublicKey, validatePublicKey } from "@/lib/utils/validation";
+import { rateLimitByUser } from "@/lib/rateLimit";
 
 const FALLBACK_JITO_TIP_LAMPORTS = 0.015 * LAMPORTS_PER_SOL;
 
@@ -11,6 +12,9 @@ const FALLBACK_JITO_TIP_LAMPORTS = 0.015 * LAMPORTS_PER_SOL;
 export async function POST(req: NextRequest) {
   const auth = await requireAuth(req);
   if (!isAuthResult(auth)) return auth;
+
+  const limited = await rateLimitByUser(auth.userId, "mint-fee-share", 10);
+  if (limited) return limited;
 
   try {
     // Get API key from environment

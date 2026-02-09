@@ -1,20 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { verifyAuthUserId } from "@/lib/auth/verifyRequest";
+import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
+import { rateLimitByUser } from "@/lib/rateLimit";
 
 type RouteContext = {
   params: Promise<{ chatId: string }>;
 };
 
+const MAX_MESSAGE_LENGTH = 50000; // 50k chars
+
 // POST /api/chats/[chatId]/messages - Add messages to a chat (bulk)
 export async function POST(req: NextRequest, context: RouteContext) {
   const { chatId } = await context.params;
 
-  const userId = await verifyAuthUserId(req);
+  const auth = await requireAuth(req);
+  if (!isAuthResult(auth)) return auth;
 
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const limited = await rateLimitByUser(auth.userId, "chat-messages", 30);
+  if (limited) return limited;
 
   try {
     // Verify chat ownership
@@ -27,7 +30,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: "Chat not found" }, { status: 404 });
     }
 
-    if (chat.userId !== userId) {
+    if (chat.userId !== auth.userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
@@ -62,6 +65,11 @@ export async function POST(req: NextRequest, context: RouteContext) {
         }
         if (typeof msg.content !== "string") {
           throw new Error("Message content must be a string");
+        }
+        if (msg.content.length > MAX_MESSAGE_LENGTH) {
+          throw new Error(
+            `Message content exceeds maximum length of ${MAX_MESSAGE_LENGTH} characters`,
+          );
         }
         const result: ValidMessage = {
           chatId,
@@ -121,11 +129,15 @@ export async function POST(req: NextRequest, context: RouteContext) {
 // DELETE /api/chats/[chatId]/messages - Clear all messages from a chat
 export async function DELETE(req: NextRequest, context: RouteContext) {
   const { chatId } = await context.params;
-  const userId = await verifyAuthUserId(req);
+  const auth = await requireAuth(req);
+  if (!isAuthResult(auth)) return auth;
 
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const limited = await rateLimitByUser(
+    auth.userId,
+    "chat-messages-delete",
+    10,
+  );
+  if (limited) return limited;
 
   try {
     // Verify chat ownership
@@ -138,7 +150,7 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: "Chat not found" }, { status: 404 });
     }
 
-    if (chat.userId !== userId) {
+    if (chat.userId !== auth.userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 

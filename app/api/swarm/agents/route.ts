@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
-import { rateLimitByIP } from "@/lib/rateLimit";
+import { rateLimitByIP, rateLimitByUser } from "@/lib/rateLimit";
 
 const DEFAULT_PAGE_SIZE = 50;
 const MAX_PAGE_SIZE = 100;
@@ -62,6 +62,9 @@ export async function POST(req: NextRequest) {
   const auth = await requireAuth(req);
   if (!isAuthResult(auth)) return auth;
 
+  const limited = await rateLimitByUser(auth.userId, "swarm-agent-create", 20);
+  if (limited) return limited;
+
   let body;
   try {
     body = await req.json();
@@ -76,14 +79,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
     }
 
+    // Length validation
+    if (name.length > 100) {
+      return NextResponse.json(
+        { error: "Name must be 100 characters or less" },
+        { status: 400 },
+      );
+    }
+
+    if (description && description.length > 1000) {
+      return NextResponse.json(
+        { error: "Description must be 1000 characters or less" },
+        { status: 400 },
+      );
+    }
+
     // Validate capabilities is an array of strings
     if (
       capabilities &&
       (!Array.isArray(capabilities) ||
-        !capabilities.every((c: unknown) => typeof c === "string"))
+        !capabilities.every((c: unknown) => typeof c === "string") ||
+        capabilities.length > 10)
     ) {
       return NextResponse.json(
-        { error: "Capabilities must be an array of strings" },
+        { error: "Capabilities must be an array of max 10 strings" },
         { status: 400 },
       );
     }

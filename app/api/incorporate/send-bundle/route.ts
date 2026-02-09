@@ -1,13 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { BagsSDK, sendBundleAndConfirm } from "@bagsfm/bags-sdk";
-import { Connection, VersionedTransaction } from "@solana/web3.js";
+import { VersionedTransaction } from "@solana/web3.js";
 import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
-import { SOLANA_RPC_URL } from "@/lib/constants/solana";
+import { getConnection } from "@/lib/constants/solana";
+import { rateLimitByUser } from "@/lib/rateLimit";
 
 // POST /api/incorporate/send-bundle - Send a signed bundle via Jito using SDK
 export async function POST(req: NextRequest) {
   const auth = await requireAuth(req);
   if (!isAuthResult(auth)) return auth;
+
+  const limited = await rateLimitByUser(
+    auth.userId,
+    "incorporate-send-bundle",
+    5,
+  );
+  if (limited) return limited;
 
   try {
     const apiKey = process.env.BAGS_API_KEY;
@@ -32,7 +40,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const connection = new Connection(SOLANA_RPC_URL);
+    const connection = getConnection();
     const sdk = new BagsSDK(apiKey, connection, "confirmed");
 
     // Deserialize transactions

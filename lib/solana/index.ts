@@ -85,8 +85,12 @@ export function validateTransaction(transactionBase64: string): {
     }
 
     // Check for recent blockhash (basic check that it's set)
-    const blockhash =
-      "recentBlockhash" in tx ? tx.recentBlockhash : tx.message.recentBlockhash;
+    let blockhash: string;
+    if (tx instanceof Transaction) {
+      blockhash = tx.recentBlockhash || "";
+    } else {
+      blockhash = tx.message.recentBlockhash;
+    }
 
     if (!blockhash || blockhash === "11111111111111111111111111111111") {
       return {

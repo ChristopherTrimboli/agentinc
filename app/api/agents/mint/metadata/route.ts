@@ -3,12 +3,16 @@ import { BagsSDK } from "@bagsfm/bags-sdk";
 import { Connection } from "@solana/web3.js";
 import { put } from "@vercel/blob";
 import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
-import { SOLANA_RPC_URL } from "@/lib/constants/solana";
+import { getConnection } from "@/lib/constants/solana";
+import { rateLimitByUser } from "@/lib/rateLimit";
 
 // POST /api/agents/mint/metadata - Create token info and metadata on Bags for agent
 export async function POST(req: NextRequest) {
   const auth = await requireAuth(req);
   if (!isAuthResult(auth)) return auth;
+
+  const limited = await rateLimitByUser(auth.userId, "mint-metadata", 10);
+  if (limited) return limited;
 
   try {
     // Get API key from environment
@@ -87,7 +91,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Initialize Bags SDK
-    const connection = new Connection(SOLANA_RPC_URL);
+    const connection = getConnection();
     const sdk = new BagsSDK(apiKey, connection, "confirmed");
 
     // Create token info and metadata using SDK

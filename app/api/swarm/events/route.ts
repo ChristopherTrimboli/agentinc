@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
+import { rateLimitByUser } from "@/lib/rateLimit";
 
 // In-memory event subscribers for SSE
 const subscribers = new Set<(event: string) => void>();
+
+const MAX_PAYLOAD_SIZE = 10000; // 10KB max payload
 
 // Broadcast event to all subscribers
 export function broadcastSwarmEvent(event: object) {
@@ -55,6 +58,9 @@ export async function POST(req: NextRequest) {
   const auth = await requireAuth(req);
   if (!isAuthResult(auth)) return auth;
 
+  const limited = await rateLimitByUser(auth.userId, "swarm-event-create", 30);
+  if (limited) return limited;
+
   let body;
   try {
     body = await req.json();
@@ -72,11 +78,31 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (type.length > 100) {
+      return NextResponse.json(
+        { error: "type must be 100 characters or less" },
+        { status: 400 },
+      );
+    }
+
     if (!sourceAgentId || typeof sourceAgentId !== "string") {
       return NextResponse.json(
         { error: "sourceAgentId is required and must be a string" },
         { status: 400 },
       );
+    }
+
+    // Validate payload size
+    if (payload) {
+      const payloadSize = JSON.stringify(payload).length;
+      if (payloadSize > MAX_PAYLOAD_SIZE) {
+        return NextResponse.json(
+          {
+            error: `Payload exceeds maximum size of ${MAX_PAYLOAD_SIZE} bytes`,
+          },
+          { status: 400 },
+        );
+      }
     }
 
     // Verify source and target agents exist in parallel

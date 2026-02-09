@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { BagsSDK, createTipTransaction } from "@bagsfm/bags-sdk";
-import { Connection, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
-import { SOLANA_RPC_URL } from "@/lib/constants/solana";
+import { PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { getConnection } from "@/lib/constants/solana";
 import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
 import { isValidPublicKey, validatePublicKey } from "@/lib/utils/validation";
+import { rateLimitByUser } from "@/lib/rateLimit";
 
 const FALLBACK_JITO_TIP_LAMPORTS = 0.015 * LAMPORTS_PER_SOL;
 
@@ -12,6 +13,13 @@ export async function POST(request: NextRequest) {
   // Require authentication
   const auth = await requireAuth(request);
   if (!isAuthResult(auth)) return auth;
+
+  const limited = await rateLimitByUser(
+    auth.userId,
+    "incorporate-fee-share",
+    10,
+  );
+  if (limited) return limited;
 
   try {
     // Get API key from environment
@@ -58,7 +66,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Initialize Bags SDK
-    const connection = new Connection(SOLANA_RPC_URL);
+    const connection = getConnection();
     const sdk = new BagsSDK(apiKey, connection, "confirmed");
 
     // Convert to PublicKeys (validated above)

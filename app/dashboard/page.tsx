@@ -28,6 +28,7 @@ import {
   Droplets,
 } from "lucide-react";
 import { getSolscanUrl } from "@/lib/constants/urls";
+import { formatPrice } from "@/lib/utils/formatting";
 import {
   useReactTable,
   getCoreRowModel,

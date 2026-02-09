@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
+import { rateLimitByUser } from "@/lib/rateLimit";
 
 // GET /api/swarm/agents/[id] - Get a single swarm agent
 export async function GET(
@@ -40,6 +41,9 @@ export async function PATCH(
 ) {
   const auth = await requireAuth(request);
   if (!isAuthResult(auth)) return auth;
+
+  const limited = await rateLimitByUser(auth.userId, "swarm-agent-update", 20);
+  if (limited) return limited;
 
   try {
     const { id } = await params;
@@ -99,6 +103,9 @@ export async function DELETE(
 ) {
   const auth = await requireAuth(request);
   if (!isAuthResult(auth)) return auth;
+
+  const limited = await rateLimitByUser(auth.userId, "swarm-agent-delete", 10);
+  if (limited) return limited;
 
   try {
     const { id } = await params;

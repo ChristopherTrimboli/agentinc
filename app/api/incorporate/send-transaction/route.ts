@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
 import { sendSignedTransaction } from "@/lib/solana";
+import { rateLimitByUser } from "@/lib/rateLimit";
 
 // POST /api/incorporate/send-transaction - Send a signed transaction to Solana
 export async function POST(request: NextRequest) {
   // Require authentication
   const auth = await requireAuth(request);
   if (!isAuthResult(auth)) return auth;
+
+  const limited = await rateLimitByUser(auth.userId, "incorporate-send-tx", 5);
+  if (limited) return limited;
 
   try {
     const body = await request.json();

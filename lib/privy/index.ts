@@ -8,7 +8,6 @@ export {
   isServerSignerConfigured,
   getPrivyWalletClient,
   getWalletBalance,
-  signSolTransferTransaction,
   sendSolFromWallet,
   hasEnoughBalance,
   lamportsToSol,

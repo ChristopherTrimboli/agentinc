@@ -81,6 +81,7 @@ model ChatMessage {
   @@index([chatId])
   @@index([chatId, createdAt])
   @@index([chatId, role, createdAt])
+  @@index([role])
 }
 
 model Agent {
@@ -139,6 +140,7 @@ model Agent {
   @@index([isMinted, launchedAt])
   @@index([createdById, createdAt])
   @@index([isMinted, rarity, createdAt])
+  @@index([isMinted, isPublic])
 }
 
 // Staking pool tracking - links agents to their Streamflow staking pools
@@ -234,6 +236,7 @@ model SwarmEvent {
   @@index([type])
   @@index([type, timestamp])
   @@index([sourceAgentId, timestamp])
+  @@index([sourceAgentId, type])
 }
 
 // Community chat messages per agent (general + VIP in one table)
@@ -255,6 +258,7 @@ model AgentChatMessage {
   @@index([agentId, isVip, createdAt])
   @@index([walletAddress])
   @@index([userId])
+  @@index([agentId, createdAt])
 }
 
 // Knowledge base resource - source material for RAG

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { verifyAuthUserId } from "@/lib/auth/verifyRequest";
+import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
+import { rateLimitByUser } from "@/lib/rateLimit";
 
 type RouteContext = {
   params: Promise<{ chatId: string }>;
@@ -9,11 +10,11 @@ type RouteContext = {
 // GET /api/chats/[chatId] - Get a specific chat with all messages
 export async function GET(req: NextRequest, context: RouteContext) {
   const { chatId } = await context.params;
-  const userId = await verifyAuthUserId(req);
+  const auth = await requireAuth(req);
+  if (!isAuthResult(auth)) return auth;
 
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const limited = await rateLimitByUser(auth.userId, "chats-get", 30);
+  if (limited) return limited;
 
   try {
     const chat = await prisma.chat.findUnique({
@@ -49,7 +50,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
     }
 
     // Verify ownership
-    if (chat.userId !== userId) {
+    if (chat.userId !== auth.userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
@@ -66,11 +67,11 @@ export async function GET(req: NextRequest, context: RouteContext) {
 // PATCH /api/chats/[chatId] - Update chat (e.g., title)
 export async function PATCH(req: NextRequest, context: RouteContext) {
   const { chatId } = await context.params;
-  const userId = await verifyAuthUserId(req);
+  const auth = await requireAuth(req);
+  if (!isAuthResult(auth)) return auth;
 
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const limited = await rateLimitByUser(auth.userId, "chats-update", 20);
+  if (limited) return limited;
 
   try {
     // Verify ownership
@@ -83,7 +84,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: "Chat not found" }, { status: 404 });
     }
 
-    if (existingChat.userId !== userId) {
+    if (existingChat.userId !== auth.userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
@@ -116,11 +117,11 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
 // DELETE /api/chats/[chatId] - Delete a chat
 export async function DELETE(req: NextRequest, context: RouteContext) {
   const { chatId } = await context.params;
-  const userId = await verifyAuthUserId(req);
+  const auth = await requireAuth(req);
+  if (!isAuthResult(auth)) return auth;
 
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const limited = await rateLimitByUser(auth.userId, "chats-delete", 20);
+  if (limited) return limited;
 
   try {
     // Verify ownership
@@ -133,7 +134,7 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: "Chat not found" }, { status: 404 });
     }
 
-    if (existingChat.userId !== userId) {
+    if (existingChat.userId !== auth.userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 

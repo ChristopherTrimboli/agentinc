@@ -3,11 +3,15 @@ import { BagsSDK } from "@bagsfm/bags-sdk";
 import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
 import { getConnection } from "@/lib/constants/solana";
 import { isValidPublicKey, validatePublicKey } from "@/lib/utils/validation";
+import { rateLimitByUser } from "@/lib/rateLimit";
 
 // POST /api/agents/mint/launch - Create token launch transaction for agent
 export async function POST(req: NextRequest) {
   const auth = await requireAuth(req);
   if (!isAuthResult(auth)) return auth;
+
+  const limited = await rateLimitByUser(auth.userId, "mint-launch", 10);
+  if (limited) return limited;
 
   try {
     // Get API key from environment
@@ -76,28 +80,15 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error("Error creating launch transaction:", error);
 
-    // Extract detailed error info from SDK errors
-    let errorMessage = "Failed to create launch transaction";
-    if (error && typeof error === "object") {
-      const err = error as {
-        message?: string;
-        data?: unknown;
-        status?: number;
-      };
-      if (err.data) {
-        console.error(
-          "[Launch] API Error data:",
-          JSON.stringify(err.data, null, 2),
-        );
-        // Try to extract message from nested error data
-        const data = err.data as { error?: string; message?: string };
-        errorMessage =
-          data.error || data.message || err.message || errorMessage;
-      } else if (err.message) {
-        errorMessage = err.message;
-      }
-    }
+    // Sanitize error message - don't expose internal SDK details
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "Failed to create launch transaction";
 
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to create launch transaction" },
+      { status: 500 },
+    );
   }
 }

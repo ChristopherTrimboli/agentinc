@@ -186,68 +186,6 @@ export async function getWalletBalance(walletAddress: string): Promise<bigint> {
  * @param lamports - Amount to send in lamports
  * @returns Signed transaction in base64 format
  */
-export async function signSolTransferTransaction(
-  walletId: string,
-  walletAddress: string,
-  recipientAddress: string,
-  lamports: bigint,
-): Promise<{ signedTransaction: string; success: boolean; error?: string }> {
-  try {
-    const privy = getPrivyWalletClient();
-    const connection = new Connection(SOLANA_RPC_URL, "confirmed");
-
-    // Build the transfer transaction
-    const fromPubkey = new PublicKey(walletAddress);
-    const toPubkey = new PublicKey(recipientAddress);
-
-    const transaction = new Transaction().add(
-      SystemProgram.transfer({
-        fromPubkey,
-        toPubkey,
-        lamports,
-      }),
-    );
-
-    // Get recent blockhash
-    const { blockhash } = await connection.getLatestBlockhash();
-    transaction.recentBlockhash = blockhash;
-    transaction.feePayer = fromPubkey;
-
-    // Serialize unsigned transaction to base64
-    const unsignedTx = transaction
-      .serialize({ requireAllSignatures: false })
-      .toString("base64");
-
-    // Sign transaction via Privy (but don't broadcast yet)
-    const authContext = getAuthorizationContext();
-    const rawResult = await privy.wallets().solana().signTransaction(walletId, {
-      transaction: unsignedTx,
-      authorization_context: authContext,
-    });
-
-    // Validate the response structure
-    const validation = validatePrivySignResponse(rawResult);
-    if (!validation.success) {
-      return {
-        signedTransaction: "",
-        success: false,
-        error: validation.error,
-      };
-    }
-
-    return {
-      signedTransaction: validation.data.signed_transaction,
-      success: true,
-    };
-  } catch (error) {
-    return {
-      signedTransaction: "",
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
-    };
-  }
-}
-
 /**
  * Send SOL from a Privy wallet.
  *

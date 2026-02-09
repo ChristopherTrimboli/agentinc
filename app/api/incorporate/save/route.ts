@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
+import { rateLimitByUser } from "@/lib/rateLimit";
+import { PublicKey } from "@solana/web3.js";
 
 // POST /api/incorporate/save - Save corporation to database
 export async function POST(request: NextRequest) {
   const auth = await requireAuth(request);
   if (!isAuthResult(auth)) return auth;
   const userId = auth.userId;
+
+  const limited = await rateLimitByUser(userId, "incorporate-save", 10);
+  if (limited) return limited;
 
   try {
     const body = await request.json();
@@ -36,6 +41,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate Solana public keys
+    try {
+      new PublicKey(tokenMint);
+      new PublicKey(launchWallet);
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid Solana public key format" },
+        { status: 400 },
+      );
+    }
+
+    // Validate signature format
+    if (
+      typeof launchSignature !== "string" ||
+      launchSignature.length < 87 ||
+      launchSignature.length > 88
+    ) {
+      return NextResponse.json(
+        { error: "Invalid transaction signature format" },
+        { status: 400 },
+      );
+    }
+
     if (!agentIds || !Array.isArray(agentIds) || agentIds.length < 2) {
       return NextResponse.json(
         { error: "At least two agents are required for a corporation" },
@@ -46,6 +74,16 @@ export async function POST(request: NextRequest) {
     if (agentIds.length > 5) {
       return NextResponse.json(
         { error: "Maximum 5 agents allowed" },
+        { status: 400 },
+      );
+    }
+
+    // Validate agent IDs are valid UUIDs
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!agentIds.every((id: string) => uuidRegex.test(id))) {
+      return NextResponse.json(
+        { error: "Invalid agent ID format" },
         { status: 400 },
       );
     }
