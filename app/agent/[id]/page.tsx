@@ -23,6 +23,7 @@ import {
 import { getBagsFmUrl, getDexScreenerUrl } from "@/lib/constants/urls";
 import Footer from "@/app/components/Footer";
 import StakingPanel from "@/app/components/StakingPanel";
+import AgentChat from "@/app/components/AgentChat";
 
 interface Corporation {
   id: string;
@@ -70,7 +71,7 @@ const rarityColors = RARITY_DETAIL_STYLES as Record<
 const getChartLinks = (tokenMint: string) => ({
   bags: getBagsFmUrl(tokenMint),
   dexscreener: getDexScreenerUrl(tokenMint),
-  dexscreenerEmbed: `${getDexScreenerUrl(tokenMint)}?embed=1&theme=dark`,
+  dexscreenerEmbed: `${getDexScreenerUrl(tokenMint)}?embed=1&theme=dark&trades=0&info=0`,
 });
 
 export default function AgentProfilePage({
@@ -361,42 +362,35 @@ export default function AgentProfilePage({
               {/* Traits & Skills */}
               {((agent.traits && agent.traits.length > 0) ||
                 (agent.skills && agent.skills.length > 0)) && (
-                <div className="grid sm:grid-cols-2 gap-3 sm:gap-6">
-                  {/* Traits */}
+                <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-[#0a0520] border border-white/10 space-y-2">
                   {agent.traits && agent.traits.length > 0 && (
-                    <div className="p-4 sm:p-6 rounded-xl sm:rounded-2xl bg-[#0a0520] border border-white/10">
-                      <h3 className="text-xs sm:text-sm font-semibold text-white/40 uppercase tracking-wider mb-3 sm:mb-4">
+                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                      <span className="text-[10px] sm:text-xs font-semibold text-white/40 uppercase tracking-wider mr-1">
                         Traits
-                      </h3>
-                      <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                        {agent.traits.map((trait) => (
-                          <span
-                            key={trait}
-                            className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-[#120557]/50 border border-[#6FEC06]/20 text-xs sm:text-sm text-white/70"
-                          >
-                            {trait}
-                          </span>
-                        ))}
-                      </div>
+                      </span>
+                      {agent.traits.map((trait) => (
+                        <span
+                          key={trait}
+                          className="px-2 py-0.5 sm:py-1 rounded-full bg-[#120557]/50 border border-[#6FEC06]/20 text-xs text-white/70"
+                        >
+                          {trait}
+                        </span>
+                      ))}
                     </div>
                   )}
-
-                  {/* Skills */}
                   {agent.skills && agent.skills.length > 0 && (
-                    <div className="p-4 sm:p-6 rounded-xl sm:rounded-2xl bg-[#0a0520] border border-white/10">
-                      <h3 className="text-xs sm:text-sm font-semibold text-white/40 uppercase tracking-wider mb-3 sm:mb-4">
+                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                      <span className="text-[10px] sm:text-xs font-semibold text-white/40 uppercase tracking-wider mr-1">
                         Skills
-                      </h3>
-                      <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                        {agent.skills.map((skill) => (
-                          <span
-                            key={skill}
-                            className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-full bg-[#6FEC06]/10 border border-[#6FEC06]/30 text-xs sm:text-sm text-[#6FEC06]"
-                          >
-                            {skill}
-                          </span>
-                        ))}
-                      </div>
+                      </span>
+                      {agent.skills.map((skill) => (
+                        <span
+                          key={skill}
+                          className="px-2 py-0.5 sm:py-1 rounded-full bg-[#6FEC06]/10 border border-[#6FEC06]/30 text-xs text-[#6FEC06]"
+                        >
+                          {skill}
+                        </span>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -555,6 +549,17 @@ export default function AgentProfilePage({
                 tokenMint={agent.tokenMint}
                 tokenSymbol={agent.tokenSymbol}
                 agentId={agent.id}
+              />
+            </div>
+          )}
+
+          {/* Community Chat */}
+          {agent.isMinted && agent.tokenMint && agent.tokenSymbol && (
+            <div className="mt-6 sm:mt-10">
+              <AgentChat
+                agentId={agent.id}
+                tokenMint={agent.tokenMint}
+                tokenSymbol={agent.tokenSymbol}
               />
             </div>
           )}

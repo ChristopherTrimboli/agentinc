@@ -40,7 +40,7 @@
     "db:studio": "bun prisma studio"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^3.0.38",
+    "@ai-sdk/anthropic": "^3.0.39",
     "@ai-sdk/openai": "^3.0.26",
     "@ai-sdk/react": "^3.0.79",
     "@bagsfm/bags-sdk": "^1.2.7",

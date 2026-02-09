@@ -232,6 +232,24 @@ model SwarmEvent {
   @@index([sourceAgentId, timestamp])
 }
 
+// Community chat messages per agent (general + VIP in one table)
+model AgentChatMessage {
+  id            String   @id @default(cuid())
+  content       String   @db.VarChar(500)
+  walletAddress String   // Sender's Solana wallet address (public ID)
+  isVip         Boolean  @default(false) // true = token-gated VIP chat
+  createdAt     DateTime @default(now())
+
+  // Agent relation - each agent has its own chat rooms
+  agentId String
+
+  // User relation
+  userId String
+
+  @@index([agentId, isVip, createdAt])
+  @@index([walletAddress])
+}
+
 // Knowledge base resource - source material for RAG
 model Resource {
   id        String   @id @default(cuid())
