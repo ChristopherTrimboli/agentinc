@@ -8,8 +8,11 @@
 export function formatPrice(price: number | null | undefined): string {
   if (price === null || price === undefined) return "$0.00";
 
-  if (price < 0.0001) {
-    return `$${price.toExponential(2)}`;
+  // For very small prices (< $0.00001), show with more precision
+  if (price < 0.00001) {
+    return `$${price.toFixed(8)}`;
+  } else if (price < 0.0001) {
+    return `$${price.toFixed(7)}`;
   } else if (price < 0.01) {
     return `$${price.toFixed(6)}`;
   } else if (price < 1) {
