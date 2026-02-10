@@ -354,24 +354,53 @@ function ItemCard({
     : rarityColors.common;
 
   return (
-    <Link
-      href={
-        isAgent ? `/agent/${item.tokenMint || item.id}` : `/dashboard/network`
-      }
+    <div
       className={`group relative rounded-2xl bg-[#0a0520] border ${
         agent?.rarity && agent.rarity !== "common"
           ? rarityStyle.border
           : "border-white/10"
-      } hover:border-[#6FEC06]/50 transition-all duration-300 overflow-hidden explore-card flex flex-col h-full`}
+      } transition-all duration-300 overflow-hidden explore-card flex flex-col h-full hover:-translate-y-0.5`}
+      style={{
+        ...(agent?.rarity && agent.rarity !== "common" 
+          ? { boxShadow: "0 0 20px " + (
+              agent.rarity === "legendary" ? "rgba(255,215,0,0.15)" :
+              agent.rarity === "epic" ? "rgba(168,85,247,0.15)" :
+              agent.rarity === "rare" ? "rgba(59,130,246,0.15)" :
+              "rgba(111,236,6,0.15)"
+            )
+          } 
+          : {}
+        )
+      }}
+      onMouseEnter={(e) => {
+        if (agent?.rarity && agent.rarity !== "common") {
+          e.currentTarget.style.boxShadow = "0 0 30px " + (
+            agent.rarity === "legendary" ? "rgba(255,215,0,0.35)" :
+            agent.rarity === "epic" ? "rgba(168,85,247,0.35)" :
+            agent.rarity === "rare" ? "rgba(59,130,246,0.35)" :
+            "rgba(111,236,6,0.35)"
+          );
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (agent?.rarity && agent.rarity !== "common") {
+          e.currentTarget.style.boxShadow = "0 0 20px " + (
+            agent.rarity === "legendary" ? "rgba(255,215,0,0.15)" :
+            agent.rarity === "epic" ? "rgba(168,85,247,0.15)" :
+            agent.rarity === "rare" ? "rgba(59,130,246,0.15)" :
+            "rgba(111,236,6,0.15)"
+          );
+        }
+      }}
     >
       {/* Image */}
-      <div className="relative aspect-square bg-gradient-to-br from-[#120557]/50 to-[#000028] overflow-hidden flex-shrink-0">
+      <div className="relative aspect-square bg-gradient-to-br from-[#120557]/50 to-[#000028] overflow-hidden flex-shrink-0 rounded-t-2xl">
         {agent?.imageUrl ? (
           <Image
             src={agent.imageUrl}
             alt={item.name}
             fill
-            className="object-cover group-hover:scale-105 transition-transform duration-500"
+            className="object-cover group-hover:scale-105 transition-transform duration-500 rounded-t-2xl"
           />
         ) : (
           <div
@@ -397,13 +426,18 @@ function ItemCard({
         {/* Gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-[#0a0520] via-transparent to-transparent" />
 
-        {/* Badges */}
-        <div className="absolute top-3 left-3 right-3 flex justify-between items-start">
+        {/* Top badges row */}
+        <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2">
+          {/* Token badge */}
           {item.tokenSymbol && (
             <span className="px-2.5 py-1 rounded-full bg-[#6FEC06]/20 text-[#6FEC06] text-xs font-semibold backdrop-blur-sm border border-[#6FEC06]/30">
-              {item.tokenSymbol}
+              ${item.tokenSymbol}
             </span>
           )}
+          
+          <div className="flex-1" />
+          
+          {/* Rarity badge */}
           {agent?.rarity && agent.rarity !== "common" && (
             <span
               className={`px-2.5 py-1 rounded-full ${rarityStyle.bg} ${rarityStyle.text} text-xs font-semibold uppercase tracking-wider backdrop-blur-sm border ${rarityStyle.border}`}
@@ -436,8 +470,9 @@ function ItemCard({
 
       {/* Content */}
       <div className="p-4 flex flex-col flex-1">
+        {/* Top content */}
         <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-1.5">
             <span
               className={`text-[10px] uppercase tracking-wider font-medium px-2 py-0.5 rounded-full ${
                 isAgent
@@ -454,26 +489,39 @@ function ItemCard({
             )}
           </div>
 
-          <h3 className="font-bold text-lg truncate font-display mb-1">
+          <h3 className="font-bold text-lg truncate font-display mb-1.5">
             {item.name}
           </h3>
 
           {item.description && (
-            <p className="text-white/50 text-sm line-clamp-2 overflow-hidden mb-3">
+            <p className="text-white/50 text-sm line-clamp-2 mb-3">
               {item.description}
             </p>
           )}
         </div>
 
-        {/* Price - always at bottom */}
-        <div className="flex items-center justify-between pt-3 border-t border-white/5 mt-auto">
-          <span className="text-white/40 text-xs">Price</span>
-          <span className="font-mono font-medium">
-            {price ? formatPrice(price.price) : "-"}
-          </span>
+        {/* Price and button at bottom */}
+        <div className="space-y-3 pt-3 border-t border-white/5">
+          <div className="flex items-center justify-between">
+            <span className="text-white/40 text-xs">Price</span>
+            <span className="font-mono font-medium text-sm">
+              {price ? formatPrice(price.price) : "-"}
+            </span>
+          </div>
+          
+          <Link
+            href={
+              isAgent
+                ? `/agent/${item.tokenMint || item.id}`
+                : `/dashboard/network`
+            }
+            className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#6FEC06]/10 border border-[#6FEC06]/30 rounded-xl text-[#6FEC06] text-sm font-medium hover:bg-[#6FEC06]/20 hover:border-[#6FEC06]/50 transition-all"
+          >
+            {isAgent ? "View Profile" : "View Network"}
+          </Link>
         </div>
       </div>
-    </Link>
+    </div>
   );
 }
 
@@ -1479,8 +1527,8 @@ export default function ExplorePage() {
         {/* Card view */}
         {!isLoading && filteredRows.length > 0 && view === "cards" && (
           <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-            <div className="flex-1 overflow-auto pb-4">
-              <div className="grid gap-4 sm:gap-6 grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="flex-1 overflow-auto pb-4 px-1 pt-4">
+              <div className="grid gap-4 sm:gap-6 grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 p-1">
                 {paginatedRows.map((row) => (
                   <ItemCard
                     key={`${row.original.type}-${row.original.id}`}

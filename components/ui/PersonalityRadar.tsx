@@ -599,48 +599,18 @@ export function PersonalityBadge({
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold border relative overflow-hidden transition-all duration-300 ${className}`}
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold border relative overflow-hidden transition-all duration-300 ${className}`}
       style={{
-        backgroundColor: `${mbti.color}08`,
-        borderColor: `${mbti.color}30`,
+        backgroundColor: `${mbti.color}10`,
+        borderColor: `${mbti.color}40`,
         color: mbti.color,
         opacity: mounted ? 1 : 0,
         transform: mounted ? "scale(1)" : "scale(0.9)",
-        boxShadow: `0 0 15px ${mbti.color}10, inset 0 0 15px ${mbti.color}05`,
       }}
+      title={mbti.name}
     >
-      {/* Animated gradient background */}
-      <div
-        className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-300"
-        style={{
-          background: `linear-gradient(135deg, ${mbti.color}10, transparent, ${mbti.color}10)`,
-        }}
-      />
-
-      {/* Icon with glow */}
-      <span
-        className="relative z-10 text-sm"
-        style={{
-          filter: `drop-shadow(0 0 4px ${mbti.color}40)`,
-        }}
-      >
-        {mbti.icon}
-      </span>
-
       {/* Text */}
       <span className="relative z-10 font-mono tracking-wider">{mbti.id}</span>
-
-      <span className="relative z-10 opacity-60">&middot;</span>
-
-      <span className="relative z-10 font-medium">{mbti.name}</span>
-
-      {/* Corner accent */}
-      <div
-        className="absolute top-0 right-0 w-6 h-6 opacity-20"
-        style={{
-          background: `radial-gradient(circle at top right, ${mbti.color}, transparent)`,
-        }}
-      />
     </span>
   );
 }

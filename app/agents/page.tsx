@@ -224,17 +224,49 @@ export default function AgentsPage() {
                 return (
                   <div
                     key={agent.id}
-                    className={`group relative rounded-2xl bg-[#0a0520] border ${rarityStyle.border} hover:border-[#6FEC06]/50 transition-all duration-300 overflow-hidden card-hover ${rarityStyle.glow} animate-fade-in-up`}
-                    style={{ animationDelay: `${index * 50}ms` }}
+                    className={`group relative rounded-2xl bg-[#0a0520] border ${rarityStyle.border} transition-all duration-300 overflow-hidden card-hover ${rarityStyle.glow} hover:-translate-y-0.5 animate-fade-in-up flex flex-col`}
+                    style={{ 
+                      animationDelay: `${index * 50}ms`,
+                      ...(agent.rarity && agent.rarity !== "common" 
+                        ? { boxShadow: "0 0 20px " + (
+                            agent.rarity === "legendary" ? "rgba(255,215,0,0.15)" :
+                            agent.rarity === "epic" ? "rgba(168,85,247,0.15)" :
+                            agent.rarity === "rare" ? "rgba(59,130,246,0.15)" :
+                            "rgba(111,236,6,0.15)"
+                          )
+                        } 
+                        : {}
+                      )
+                    }}
+                    onMouseEnter={(e) => {
+                      if (agent.rarity && agent.rarity !== "common") {
+                        e.currentTarget.style.boxShadow = "0 0 30px " + (
+                          agent.rarity === "legendary" ? "rgba(255,215,0,0.35)" :
+                          agent.rarity === "epic" ? "rgba(168,85,247,0.35)" :
+                          agent.rarity === "rare" ? "rgba(59,130,246,0.35)" :
+                          "rgba(111,236,6,0.35)"
+                        );
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (agent.rarity && agent.rarity !== "common") {
+                        e.currentTarget.style.boxShadow = "0 0 20px " + (
+                          agent.rarity === "legendary" ? "rgba(255,215,0,0.15)" :
+                          agent.rarity === "epic" ? "rgba(168,85,247,0.15)" :
+                          agent.rarity === "rare" ? "rgba(59,130,246,0.15)" :
+                          "rgba(111,236,6,0.15)"
+                        );
+                      }
+                    }}
                   >
                     {/* Agent Image */}
-                    <div className="relative aspect-square bg-gradient-to-br from-[#120557]/50 to-[#000028] overflow-hidden">
+                    <div className="relative aspect-square bg-gradient-to-br from-[#120557]/50 to-[#000028] overflow-hidden flex-shrink-0 rounded-t-2xl">
                       {agent.imageUrl ? (
                         <Image
                           src={agent.imageUrl}
                           alt={agent.name}
                           fill
-                          className="object-cover group-hover:scale-105 transition-transform duration-500"
+                          className="object-cover group-hover:scale-105 transition-transform duration-500 rounded-t-2xl"
                         />
                       ) : (
                         <div className="absolute inset-0 flex items-center justify-center">
@@ -247,27 +279,32 @@ export default function AgentsPage() {
                       {/* Gradient overlay */}
                       <div className="absolute inset-0 bg-gradient-to-t from-[#0a0520] via-transparent to-transparent" />
 
-                      {/* Rarity badge */}
-                      {agent.rarity && agent.rarity !== "common" && (
-                        <div
-                          className={`absolute top-3 right-3 px-2.5 py-1 rounded-full ${rarityStyle.bg} ${rarityStyle.text} text-xs font-semibold uppercase tracking-wider backdrop-blur-sm border ${rarityStyle.border}`}
-                        >
-                          {agent.rarity}
-                        </div>
-                      )}
-
-                      {/* Token badge */}
-                      {agent.isMinted && agent.tokenSymbol && (
-                        <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-[#6FEC06]/20 text-[#6FEC06] text-xs font-semibold backdrop-blur-sm border border-[#6FEC06]/30">
-                          {agent.tokenSymbol}
-                        </div>
-                      )}
+                      {/* Top badges row */}
+                      <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-2">
+                        {/* Token badge */}
+                        {agent.isMinted && agent.tokenSymbol && (
+                          <div className="px-2.5 py-1 rounded-full bg-[#6FEC06]/20 text-[#6FEC06] text-xs font-semibold backdrop-blur-sm border border-[#6FEC06]/30">
+                            ${agent.tokenSymbol}
+                          </div>
+                        )}
+                        
+                        <div className="flex-1" />
+                        
+                        {/* Rarity badge */}
+                        {agent.rarity && agent.rarity !== "common" && (
+                          <div
+                            className={`px-2.5 py-1 rounded-full ${rarityStyle.bg} ${rarityStyle.text} text-xs font-semibold uppercase tracking-wider backdrop-blur-sm border ${rarityStyle.border}`}
+                          >
+                            {agent.rarity}
+                          </div>
+                        )}
+                      </div>
 
                       {/* Delete button */}
                       <button
                         onClick={() => handleDelete(agent.id, agent.name)}
                         disabled={deletingId === agent.id}
-                        className="absolute bottom-3 right-3 p-2 text-white/60 hover:text-red-400 hover:bg-red-500/20 rounded-lg transition-all opacity-0 group-hover:opacity-100 backdrop-blur-sm bg-black/20"
+                        className="absolute bottom-3 right-3 p-2 text-white/60 hover:text-red-400 hover:bg-red-500/20 rounded-lg transition-all opacity-0 group-hover:opacity-100 backdrop-blur-sm bg-black/30"
                         title="Delete agent"
                       >
                         {deletingId === agent.id ? (
@@ -278,64 +315,66 @@ export default function AgentsPage() {
                       </button>
                     </div>
 
-                    {/* Content */}
-                    <div className="p-5">
-                      <div className="flex items-start justify-between gap-3 mb-3">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-bold text-lg truncate font-display">
-                            {agent.name}
-                          </h3>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span
-                              className={`flex items-center gap-1 text-xs ${agent.isPublic ? "text-[#6FEC06]" : "text-white/40"}`}
-                            >
-                              {agent.isPublic ? (
-                                <>
-                                  <Globe className="w-3 h-3" />
-                                  Public
-                                </>
-                              ) : (
-                                <>
-                                  <Lock className="w-3 h-3" />
-                                  Private
-                                </>
-                              )}
-                            </span>
-                            {agent.personalityScores && (
+                    {/* Content - grows to fill space */}
+                    <div className="p-4 flex flex-col flex-1">
+                      {/* Top content */}
+                      <div className="flex-1">
+                        <h3 className="font-bold text-lg truncate font-display mb-1.5">
+                          {agent.name}
+                        </h3>
+                        
+                        <div className="flex items-center gap-2 mb-3">
+                          <span
+                            className={`flex items-center gap-1 text-xs ${agent.isPublic ? "text-[#6FEC06]" : "text-white/40"}`}
+                          >
+                            {agent.isPublic ? (
                               <>
-                                <span className="text-white/20">·</span>
-                                <PersonalityBadge
-                                  scores={agent.personalityScores}
-                                />
+                                <Globe className="w-3 h-3" />
+                                Public
+                              </>
+                            ) : (
+                              <>
+                                <Lock className="w-3 h-3" />
+                                Private
                               </>
                             )}
-                          </div>
+                          </span>
+                          {agent.personalityScores && (
+                            <>
+                              <span className="text-white/20">·</span>
+                              <PersonalityBadge
+                                scores={agent.personalityScores}
+                              />
+                            </>
+                          )}
                         </div>
+
+                        {agent.description && (
+                          <p className="text-white/50 text-sm line-clamp-2 mb-3">
+                            {agent.description}
+                          </p>
+                        )}
+
+                        <p className="text-xs text-white/30">
+                          Created{" "}
+                          {new Date(agent.createdAt).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
+                        </p>
                       </div>
 
-                      {agent.description && (
-                        <p className="text-white/50 text-sm mb-4 line-clamp-2">
-                          {agent.description}
-                        </p>
-                      )}
-
-                      {/* Action button */}
-                      <Link
-                        href={`/chat?agent=${agent.id}`}
-                        className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#6FEC06]/10 border border-[#6FEC06]/30 rounded-xl text-[#6FEC06] text-sm font-medium hover:bg-[#6FEC06]/20 hover:border-[#6FEC06]/50 transition-all"
-                      >
-                        <MessageSquare className="w-4 h-4" />
-                        Start Chat
-                      </Link>
-
-                      <p className="text-xs text-white/30 mt-3 text-center">
-                        Created{" "}
-                        {new Date(agent.createdAt).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
-                      </p>
+                      {/* Action button - always at bottom */}
+                      <div className="mt-4 pt-4 border-t border-white/5">
+                        <Link
+                          href={`/chat?agent=${agent.id}`}
+                          className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#6FEC06]/10 border border-[#6FEC06]/30 rounded-xl text-[#6FEC06] text-sm font-medium hover:bg-[#6FEC06]/20 hover:border-[#6FEC06]/50 transition-all"
+                        >
+                          <MessageSquare className="w-4 h-4" />
+                          Start Chat
+                        </Link>
+                      </div>
                     </div>
                   </div>
                 );
