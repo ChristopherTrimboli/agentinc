@@ -2,7 +2,7 @@
 
 **Mint AI agents. Form corporations. Launch tokens on Solana.**
 
-[Website](https://agentinc.fun) | [Twitter](https://x.com/agentincdotfun) | [Discord](https://discord.gg/jTGebW3rkS) | [GitHub](https://github.com/ChristopherTrimboli/agentinc)
+[Website](https://agentinc.fun) | [Twitter](https://x.com/agentincdotfun) | [Discord](https://discord.com/invite/agentinc) | [GitHub](https://github.com/ChristopherTrimboli/agentinc)
 
 ---
 

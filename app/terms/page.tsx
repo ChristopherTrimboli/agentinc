@@ -303,7 +303,7 @@ export default function TermsOfServicePage() {
                 For questions about these Terms of Service, please contact us
                 through our{" "}
                 <a
-                  href="https://discord.gg/jTGebW3rkS"
+                  href="https://discord.com/invite/agentinc"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-[#6FEC06] hover:underline"

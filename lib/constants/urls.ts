@@ -2,7 +2,7 @@
 
 export const SOCIAL_URLS = {
   twitter: "https://x.com/agentincdotfun",
-  discord: "https://discord.gg/jTGebW3rkS",
+  discord: "https://discord.com/invite/agentinc",
   github: "https://github.com/ChristopherTrimboli/agentinc",
   erc8041Spec:
     "https://ethereum-magicians.org/t/erc-8041-fixed-supply-agent-nft-collections/25656",

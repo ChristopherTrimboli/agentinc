@@ -54,7 +54,7 @@ export default function Footer({ variant = "full" }: FooterProps) {
                 <Twitter className="w-4 h-4 sm:w-5 sm:h-5" />
               </a>
               <a
-                href="https://discord.gg/jTGebW3rkS"
+                href="https://discord.com/invite/agentinc"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#120557]/50 flex items-center justify-center hover:bg-[#6FEC06]/20 transition-colors"
@@ -164,7 +164,7 @@ export default function Footer({ variant = "full" }: FooterProps) {
               </li>
               <li>
                 <a
-                  href="https://discord.gg/jTGebW3rkS"
+                  href="https://discord.com/invite/agentinc"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-white transition-colors"
