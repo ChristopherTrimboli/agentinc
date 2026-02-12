@@ -132,7 +132,11 @@ export async function POST(req: NextRequest) {
 
     // Sanitize metadata to prevent XSS
     const sanitizedName = metadata.name.trim().slice(0, 32); // Match DB limit
-    const sanitizedSymbol = metadata.symbol.trim().slice(0, 10); // Match DB limit
+    // Remove leading $ from symbol if present (stored without $ prefix in DB)
+    const sanitizedSymbol = metadata.symbol
+      .trim()
+      .replace(/^\$+/, "")
+      .slice(0, 10); // Match DB limit
     const sanitizedDescription = metadata.description
       ? metadata.description.trim().slice(0, 1000) // Reasonable limit
       : null;

@@ -127,7 +127,8 @@ export async function POST(req: NextRequest) {
 
           // Token launch fields
           tokenMint,
-          tokenSymbol,
+          // Remove leading $ from symbol if present (stored without $ prefix in DB)
+          tokenSymbol: tokenSymbol.replace(/^\$+/, ""),
           tokenMetadata,
           launchWallet,
           launchSignature,
