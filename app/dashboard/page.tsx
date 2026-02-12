@@ -562,6 +562,7 @@ export default function ExplorePage() {
   // Combine items with price data for table
   const tableData = useMemo<TableItem[]>(() => {
     // Only show minted items with tokenMint
+    const hasPrices = Object.keys(prices).length > 0;
     let data = items
       .filter((item) => item.tokenMint)
       .map((item) => {
@@ -575,7 +576,9 @@ export default function ExplorePage() {
           liquidity: priceData?.liquidity,
           earnings: priceData?.earnings,
         };
-      });
+      })
+      // Hide delisted tokens (0 market cap) once prices have loaded
+      .filter((item) => !hasPrices || (item.marketCap && item.marketCap > 0));
 
     // Apply type filter
     if (typeFilter !== "all") {
