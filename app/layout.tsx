@@ -16,6 +16,7 @@ const syne = Syne({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://agentinc.fun"),
   title: "Agent Inc. | AI-Powered Autonomous Startups on Chain",
   description:
     "Incorporate, trade and invest in collections of agents that build together a real startup. Built on Bags.",

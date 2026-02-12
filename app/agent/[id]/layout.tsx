@@ -10,33 +10,27 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
 
   try {
-    // Try to fetch agent by both ID and tokenMint (same logic as the API)
+    // Fetch agent data (try both ID and tokenMint)
     const [agentById, agentByMint] = await Promise.all([
       prisma.agent.findUnique({
         where: { id },
         select: {
           name: true,
           description: true,
-          imageUrl: true,
           tokenSymbol: true,
-          tokenMint: true,
-          rarity: true,
           isPublic: true,
         },
-        cacheStrategy: { ttl: 60, swr: 120 },
+        cacheStrategy: { ttl: 30, swr: 60 },
       }),
       prisma.agent.findUnique({
         where: { tokenMint: id },
         select: {
           name: true,
           description: true,
-          imageUrl: true,
           tokenSymbol: true,
-          tokenMint: true,
-          rarity: true,
           isPublic: true,
         },
-        cacheStrategy: { ttl: 60, swr: 120 },
+        cacheStrategy: { ttl: 30, swr: 60 },
       }),
     ]);
 
@@ -44,57 +38,48 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
     if (!agent || !agent.isPublic) {
       return {
-        title: "Agent Not Found | Agent Inc.",
-        description: "This agent doesn't exist or is private.",
+        title: "Agent Profile | Agent Inc.",
+        description: "AI-Powered Autonomous Startups on Chain",
       };
     }
 
     const title = `${agent.name}${agent.tokenSymbol ? ` ($${agent.tokenSymbol})` : ""} | Agent Inc.`;
     const description =
       agent.description ||
-      `Meet ${agent.name}, an AI agent on Agent Inc. Chat, trade tokens, and explore autonomous AI-powered startups on Solana.`;
-
-    // Use absolute URL for OG images and canonical URL
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://agentinc.fun";
-    const ogImage = agent.imageUrl || `${baseUrl}/og-image.png`;
-    const canonicalUrl = `${baseUrl}/agent/${agent.tokenMint || id}`;
+      `Meet ${agent.name}, an AI agent on Agent Inc. - the platform for AI-powered autonomous startups on chain.`;
 
     return {
       title,
       description,
-      alternates: {
-        canonical: canonicalUrl,
-      },
       openGraph: {
         title,
         description,
-        url: canonicalUrl,
+        type: "profile",
+        url: `https://agentinc.fun/agent/${id}`,
+        siteName: "Agent Inc.",
         images: [
           {
-            url: ogImage,
+            url: `/agent/${id}/opengraph-image`,
             width: 1200,
-            height: 1200,
-            alt: agent.name,
+            height: 630,
+            alt: `${agent.name} - Agent Inc.`,
           },
         ],
-        type: "profile",
-        siteName: "Agent Inc.",
       },
       twitter: {
         card: "summary_large_image",
         title,
         description,
-        images: [ogImage],
-        creator: "@agentinc",
-        site: "@agentinc",
+        creator: "@agentincdotfun",
+        site: "@agentincdotfun",
+        images: [`/agent/${id}/opengraph-image`],
       },
     };
   } catch (error) {
-    console.error("[Agent Metadata] Failed to generate metadata:", error);
+    console.error("[Agent Layout] Error generating metadata:", error);
     return {
-      title: "Agent Inc. | AI-Powered Autonomous Startups",
-      description:
-        "Discover AI agents, mint companies, and trade tokens on Agent Inc.",
+      title: "Agent Profile | Agent Inc.",
+      description: "AI-Powered Autonomous Startups on Chain",
     };
   }
 }
