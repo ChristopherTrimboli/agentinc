@@ -5,10 +5,13 @@
     "": {
       "name": "agentinc",
       "dependencies": {
-        "@ai-sdk/anthropic": "^3.0.41",
-        "@ai-sdk/openai": "^3.0.26",
-        "@ai-sdk/react": "^3.0.81",
-        "@bagsfm/bags-sdk": "^1.2.7",
+        "@ai-sdk/anthropic": "^3.0.42",
+        "@ai-sdk/openai": "^3.0.27",
+        "@ai-sdk/react": "^3.0.83",
+        "@bagsfm/bags-sdk": "^1.2.8",
+        "@metaplex-foundation/mpl-token-metadata": "^3.4.0",
+        "@metaplex-foundation/umi": "^1.5.1",
+        "@metaplex-foundation/umi-bundle-defaults": "^1.5.1",
         "@prisma/client": "^7.4.0",
         "@prisma/extension-accelerate": "^3.0.1",
         "@privy-io/node": "^0.8.0",
@@ -34,7 +37,7 @@
         "@vercel/analytics": "^1.6.1",
         "@vercel/blob": "^2.2.0",
         "@xdevplatform/xdk": "^0.4.0",
-        "ai": "^6.0.79",
+        "ai": "^6.0.81",
         "bs58": "^6.0.0",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
@@ -394,6 +397,44 @@
     "@metamask/superstruct": ["@metamask/superstruct@3.2.1", "", {}, "sha512-fLgJnDOXFmuVlB38rUN5SmU7hAFQcCjrg3Vrxz67KTY7YHFnSNEKvX4avmEBdOI0yTCxZjwMCFEqsC8k2+Wd3g=="],
 
     "@metamask/utils": ["@metamask/utils@11.9.0", "", { "dependencies": { "@ethereumjs/tx": "^4.2.0", "@metamask/superstruct": "^3.1.0", "@noble/hashes": "^1.3.1", "@scure/base": "^1.1.3", "@types/debug": "^4.1.7", "@types/lodash": "^4.17.20", "debug": "^4.3.4", "lodash": "^4.17.21", "pony-cause": "^2.1.10", "semver": "^7.5.4", "uuid": "^9.0.1" } }, "sha512-wRnoSDD9jTWOge/+reFviJQANhS+uy8Y+OEwRanp5mQeGTjBFmK1r2cTOnei2UCZRV1crXHzeJVSFEoDDcgRbA=="],
+
+    "@metaplex-foundation/mpl-token-metadata": ["@metaplex-foundation/mpl-token-metadata@3.4.0", "", { "dependencies": { "@metaplex-foundation/mpl-toolbox": "^0.10.0" }, "peerDependencies": { "@metaplex-foundation/umi": ">= 0.8.2 <= 1" } }, "sha512-AxBAYCK73JWxY3g9//z/C9krkR0t1orXZDknUPS4+GjwGH2vgPfsk04yfZ31Htka2AdS9YE/3wH7sMUBHKn9Rg=="],
+
+    "@metaplex-foundation/mpl-toolbox": ["@metaplex-foundation/mpl-toolbox@0.10.0", "", { "peerDependencies": { "@metaplex-foundation/umi": ">= 0.8.2 <= 1" } }, "sha512-84KD1L5cFyw5xnntHwL4uPwfcrkKSiwuDeypiVr92qCUFuF3ZENa2zlFVPu+pQcjTlod2LmEX3MhBmNjRMpdKg=="],
+
+    "@metaplex-foundation/umi": ["@metaplex-foundation/umi@1.5.1", "", { "dependencies": { "@metaplex-foundation/umi-options": "^1.5.1", "@metaplex-foundation/umi-public-keys": "^1.5.1", "@metaplex-foundation/umi-serializers": "^1.5.1" } }, "sha512-ONRv5a0kv+23AMlR8oyFBHnjVg3o3N8pUfFcV4gzbg6OgZf87zHsPWBfED3OTJqx267v1bEn6d6DABXNFq9Z3A=="],
+
+    "@metaplex-foundation/umi-bundle-defaults": ["@metaplex-foundation/umi-bundle-defaults@1.5.1", "", { "dependencies": { "@metaplex-foundation/umi-downloader-http": "^1.5.1", "@metaplex-foundation/umi-eddsa-web3js": "^1.5.1", "@metaplex-foundation/umi-http-fetch": "^1.5.1", "@metaplex-foundation/umi-program-repository": "^1.5.1", "@metaplex-foundation/umi-rpc-chunk-get-accounts": "^1.5.1", "@metaplex-foundation/umi-rpc-web3js": "^1.5.1", "@metaplex-foundation/umi-serializer-data-view": "^1.5.1", "@metaplex-foundation/umi-transaction-factory-web3js": "^1.5.1" }, "peerDependencies": { "@metaplex-foundation/umi": "^1.5.1", "@solana/web3.js": "^1.72.0" } }, "sha512-7qoXenAkQbcj468HGAeLZDyg3eEhcS9rWAnGqjnKgWOlL1czL2Qwho0FEtqOv57IHwAJSTpbHbcvABmdpTjjdw=="],
+
+    "@metaplex-foundation/umi-downloader-http": ["@metaplex-foundation/umi-downloader-http@1.5.1", "", { "peerDependencies": { "@metaplex-foundation/umi": "^1.5.1" } }, "sha512-1s9gSTaDtwELyxBRE6Wmdr3xWeb4Z1uU04dj3Hg8VU+TN6/3wchh93+rIGZT5D3zzdh4+yPxdYV+4ZEr3T5glQ=="],
+
+    "@metaplex-foundation/umi-eddsa-web3js": ["@metaplex-foundation/umi-eddsa-web3js@1.5.1", "", { "dependencies": { "@metaplex-foundation/umi-web3js-adapters": "^1.5.1", "@noble/curves": "^1.0.0", "yaml": "^2.7.0" }, "peerDependencies": { "@metaplex-foundation/umi": "^1.5.1", "@solana/web3.js": "^1.72.0" } }, "sha512-ZlzmXXAa1Ujk00G5TmqXM81J25+k/8sqt0zxBUlLTUSOxzlhxhlUKdErIhpHazbKq+eGck+Onm17oAwVKdKAcw=="],
+
+    "@metaplex-foundation/umi-http-fetch": ["@metaplex-foundation/umi-http-fetch@1.5.1", "", { "dependencies": { "node-fetch": "^2.6.7" }, "peerDependencies": { "@metaplex-foundation/umi": "^1.5.1" } }, "sha512-AOjZJo3Ua4a2FvgA85x5f0TkMSb+13Ao3uLIQ9FbScV42kqZnDox8KjJ7tKm1ZtYDlCYD0pSFMKPOC9NPDnHDg=="],
+
+    "@metaplex-foundation/umi-options": ["@metaplex-foundation/umi-options@1.5.1", "", {}, "sha512-ZE6uXgFA3rElFq4gJxZM2diAqZdFqL65bOnAggwdnnei5XXRzFyNF16wYSqlHnPLvG6ohRHWiXww8d2Mb83xFg=="],
+
+    "@metaplex-foundation/umi-program-repository": ["@metaplex-foundation/umi-program-repository@1.5.1", "", { "peerDependencies": { "@metaplex-foundation/umi": "^1.5.1" } }, "sha512-E5W0IjwFgDGuBTshISbbEh/s8deqxcOzzEjOOlYdMXnevVsfNLwBBIAY4NPJg3v5vpFlKODwUGB5BxCUVthzJg=="],
+
+    "@metaplex-foundation/umi-public-keys": ["@metaplex-foundation/umi-public-keys@1.5.1", "", { "dependencies": { "@metaplex-foundation/umi-serializers-encodings": "^1.5.1" } }, "sha512-joTnI1mRtYRfIaTo98uaYRjBPszsdyHuq0vvd6QbSX+MPvu3enkWi+UicuykEc3VXd5tcGdNMiGSx4jgXG6pkw=="],
+
+    "@metaplex-foundation/umi-rpc-chunk-get-accounts": ["@metaplex-foundation/umi-rpc-chunk-get-accounts@1.5.1", "", { "peerDependencies": { "@metaplex-foundation/umi": "^1.5.1" } }, "sha512-3dnGobT1Xwul7fXzQr8660UHSnFOCWEed4T449oNekrVsHp2o00fdOqjXwo11DYhS1rjm+gbzRSazRKb62uF2Q=="],
+
+    "@metaplex-foundation/umi-rpc-web3js": ["@metaplex-foundation/umi-rpc-web3js@1.5.1", "", { "dependencies": { "@metaplex-foundation/umi-web3js-adapters": "^1.5.1" }, "peerDependencies": { "@metaplex-foundation/umi": "^1.5.1", "@solana/web3.js": "^1.72.0" } }, "sha512-CxHyruh2gW2b/ZOwHFFtooOgtu9hBrOJTd3HUMtD/jpaturApa3itsL/zNt4K34tELzVIUL7N78LDjNpzbu9Kw=="],
+
+    "@metaplex-foundation/umi-serializer-data-view": ["@metaplex-foundation/umi-serializer-data-view@1.5.1", "", { "peerDependencies": { "@metaplex-foundation/umi": "^1.5.1" } }, "sha512-9Wxqk3bGVJ0xNmHhHrOUhdu/90Q1IT3FZRZN4eGckb0sf7Bgls7kBTkFfgXFmUh2VBnE0GnnncXeHKtop5RSFA=="],
+
+    "@metaplex-foundation/umi-serializers": ["@metaplex-foundation/umi-serializers@1.5.1", "", { "dependencies": { "@metaplex-foundation/umi-options": "^1.5.1", "@metaplex-foundation/umi-public-keys": "^1.5.1", "@metaplex-foundation/umi-serializers-core": "^1.5.1", "@metaplex-foundation/umi-serializers-encodings": "^1.5.1", "@metaplex-foundation/umi-serializers-numbers": "^1.5.1" } }, "sha512-scXciBylbJ4iwfxOF1Xx2XiBzoYUD8fSKWTsMal5Rj1hMRDe6b2XZcsBOjio61iAr8aTtFPmKpqxeBdLwmQ0ZQ=="],
+
+    "@metaplex-foundation/umi-serializers-core": ["@metaplex-foundation/umi-serializers-core@1.5.1", "", {}, "sha512-6nYsbTCLq421x7JT1B3/iNgPpSARj/wL9naoKbOreHrk2ip/4R7vQstVRMl0Gx+Hv2tHnEIbFo3JBtWyC377Qw=="],
+
+    "@metaplex-foundation/umi-serializers-encodings": ["@metaplex-foundation/umi-serializers-encodings@1.5.1", "", { "dependencies": { "@metaplex-foundation/umi-serializers-core": "^1.5.1" } }, "sha512-cVvwWmREE/Pmvjvsd50F18P53HDT0vzZECD6uYWIVzxgwpOiRDFu6r/vGbweomHoWzfTvuU6hiKuKv2KsOoXQA=="],
+
+    "@metaplex-foundation/umi-serializers-numbers": ["@metaplex-foundation/umi-serializers-numbers@1.5.1", "", { "dependencies": { "@metaplex-foundation/umi-serializers-core": "^1.5.1" } }, "sha512-7DVF1VJIdT44Pe6qWKaqGu4YVgE10OeLMYpm7C16SujSBgQGB/I2bh8NBifyH2R3oHhoyfE9qgIKB3dgRazN6A=="],
+
+    "@metaplex-foundation/umi-transaction-factory-web3js": ["@metaplex-foundation/umi-transaction-factory-web3js@1.5.1", "", { "dependencies": { "@metaplex-foundation/umi-web3js-adapters": "^1.5.1" }, "peerDependencies": { "@metaplex-foundation/umi": "^1.5.1", "@solana/web3.js": "^1.72.0" } }, "sha512-g4NfvtnmXtH1Q/Y9LdCsFtDRHQZmZWW7uKz+N9a+IVsJTTvpWFALMHm66dFDQGa0ExAYxAj7j6uZH2qDn0zarA=="],
+
+    "@metaplex-foundation/umi-web3js-adapters": ["@metaplex-foundation/umi-web3js-adapters@1.5.1", "", { "dependencies": { "buffer": "^6.0.3" }, "peerDependencies": { "@metaplex-foundation/umi": "^1.5.1", "@solana/web3.js": "^1.72.0" } }, "sha512-6W3JElD0B0EbgHofVKqk4PbP/JDrUHIKWciM7tEuXTDXbuXbSECDe7qlTU0JZXmVZNfYufI6FHnkCfPys2ZnIQ=="],
 
     "@meteora-ag/cp-amm-sdk": ["@meteora-ag/cp-amm-sdk@1.1.0", "", { "dependencies": { "@coral-xyz/anchor": "^0.31.0", "@solana/spl-token": "^0.4.8", "@solana/web3.js": "^1.95.3", "@types/bn.js": "^5.1.0", "@types/chai": "^4.3.0", "@types/mocha": "^9.0.0", "chai": "^4.3.4", "chain": "^0.4.0", "decimal.js": "^10.4.2", "invariant": "^2.2.4", "mocha": "^9.0.3", "solana-bankrun": "^0.4.0", "ts-mocha": "^10.0.0", "ts-node": "^10.9.2", "tsup": "^8.4.0" } }, "sha512-CFYSGLgSSTL5oDSrL5bx+oCi51rkvfuFXdMVDEZmnljlnyt2vxbrzRCkCTzxN7ABCYjuCvkLoVrT1JiBh39k2A=="],
 
@@ -2844,6 +2885,8 @@
     "y18n": ["y18n@4.0.3", "", {}, "sha512-JKhqTOwSrqNA1NY5lSztJ1GrBiUodLMmIZuLiDaMRJ+itFd+ABVE8XBjOvIWL+rSqNDC74LCSFmlb/U4UZ4hJQ=="],
 
     "yallist": ["yallist@3.1.1", "", {}, "sha512-a4UGQaWPH59mOXUYnAG2ewncQS4i4F43Tv3JoAM+s2VDAmS9NsK8GpDMLrCHPksFT7h3K6TOoUNn2pb7RoXx4g=="],
+
+    "yaml": ["yaml@2.8.2", "", { "bin": { "yaml": "bin.mjs" } }, "sha512-mplynKqc1C2hTVYxd0PU2xQAc22TI1vShAYGksCCfxbn/dFwnHTNi1bvYsBTkhdUNtGIf5xNOg938rrSSYvS9A=="],
 
     "yargs": ["yargs@15.4.1", "", { "dependencies": { "cliui": "^6.0.0", "decamelize": "^1.2.0", "find-up": "^4.1.0", "get-caller-file": "^2.0.1", "require-directory": "^2.1.1", "require-main-filename": "^2.0.0", "set-blocking": "^2.0.0", "string-width": "^4.2.0", "which-module": "^2.0.0", "y18n": "^4.0.0", "yargs-parser": "^18.1.2" } }, "sha512-aePbxDmcYW++PaqBsJ+HYUFwCdv4LVvdnhBy78E57PIor8/OVvhMrADFFEDh8DHDFRv/O9i3lPhsENjO7QX0+A=="],
 

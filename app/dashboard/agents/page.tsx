@@ -12,6 +12,7 @@ import {
   Sparkles,
   Zap,
   User,
+  Download,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -123,14 +124,23 @@ export default function AgentsPage() {
             Create and manage your custom AI assistants
           </p>
         </div>
-        <Link
-          href="/dashboard/mint"
-          className="group inline-flex items-center gap-2 px-6 py-3.5 bg-gradient-to-r from-[#6FEC06] to-[#4a9f10] rounded-full text-black font-semibold hover:opacity-90 transition-all shadow-lg shadow-[#6FEC06]/25 hover:shadow-[#6FEC06]/40"
-        >
-          <Plus className="w-5 h-5" />
-          Mint Agent
-          <Zap className="w-4 h-4 opacity-0 -ml-2 group-hover:opacity-100 group-hover:ml-0 transition-all" />
-        </Link>
+        <div className="flex gap-3">
+          <Link
+            href="/dashboard/agents/import"
+            className="group inline-flex items-center gap-2 px-6 py-3.5 bg-white/5 border border-white/10 rounded-full text-white font-semibold hover:bg-white/10 hover:border-white/20 transition-all"
+          >
+            <Download className="w-5 h-5" />
+            Import Agent
+          </Link>
+          <Link
+            href="/dashboard/mint"
+            className="group inline-flex items-center gap-2 px-6 py-3.5 bg-gradient-to-r from-[#6FEC06] to-[#4a9f10] rounded-full text-black font-semibold hover:opacity-90 transition-all shadow-lg shadow-[#6FEC06]/25 hover:shadow-[#6FEC06]/40"
+          >
+            <Plus className="w-5 h-5" />
+            Mint Agent
+            <Zap className="w-4 h-4 opacity-0 -ml-2 group-hover:opacity-100 group-hover:ml-0 transition-all" />
+          </Link>
+        </div>
       </div>
 
       {/* Error state */}
@@ -158,16 +168,24 @@ export default function AgentsPage() {
             No agents yet
           </h2>
           <p className="text-white/50 mb-8 max-w-md mx-auto text-lg">
-            Create your first AI agent to get started. Customize its
-            personality, knowledge, and capabilities.
+            Mint a new agent or import an existing one from Bags.fm
           </p>
-          <Link
-            href="/dashboard/mint"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-[#6FEC06] to-[#4a9f10] rounded-full text-black font-semibold hover:opacity-90 transition-all shadow-lg shadow-[#6FEC06]/25"
-          >
-            <Plus className="w-5 h-5" />
-            Mint Your First Agent
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link
+              href="/dashboard/mint"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-[#6FEC06] to-[#4a9f10] rounded-full text-black font-semibold hover:opacity-90 transition-all shadow-lg shadow-[#6FEC06]/25"
+            >
+              <Plus className="w-5 h-5" />
+              Mint Agent
+            </Link>
+            <Link
+              href="/dashboard/agents/import"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-white/5 border border-white/10 rounded-full text-white hover:bg-white/10 transition-all"
+            >
+              <Download className="w-5 h-5" />
+              Import from Bags
+            </Link>
+          </div>
         </div>
       )}
 
@@ -180,37 +198,46 @@ export default function AgentsPage() {
               <div
                 key={agent.id}
                 className={`group relative rounded-2xl bg-[#0a0520] border ${rarityStyle.border} transition-all duration-300 overflow-hidden card-hover ${rarityStyle.glow} hover:${rarityStyle.glow.replace("shadow-", "shadow-")} hover:-translate-y-0.5 flex flex-col`}
-                style={{ 
+                style={{
                   animationDelay: `${index * 50}ms`,
-                  ...(agent.rarity && agent.rarity !== "common" 
-                    ? { boxShadow: "0 0 20px " + (
-                        agent.rarity === "legendary" ? "rgba(255,215,0,0.15)" :
-                        agent.rarity === "epic" ? "rgba(168,85,247,0.15)" :
-                        agent.rarity === "rare" ? "rgba(59,130,246,0.15)" :
-                        "rgba(111,236,6,0.15)"
-                      )
-                    } 
-                    : {}
-                  )
+                  ...(agent.rarity && agent.rarity !== "common"
+                    ? {
+                        boxShadow:
+                          "0 0 20px " +
+                          (agent.rarity === "legendary"
+                            ? "rgba(255,215,0,0.15)"
+                            : agent.rarity === "epic"
+                              ? "rgba(168,85,247,0.15)"
+                              : agent.rarity === "rare"
+                                ? "rgba(59,130,246,0.15)"
+                                : "rgba(111,236,6,0.15)"),
+                      }
+                    : {}),
                 }}
                 onMouseEnter={(e) => {
                   if (agent.rarity && agent.rarity !== "common") {
-                    e.currentTarget.style.boxShadow = "0 0 30px " + (
-                      agent.rarity === "legendary" ? "rgba(255,215,0,0.35)" :
-                      agent.rarity === "epic" ? "rgba(168,85,247,0.35)" :
-                      agent.rarity === "rare" ? "rgba(59,130,246,0.35)" :
-                      "rgba(111,236,6,0.35)"
-                    );
+                    e.currentTarget.style.boxShadow =
+                      "0 0 30px " +
+                      (agent.rarity === "legendary"
+                        ? "rgba(255,215,0,0.35)"
+                        : agent.rarity === "epic"
+                          ? "rgba(168,85,247,0.35)"
+                          : agent.rarity === "rare"
+                            ? "rgba(59,130,246,0.35)"
+                            : "rgba(111,236,6,0.35)");
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (agent.rarity && agent.rarity !== "common") {
-                    e.currentTarget.style.boxShadow = "0 0 20px " + (
-                      agent.rarity === "legendary" ? "rgba(255,215,0,0.15)" :
-                      agent.rarity === "epic" ? "rgba(168,85,247,0.15)" :
-                      agent.rarity === "rare" ? "rgba(59,130,246,0.15)" :
-                      "rgba(111,236,6,0.15)"
-                    );
+                    e.currentTarget.style.boxShadow =
+                      "0 0 20px " +
+                      (agent.rarity === "legendary"
+                        ? "rgba(255,215,0,0.15)"
+                        : agent.rarity === "epic"
+                          ? "rgba(168,85,247,0.15)"
+                          : agent.rarity === "rare"
+                            ? "rgba(59,130,246,0.15)"
+                            : "rgba(111,236,6,0.15)");
                   }
                 }}
               >
@@ -242,9 +269,9 @@ export default function AgentsPage() {
                         ${agent.tokenSymbol}
                       </div>
                     )}
-                    
+
                     <div className="flex-1" />
-                    
+
                     {/* Rarity badge */}
                     {agent.rarity && agent.rarity !== "common" && (
                       <div
@@ -277,7 +304,7 @@ export default function AgentsPage() {
                     <h3 className="font-bold text-lg truncate font-display mb-1.5">
                       {agent.name}
                     </h3>
-                    
+
                     <div className="flex items-center gap-2 mb-3">
                       <span
                         className={`flex items-center gap-1 text-xs ${agent.isPublic ? "text-[#6FEC06]" : "text-white/40"}`}
@@ -297,9 +324,7 @@ export default function AgentsPage() {
                       {agent.personalityScores && (
                         <>
                           <span className="text-white/20">·</span>
-                          <PersonalityBadge
-                            scores={agent.personalityScores}
-                          />
+                          <PersonalityBadge scores={agent.personalityScores} />
                         </>
                       )}
                     </div>

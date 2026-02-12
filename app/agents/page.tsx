@@ -225,37 +225,46 @@ export default function AgentsPage() {
                   <div
                     key={agent.id}
                     className={`group relative rounded-2xl bg-[#0a0520] border ${rarityStyle.border} transition-all duration-300 overflow-hidden card-hover ${rarityStyle.glow} hover:-translate-y-0.5 animate-fade-in-up flex flex-col`}
-                    style={{ 
+                    style={{
                       animationDelay: `${index * 50}ms`,
-                      ...(agent.rarity && agent.rarity !== "common" 
-                        ? { boxShadow: "0 0 20px " + (
-                            agent.rarity === "legendary" ? "rgba(255,215,0,0.15)" :
-                            agent.rarity === "epic" ? "rgba(168,85,247,0.15)" :
-                            agent.rarity === "rare" ? "rgba(59,130,246,0.15)" :
-                            "rgba(111,236,6,0.15)"
-                          )
-                        } 
-                        : {}
-                      )
+                      ...(agent.rarity && agent.rarity !== "common"
+                        ? {
+                            boxShadow:
+                              "0 0 20px " +
+                              (agent.rarity === "legendary"
+                                ? "rgba(255,215,0,0.15)"
+                                : agent.rarity === "epic"
+                                  ? "rgba(168,85,247,0.15)"
+                                  : agent.rarity === "rare"
+                                    ? "rgba(59,130,246,0.15)"
+                                    : "rgba(111,236,6,0.15)"),
+                          }
+                        : {}),
                     }}
                     onMouseEnter={(e) => {
                       if (agent.rarity && agent.rarity !== "common") {
-                        e.currentTarget.style.boxShadow = "0 0 30px " + (
-                          agent.rarity === "legendary" ? "rgba(255,215,0,0.35)" :
-                          agent.rarity === "epic" ? "rgba(168,85,247,0.35)" :
-                          agent.rarity === "rare" ? "rgba(59,130,246,0.35)" :
-                          "rgba(111,236,6,0.35)"
-                        );
+                        e.currentTarget.style.boxShadow =
+                          "0 0 30px " +
+                          (agent.rarity === "legendary"
+                            ? "rgba(255,215,0,0.35)"
+                            : agent.rarity === "epic"
+                              ? "rgba(168,85,247,0.35)"
+                              : agent.rarity === "rare"
+                                ? "rgba(59,130,246,0.35)"
+                                : "rgba(111,236,6,0.35)");
                       }
                     }}
                     onMouseLeave={(e) => {
                       if (agent.rarity && agent.rarity !== "common") {
-                        e.currentTarget.style.boxShadow = "0 0 20px " + (
-                          agent.rarity === "legendary" ? "rgba(255,215,0,0.15)" :
-                          agent.rarity === "epic" ? "rgba(168,85,247,0.15)" :
-                          agent.rarity === "rare" ? "rgba(59,130,246,0.15)" :
-                          "rgba(111,236,6,0.15)"
-                        );
+                        e.currentTarget.style.boxShadow =
+                          "0 0 20px " +
+                          (agent.rarity === "legendary"
+                            ? "rgba(255,215,0,0.15)"
+                            : agent.rarity === "epic"
+                              ? "rgba(168,85,247,0.15)"
+                              : agent.rarity === "rare"
+                                ? "rgba(59,130,246,0.15)"
+                                : "rgba(111,236,6,0.15)");
                       }
                     }}
                   >
@@ -287,9 +296,9 @@ export default function AgentsPage() {
                             ${agent.tokenSymbol}
                           </div>
                         )}
-                        
+
                         <div className="flex-1" />
-                        
+
                         {/* Rarity badge */}
                         {agent.rarity && agent.rarity !== "common" && (
                           <div
@@ -322,7 +331,7 @@ export default function AgentsPage() {
                         <h3 className="font-bold text-lg truncate font-display mb-1.5">
                           {agent.name}
                         </h3>
-                        
+
                         <div className="flex items-center gap-2 mb-3">
                           <span
                             className={`flex items-center gap-1 text-xs ${agent.isPublic ? "text-[#6FEC06]" : "text-white/40"}`}
@@ -357,11 +366,14 @@ export default function AgentsPage() {
 
                         <p className="text-xs text-white/30">
                           Created{" "}
-                          {new Date(agent.createdAt).toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          })}
+                          {new Date(agent.createdAt).toLocaleDateString(
+                            "en-US",
+                            {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            },
+                          )}
                         </p>
                       </div>
 

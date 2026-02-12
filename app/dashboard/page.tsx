@@ -361,35 +361,44 @@ function ItemCard({
           : "border-white/10"
       } transition-all duration-300 overflow-hidden explore-card flex flex-col h-full hover:-translate-y-0.5`}
       style={{
-        ...(agent?.rarity && agent.rarity !== "common" 
-          ? { boxShadow: "0 0 20px " + (
-              agent.rarity === "legendary" ? "rgba(255,215,0,0.15)" :
-              agent.rarity === "epic" ? "rgba(168,85,247,0.15)" :
-              agent.rarity === "rare" ? "rgba(59,130,246,0.15)" :
-              "rgba(111,236,6,0.15)"
-            )
-          } 
-          : {}
-        )
+        ...(agent?.rarity && agent.rarity !== "common"
+          ? {
+              boxShadow:
+                "0 0 20px " +
+                (agent.rarity === "legendary"
+                  ? "rgba(255,215,0,0.15)"
+                  : agent.rarity === "epic"
+                    ? "rgba(168,85,247,0.15)"
+                    : agent.rarity === "rare"
+                      ? "rgba(59,130,246,0.15)"
+                      : "rgba(111,236,6,0.15)"),
+            }
+          : {}),
       }}
       onMouseEnter={(e) => {
         if (agent?.rarity && agent.rarity !== "common") {
-          e.currentTarget.style.boxShadow = "0 0 30px " + (
-            agent.rarity === "legendary" ? "rgba(255,215,0,0.35)" :
-            agent.rarity === "epic" ? "rgba(168,85,247,0.35)" :
-            agent.rarity === "rare" ? "rgba(59,130,246,0.35)" :
-            "rgba(111,236,6,0.35)"
-          );
+          e.currentTarget.style.boxShadow =
+            "0 0 30px " +
+            (agent.rarity === "legendary"
+              ? "rgba(255,215,0,0.35)"
+              : agent.rarity === "epic"
+                ? "rgba(168,85,247,0.35)"
+                : agent.rarity === "rare"
+                  ? "rgba(59,130,246,0.35)"
+                  : "rgba(111,236,6,0.35)");
         }
       }}
       onMouseLeave={(e) => {
         if (agent?.rarity && agent.rarity !== "common") {
-          e.currentTarget.style.boxShadow = "0 0 20px " + (
-            agent.rarity === "legendary" ? "rgba(255,215,0,0.15)" :
-            agent.rarity === "epic" ? "rgba(168,85,247,0.15)" :
-            agent.rarity === "rare" ? "rgba(59,130,246,0.15)" :
-            "rgba(111,236,6,0.15)"
-          );
+          e.currentTarget.style.boxShadow =
+            "0 0 20px " +
+            (agent.rarity === "legendary"
+              ? "rgba(255,215,0,0.15)"
+              : agent.rarity === "epic"
+                ? "rgba(168,85,247,0.15)"
+                : agent.rarity === "rare"
+                  ? "rgba(59,130,246,0.15)"
+                  : "rgba(111,236,6,0.15)");
         }
       }}
     >
@@ -434,9 +443,9 @@ function ItemCard({
               ${item.tokenSymbol}
             </span>
           )}
-          
+
           <div className="flex-1" />
-          
+
           {/* Rarity badge */}
           {agent?.rarity && agent.rarity !== "common" && (
             <span
@@ -508,7 +517,7 @@ function ItemCard({
               {price ? formatPrice(price.price) : "-"}
             </span>
           </div>
-          
+
           <Link
             href={
               isAgent
