@@ -2,6 +2,7 @@
 
 import { usePrivy, useSigners, useWallets } from "@privy-io/react-auth";
 import { useAuth } from "@/lib/auth/AuthProvider";
+import { useUserWallets } from "@/lib/hooks/useUserWallets";
 import { useEffect, useRef, useState } from "react";
 
 // Key quorum ID for server-side signing - must match PRIVY_SIGNER_KEY_QUORUM_ID on server
@@ -9,10 +10,11 @@ const SERVER_SIGNER_KEY_QUORUM_ID =
   process.env.NEXT_PUBLIC_SERVER_SIGNER_KEY_QUORUM_ID;
 
 export default function UserSync() {
-  const { ready, authenticated } = usePrivy();
+  const { ready, authenticated, user } = usePrivy();
   const { wallets } = useWallets();
   const { addSigners } = useSigners();
   const { authFetch, identityToken } = useAuth();
+  const { refetch: refetchUserWallets } = useUserWallets();
   const [hasSynced, setHasSynced] = useState(false);
   const [signerAdded, setSignerAdded] = useState(false);
   const addSignerAttempted = useRef(false);
@@ -44,6 +46,66 @@ export default function UserSync() {
 
     syncUser();
   }, [ready, authenticated, identityToken, authFetch, hasSynced]);
+
+  // Add new wallets detected from Privy
+  useEffect(() => {
+    async function syncNewWallets() {
+      if (!ready || !authenticated || !user || !identityToken || !hasSynced) {
+        return;
+      }
+
+      // Get all Solana wallets from Privy
+      const solanaWallets = user.linkedAccounts?.filter((account) => {
+        if (account.type !== "wallet") return false;
+        return account.chainType === "solana";
+      });
+
+      if (!solanaWallets || solanaWallets.length === 0) return;
+
+      // Fetch existing wallets from backend
+      try {
+        const response = await authFetch("/api/users/wallets");
+        if (!response.ok) return;
+
+        const data = await response.json();
+        const existingAddresses = new Set(
+          data.wallets.map((w: { address: string }) => w.address),
+        );
+
+        // Add any new wallets that don't exist in the database
+        let addedAny = false;
+        for (const wallet of solanaWallets) {
+          if ("address" in wallet && !existingAddresses.has(wallet.address)) {
+            await authFetch("/api/users/wallets", {
+              method: "POST",
+              body: JSON.stringify({
+                action: "add",
+                address: wallet.address,
+              }),
+            });
+            addedAny = true;
+          }
+        }
+
+        // Refresh the shared wallet context so all components see new wallets
+        if (addedAny) {
+          await refetchUserWallets();
+        }
+      } catch (error) {
+        console.error("[UserSync] Failed to sync new wallets:", error);
+      }
+    }
+
+    syncNewWallets();
+  }, [
+    ready,
+    authenticated,
+    user,
+    identityToken,
+    hasSynced,
+    authFetch,
+    refetchUserWallets,
+  ]);
 
   // Add server signer to wallet (client-side operation)
   // Must run after sync to ensure user exists in database

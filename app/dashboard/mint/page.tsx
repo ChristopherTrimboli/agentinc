@@ -1,12 +1,10 @@
 "use client";
 
-import { usePrivy } from "@privy-io/react-auth";
 import { useMintAgent } from "@/lib/hooks/useMintAgent";
 import { MintWizard } from "@/components/mint";
 
 export default function DashboardMintPage() {
-  const { user } = usePrivy();
-  const mint = useMintAgent({ user });
+  const mint = useMintAgent();
 
   return (
     <MintWizard

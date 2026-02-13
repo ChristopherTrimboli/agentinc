@@ -16,10 +16,14 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Privy Wallet (for x402 server-side payments)
+  // Deprecated single wallet fields (kept for backward compatibility during migration)
   walletId          String?  // Privy wallet ID (e.g., "wallet_xxx")
   walletAddress     String?  // Solana wallet address
   walletSignerAdded Boolean  @default(false) // True if server signer has been added
+
+  // Active wallet reference (points to currently selected wallet)
+  activeWalletId String?     @unique
+  activeWallet   UserWallet? @relation("ActiveWallet", fields: [activeWalletId], references: [id], onDelete: SetNull)
 
   // Twitter OAuth credentials (encrypted)
   twitterAccessToken       String? @db.Text
@@ -30,16 +34,40 @@ model User {
   twitterConnectedAt       DateTime? // When user connected Twitter
 
   // Relations
-  agents           Agent[]
-  chats            Chat[]
-  resources        Resource[]
+  agents            Agent[]
+  chats             Chat[]
+  resources         Resource[]
   agentChatMessages AgentChatMessage[] @relation("UserChatMessages")
-  stakingPools     StakingPool[]      @relation("UserStakingPools")
+  stakingPools      StakingPool[]      @relation("UserStakingPools")
+  wallets           UserWallet[]       @relation("UserWallets")
 
   @@index([walletId])
   @@index([twitterUserId])
   @@index([twitterUsername])
   @@index([walletAddress])
+  @@index([activeWalletId])
+}
+
+// Multi-wallet support - each user can have multiple Solana wallets
+model UserWallet {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation("UserWallets", fields: [userId], references: [id], onDelete: Cascade)
+  privyWalletId   String   // Privy wallet ID (e.g., "wallet_xxx")
+  address         String   // Solana wallet address
+  signerAdded     Boolean  @default(false) // True if server signer has been added
+  label           String?  // Optional user-friendly label
+  importedFrom    String?  // Source of wallet (e.g., "bags", "phantom", null for embedded)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Reverse relation for active wallet
+  activeForUser User? @relation("ActiveWallet")
+
+  @@unique([userId, address])
+  @@index([userId])
+  @@index([address])
+  @@index([privyWalletId])
 }
 
 // Chat session - represents a conversation with an agent

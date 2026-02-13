@@ -28,7 +28,8 @@ interface UseWalletBalanceOptions {
  * accountNotifications for instant balance updates on any on-chain change
  * (deposits, withdrawals, billing charges).
  *
- * Replaces the previous 15-second polling approach with sub-second latency.
+ * When walletAddress changes (e.g. wallet switch), the balance is
+ * immediately reset to null and re-fetched for the new address.
  */
 export function useWalletBalance(
   walletAddress: string | null,
@@ -40,9 +41,16 @@ export function useWalletBalance(
   const [isLoading, setIsLoading] = useState(false);
   const prevBalanceRef = useRef<number | null>(null);
 
+  // Reset balance immediately when wallet address changes
+  useEffect(() => {
+    setBalance(null);
+    prevBalanceRef.current = null;
+  }, [walletAddress]);
+
   // Fetch balance via backend API (for initial load and manual refresh)
   const refresh = useCallback(async () => {
     if (!walletAddress || !identityToken) return;
+
     setIsLoading(true);
     try {
       const response = await authFetch("/api/agents/mint/balance", {
@@ -62,9 +70,8 @@ export function useWalletBalance(
     }
   }, [walletAddress, identityToken, authFetch]);
 
-  // Fetch initial balance on mount and when dependencies change
+  // Fetch balance when wallet address or auth changes
   useEffect(() => {
-    prevBalanceRef.current = null;
     refresh();
   }, [refresh]);
 

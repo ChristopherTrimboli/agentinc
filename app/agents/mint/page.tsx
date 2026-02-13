@@ -7,8 +7,8 @@ import { useMintAgent } from "@/lib/hooks/useMintAgent";
 import { MintWizard } from "@/components/mint";
 
 export default function MintAgentPage() {
-  const { ready, authenticated, login, user } = usePrivy();
-  const mint = useMintAgent({ user });
+  const { ready, authenticated, login } = usePrivy();
+  const mint = useMintAgent();
 
   // Login screen for unauthenticated users
   if (ready && !authenticated) {

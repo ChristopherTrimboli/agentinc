@@ -28,8 +28,8 @@ export async function POST(req: NextRequest) {
       (account) => account.type === "email",
     ) as { type: "email"; address: string } | undefined;
 
-    // Extract Solana wallet from linked_accounts
-    const solanaWallet = privyUser.linked_accounts?.find((account) => {
+    // Extract ALL Solana wallets from linked_accounts
+    const solanaWallets = privyUser.linked_accounts?.filter((account) => {
       if (account.type !== "wallet") return false;
       const wallet = account as {
         chain_type?: string;
@@ -41,29 +41,35 @@ export async function POST(req: NextRequest) {
         wallet.chainType === "solana" ||
         wallet.chain === "solana"
       );
-    }) as { id: string; address: string } | undefined;
+    }) as Array<{ id: string; address: string }> | undefined;
 
-    // Get existing user to preserve walletSignerAdded status
+    // Primary wallet (first Solana wallet) for backward compatibility
+    const primaryWallet = solanaWallets?.[0];
+
+    // Get existing user to preserve signer status and active wallet
     const existingUser = await prisma.user.findUnique({
       where: { id: privyUser.id },
-      select: { walletSignerAdded: true },
+      select: {
+        walletSignerAdded: true,
+        activeWalletId: true,
+        wallets: true,
+      },
     });
 
-    // Upsert user with wallet info
-    // Note: walletSignerAdded is set via the /api/users/signer-status endpoint after client adds signer
+    // Upsert user with primary wallet info (backward compatibility)
     const user = await prisma.user.upsert({
       where: { id: privyUser.id },
       create: {
         id: privyUser.id,
         email: emailAccount?.address ?? null,
-        walletId: solanaWallet?.id ?? null,
-        walletAddress: solanaWallet?.address ?? null,
+        walletId: primaryWallet?.id ?? null,
+        walletAddress: primaryWallet?.address ?? null,
         walletSignerAdded: false,
       },
       update: {
         email: emailAccount?.address ?? null,
-        walletId: solanaWallet?.id ?? null,
-        walletAddress: solanaWallet?.address ?? null,
+        walletId: primaryWallet?.id ?? null,
+        walletAddress: primaryWallet?.address ?? null,
         // Preserve existing signer status - client updates this separately
         walletSignerAdded: existingUser?.walletSignerAdded ?? false,
       },
@@ -76,10 +82,50 @@ export async function POST(req: NextRequest) {
         twitterUserId: true,
         twitterUsername: true,
         twitterConnectedAt: true,
+        activeWalletId: true,
         createdAt: true,
         updatedAt: true,
       },
     });
+
+    // Sync all Solana wallets to UserWallet table
+    if (solanaWallets && solanaWallets.length > 0) {
+      for (const wallet of solanaWallets) {
+        // Check if wallet already exists
+        const existingWallet = existingUser?.wallets.find(
+          (w) => w.address === wallet.address,
+        );
+
+        if (!existingWallet) {
+          // Create new wallet entry
+          await prisma.userWallet.create({
+            data: {
+              userId: privyUser.id,
+              privyWalletId: wallet.id,
+              address: wallet.address,
+              signerAdded: false,
+              label: null,
+              importedFrom: null,
+            },
+          });
+        }
+      }
+
+      // If no active wallet is set, set the first wallet as active
+      if (!existingUser?.activeWalletId) {
+        const firstWallet = await prisma.userWallet.findFirst({
+          where: { userId: privyUser.id },
+          orderBy: { createdAt: "asc" },
+        });
+
+        if (firstWallet) {
+          await prisma.user.update({
+            where: { id: privyUser.id },
+            data: { activeWalletId: firstWallet.id },
+          });
+        }
+      }
+    }
 
     return NextResponse.json({
       success: true,

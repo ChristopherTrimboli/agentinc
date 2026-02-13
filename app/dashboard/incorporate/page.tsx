@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { usePrivy, useIdentityToken } from "@privy-io/react-auth";
 import { useWallets, useSignTransaction } from "@privy-io/react-auth/solana";
+import { useActiveWalletAddress } from "@/lib/hooks/useActiveWalletAddress";
 import {
   Building2,
   Rocket,
@@ -262,18 +263,18 @@ export default function IncorporatePage() {
     corporationId: string;
   } | null>(null);
 
-  const embeddedWallet = useMemo(
-    () => wallets.find((w) => w.standardWallet?.name === "Privy"),
-    [wallets],
-  );
-  const walletAddress = useMemo(() => {
-    const solanaWallet = user?.linkedAccounts?.find(
-      (account) => account.type === "wallet" && account.chainType === "solana",
-    );
-    return solanaWallet && "address" in solanaWallet
-      ? solanaWallet.address
-      : null;
-  }, [user?.linkedAccounts]);
+  const walletAddress = useActiveWalletAddress();
+
+  // Get the wallet object for signing — prefer active wallet to match server-side feePayer
+  const signingWallet = useMemo(() => {
+    if (walletAddress) {
+      const activeMatch = wallets.find((w) => w.address === walletAddress);
+      if (activeMatch) return activeMatch;
+    }
+    const embedded = wallets.find((w) => w.standardWallet?.name === "Privy");
+    return embedded || wallets[0] || null;
+  }, [wallets, walletAddress]);
+  const embeddedWallet = signingWallet;
 
   // Fetch user's real agents
   useEffect(() => {
@@ -432,7 +433,7 @@ export default function IncorporatePage() {
             }
             const signResult = await signTransaction({
               transaction: txBytes,
-              wallet: embeddedWallet,
+              wallet: signingWallet!,
             });
             const signedTxBase64 = btoa(
               String.fromCharCode(
@@ -492,7 +493,7 @@ export default function IncorporatePage() {
             }
             const signResult = await signTransaction({
               transaction: txBytes,
-              wallet: embeddedWallet,
+              wallet: signingWallet!,
             });
             const signedTxBase64 = btoa(
               String.fromCharCode(
@@ -550,7 +551,7 @@ export default function IncorporatePage() {
       );
       const signResult = await signTransaction({
         transaction: launchTxBytes,
-        wallet: embeddedWallet,
+        wallet: signingWallet!,
       });
       const signedLaunchTxBase64 = btoa(
         String.fromCharCode(...new Uint8Array(signResult.signedTransaction)),

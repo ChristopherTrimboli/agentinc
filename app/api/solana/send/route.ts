@@ -55,29 +55,54 @@ export async function POST(req: NextRequest) {
     // Optionally wait for confirmation
     if (waitForConfirmation) {
       const connection = getConnection();
-      const confirmation = await connection.confirmTransaction(
-        signature,
-        "confirmed",
-      );
 
-      if (confirmation.value.err) {
-        console.error(
-          "[Solana Send] Transaction failed on-chain:",
-          JSON.stringify(confirmation.value.err),
-        );
-        return NextResponse.json(
+      try {
+        // Use modern confirmation strategy with blockhash context for proper
+        // expiry tracking instead of the legacy 30-second timeout approach.
+        const { blockhash, lastValidBlockHeight } =
+          await connection.getLatestBlockhash("confirmed");
+
+        const confirmation = await connection.confirmTransaction(
           {
-            error: "Transaction failed on-chain",
-            details: confirmation.value.err,
+            signature,
+            blockhash,
+            lastValidBlockHeight,
           },
-          { status: 400 },
+          "confirmed",
         );
-      }
 
-      return NextResponse.json({
-        signature,
-        confirmed: true,
-      });
+        if (confirmation.value.err) {
+          console.error(
+            "[Solana Send] Transaction failed on-chain:",
+            JSON.stringify(confirmation.value.err),
+          );
+          return NextResponse.json(
+            {
+              error: "Transaction failed on-chain",
+              details: confirmation.value.err,
+            },
+            { status: 400 },
+          );
+        }
+
+        return NextResponse.json({
+          signature,
+          confirmed: true,
+        });
+      } catch (confirmError) {
+        // If confirmation times out, the transaction may still have landed.
+        // Return the signature so the client can check later instead of
+        // treating it as a hard failure.
+        console.warn(
+          "[Solana Send] Confirmation timed out, tx may still land:",
+          signature,
+          confirmError,
+        );
+        return NextResponse.json({
+          signature,
+          confirmed: false,
+        });
+      }
     }
 
     return NextResponse.json({ signature });

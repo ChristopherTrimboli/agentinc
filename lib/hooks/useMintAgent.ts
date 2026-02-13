@@ -15,6 +15,7 @@ import {
 } from "@/lib/constants/mint";
 import { useAuth } from "@/lib/auth/AuthProvider";
 import { useWalletBalance } from "@/lib/hooks/useWalletBalance";
+import { useActiveWalletAddress } from "@/lib/hooks/useActiveWalletAddress";
 
 export interface LaunchStep {
   id: string;
@@ -29,17 +30,7 @@ export interface LaunchResult {
   agentId: string;
 }
 
-export interface UseMintAgentOptions {
-  user: {
-    linkedAccounts?: Array<{
-      type: string;
-      chainType?: string;
-      address?: string;
-    }>;
-  } | null;
-}
-
-export function useMintAgent({ user }: UseMintAgentOptions) {
+export function useMintAgent() {
   const { authFetch, identityToken } = useAuth();
   const { wallets } = useWallets();
   const { signTransaction } = useSignTransaction();
@@ -92,20 +83,20 @@ export function useMintAgent({ user }: UseMintAgentOptions) {
     };
   }, []);
 
-  // Get the embedded Privy wallet for signing
-  const embeddedWallet = useMemo(
-    () => wallets.find((w) => w.standardWallet?.name === "Privy"),
-    [wallets],
-  );
+  const walletAddress = useActiveWalletAddress();
 
-  const walletAddress = useMemo(() => {
-    const solanaWallet = user?.linkedAccounts?.find(
-      (account) => account.type === "wallet" && account.chainType === "solana",
-    );
-    return solanaWallet && "address" in solanaWallet
-      ? solanaWallet.address
-      : null;
-  }, [user?.linkedAccounts]);
+  // Get the wallet object for signing — prefer active wallet to match server-side feePayer
+  const signingWallet = useMemo(() => {
+    if (walletAddress) {
+      const activeMatch = wallets.find((w) => w.address === walletAddress);
+      if (activeMatch) return activeMatch;
+    }
+    const embedded = wallets.find((w) => w.standardWallet?.name === "Privy");
+    return embedded || wallets[0] || null;
+  }, [wallets, walletAddress]);
+
+  // Keep `embeddedWallet` alias for backward compatibility in guard checks
+  const embeddedWallet = signingWallet;
 
   // Realtime wallet balance via Solana WebSocket subscription
   const {
@@ -366,7 +357,7 @@ export function useMintAgent({ user }: UseMintAgentOptions) {
             }
             const signResult = await signTransaction({
               transaction: txBytes,
-              wallet: embeddedWallet,
+              wallet: signingWallet!,
             });
             const signedTxBase64 = btoa(
               String.fromCharCode(
@@ -430,7 +421,7 @@ export function useMintAgent({ user }: UseMintAgentOptions) {
       }
       const signResult = await signTransaction({
         transaction: launchTxBytes,
-        wallet: embeddedWallet,
+        wallet: signingWallet!,
       });
       const signedLaunchTxBase64 = btoa(
         String.fromCharCode(...new Uint8Array(signResult.signedTransaction)),

@@ -6,7 +6,7 @@ import {
   useWallets as useSolanaWallets,
   useSignTransaction,
 } from "@privy-io/react-auth/solana";
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/lib/auth/AuthProvider";
 import {
   Wallet,
@@ -24,8 +24,10 @@ import {
 } from "lucide-react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import WalletModal from "./WalletModal";
+import WalletSwitcher from "./WalletSwitcher";
 import { getSolscanUrl } from "@/lib/constants/urls";
 import { useWalletBalance } from "@/lib/hooks/useWalletBalance";
+import { useActiveWalletAddress } from "@/lib/hooks/useActiveWalletAddress";
 
 interface ClaimablePosition {
   baseMint: string;
@@ -48,6 +50,7 @@ export default function WalletProfile({
   const { wallets: solanaWallets } = useSolanaWallets();
   const { exportWallet } = useExportWallet();
   const { signTransaction } = useSignTransaction();
+  const walletAddress = useActiveWalletAddress();
   const [isOpen, setIsOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalInitialTab, setModalInitialTab] = useState<
@@ -66,16 +69,6 @@ export default function WalletProfile({
   // Use ref for cache timestamp to avoid dependency loops
   const lastPriceFetchRef = useRef<number>(0);
   const lastEarningsFetchRef = useRef<number>(0);
-
-  // Get the Solana wallet address from linked accounts (needed early for other hooks)
-  const walletAddress = useMemo(() => {
-    const solanaWallet = user?.linkedAccounts?.find(
-      (account) => account.type === "wallet" && account.chainType === "solana",
-    );
-    return solanaWallet && "address" in solanaWallet
-      ? solanaWallet.address
-      : null;
-  }, [user?.linkedAccounts]);
 
   // Realtime wallet balance via Solana WebSocket subscription
   const {
@@ -186,16 +179,15 @@ export default function WalletProfile({
     setClaimSuccess(false);
 
     try {
-      // Find the Privy embedded Solana wallet
+      // Use the active wallet for signing — must match the wallet address
+      // the server uses (via auth.walletAddress from the DB).
+      const activeMatch = walletAddress
+        ? solanaWallets.find((w) => w.address === walletAddress)
+        : null;
       const embeddedWallet = solanaWallets.find(
         (w) => w.standardWallet?.name === "Privy",
       );
-
-      // Fallback: find wallet matching our address
-      const walletToUse =
-        embeddedWallet ||
-        solanaWallets.find((w) => w.address === walletAddress) ||
-        solanaWallets[0];
+      const walletToUse = activeMatch || embeddedWallet || solanaWallets[0];
 
       if (!walletToUse) {
         console.error(
@@ -304,14 +296,14 @@ export default function WalletProfile({
         throw new Error("Not authenticated");
       }
 
-      // Find the Privy embedded Solana wallet
+      // Use the active wallet for signing — must match feePayer in the transaction
+      const activeMatch = walletAddress
+        ? solanaWallets.find((w) => w.address === walletAddress)
+        : null;
       const embeddedWallet = solanaWallets.find(
         (w) => w.standardWallet?.name === "Privy",
       );
-      const walletToUse =
-        embeddedWallet ||
-        solanaWallets.find((w) => w.address === walletAddress) ||
-        solanaWallets[0];
+      const walletToUse = activeMatch || embeddedWallet || solanaWallets[0];
 
       if (!walletToUse) {
         throw new Error("No Solana wallet found. Please try again.");
@@ -650,6 +642,19 @@ export default function WalletProfile({
                 </DropdownMenu.Item>
               </div>
             )}
+
+            <DropdownMenu.Separator className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+
+            {/* Wallet Switcher */}
+            <div className="px-4 py-2">
+              <WalletSwitcher
+                onWalletChange={() => {
+                  // Wallet changed - refresh balance and earnings
+                  refreshBalance();
+                  fetchEarnings(true);
+                }}
+              />
+            </div>
 
             <DropdownMenu.Separator className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
 

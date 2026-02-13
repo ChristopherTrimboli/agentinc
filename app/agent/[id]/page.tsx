@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { getBagsFmUrl, getDexScreenerUrl } from "@/lib/constants/urls";
 import Footer from "@/app/components/Footer";
+import LoginButton from "@/app/components/LoginButton";
 import StakingPanel from "@/app/components/StakingPanel";
 import AgentChat from "@/app/components/AgentChat";
 import { PersonalityRadar } from "@/components/ui/PersonalityRadar";
@@ -263,22 +264,32 @@ export default function AgentProfilePage({
               )}
             </div>
 
-            {/* Chat Button */}
-            <Link
-              href={`/dashboard/chat?agent=${agent.id}`}
-              className="group relative flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-[#6FEC06] via-[#5dd105] to-[#4ab804] rounded-full text-black text-sm font-bold shadow-lg shadow-[#6FEC06]/25 hover:shadow-xl hover:shadow-[#6FEC06]/40 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] overflow-hidden"
-            >
-              {/* Animated gradient overlay */}
-              <div className="absolute inset-0 bg-gradient-to-r from-[#7fff20] to-[#6FEC06] opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+            {/* Right side: Wallet + Chat */}
+            <div className="flex items-center gap-2 sm:gap-3">
+              {/* Login / Wallet Profile */}
+              <LoginButton compact className="hidden sm:flex" />
+              <LoginButton compact className="sm:hidden" />
 
-              <MessageSquare className="w-4 h-4 relative z-10 group-hover:-rotate-6 transition-transform duration-200" />
-              <span className="relative z-10 whitespace-nowrap">
-                Chat with {agent.name}
-              </span>
+              {/* Chat Button */}
+              <Link
+                href={`/dashboard/chat?agent=${agent.id}`}
+                className="group relative flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-[#6FEC06] via-[#5dd105] to-[#4ab804] rounded-full text-black text-sm font-bold shadow-lg shadow-[#6FEC06]/25 hover:shadow-xl hover:shadow-[#6FEC06]/40 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] overflow-hidden"
+              >
+                {/* Animated gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-r from-[#7fff20] to-[#6FEC06] opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
 
-              {/* Shine effect */}
-              <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-            </Link>
+                <MessageSquare className="w-4 h-4 relative z-10 group-hover:-rotate-6 transition-transform duration-200" />
+                <span className="relative z-10 whitespace-nowrap hidden sm:inline">
+                  Chat with {agent.name}
+                </span>
+                <span className="relative z-10 whitespace-nowrap sm:hidden">
+                  Chat
+                </span>
+
+                {/* Shine effect */}
+                <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+              </Link>
+            </div>
           </div>
         </div>
       </nav>

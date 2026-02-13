@@ -269,7 +269,7 @@ export async function buildCreatePoolTransaction(params: {
       maxDuration: new BN(MAX_STAKE_DURATION),
       minDuration: new BN(MIN_STAKE_DURATION),
       mint,
-      permissionless: false,
+      permissionless: true,
       nonce,
     },
     { invoker },

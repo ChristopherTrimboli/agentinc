@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import {
   useWallets as useSolanaWallets,
   useSignTransaction,
 } from "@privy-io/react-auth/solana";
 import { useAuth } from "@/lib/auth/AuthProvider";
+import { useActiveWalletAddress } from "@/lib/hooks/useActiveWalletAddress";
 import {
   Lock,
   Unlock,
@@ -153,14 +154,7 @@ export default function StakingPanel({
 
   // ─── Derived ────────────────────────────────────────────────────
 
-  const walletAddress = useMemo(() => {
-    const solanaWallet = user?.linkedAccounts?.find(
-      (account) => account.type === "wallet" && account.chainType === "solana",
-    );
-    return solanaWallet && "address" in solanaWallet
-      ? solanaWallet.address
-      : null;
-  }, [user?.linkedAccounts]);
+  const walletAddress = useActiveWalletAddress();
 
   const isAuthenticated = !!user && !!walletAddress;
   const positions = data?.positions ?? [];
@@ -251,14 +245,21 @@ export default function StakingPanel({
   // ─── Wallet Helpers ─────────────────────────────────────────────
 
   function getWallet() {
+    // Prefer the wallet matching the user's active wallet address.
+    // This must match the wallet used server-side to build the transaction
+    // (via auth.walletAddress from the DB), otherwise the feePayer signature
+    // won't match and the transaction will silently fail to land.
+    if (walletAddress) {
+      const activeMatch = solanaWallets.find(
+        (w) => w.address === walletAddress,
+      );
+      if (activeMatch) return activeMatch;
+    }
+    // Fall back to embedded Privy wallet, then first available
     const embedded = solanaWallets.find(
       (w) => w.standardWallet?.name === "Privy",
     );
-    return (
-      embedded ||
-      solanaWallets.find((w) => w.address === walletAddress) ||
-      solanaWallets[0]
-    );
+    return embedded || solanaWallets[0];
   }
 
   async function signAndSend(transactionBase64: string): Promise<string> {
@@ -290,8 +291,17 @@ export default function StakingPanel({
       throw new Error(err.error || "Failed to send transaction");
     }
 
-    const { signature } = await sendResponse.json();
-    return signature;
+    const result = await sendResponse.json();
+
+    // If confirmation timed out, the transaction was still sent — warn but don't fail
+    if (result.signature && result.confirmed === false) {
+      console.warn(
+        "[Staking] Transaction sent but confirmation timed out:",
+        result.signature,
+      );
+    }
+
+    return result.signature;
   }
 
   // ─── Handlers ───────────────────────────────────────────────────
@@ -1238,11 +1248,7 @@ export default function StakingPanel({
       <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-white/5 bg-white/[0.01]">
         <div className="flex items-center justify-between">
           <a
-            href={
-              data?.stakePoolAddress
-                ? `https://app.streamflow.finance/staking/solana/mainnet/${data.stakePoolAddress}`
-                : "https://streamflow.finance/staking"
-            }
+            href="https://streamflow.finance/staking"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-1.5 text-[10px] sm:text-xs text-white/30 hover:text-white/55 transition-colors"
@@ -1251,15 +1257,28 @@ export default function StakingPanel({
             Powered by Streamflow
             <ExternalLink className="w-2.5 h-2.5" />
           </a>
-          <a
-            href={`https://solscan.io/token/${tokenMint}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1 text-[10px] sm:text-xs text-white/30 hover:text-white/55 transition-colors"
-          >
-            View token
-            <ExternalLink className="w-2.5 h-2.5" />
-          </a>
+          <div className="flex items-center gap-3">
+            {data?.stakePoolAddress && (
+              <a
+                href={`https://solscan.io/account/${data.stakePoolAddress}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 text-[10px] sm:text-xs text-white/30 hover:text-white/55 transition-colors"
+              >
+                View pool
+                <ExternalLink className="w-2.5 h-2.5" />
+              </a>
+            )}
+            <a
+              href={`https://solscan.io/token/${tokenMint}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 text-[10px] sm:text-xs text-white/30 hover:text-white/55 transition-colors"
+            >
+              View token
+              <ExternalLink className="w-2.5 h-2.5" />
+            </a>
+          </div>
         </div>
       </div>
     </div>

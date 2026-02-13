@@ -10,6 +10,7 @@
 
 import { Ratelimit } from "@upstash/ratelimit";
 import { getRedis, isRedisConfigured } from "@/lib/redis";
+import { NextResponse } from "next/server";
 
 // ── In-memory fallback (for dev without Redis) ──────────────────────────
 
@@ -99,7 +100,7 @@ export async function rateLimitByUser(
   userId: string,
   route: string,
   maxPerMinute: number,
-): Promise<Response | null> {
+): Promise<NextResponse | null> {
   const identifier = `${route}:${userId}`;
 
   // Use Redis rate limiting if configured
@@ -110,15 +111,14 @@ export async function rateLimitByUser(
 
       if (!success) {
         const retryAfter = Math.ceil((reset - Date.now()) / 1000);
-        return new Response(
-          JSON.stringify({
+        return NextResponse.json(
+          {
             error: "Rate limit exceeded. Please try again later.",
             retryAfterSeconds: retryAfter,
-          }),
+          },
           {
             status: 429,
             headers: {
-              "Content-Type": "application/json",
               "Retry-After": String(Math.max(retryAfter, 1)),
               "X-RateLimit-Remaining": "0",
             },
@@ -146,15 +146,14 @@ export async function rateLimitByUser(
 
   if (limited) {
     const retryAfter = Math.ceil((resetAt - Date.now()) / 1000);
-    return new Response(
-      JSON.stringify({
+    return NextResponse.json(
+      {
         error: "Rate limit exceeded. Please try again later.",
         retryAfterSeconds: retryAfter,
-      }),
+      },
       {
         status: 429,
         headers: {
-          "Content-Type": "application/json",
           "Retry-After": String(retryAfter),
           "X-RateLimit-Remaining": "0",
         },
@@ -244,7 +243,7 @@ export async function rateLimitByIP(
   req: NextRequest,
   route: string,
   maxPerMin = 30,
-): Promise<Response | null> {
+): Promise<NextResponse | null> {
   const ip = getClientIP(req);
   const identifier = `ip:${route}:${ip}`;
 
@@ -255,15 +254,14 @@ export async function rateLimitByIP(
 
       if (!success) {
         const retryAfter = Math.ceil((reset - Date.now()) / 1000);
-        return new Response(
-          JSON.stringify({
+        return NextResponse.json(
+          {
             error: "Rate limit exceeded. Please try again later.",
             retryAfterSeconds: retryAfter,
-          }),
+          },
           {
             status: 429,
             headers: {
-              "Content-Type": "application/json",
               "Retry-After": String(Math.max(retryAfter, 1)),
               "X-RateLimit-Remaining": "0",
             },
@@ -284,15 +282,14 @@ export async function rateLimitByIP(
 
   if (limited) {
     const retryAfter = Math.ceil((resetAt - Date.now()) / 1000);
-    return new Response(
-      JSON.stringify({
+    return NextResponse.json(
+      {
         error: "Rate limit exceeded. Please try again later.",
         retryAfterSeconds: retryAfter,
-      }),
+      },
       {
         status: 429,
         headers: {
-          "Content-Type": "application/json",
           "Retry-After": String(Math.max(retryAfter, 1)),
           "X-RateLimit-Remaining": "0",
         },

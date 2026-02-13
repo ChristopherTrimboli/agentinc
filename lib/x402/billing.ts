@@ -8,7 +8,7 @@
  * - @/lib/x402/sol-facilitator for USD to SOL conversion
  */
 
-import { lamportsToSol } from "@/lib/privy/wallet-service";
+import { lamportsToSol } from "@/lib/utils/solana";
 
 /**
  * Format a USD cost for display.
