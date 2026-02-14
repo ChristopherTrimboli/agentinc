@@ -28,4 +28,10 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// withWorkflow() enables Vercel Workflow DevKit (durable long-running tasks).
+// Works in both local development (using Local World) and production (Vercel).
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { withWorkflow } = require("workflow/next");
+const exportedConfig = withWorkflow(nextConfig);
+
+export default exportedConfig;

@@ -31,7 +31,10 @@ import {
   User,
   XIcon,
   FileTextIcon,
+  ListTodo,
 } from "lucide-react";
+import { TabBar, TaskTabContent, TasksModal } from "@/components/chat";
+import type { Tab, TaskStatus } from "@/components/chat/TabBar";
 import {
   Select,
   SelectContent,
@@ -49,6 +52,7 @@ import React, {
 } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/AuthProvider";
+import { toast } from "sonner";
 import Image from "next/image";
 
 // AI Elements imports
@@ -1048,9 +1052,11 @@ function ChatSkeleton() {
 function ChatInterface({
   agentId,
   chatId: initialChatId,
+  onTaskCreated,
 }: {
   agentId: string;
   chatId?: string;
+  onTaskCreated?: (taskId: string, taskName: string) => void;
 }) {
   const router = useRouter();
   const { identityToken } = useAuth();
@@ -1303,16 +1309,90 @@ function ChatInterface({
   ]);
 
   // Transport with stable identity - body function reads from ref
+  // Custom fetch extracts structured error details from non-200 responses
   const transport = useMemo(() => {
     return new DefaultChatTransport({
       api: "/api/chat",
       headers: identityToken ? { "privy-id-token": identityToken } : undefined,
       body: () => bodyRef.current,
+      fetch: async (input, init) => {
+        const response = await globalThis.fetch(input, init);
+        if (!response.ok) {
+          let errorMessage = response.statusText || "Request failed";
+          let errorCode = "";
+          try {
+            const body = await response.json();
+            errorMessage = body.error || errorMessage;
+            errorCode = body.code || "";
+          } catch {
+            // Response body not JSON — use status text
+          }
+          const error = new Error(errorMessage) as Error & {
+            status?: number;
+            code?: string;
+          };
+          error.status = response.status;
+          error.code = errorCode;
+          throw error;
+        }
+        return response;
+      },
     });
   }, [identityToken]);
 
   const { messages, sendMessage, status, regenerate, stop, setMessages } =
-    useChat({ transport });
+    useChat({
+      transport,
+      onError: (error) => {
+        const status = (error as Error & { status?: number }).status;
+        const code = (error as Error & { code?: string }).code;
+
+        if (code === "WALLET_NOT_SETUP") {
+          toast.error("Wallet not configured", {
+            description:
+              "Your wallet is not configured for automatic payments. Please log out and log back in.",
+            duration: 8000,
+          });
+        } else if (code === "NO_WALLET") {
+          toast.error("No wallet found", {
+            description:
+              "No wallet is associated with your account. Please log out and log back in.",
+            duration: 8000,
+          });
+        } else if (
+          status === 402 ||
+          code === "INSUFFICIENT_BALANCE" ||
+          code === "PAYMENT_FAILED"
+        ) {
+          toast.error("Insufficient balance", {
+            description: "You need to deposit SOL to your wallet for AI usage.",
+            duration: 8000,
+          });
+        } else if (status === 401) {
+          toast.error("Session expired", {
+            description: "Please log in again to continue.",
+            duration: 5000,
+          });
+        } else if (status === 429) {
+          toast.error("Rate limited", {
+            description: "Too many requests. Please wait a moment.",
+            duration: 5000,
+          });
+        } else if (status === 503) {
+          toast.error("Service unavailable", {
+            description:
+              "The payment system is currently unavailable. Please try again later.",
+            duration: 5000,
+          });
+        } else {
+          toast.error("Something went wrong", {
+            description:
+              error.message || "An error occurred. Please try again.",
+            duration: 5000,
+          });
+        }
+      },
+    });
 
   // Load initial messages when chat is loaded from history
   const loadedInitialMessagesRef = useRef(false);
@@ -1394,6 +1474,45 @@ function ChatInterface({
       }
     }
   }, [messages, status, voiceSettings.autoSpeak]);
+
+  // Detect task creation from tool results and notify parent
+  const detectedTasksRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!onTaskCreated) return;
+
+    for (const msg of messages) {
+      if (msg.role !== "assistant") continue;
+      for (const part of msg.parts) {
+        // AI SDK tool parts have type like "tool-createRecurringTask"
+        const toolPart = part as {
+          type: string;
+          toolName?: string;
+          state?: string;
+          result?: Record<string, unknown>;
+        };
+
+        const isTaskTool =
+          toolPart.type === "tool-createRecurringTask" ||
+          toolPart.toolName === "createRecurringTask";
+
+        if (isTaskTool && toolPart.state === "result" && toolPart.result) {
+          const result = toolPart.result;
+          const taskId = result.taskId as string | undefined;
+          const taskName = result.name as string | undefined;
+
+          if (
+            taskId &&
+            taskName &&
+            !result.error &&
+            !detectedTasksRef.current.has(taskId)
+          ) {
+            detectedTasksRef.current.add(taskId);
+            onTaskCreated(taskId, taskName);
+          }
+        }
+      }
+    }
+  }, [messages, onTaskCreated]);
 
   // Fetch agent info
   useEffect(() => {
@@ -2350,10 +2469,51 @@ function ChatInterface({
 }
 
 // Main Page Component
+// ── Tab persistence ──────────────────────────────────────────────────────────
+
+const TABS_STORAGE_KEY = "agent-inc-tabs";
+
+function loadTabs(): Tab[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const stored = localStorage.getItem(TABS_STORAGE_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveTabs(tabs: Tab[]) {
+  try {
+    localStorage.setItem(TABS_STORAGE_KEY, JSON.stringify(tabs));
+  } catch {
+    // localStorage unavailable
+  }
+}
+
 function ChatPageContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const agentId = searchParams.get("agent");
   const chatId = searchParams.get("chatId");
+  const { identityToken } = useAuth();
+
+  // Tab state - initialize from localStorage synchronously to avoid flash
+  const [tabs, setTabs] = useState<Tab[]>(() => {
+    const stored = loadTabs();
+    const chatTab: Tab = {
+      id: "chat",
+      type: "chat",
+      title: "Chat",
+      agentId: agentId || undefined,
+      chatId: chatId || undefined,
+    };
+    const taskTabs = stored.filter((t) => t.type === "task");
+    return [chatTab, ...taskTabs];
+  });
+  const [activeTabId, setActiveTabId] = useState<string>("chat");
+  const [tasksModalOpen, setTasksModalOpen] = useState(false);
+  const tabsInitializedRef = useRef(false);
 
   // Clean up OAuth callback params from URL (twitter_connected, twitter_error)
   useEffect(() => {
@@ -2372,11 +2532,184 @@ function ChatPageContent() {
     }
   }, []);
 
-  if (agentId) {
-    return <ChatInterface agentId={agentId} chatId={chatId || undefined} />;
+  // Fetch active tasks from server to sync task tabs on mount
+  useEffect(() => {
+    if (!identityToken || tabsInitializedRef.current) return;
+    tabsInitializedRef.current = true;
+
+    fetch("/api/tasks?status=running,paused", {
+      headers: { "privy-id-token": identityToken },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.tasks && data.tasks.length > 0) {
+          setTabs((prev) => {
+            const existingTaskIds = new Set(
+              prev.filter((t) => t.type === "task").map((t) => t.taskId),
+            );
+
+            const newTaskTabs: Tab[] = data.tasks
+              .filter((t: { id: string }) => !existingTaskIds.has(t.id))
+              .map((t: { id: string; name: string; status: TaskStatus }) => ({
+                id: `task-${t.id}`,
+                type: "task" as const,
+                title: t.name,
+                taskId: t.id,
+                status: t.status,
+              }));
+
+            // Also update existing task tabs with latest status
+            const updated = prev.map((tab) => {
+              if (tab.type !== "task") return tab;
+              const serverTask = data.tasks.find(
+                (t: { id: string }) => t.id === tab.taskId,
+              );
+              if (serverTask) {
+                return { ...tab, status: serverTask.status };
+              }
+              return tab;
+            });
+
+            const all = [...updated, ...newTaskTabs];
+            saveTabs(all.filter((t) => t.type === "task"));
+            return all;
+          });
+        }
+      })
+      .catch(() => {
+        // Silently fail — tasks will still work from localStorage
+      });
+  }, [identityToken]);
+
+  // Persist task tabs when they change
+  useEffect(() => {
+    saveTabs(tabs.filter((t) => t.type === "task"));
+  }, [tabs]);
+
+  // Listen for task creation events (tool results in the chat)
+  // This is called by the ChatInterface when a createRecurringTask tool succeeds
+  const handleTaskCreated = useCallback((taskId: string, taskName: string) => {
+    const newTab: Tab = {
+      id: `task-${taskId}`,
+      type: "task",
+      title: taskName,
+      taskId,
+      status: "running",
+    };
+    setTabs((prev) => {
+      if (prev.some((t) => t.taskId === taskId)) return prev;
+      return [...prev, newTab];
+    });
+  }, []);
+
+  const handleTabSelect = useCallback(
+    (tabId: string) => {
+      setActiveTabId(tabId);
+      // If selecting chat tab, ensure URL matches
+      if (tabId === "chat" && agentId) {
+        const url = chatId
+          ? `/dashboard/chat?agent=${agentId}&chatId=${chatId}`
+          : `/dashboard/chat?agent=${agentId}`;
+        router.replace(url);
+      }
+    },
+    [agentId, chatId, router],
+  );
+
+  const handleTabClose = useCallback(
+    (tabId: string) => {
+      setTabs((prev) => {
+        // Don't allow closing the last tab
+        if (prev.length <= 1) return prev;
+        const filtered = prev.filter((t) => t.id !== tabId);
+        // If closing active tab, switch to first available
+        if (tabId === activeTabId && filtered.length > 0) {
+          setActiveTabId(filtered[0].id);
+        }
+        return filtered;
+      });
+    },
+    [activeTabId],
+  );
+
+  const handleNewChat = useCallback(() => {
+    setActiveTabId("chat");
+    if (agentId) {
+      router.push(`/dashboard/chat?agent=${agentId}`);
+    } else {
+      router.push("/dashboard/chat");
+    }
+  }, [agentId, router]);
+
+  const handleTaskStatusChange = useCallback(
+    (taskId: string, status: TaskStatus) => {
+      setTabs((prev) =>
+        prev.map((t) => (t.taskId === taskId ? { ...t, status } : t)),
+      );
+    },
+    [],
+  );
+
+  // If no agent selected, show agent selector (no tabs needed)
+  if (!agentId) {
+    return <AgentSelector />;
   }
 
-  return <AgentSelector />;
+  const activeTab = tabs.find((t) => t.id === activeTabId);
+  const showTabBar = tabs.length > 1 || tabs.some((t) => t.type === "task");
+
+  return (
+    <div className="flex h-full flex-col">
+      {/* Tasks Modal */}
+      <TasksModal
+        isOpen={tasksModalOpen}
+        onClose={() => setTasksModalOpen(false)}
+        onTaskReopen={(taskId, taskName) => {
+          handleTaskCreated(taskId, taskName);
+          setTasksModalOpen(false);
+        }}
+        identityToken={identityToken}
+      />
+
+      {/* Tab bar (shown when there are task tabs) */}
+      {showTabBar && (
+        <TabBar
+          tabs={tabs}
+          activeTabId={activeTabId}
+          onTabSelect={handleTabSelect}
+          onTabClose={handleTabClose}
+          onNewChat={handleNewChat}
+          rightActions={
+            <button
+              onClick={() => setTasksModalOpen(true)}
+              className="flex h-9 items-center gap-1.5 px-3 text-zinc-500 transition-colors hover:bg-zinc-800/50 hover:text-zinc-300"
+              title="Task Dashboard"
+            >
+              <ListTodo className="h-3.5 w-3.5" />
+              <span className="text-xs">Tasks</span>
+            </button>
+          }
+        />
+      )}
+
+      {/* Content area */}
+      <div className="flex-1 min-h-0">
+        {activeTab?.type === "task" && activeTab.taskId ? (
+          <TaskTabContent
+            taskId={activeTab.taskId}
+            identityToken={identityToken}
+            onStatusChange={handleTaskStatusChange}
+          />
+        ) : (
+          <ChatInterface
+            agentId={agentId}
+            chatId={chatId || undefined}
+            onTaskCreated={handleTaskCreated}
+          />
+        )}
+      </div>
+    </div>
+  );
 }
 
 export default function ChatPage() {

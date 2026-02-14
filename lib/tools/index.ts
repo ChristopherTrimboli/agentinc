@@ -40,6 +40,7 @@ import { webSearchTools } from "./webSearch";
 import { createTwilioTools, twilioTools } from "./twilio";
 // Note: Twitter tools are created dynamically with user OAuth token via createTwitterTools()
 // Note: Knowledge tools are created dynamically with userId/agentId via createKnowledgeTools()
+// Note: Task tools are created dynamically with userId/agentId via createTaskTools()
 
 // Export types
 export * from "./types";
@@ -110,6 +111,8 @@ export {
   // Default bundle (no billing, backward compat)
   twilioTools,
 } from "./twilio";
+// Task management (recurring background tasks)
+export { createTaskTools } from "./tasks";
 
 /**
  * Tool function metadata
@@ -529,6 +532,47 @@ export const TOOL_GROUPS: ToolGroup[] = [
         id: "createList",
         name: "Create List",
         description: "Create a Twitter list",
+      },
+    ],
+  },
+  {
+    id: "tasks",
+    name: "Background Tasks",
+    description:
+      "Create and manage recurring background tasks that run automatically",
+    icon: "⚡",
+    category: "AI",
+    source: "Vercel Workflow",
+    functions: [
+      {
+        id: "createRecurringTask",
+        name: "Create Task",
+        description: "Start a new recurring background task",
+      },
+      {
+        id: "listActiveTasks",
+        name: "List Tasks",
+        description: "List all active background tasks",
+      },
+      {
+        id: "getTaskStatus",
+        name: "Task Status",
+        description: "Get status and recent logs for a task",
+      },
+      {
+        id: "stopTask",
+        name: "Stop Task",
+        description: "Stop a running task",
+      },
+      {
+        id: "pauseTask",
+        name: "Pause Task",
+        description: "Pause a running task",
+      },
+      {
+        id: "resumeTask",
+        name: "Resume Task",
+        description: "Resume a paused task",
       },
     ],
   },

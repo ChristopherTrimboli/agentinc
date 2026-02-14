@@ -415,6 +415,36 @@ async function chatHandler(req: RequestWithBilling) {
       }
     }
 
+    // Add Task tools if the tasks group is enabled
+    // Task tools are created dynamically with userId/agentId/systemPrompt context
+    if (enabledToolGroups.includes("tasks")) {
+      try {
+        const { createTaskTools } = await import("@/lib/tools/tasks");
+        const taskTools = createTaskTools(
+          userId,
+          agentId || "",
+          agentId ? baseSystemPrompt : "",
+          undefined, // chatId not available here
+        );
+
+        // Mark task tools as deferred for tool search
+        const deferredTaskTools = Object.fromEntries(
+          Object.entries(taskTools).map(([name, tool]) => [
+            name,
+            {
+              ...tool,
+              providerOptions: {
+                anthropic: { deferLoading: true },
+              },
+            },
+          ]),
+        );
+        tools = { ...tools, ...deferredTaskTools };
+      } catch (error) {
+        console.error("[Chat API] Failed to load Task tools:", error);
+      }
+    }
+
     // Add Twitter tools if the twitter group is enabled
     // Always include onboarding tools so the AI can help users connect
     if (enabledToolGroups.includes("twitter")) {

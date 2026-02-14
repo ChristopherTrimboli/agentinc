@@ -36,6 +36,7 @@ model User {
   // Relations
   agents            Agent[]
   chats             Chat[]
+  tasks             AgentTask[]
   resources         Resource[]
   agentChatMessages AgentChatMessage[] @relation("UserChatMessages")
   stakingPools      StakingPool[]      @relation("UserStakingPools")
@@ -87,6 +88,9 @@ model Chat {
 
   // Messages in this chat
   messages ChatMessage[]
+
+  // Tasks originated from this chat
+  tasks AgentTask[]
 
   @@index([userId])
   @@index([agentId])
@@ -154,6 +158,7 @@ model Agent {
 
   // Chats with this agent
   chats             Chat[]
+  tasks             AgentTask[]
   resources         Resource[]
   agentChatMessages AgentChatMessage[] @relation("AgentChatMessages")
   stakingPool       StakingPool?       @relation("AgentStakingPool")
@@ -325,4 +330,69 @@ model Embedding {
   resource   Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
 
   @@index([resourceId])
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AGENT TASKS — Durable long-running AI workflows
+// ═══════════════════════════════════════════════════════════════════════════
+
+// A recurring or long-running task executed by an AI agent via Vercel Workflow
+model AgentTask {
+  id          String  @id @default(cuid())
+  name        String  @db.VarChar(200)
+  description String? @db.Text
+  status      String  @default("running") // running, paused, completed, failed, stopped
+
+  // Vercel Workflow integration
+  workflowRunId String? @unique
+
+  // Task configuration
+  taskPrompt    String @db.Text // The recurring instruction
+  intervalMs    Int // Milliseconds between iterations
+  maxIterations Int? // Optional cap on iterations
+
+  // Tool configuration (same format as chat)
+  enabledToolGroups String[]
+  enabledSkills     String[]
+
+  // Execution tracking
+  currentIteration Int       @default(0)
+  lastExecutedAt   DateTime?
+  nextExecutionAt  DateTime?
+  errorMessage     String?   @db.Text
+
+  // Relations
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agentId String
+  agent   Agent  @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  chatId  String? // Optional: the chat where the task was created
+  chat    Chat?   @relation(fields: [chatId], references: [id], onDelete: SetNull)
+
+  logs TaskLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([agentId])
+  @@index([userId, status])
+  @@index([workflowRunId])
+}
+
+// Individual iteration log entry for an AgentTask
+model TaskLog {
+  id        String @id @default(cuid())
+  iteration Int
+  content   String @db.Text // AI response content
+  parts     Json? // Tool calls, reasoning, etc.
+  status    String // success, error
+
+  taskId String
+  task   AgentTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([taskId])
+  @@index([taskId, createdAt])
 }
