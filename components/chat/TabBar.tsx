@@ -5,7 +5,6 @@ import {
   MessageSquare,
   Zap,
   X,
-  Plus,
   ChevronLeft,
   ChevronRight,
   Pause,
@@ -125,15 +124,6 @@ export function TabBar({
 
   return (
     <div className="flex items-center border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-sm">
-      {/* New tab button */}
-      <button
-        onClick={onNewChat}
-        className="flex h-9 shrink-0 items-center gap-1 border-r border-zinc-800 px-2 text-zinc-500 transition-colors hover:bg-zinc-800/50 hover:text-zinc-300"
-        title="New chat"
-      >
-        <Plus className="h-3.5 w-3.5" />
-      </button>
-
       {/* Left scroll arrow */}
       {showLeftArrow && (
         <button

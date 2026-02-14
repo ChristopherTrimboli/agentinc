@@ -2651,13 +2651,22 @@ function ChatPageContent() {
   );
 
   const handleNewChat = useCallback(() => {
+    // If currently viewing a task tab, guide the user on task creation
+    const activeTab = tabs.find((t) => t.id === activeTabId);
+    if (activeTab?.type === "task") {
+      toast.info("Ask your agent to create a task", {
+        description:
+          'Try: "Tweet a joke every hour" or "Check trending topics every 30 minutes"',
+        duration: 6000,
+      });
+    }
     setActiveTabId("chat");
     if (agentId) {
       router.push(`/dashboard/chat?agent=${agentId}`);
     } else {
       router.push("/dashboard/chat");
     }
-  }, [agentId, router]);
+  }, [agentId, router, tabs, activeTabId]);
 
   const handleTaskStatusChange = useCallback(
     (taskId: string, status: TaskStatus) => {
@@ -2684,6 +2693,15 @@ function ChatPageContent() {
         onTaskReopen={(taskId, taskName) => {
           handleTaskCreated(taskId, taskName);
           setTasksModalOpen(false);
+        }}
+        onNewTask={() => {
+          setTasksModalOpen(false);
+          setActiveTabId("chat");
+          toast.info("Ask your agent to create a task", {
+            description:
+              'Try: "Tweet a joke every hour" or "Check trending topics every 30 minutes"',
+            duration: 6000,
+          });
         }}
         identityToken={identityToken}
       />

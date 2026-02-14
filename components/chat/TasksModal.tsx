@@ -7,6 +7,7 @@ import {
   Clock,
   Pause,
   Play,
+  Plus,
   Square,
   Trash2,
   ExternalLink,
@@ -16,6 +17,7 @@ import {
   StopCircle,
   RefreshCw,
   Terminal,
+  MessageSquare,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import Image from "next/image";
@@ -45,6 +47,7 @@ interface TasksModalProps {
   isOpen: boolean;
   onClose: () => void;
   onTaskReopen: (taskId: string, taskName: string) => void;
+  onNewTask?: () => void;
   identityToken?: string | null;
 }
 
@@ -280,6 +283,7 @@ export function TasksModal({
   isOpen,
   onClose,
   onTaskReopen,
+  onNewTask,
   identityToken,
 }: TasksModalProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -380,6 +384,15 @@ export function TasksModal({
           </div>
 
           <div className="flex items-center gap-2">
+            {onNewTask && (
+              <button
+                onClick={onNewTask}
+                className="flex items-center gap-1.5 rounded-md border border-coral/25 bg-coral/10 px-3 py-1.5 font-mono text-[11px] text-coral transition-all hover:bg-coral/20"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                New Task
+              </button>
+            )}
             <button
               onClick={fetchTasks}
               className="flex items-center gap-1.5 rounded-md border border-zinc-700 bg-zinc-800/50 px-3 py-1.5 font-mono text-[11px] text-zinc-300 transition-all hover:bg-zinc-700"
@@ -432,21 +445,58 @@ export function TasksModal({
             </div>
           ) : filteredTasks.length === 0 ? (
             <div className="flex h-64 items-center justify-center">
-              <div className="flex flex-col items-center gap-4">
-                <Zap className="h-6 w-6 text-zinc-700" />
-                <div className="text-center">
+              {filter !== "all" ? (
+                <div className="flex flex-col items-center gap-3">
+                  <Zap className="h-5 w-5 text-zinc-700" />
                   <p className="font-mono text-xs text-zinc-500">
-                    {filter === "all"
-                      ? "No tasks yet"
-                      : filter === "active"
-                        ? "No active tasks"
-                        : "No inactive tasks"}
-                  </p>
-                  <p className="mt-1 font-mono text-[11px] text-zinc-600">
-                    Create a task by chatting with your agent
+                    {filter === "active"
+                      ? "No active tasks"
+                      : "No inactive tasks"}
                   </p>
                 </div>
-              </div>
+              ) : (
+                <div className="flex max-w-sm flex-col items-center gap-5">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-800">
+                    <Zap className="h-5 w-5 text-zinc-500" />
+                  </div>
+                  <div className="text-center">
+                    <p className="font-mono text-sm text-zinc-300">
+                      No tasks yet
+                    </p>
+                    <p className="mt-1.5 font-mono text-[11px] leading-relaxed text-zinc-500">
+                      Ask your agent to automate something. It will create a
+                      recurring task that runs on a schedule.
+                    </p>
+                  </div>
+                  <div className="w-full space-y-1.5">
+                    <p className="font-mono text-[10px] uppercase tracking-wider text-zinc-600">
+                      Try asking
+                    </p>
+                    {[
+                      "Post a tweet every 2 hours",
+                      "Check my portfolio and summarize it daily",
+                      "Search for trending topics every 30 minutes",
+                    ].map((example) => (
+                      <div
+                        key={example}
+                        className="rounded-md border border-zinc-800/60 bg-zinc-900/30 px-3 py-2 font-mono text-[11px] text-zinc-400"
+                      >
+                        <span className="mr-1.5 text-coral/50">&gt;</span>
+                        {example}
+                      </div>
+                    ))}
+                  </div>
+                  {onNewTask && (
+                    <button
+                      onClick={onNewTask}
+                      className="flex items-center gap-1.5 rounded-md border border-coral/25 bg-coral/10 px-4 py-2 font-mono text-[11px] text-coral transition-all hover:bg-coral/20"
+                    >
+                      <MessageSquare className="h-3.5 w-3.5" />
+                      Chat with your agent
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           ) : (
             filteredTasks.map((task) => (
