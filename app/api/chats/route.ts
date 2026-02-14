@@ -38,6 +38,7 @@ export async function GET(req: NextRequest) {
             imageUrl: true,
             rarity: true,
             tokenSymbol: true,
+            tokenMint: true,
           },
         },
         messages: {
@@ -104,11 +105,21 @@ export async function POST(req: NextRequest) {
     const { agentId, title } = body;
 
     // If agentId provided, verify agent exists and user can access it
+    // Supports both database ID and tokenMint for dual-use URLs
+    let resolvedAgentId = agentId;
     if (agentId) {
-      const agent = await prisma.agent.findUnique({
-        where: { id: agentId },
-        select: { id: true, isPublic: true, createdById: true },
-      });
+      const [agentById, agentByMint] = await Promise.all([
+        prisma.agent.findUnique({
+          where: { id: agentId },
+          select: { id: true, isPublic: true, createdById: true },
+        }),
+        prisma.agent.findUnique({
+          where: { tokenMint: agentId },
+          select: { id: true, isPublic: true, createdById: true },
+        }),
+      ]);
+
+      const agent = agentById || agentByMint;
 
       if (!agent) {
         return NextResponse.json({ error: "Agent not found" }, { status: 404 });
@@ -120,12 +131,14 @@ export async function POST(req: NextRequest) {
           { status: 403 },
         );
       }
+
+      resolvedAgentId = agent.id;
     }
 
     const chat = await prisma.chat.create({
       data: {
         userId: auth.userId,
-        agentId: agentId || null,
+        agentId: resolvedAgentId || null,
         title: title || null,
       },
       include: {
@@ -136,6 +149,7 @@ export async function POST(req: NextRequest) {
             imageUrl: true,
             rarity: true,
             tokenSymbol: true,
+            tokenMint: true,
           },
         },
       },

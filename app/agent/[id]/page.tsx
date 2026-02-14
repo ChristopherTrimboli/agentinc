@@ -272,7 +272,7 @@ export default function AgentProfilePage({
 
               {/* Chat Button */}
               <Link
-                href={`/dashboard/chat?agent=${agent.id}`}
+                href={`/dashboard/chat?agent=${agent.tokenMint || agent.id}`}
                 className="group relative flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-[#6FEC06] via-[#5dd105] to-[#4ab804] rounded-full text-black text-sm font-bold shadow-lg shadow-[#6FEC06]/25 hover:shadow-xl hover:shadow-[#6FEC06]/40 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] overflow-hidden"
               >
                 {/* Animated gradient overlay */}

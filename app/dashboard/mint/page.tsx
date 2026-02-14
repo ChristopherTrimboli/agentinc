@@ -9,7 +9,7 @@ export default function DashboardMintPage() {
   return (
     <MintWizard
       mint={mint}
-      chatPath={`/dashboard/chat?agent=${mint.launchResult?.agentId || ""}`}
+      chatPath={`/dashboard/chat?agent=${mint.launchResult?.tokenMint || mint.launchResult?.agentId || ""}`}
     />
   );
 }

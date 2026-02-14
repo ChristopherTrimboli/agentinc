@@ -15,11 +15,21 @@ export async function GET(req: NextRequest, context: RouteContext) {
 
   try {
     // Fetch agent to verify it exists and has a token
-    const agent = await prisma.agent.findUnique({
-      where: { id },
-      select: { id: true, isMinted: true },
-      cacheStrategy: { ttl: 60, swr: 120 },
-    });
+    // Supports both database ID and tokenMint for dual-use URLs
+    const [agentById, agentByMint] = await Promise.all([
+      prisma.agent.findUnique({
+        where: { id },
+        select: { id: true, isMinted: true },
+        cacheStrategy: { ttl: 60, swr: 120 },
+      }),
+      prisma.agent.findUnique({
+        where: { tokenMint: id },
+        select: { id: true, isMinted: true },
+        cacheStrategy: { ttl: 60, swr: 120 },
+      }),
+    ]);
+
+    const agent = agentById || agentByMint;
 
     if (!agent) {
       return NextResponse.json({ error: "Agent not found" }, { status: 404 });
@@ -38,7 +48,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
 
     // General chat is readable by anyone (even unauthenticated)
     const messages = await prisma.agentChatMessage.findMany({
-      where: { agentId: id, isVip: false },
+      where: { agentId: agent.id, isVip: false },
       orderBy: { createdAt: "desc" },
       take: 100,
       cacheStrategy: { ttl: 30, swr: 60 },
@@ -95,11 +105,19 @@ export async function POST(req: NextRequest, context: RouteContext) {
       );
     }
 
-    // Fetch agent
-    const agent = await prisma.agent.findUnique({
-      where: { id },
-      select: { id: true, isMinted: true },
-    });
+    // Fetch agent — supports both database ID and tokenMint
+    const [postAgentById, postAgentByMint] = await Promise.all([
+      prisma.agent.findUnique({
+        where: { id },
+        select: { id: true, isMinted: true },
+      }),
+      prisma.agent.findUnique({
+        where: { tokenMint: id },
+        select: { id: true, isMinted: true },
+      }),
+    ]);
+
+    const agent = postAgentById || postAgentByMint;
 
     if (!agent) {
       return NextResponse.json({ error: "Agent not found" }, { status: 404 });

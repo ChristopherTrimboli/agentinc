@@ -78,9 +78,13 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
 
   try {
     // First check if agent exists and user owns it
-    const existingAgent = await prisma.agent.findUnique({
-      where: { id },
-    });
+    // Supports both database ID and tokenMint for dual-use URLs
+    const [existingById, existingByMint] = await Promise.all([
+      prisma.agent.findUnique({ where: { id } }),
+      prisma.agent.findUnique({ where: { tokenMint: id } }),
+    ]);
+
+    const existingAgent = existingById || existingByMint;
 
     if (!existingAgent) {
       return NextResponse.json({ error: "Agent not found" }, { status: 404 });
@@ -137,7 +141,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     }
 
     const agent = await prisma.agent.update({
-      where: { id },
+      where: { id: existingAgent.id },
       data: updateData,
     });
 
@@ -162,9 +166,13 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
 
   try {
     // First check if agent exists and user owns it
-    const existingAgent = await prisma.agent.findUnique({
-      where: { id },
-    });
+    // Supports both database ID and tokenMint for dual-use URLs
+    const [deleteById, deleteByMint] = await Promise.all([
+      prisma.agent.findUnique({ where: { id } }),
+      prisma.agent.findUnique({ where: { tokenMint: id } }),
+    ]);
+
+    const existingAgent = deleteById || deleteByMint;
 
     if (!existingAgent) {
       return NextResponse.json({ error: "Agent not found" }, { status: 404 });
@@ -175,7 +183,7 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
     }
 
     await prisma.agent.delete({
-      where: { id },
+      where: { id: existingAgent.id },
     });
 
     return NextResponse.json({ success: true });

@@ -194,32 +194,49 @@ async function chatHandler(req: RequestWithBilling) {
   let baseSystemPrompt = DEFAULT_SYSTEM_PROMPT;
   let agentName = "Agent Inc. Assistant";
   let agentSkills: string[] = [];
+  // resolvedAgentId holds the actual DB ID after dual lookup (agentId may be a tokenMint)
+  let resolvedAgentId = agentId;
 
   // If agentId is provided, fetch the agent's system prompt and skills
+  // Supports both database ID and tokenMint for dual-use URLs
   if (agentId) {
     try {
-      const agent = await prisma.agent.findUnique({
-        where: { id: agentId },
-        select: {
-          systemPrompt: true,
-          name: true,
-          isPublic: true,
-          createdById: true,
-          enabledSkills: true,
-          // Agent identity metadata
-          description: true,
-          personality: true,
-          personalityScores: true,
-          rarity: true,
-          // Token/blockchain info
-          isMinted: true,
-          tokenMint: true,
-          tokenSymbol: true,
-          launchedAt: true,
-        },
-      });
+      const agentSelect = {
+        id: true,
+        systemPrompt: true,
+        name: true,
+        isPublic: true,
+        createdById: true,
+        enabledSkills: true,
+        // Agent identity metadata
+        description: true,
+        personality: true,
+        personalityScores: true,
+        rarity: true,
+        // Token/blockchain info
+        isMinted: true,
+        tokenMint: true,
+        tokenSymbol: true,
+        launchedAt: true,
+      } as const;
+
+      const [agentById, agentByMint] = await Promise.all([
+        prisma.agent.findUnique({
+          where: { id: agentId },
+          select: agentSelect,
+        }),
+        prisma.agent.findUnique({
+          where: { tokenMint: agentId },
+          select: agentSelect,
+        }),
+      ]);
+
+      const agent = agentById || agentByMint;
 
       if (agent) {
+        // Use the actual DB ID for all downstream operations
+        resolvedAgentId = agent.id;
+
         // Check if user can access this agent (owner or public)
         if (!agent.isPublic && agent.createdById !== userId) {
           return new Response(
@@ -388,12 +405,12 @@ async function chatHandler(req: RequestWithBilling) {
     tools = { ...tools, ...deferredGroupTools };
 
     // Add Knowledge tools if the knowledge group is enabled
-    // Knowledge tools are created dynamically with userId/agentId context
+    // Knowledge tools are created dynamically with userId/resolvedAgentId context
     if (enabledToolGroups.includes("knowledge")) {
       try {
         const knowledgeTools = createKnowledgeTools(
           userId,
-          agentId,
+          resolvedAgentId,
           billingContext,
         );
 
@@ -416,14 +433,14 @@ async function chatHandler(req: RequestWithBilling) {
     }
 
     // Add Task tools if the tasks group is enabled
-    // Task tools are created dynamically with userId/agentId/systemPrompt context
+    // Task tools are created dynamically with userId/resolvedAgentId/systemPrompt context
     if (enabledToolGroups.includes("tasks")) {
       try {
         const { createTaskTools } = await import("@/lib/tools/tasks");
         const taskTools = createTaskTools(
           userId,
-          agentId || "",
-          agentId ? baseSystemPrompt : "",
+          resolvedAgentId || "",
+          resolvedAgentId ? baseSystemPrompt : "",
           undefined, // chatId not available here
         );
 

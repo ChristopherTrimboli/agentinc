@@ -29,6 +29,7 @@ interface Agent {
   personality: string | null;
   personalityScores: PersonalityScores | null;
   isMinted: boolean;
+  tokenMint: string | null;
   tokenSymbol: string | null;
   createdAt: string;
   updatedAt: string;
@@ -380,7 +381,7 @@ export default function AgentsPage() {
                       {/* Action button - always at bottom */}
                       <div className="mt-4 pt-4 border-t border-white/5">
                         <Link
-                          href={`/chat?agent=${agent.id}`}
+                          href={`/chat?agent=${agent.tokenMint || agent.id}`}
                           className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#6FEC06]/10 border border-[#6FEC06]/30 rounded-xl text-[#6FEC06] text-sm font-medium hover:bg-[#6FEC06]/20 hover:border-[#6FEC06]/50 transition-all"
                         >
                           <MessageSquare className="w-4 h-4" />

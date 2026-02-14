@@ -23,16 +23,27 @@ export async function GET(
   const { id: agentId } = await params;
 
   try {
-    const agent = await prisma.agent.findUnique({
-      where: { id: agentId },
-      select: {
-        id: true,
-        name: true,
-        enabledSkills: true,
-        createdById: true,
-        isPublic: true,
-      },
-    });
+    // Supports both database ID and tokenMint for dual-use URLs
+    const agentSelect = {
+      id: true,
+      name: true,
+      enabledSkills: true,
+      createdById: true,
+      isPublic: true,
+    } as const;
+
+    const [agentById, agentByMint] = await Promise.all([
+      prisma.agent.findUnique({
+        where: { id: agentId },
+        select: agentSelect,
+      }),
+      prisma.agent.findUnique({
+        where: { tokenMint: agentId },
+        select: agentSelect,
+      }),
+    ]);
+
+    const agent = agentById || agentByMint;
 
     if (!agent) {
       return NextResponse.json({ error: "Agent not found" }, { status: 404 });
@@ -121,10 +132,19 @@ export async function PUT(
   }
 
   try {
-    const agent = await prisma.agent.findUnique({
-      where: { id: agentId },
-      select: { createdById: true },
-    });
+    // Supports both database ID and tokenMint
+    const [putAgentById, putAgentByMint] = await Promise.all([
+      prisma.agent.findUnique({
+        where: { id: agentId },
+        select: { id: true, createdById: true },
+      }),
+      prisma.agent.findUnique({
+        where: { tokenMint: agentId },
+        select: { id: true, createdById: true },
+      }),
+    ]);
+
+    const agent = putAgentById || putAgentByMint;
 
     if (!agent) {
       return NextResponse.json({ error: "Agent not found" }, { status: 404 });
@@ -135,7 +155,7 @@ export async function PUT(
     }
 
     const updatedAgent = await prisma.agent.update({
-      where: { id: agentId },
+      where: { id: agent.id },
       data: { enabledSkills },
       select: {
         id: true,
@@ -207,10 +227,19 @@ export async function PATCH(
   }
 
   try {
-    const agent = await prisma.agent.findUnique({
-      where: { id: agentId },
-      select: { createdById: true, enabledSkills: true },
-    });
+    // Supports both database ID and tokenMint
+    const [patchAgentById, patchAgentByMint] = await Promise.all([
+      prisma.agent.findUnique({
+        where: { id: agentId },
+        select: { id: true, createdById: true, enabledSkills: true },
+      }),
+      prisma.agent.findUnique({
+        where: { tokenMint: agentId },
+        select: { id: true, createdById: true, enabledSkills: true },
+      }),
+    ]);
+
+    const agent = patchAgentById || patchAgentByMint;
 
     if (!agent) {
       return NextResponse.json({ error: "Agent not found" }, { status: 404 });
@@ -230,7 +259,7 @@ export async function PATCH(
     }
 
     const updatedAgent = await prisma.agent.update({
-      where: { id: agentId },
+      where: { id: agent.id },
       data: { enabledSkills: newSkills },
       select: {
         id: true,

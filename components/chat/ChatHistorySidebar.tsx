@@ -29,6 +29,7 @@ interface ChatHistoryItem {
     imageUrl: string | null;
     rarity: string | null;
     tokenSymbol: string | null;
+    tokenMint: string | null;
   } | null;
   lastMessage: {
     content: string;
@@ -148,8 +149,11 @@ export function ChatHistorySidebar({
     [filteredChats],
   );
 
-  const handleSelectChat = (chatId: string, agentId?: string | null) => {
-    const url = `/dashboard/chat?agent=${agentId}&chatId=${chatId}`;
+  const handleSelectChat = (
+    chatId: string,
+    agentSlug?: string | null,
+  ) => {
+    const url = `/dashboard/chat?agent=${agentSlug}&chatId=${chatId}`;
     router.push(url);
     onMobileClose?.();
   };
@@ -290,7 +294,7 @@ export function ChatHistorySidebar({
                     }`}
                   >
                     <button
-                      onClick={() => handleSelectChat(chat.id, chat.agentId)}
+                      onClick={() => handleSelectChat(chat.id, chat.agent?.tokenMint || chat.agentId)}
                       className="w-full text-left p-2 pr-8"
                     >
                       {/* Agent avatar */}

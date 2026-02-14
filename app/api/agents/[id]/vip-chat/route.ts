@@ -76,11 +76,21 @@ export async function GET(req: NextRequest, context: RouteContext) {
 
   try {
     // Fetch agent to verify it exists and has a token
-    const agent = await prisma.agent.findUnique({
-      where: { id },
-      select: { id: true, tokenMint: true, isMinted: true },
-      cacheStrategy: { ttl: 60, swr: 120 },
-    });
+    // Supports both database ID and tokenMint for dual-use URLs
+    const [getAgentById, getAgentByMint] = await Promise.all([
+      prisma.agent.findUnique({
+        where: { id },
+        select: { id: true, tokenMint: true, isMinted: true, createdById: true },
+        cacheStrategy: { ttl: 60, swr: 120 },
+      }),
+      prisma.agent.findUnique({
+        where: { tokenMint: id },
+        select: { id: true, tokenMint: true, isMinted: true, createdById: true },
+        cacheStrategy: { ttl: 60, swr: 120 },
+      }),
+    ]);
+
+    const agent = getAgentById || getAgentByMint;
 
     if (!agent) {
       return NextResponse.json({ error: "Agent not found" }, { status: 404 });
@@ -119,17 +129,12 @@ export async function GET(req: NextRequest, context: RouteContext) {
 
     // Check if user is the agent owner
     const isOwner = isAuthResult(authResult)
-      ? (
-          await prisma.agent.findUnique({
-            where: { id },
-            select: { createdById: true },
-          })
-        )?.createdById === authResult.userId
+      ? agent.createdById === authResult.userId
       : false;
 
     if (vipAccess?.hasAccess || isOwner) {
       const dbMessages = await prisma.agentChatMessage.findMany({
-        where: { agentId: id, isVip: true },
+        where: { agentId: agent.id, isVip: true },
         orderBy: { createdAt: "desc" },
         take: 100,
         cacheStrategy: { ttl: 30, swr: 60 },
@@ -187,11 +192,19 @@ export async function POST(req: NextRequest, context: RouteContext) {
       );
     }
 
-    // Fetch agent
-    const agent = await prisma.agent.findUnique({
-      where: { id },
-      select: { id: true, tokenMint: true, isMinted: true },
-    });
+    // Fetch agent — supports both database ID and tokenMint
+    const [postAgentById, postAgentByMint] = await Promise.all([
+      prisma.agent.findUnique({
+        where: { id },
+        select: { id: true, tokenMint: true, isMinted: true },
+      }),
+      prisma.agent.findUnique({
+        where: { tokenMint: id },
+        select: { id: true, tokenMint: true, isMinted: true },
+      }),
+    ]);
+
+    const agent = postAgentById || postAgentByMint;
 
     if (!agent) {
       return NextResponse.json({ error: "Agent not found" }, { status: 404 });

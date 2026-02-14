@@ -799,6 +799,7 @@ interface ChatHistoryItem {
     imageUrl: string | null;
     rarity: string | null;
     tokenSymbol: string | null;
+    tokenMint: string | null;
   } | null;
   lastMessage: {
     content: string;

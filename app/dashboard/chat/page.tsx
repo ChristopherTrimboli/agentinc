@@ -155,7 +155,7 @@ const AgentCard = React.memo(function AgentCard({
 
   return (
     <button
-      onClick={() => router.push(`/dashboard/chat?agent=${agent.id}`)}
+      onClick={() => router.push(`/dashboard/chat?agent=${agent.tokenMint || agent.id}`)}
       className={`group relative aspect-square rounded-xl sm:rounded-2xl overflow-hidden bg-[#0a0520] ring-2 ${rarity.ring} transition-all duration-300 ease-out ${rarity.glow} text-left cursor-pointer ${rarity.hoverRing} ${rarity.hoverGlow} hover:-translate-y-1`}
       style={{ animationDelay: `${index * 30}ms` }}
     >
@@ -1064,6 +1064,11 @@ function ChatInterface({
   const [agentInfo, setAgentInfo] = useState<AgentInfo | null>(null);
   const [agentLoading, setAgentLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+
+  // Resolved agent ID (actual DB ID) for API calls — may differ from URL param if tokenMint was used
+  const resolvedAgentId = agentInfo?.id || agentId;
+  // Preferred URL slug: use tokenMint when available, fallback to DB ID
+  const agentSlug = agentInfo?.tokenMint || agentInfo?.id || agentId;
   const [toolPanelCollapsed, setToolPanelCollapsed] = useState(false);
   const [mobileToolPanelOpen, setMobileToolPanelOpen] = useState(false);
   const [toolGroups, setToolGroups] = useState<ToolGroup[]>([]);
@@ -1283,8 +1288,9 @@ function ChatInterface({
   }, [skills]);
 
   // Store body values in a ref so transport always has current values
+  // Use resolvedAgentId (actual DB ID) for API calls, not the URL param
   const bodyRef = useRef({
-    agentId,
+    agentId: resolvedAgentId,
     model: selectedModel,
     enabledSkills: enabledSkillIds,
     enabledToolGroups,
@@ -1294,14 +1300,14 @@ function ChatInterface({
   // Keep ref updated with latest values
   useEffect(() => {
     bodyRef.current = {
-      agentId,
+      agentId: resolvedAgentId,
       model: selectedModel,
       enabledSkills: enabledSkillIds,
       enabledToolGroups,
       skillApiKeys,
     };
   }, [
-    agentId,
+    resolvedAgentId,
     selectedModel,
     enabledSkillIds,
     enabledToolGroups,
@@ -1417,16 +1423,16 @@ function ChatInterface({
     setInitialMessages([]);
     lastSavedMessagesRef.current = 0;
     loadedInitialMessagesRef.current = false;
-    router.push(`/dashboard/chat?agent=${agentId}`);
-  }, [agentId, router, setMessages]);
+    router.push(`/dashboard/chat?agent=${agentSlug}`);
+  }, [agentSlug, router, setMessages]);
 
   // Handle selecting a chat from history
   const handleSelectChat = useCallback(
-    (selectedChatId: string, selectedAgentId?: string | null) => {
-      const url = `/dashboard/chat?agent=${selectedAgentId || agentId}&chatId=${selectedChatId}`;
+    (selectedChatId: string, selectedAgentSlug?: string | null) => {
+      const url = `/dashboard/chat?agent=${selectedAgentSlug || agentSlug}&chatId=${selectedChatId}`;
       router.push(url);
     },
-    [agentId, router],
+    [agentSlug, router],
   );
 
   // Memoized navigation handlers
@@ -1544,6 +1550,15 @@ function ChatInterface({
         if (response.ok) {
           const data = await response.json();
           setAgentInfo(data.agent);
+
+          // Normalize URL to use tokenMint when available (e.g. if user navigated with DB ID)
+          const preferredSlug = data.agent.tokenMint || data.agent.id;
+          if (preferredSlug && preferredSlug !== agentId) {
+            const urlParams = new URLSearchParams(window.location.search);
+            urlParams.set("agent", preferredSlug);
+            const newUrl = `${window.location.pathname}?${urlParams.toString()}`;
+            window.history.replaceState({}, "", newUrl);
+          }
         }
       } catch {
         // Continue with default
@@ -1633,7 +1648,7 @@ function ChatInterface({
               "Content-Type": "application/json",
               "privy-id-token": identityToken,
             },
-            body: JSON.stringify({ agentId }),
+            body: JSON.stringify({ agentId: resolvedAgentId }),
           });
 
           if (createResponse.ok) {
@@ -1641,8 +1656,8 @@ function ChatInterface({
             currentChatId = data.chat.id;
             setChatId(currentChatId);
             chatIdRef.current = currentChatId; // Update ref immediately
-            // Update URL without reload
-            const newUrl = `/dashboard/chat?agent=${agentId}&chatId=${currentChatId}`;
+            // Update URL without reload — use tokenMint slug for URLs
+            const newUrl = `/dashboard/chat?agent=${agentSlug}&chatId=${currentChatId}`;
             window.history.replaceState({}, "", newUrl);
           } else {
             const errorText = await createResponse.text();
@@ -1693,7 +1708,7 @@ function ChatInterface({
         console.error("Error saving messages:", err);
       }
     },
-    [agentId, identityToken],
+    [resolvedAgentId, agentSlug, identityToken],
   ); // Removed chatId from deps - using ref instead
 
   // Save messages after response completes

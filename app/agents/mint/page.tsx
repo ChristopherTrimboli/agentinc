@@ -56,7 +56,7 @@ export default function MintAgentPage() {
       <main className="pt-[72px]">
         <MintWizard
           mint={mint}
-          chatPath={`/chat?agent=${mint.launchResult?.agentId || ""}`}
+          chatPath={`/chat?agent=${mint.launchResult?.tokenMint || mint.launchResult?.agentId || ""}`}
         />
       </main>
     </div>
