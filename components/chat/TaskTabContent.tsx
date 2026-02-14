@@ -7,13 +7,13 @@ import {
   Play,
   Square,
   Clock,
-  Hash,
   AlertCircle,
   CheckCircle,
   StopCircle,
   Loader2,
   ChevronDown,
   Wrench,
+  Terminal,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import Image from "next/image";
@@ -39,6 +39,7 @@ interface TaskData {
   name: string;
   description?: string;
   status: TaskStatus;
+  taskPrompt: string;
   currentIteration: number;
   intervalMs: number;
   maxIterations?: number;
@@ -69,11 +70,11 @@ function StatusBadge({ status }: { status: TaskStatus }) {
   > = {
     running: {
       label: "Running",
-      className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+      className: "bg-coral/10 text-coral border-coral/20",
       icon: (
         <span className="relative flex h-2 w-2">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-coral opacity-75" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-coral" />
         </span>
       ),
     },
@@ -84,7 +85,7 @@ function StatusBadge({ status }: { status: TaskStatus }) {
     },
     completed: {
       label: "Completed",
-      className: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
+      className: "bg-white/5 text-white/40 border-white/10",
       icon: <CheckCircle className="h-3 w-3" />,
     },
     failed: {
@@ -94,7 +95,7 @@ function StatusBadge({ status }: { status: TaskStatus }) {
     },
     stopped: {
       label: "Stopped",
-      className: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
+      className: "bg-white/5 text-white/40 border-white/10",
       icon: <StopCircle className="h-3 w-3" />,
     },
   };
@@ -103,7 +104,7 @@ function StatusBadge({ status }: { status: TaskStatus }) {
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium ${className}`}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-mono font-medium tracking-tight ${className}`}
     >
       {icon}
       {label}
@@ -113,81 +114,107 @@ function StatusBadge({ status }: { status: TaskStatus }) {
 
 // ── Log Entry ────────────────────────────────────────────────────────────────
 
-function LogEntry({ log }: { log: TaskLog }) {
+function LogEntry({ log, index }: { log: TaskLog; index: number }) {
   const [expanded, setExpanded] = useState(false);
   const hasToolCalls = log.parts?.toolCalls && log.parts.toolCalls.length > 0;
+  const isError = log.status === "error";
+  const totalTokens = log.parts?.tokenUsage
+    ? log.parts.tokenUsage.inputTokens + log.parts.tokenUsage.outputTokens
+    : null;
 
   return (
     <div
-      className={`border-l-2 pl-4 py-3 ${
-        log.status === "error" ? "border-red-500/50" : "border-emerald-500/30"
-      }`}
+      className="task-log-entry opacity-0"
+      style={{ animationDelay: `${Math.min(index * 0.05, 0.25)}s` }}
     >
-      {/* Header */}
-      <div className="flex items-center gap-2 text-xs text-zinc-500">
-        <Hash className="h-3 w-3" />
-        <span className="font-mono">Iteration {log.iteration}</span>
-        <span className="text-zinc-700">|</span>
-        <Clock className="h-3 w-3" />
-        <span>
-          {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true })}
-        </span>
-        {log.status === "error" && (
-          <span className="rounded bg-red-500/10 px-1.5 py-0.5 text-red-400">
-            Error
-          </span>
-        )}
-        {hasToolCalls && (
-          <button
-            onClick={() => setExpanded(!expanded)}
-            className="ml-auto flex items-center gap-1 text-zinc-500 hover:text-zinc-300"
+      {/* Iteration header */}
+      <div className="terminal-divider mb-3">
+        <div className="flex items-center gap-2.5">
+          <span
+            className={`flex h-5 w-5 items-center justify-center rounded text-[10px] font-mono font-bold ${
+              isError
+                ? "bg-red-500/15 text-red-400"
+                : "bg-coral/10 text-coral"
+            }`}
           >
-            <Wrench className="h-3 w-3" />
-            <span>
-              {log.parts!.toolCalls!.length} tool call
-              {log.parts!.toolCalls!.length !== 1 ? "s" : ""}
+            {log.iteration}
+          </span>
+          <span className="font-mono text-xs font-medium text-zinc-300">
+            Iteration {log.iteration}
+          </span>
+          <span className="text-zinc-700">·</span>
+          <span className="flex items-center gap-1 font-mono text-[11px] text-zinc-500">
+            <Clock className="h-3 w-3" />
+            {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true })}
+          </span>
+          {isError && (
+            <span className="rounded border border-red-500/20 bg-red-500/10 px-1.5 py-0.5 font-mono text-[10px] font-medium text-red-400">
+              ERR
             </span>
-            <ChevronDown
-              className={`h-3 w-3 transition-transform ${expanded ? "rotate-180" : ""}`}
-            />
-          </button>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Content */}
-      <div className="mt-1.5 text-sm leading-relaxed text-zinc-300 whitespace-pre-wrap">
-        {log.content}
-      </div>
+        <div
+          className={`rounded-lg border px-4 py-3 ${
+          isError
+            ? "border-red-800/20 bg-red-950/10"
+            : "border-zinc-800/60 bg-zinc-900/30"
+        }`}
+        >
+        <div className="font-mono text-[13px] leading-relaxed text-zinc-300 whitespace-pre-wrap">
+          {log.content}
+        </div>
 
-      {/* Tool calls (expanded) */}
-      {expanded && hasToolCalls && (
-        <div className="mt-2 space-y-1.5">
-          {log.parts!.toolCalls!.map((tc, i) => (
-            <div
-              key={i}
-              className="rounded-md bg-zinc-800/50 px-3 py-2 text-xs font-mono"
+        {/* Footer row: tool calls + token count */}
+        <div className="mt-3 flex items-center justify-between border-t border-zinc-800/40 pt-2.5">
+          {/* Tool calls toggle */}
+          {hasToolCalls ? (
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="flex items-center gap-1.5 rounded-md px-2 py-1 font-mono text-[11px] text-zinc-500 transition-colors hover:bg-zinc-800/50 hover:text-zinc-300"
             >
-              <div className="flex items-center gap-1.5 text-zinc-400">
-                <Wrench className="h-3 w-3" />
-                <span className="font-semibold text-zinc-300">{tc.name}</span>
-              </div>
-              {tc.args != null && (
-                <pre className="mt-1 overflow-x-auto text-zinc-500">
-                  {JSON.stringify(tc.args, null, 2)}
-                </pre>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+              <Wrench className="h-3 w-3" />
+              <span>
+                {log.parts!.toolCalls!.length} tool call
+                {log.parts!.toolCalls!.length !== 1 ? "s" : ""}
+              </span>
+              <ChevronDown
+                className={`h-3 w-3 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
+              />
+            </button>
+          ) : (
+            <div />
+          )}
 
-      {/* Token usage */}
-      {log.parts?.tokenUsage && (
-        <div className="mt-1 text-xs text-zinc-600">
-          {log.parts.tokenUsage.inputTokens + log.parts.tokenUsage.outputTokens}{" "}
-          tokens
+          {/* Token count */}
+          {totalTokens != null && (
+            <span className="font-mono text-[11px] tabular-nums text-zinc-600">
+              {totalTokens.toLocaleString()} tokens
+            </span>
+          )}
         </div>
-      )}
+
+        {/* Tool calls (expanded) */}
+        {expanded && hasToolCalls && (
+          <div className="mt-2 space-y-1.5">
+            {log.parts!.toolCalls!.map((tc, i) => (
+              <div key={i} className="tool-call-panel rounded-md px-3 py-2.5">
+                <div className="flex items-center gap-1.5 font-mono text-[11px]">
+                  <span className="text-coral/60">$</span>
+                  <span className="font-semibold text-coral/80">{tc.name}</span>
+                </div>
+                {tc.args != null && (
+                  <pre className="mt-1.5 overflow-x-auto font-mono text-[11px] leading-relaxed text-zinc-500">
+                    {JSON.stringify(tc.args, null, 2)}
+                  </pre>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -206,7 +233,9 @@ export function TaskTabContent({
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const headersRef = useRef<Record<string, string>>({});
-  headersRef.current = identityToken ? { "privy-id-token": identityToken } : {};
+  headersRef.current = identityToken
+    ? { "privy-id-token": identityToken }
+    : {};
 
   // Fetch task data
   const fetchTask = useCallback(async () => {
@@ -239,7 +268,7 @@ export function TaskTabContent({
     fetchTask();
 
     let active = true;
-    const pollInterval = 5000; // 5 seconds
+    const pollInterval = 5000;
 
     const poll = async () => {
       if (!active) return;
@@ -259,15 +288,12 @@ export function TaskTabContent({
             onStatusChangeRef.current(taskId, updatedTask.status);
           }
 
-          // Update logs
           const newLogs = (updatedTask.logs || []).sort(
             (a: TaskLog, b: TaskLog) =>
               new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
           );
           setLogs((prev) => {
-            // Only update if we have new entries
             if (newLogs.length !== prev.length) {
-              // Auto-scroll to bottom on new entries
               requestAnimationFrame(() => {
                 scrollRef.current?.scrollTo({
                   top: scrollRef.current?.scrollHeight ?? 0,
@@ -279,9 +305,7 @@ export function TaskTabContent({
             return prev;
           });
 
-          // Stop polling if task is done (but keep polling for a bit after transitions)
           if (["completed", "stopped", "failed"].includes(updatedTask.status)) {
-            // Poll once more after 3 seconds to ensure we caught the final state
             setTimeout(() => {
               if (active) {
                 fetch(`/api/tasks/${taskId}`, {
@@ -296,7 +320,7 @@ export function TaskTabContent({
                   .catch(() => {});
               }
             }, 3000);
-            return; // Don't schedule next poll
+            return;
           }
         }
       } catch {
@@ -308,7 +332,6 @@ export function TaskTabContent({
       }
     };
 
-    // Start polling after initial fetch
     const timer = setTimeout(poll, pollInterval);
 
     return () => {
@@ -321,7 +344,6 @@ export function TaskTabContent({
   const sendControl = async (action: "stop" | "pause" | "resume") => {
     setControlling(true);
     try {
-      // Optimistically update the UI
       if (task) {
         const optimisticStatus: TaskStatus =
           action === "stop"
@@ -344,13 +366,11 @@ export function TaskTabContent({
         body: JSON.stringify({ action }),
       });
 
-      // Refresh task state after a short delay to get actual status
       setTimeout(() => {
         fetchTask();
       }, 1000);
     } catch (error) {
       console.error("[TaskTab] Control error:", error);
-      // Revert optimistic update on error
       await fetchTask();
     } finally {
       setControlling(false);
@@ -360,9 +380,11 @@ export function TaskTabContent({
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="flex flex-col items-center gap-3 text-zinc-500">
-          <Loader2 className="h-6 w-6 animate-spin" />
-          <span className="text-sm">Loading task...</span>
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-5 w-5 animate-spin text-coral/60" />
+          <span className="font-mono text-xs text-zinc-500">
+            Loading task...
+          </span>
         </div>
       </div>
     );
@@ -371,9 +393,11 @@ export function TaskTabContent({
   if (!task) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="flex flex-col items-center gap-3 text-zinc-500">
-          <AlertCircle className="h-6 w-6" />
-          <span className="text-sm">Task not found</span>
+        <div className="flex flex-col items-center gap-3">
+          <AlertCircle className="h-5 w-5 text-zinc-600" />
+          <span className="font-mono text-xs text-zinc-500">
+            Task not found
+          </span>
         </div>
       </div>
     );
@@ -384,33 +408,38 @@ export function TaskTabContent({
 
   return (
     <div className="flex h-full flex-col">
-      {/* Header */}
+      {/* ── Header ── */}
       <div className="shrink-0 border-b border-zinc-800 bg-zinc-950/50 px-4 py-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             {/* Agent avatar */}
             {task.agent.imageUrl ? (
-              <Image
-                src={task.agent.imageUrl}
-                alt={task.agent.name}
-                width={36}
-                height={36}
-                className="rounded-full"
-              />
+              <div className="relative">
+                <Image
+                  src={task.agent.imageUrl}
+                  alt={task.agent.name}
+                  width={36}
+                  height={36}
+                  className="rounded-full ring-1 ring-coral/20"
+                />
+                {task.status === "running" && (
+                  <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-zinc-950 bg-coral" />
+                )}
+              </div>
             ) : (
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-800">
-                <Zap className="h-4 w-4 text-zinc-400" />
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-800 ring-1 ring-coral/20">
+                <Terminal className="h-4 w-4 text-coral/60" />
               </div>
             )}
 
             <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-medium text-zinc-100">
+              <div className="flex items-center gap-2.5">
+                <h3 className="font-display text-sm font-medium text-white">
                   {task.name}
                 </h3>
                 <StatusBadge status={task.status} />
               </div>
-              <div className="mt-0.5 flex items-center gap-3 text-xs text-zinc-500">
+              <div className="mt-1 flex items-center gap-3 font-mono text-[11px] text-zinc-500">
                 <span className="flex items-center gap-1">
                   <Clock className="h-3 w-3" />
                   every{" "}
@@ -418,12 +447,15 @@ export function TaskTabContent({
                     ? `${Math.round(intervalMinutes / 60)}h`
                     : `${intervalMinutes}m`}
                 </span>
+                <span className="text-zinc-700">|</span>
                 <span className="flex items-center gap-1">
-                  <Hash className="h-3 w-3" />
-                  {task.currentIteration} iteration
+                  <span className="text-coral/50">#</span>
+                  {task.currentIteration}
+                  {task.maxIterations ? ` / ${task.maxIterations}` : ""}{" "}
+                  iteration
                   {task.currentIteration !== 1 ? "s" : ""}
-                  {task.maxIterations ? ` / ${task.maxIterations}` : ""}
                 </span>
+                <span className="text-zinc-700">|</span>
                 <span className="text-zinc-600">{task.agent.name}</span>
               </div>
             </div>
@@ -436,7 +468,7 @@ export function TaskTabContent({
                 <button
                   onClick={() => sendControl("pause")}
                   disabled={controlling}
-                  className="flex items-center gap-1.5 rounded-md border border-zinc-700 bg-zinc-800/50 px-3 py-1.5 text-xs text-zinc-300 transition-colors hover:bg-zinc-700 disabled:opacity-50"
+                  className="flex items-center gap-1.5 rounded-md border border-zinc-700 bg-zinc-800/50 px-3 py-1.5 font-mono text-[11px] text-zinc-300 transition-all hover:bg-zinc-700 disabled:opacity-40"
                 >
                   {controlling ? (
                     <Loader2 className="h-3 w-3 animate-spin" />
@@ -449,7 +481,7 @@ export function TaskTabContent({
                 <button
                   onClick={() => sendControl("resume")}
                   disabled={controlling}
-                  className="flex items-center gap-1.5 rounded-md border border-emerald-700 bg-emerald-800/20 px-3 py-1.5 text-xs text-emerald-400 transition-colors hover:bg-emerald-800/40 disabled:opacity-50"
+                  className="flex items-center gap-1.5 rounded-md border border-coral/25 bg-coral/10 px-3 py-1.5 font-mono text-[11px] text-coral transition-all hover:bg-coral/20 disabled:opacity-40"
                 >
                   {controlling ? (
                     <Loader2 className="h-3 w-3 animate-spin" />
@@ -462,7 +494,7 @@ export function TaskTabContent({
               <button
                 onClick={() => sendControl("stop")}
                 disabled={controlling}
-                className="flex items-center gap-1.5 rounded-md border border-red-700/50 bg-red-900/20 px-3 py-1.5 text-xs text-red-400 transition-colors hover:bg-red-900/40 disabled:opacity-50"
+                className="flex items-center gap-1.5 rounded-md border border-red-700/50 bg-red-900/20 px-3 py-1.5 font-mono text-[11px] text-red-400 transition-all hover:bg-red-900/40 disabled:opacity-40"
               >
                 {controlling ? (
                   <Loader2 className="h-3 w-3 animate-spin" />
@@ -477,57 +509,83 @@ export function TaskTabContent({
 
         {/* Error message */}
         {task.errorMessage && (
-          <div className="mt-2 rounded-md bg-red-900/20 border border-red-800/30 px-3 py-2 text-xs text-red-400">
+          <div className="mt-2.5 rounded-md border border-red-800/30 bg-red-900/20 px-3 py-2 font-mono text-[11px] text-red-400">
+            <span className="mr-1.5 text-red-500/50">ERR</span>
             {task.errorMessage}
+          </div>
+        )}
+
+        {/* Task prompt */}
+        {task.taskPrompt && (
+          <div className="mt-2.5 rounded-md border border-zinc-800/60 bg-zinc-900/30 px-3 py-2">
+            <div className="flex items-start gap-2">
+              <span className="shrink-0 font-mono text-[11px] font-bold text-coral/50 select-none">
+                &gt;
+              </span>
+              <p className="font-mono text-[12px] leading-relaxed text-zinc-400">
+                {task.taskPrompt}
+              </p>
+            </div>
           </div>
         )}
       </div>
 
-      {/* Log stream */}
+      {/* ── Log Stream ── */}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto px-4 py-3 space-y-1"
+        className="task-terminal-bg relative flex-1 overflow-y-auto px-4 py-4 space-y-5"
       >
         {logs.length === 0 ? (
           <div className="flex h-full items-center justify-center">
-            <div className="flex flex-col items-center gap-3 text-zinc-500">
+            <div className="flex flex-col items-center gap-4">
               {task.status === "running" ? (
                 <>
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                  <span className="text-sm">
-                    Waiting for first iteration...
-                  </span>
-                  <span className="text-xs text-zinc-600">
-                    Next run in{" "}
-                    {task.nextExecutionAt
-                      ? formatDistanceToNow(new Date(task.nextExecutionAt))
-                      : `${intervalMinutes} minutes`}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="terminal-cursor" />
+                  </div>
+                  <div className="text-center">
+                    <p className="font-mono text-xs text-zinc-500">
+                      Waiting for first iteration...
+                    </p>
+                    <p className="mt-1 font-mono text-[11px] text-zinc-600">
+                      Next run{" "}
+                      {task.nextExecutionAt
+                        ? formatDistanceToNow(new Date(task.nextExecutionAt), {
+                            addSuffix: true,
+                          })
+                        : `in ${intervalMinutes} minutes`}
+                    </p>
+                  </div>
                 </>
               ) : (
                 <>
-                  <Zap className="h-6 w-6" />
-                  <span className="text-sm">No logs yet</span>
+                  <Zap className="h-5 w-5 text-zinc-700" />
+                  <span className="font-mono text-xs text-zinc-500">
+                    No logs yet
+                  </span>
                 </>
               )}
             </div>
           </div>
         ) : (
-          logs.map((log) => <LogEntry key={log.id} log={log} />)
+          logs.map((log, index) => (
+            <LogEntry key={log.id} log={log} index={index} />
+          ))
         )}
       </div>
 
-      {/* Footer - next execution */}
+      {/* ── Footer ── */}
       {task.status === "running" && task.nextExecutionAt && (
-        <div className="shrink-0 border-t border-zinc-800 bg-zinc-950/50 px-4 py-2">
-          <div className="flex items-center gap-2 text-xs text-zinc-500">
-            <Clock className="h-3 w-3" />
+        <div className="shrink-0 border-t border-zinc-800 bg-zinc-950/50 px-4 py-2.5">
+          <div className="flex items-center gap-2 font-mono text-[11px] text-zinc-500">
+            <span className="text-coral/40">›</span>
             <span>
               Next iteration{" "}
               {formatDistanceToNow(new Date(task.nextExecutionAt), {
                 addSuffix: true,
               })}
             </span>
+            <span className="terminal-cursor !h-3 !w-1.5" />
           </div>
         </div>
       )}

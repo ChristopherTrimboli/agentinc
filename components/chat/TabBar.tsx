@@ -51,11 +51,11 @@ function StatusDot({ status }: { status?: TaskStatus }) {
 
   const config: Record<TaskStatus, { color: string; icon: React.ReactNode }> = {
     running: {
-      color: "bg-emerald-500",
+      color: "bg-coral",
       icon: (
         <span className="relative flex h-2 w-2">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-coral opacity-75" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-coral" />
         </span>
       ),
     },
@@ -64,16 +64,16 @@ function StatusDot({ status }: { status?: TaskStatus }) {
       icon: <Pause className="h-3 w-3 text-yellow-500" />,
     },
     completed: {
-      color: "bg-zinc-400",
-      icon: <CheckCircle className="h-3 w-3 text-zinc-400" />,
+      color: "bg-white/30",
+      icon: <CheckCircle className="h-3 w-3 text-white/30" />,
     },
     failed: {
       color: "bg-red-500",
       icon: <AlertCircle className="h-3 w-3 text-red-500" />,
     },
     stopped: {
-      color: "bg-zinc-500",
-      icon: <StopCircle className="h-3 w-3 text-zinc-500" />,
+      color: "bg-white/25",
+      icon: <StopCircle className="h-3 w-3 text-white/25" />,
     },
   };
 
@@ -155,7 +155,7 @@ export function TabBar({
             <button
               key={tab.id}
               onClick={() => onTabSelect(tab.id)}
-              className={`group relative flex h-9 shrink-0 items-center gap-1.5 border-r border-zinc-800 px-3 text-xs transition-colors ${
+              className={`group relative flex h-9 shrink-0 items-center gap-1.5 border-r border-zinc-800 px-3 font-mono text-[11px] transition-colors ${
                 isActive
                   ? "bg-zinc-900 text-zinc-100"
                   : "text-zinc-500 hover:bg-zinc-900/50 hover:text-zinc-300"
@@ -163,7 +163,7 @@ export function TabBar({
             >
               {/* Active indicator */}
               {isActive && (
-                <div className="absolute inset-x-0 top-0 h-px bg-emerald-500" />
+                <div className="absolute inset-x-0 top-0 h-px bg-coral" />
               )}
 
               {/* Tab icon */}

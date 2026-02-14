@@ -125,6 +125,7 @@ body {
   --radius: var(--radius);
   --font-sans: var(--font-inter);
   --font-display: var(--font-syne);
+  --font-mono: var(--font-jetbrains-mono);
 
   /* Custom breakpoints */
   --breakpoint-xs: 480px;
@@ -1916,4 +1917,117 @@ button[data-streamdown="link"]:hover {
 
 .staking-collapsible > div {
   overflow: hidden;
+}
+
+/* ============================================
+   TASK TERMINAL UI
+   ============================================ */
+
+/* Subtle scanline overlay for terminal feel */
+.task-terminal-bg {
+  position: relative;
+}
+
+.task-terminal-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(111, 236, 6, 0.008) 3px,
+    rgba(111, 236, 6, 0.008) 4px
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Terminal log entry entrance animation */
+@keyframes task-log-enter {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.task-log-entry {
+  animation: task-log-enter 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Stagger log entries */
+.task-log-entry:nth-child(1) { animation-delay: 0s; }
+.task-log-entry:nth-child(2) { animation-delay: 0.05s; }
+.task-log-entry:nth-child(3) { animation-delay: 0.1s; }
+.task-log-entry:nth-child(4) { animation-delay: 0.15s; }
+.task-log-entry:nth-child(5) { animation-delay: 0.2s; }
+.task-log-entry:nth-child(n+6) { animation-delay: 0.25s; }
+
+/* Terminal cursor blink for waiting state */
+@keyframes terminal-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.terminal-cursor {
+  display: inline-block;
+  width: 8px;
+  height: 18px;
+  background: var(--coral);
+  border-radius: 1px;
+  animation: terminal-blink 1s step-end infinite;
+  box-shadow: 0 0 8px rgba(111, 236, 6, 0.4);
+  vertical-align: middle;
+}
+
+/* Terminal prompt character */
+.terminal-prompt::before {
+  content: "›";
+  color: var(--coral);
+  font-weight: 700;
+  margin-right: 0.5rem;
+  font-size: 1.1em;
+}
+
+/* Terminal divider line */
+.terminal-divider {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.terminal-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    rgba(111, 236, 6, 0.2) 0%,
+    rgba(111, 236, 6, 0.05) 80%,
+    transparent 100%
+  );
+}
+
+/* Tool call panel */
+.tool-call-panel {
+  background: rgba(24, 24, 27, 0.5);
+  border: 1px solid rgba(63, 63, 70, 0.4);
+}
+
+/* Reduce motion preference for task animations */
+@media (prefers-reduced-motion: reduce) {
+  .task-log-entry {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+
+  .terminal-cursor {
+    animation: none !important;
+    opacity: 0.7;
+  }
 }

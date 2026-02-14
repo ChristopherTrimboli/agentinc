@@ -1475,7 +1475,7 @@ function ChatInterface({
     }
   }, [messages, status, voiceSettings.autoSpeak]);
 
-  // Detect task creation from tool results and notify parent
+  // Detect task creation from tool results and notify parent immediately
   const detectedTasksRef = useRef<Set<string>>(new Set());
   useEffect(() => {
     if (!onTaskCreated) return;
@@ -1483,31 +1483,49 @@ function ChatInterface({
     for (const msg of messages) {
       if (msg.role !== "assistant") continue;
       for (const part of msg.parts) {
-        // AI SDK tool parts have type like "tool-createRecurringTask"
+        // Skip non-tool parts early
+        if (!part.type || !part.type.startsWith("tool-")) continue;
+
+        // AI SDK tool parts have type like "tool-call" or specific tool type
         const toolPart = part as {
           type: string;
           toolName?: string;
+          title?: string; // Legacy
+          toolCallId?: string;
           state?: string;
           result?: Record<string, unknown>;
+          output?: Record<string, unknown>; // Legacy property name
+          args?: Record<string, unknown>;
         };
 
-        const isTaskTool =
-          toolPart.type === "tool-createRecurringTask" ||
-          toolPart.toolName === "createRecurringTask";
+        // Get the tool name from various possible sources
+        const toolName =
+          toolPart.toolName ||
+          toolPart.title ||
+          toolPart.type.replace(/^tool-/, "");
 
-        if (isTaskTool && toolPart.state === "result" && toolPart.result) {
-          const result = toolPart.result;
-          const taskId = result.taskId as string | undefined;
-          const taskName = result.name as string | undefined;
+        const isTaskTool = toolName === "createRecurringTask";
 
-          if (
-            taskId &&
-            taskName &&
-            !result.error &&
-            !detectedTasksRef.current.has(taskId)
-          ) {
-            detectedTasksRef.current.add(taskId);
-            onTaskCreated(taskId, taskName);
+        // Check if tool has completed with a result (support both result and output)
+        if (isTaskTool) {
+          const result = (toolPart.result || toolPart.output) as Record<
+            string,
+            unknown
+          > | undefined;
+
+          if (result) {
+            const taskId = result.taskId as string | undefined;
+            const taskName = result.name as string | undefined;
+
+            if (
+              taskId &&
+              taskName &&
+              !result.error &&
+              !detectedTasksRef.current.has(taskId)
+            ) {
+              detectedTasksRef.current.add(taskId);
+              onTaskCreated(taskId, taskName);
+            }
           }
         }
       }
@@ -2656,7 +2674,6 @@ function ChatPageContent() {
   }
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
-  const showTabBar = tabs.length > 1 || tabs.some((t) => t.type === "task");
 
   return (
     <div className="flex h-full flex-col">
@@ -2671,9 +2688,8 @@ function ChatPageContent() {
         identityToken={identityToken}
       />
 
-      {/* Tab bar (shown when there are task tabs) */}
-      {showTabBar && (
-        <TabBar
+      {/* Tab bar (always visible) */}
+      <TabBar
           tabs={tabs}
           activeTabId={activeTabId}
           onTabSelect={handleTabSelect}
@@ -2690,7 +2706,6 @@ function ChatPageContent() {
             </button>
           }
         />
-      )}
 
       {/* Content area */}
       <div className="flex-1 min-h-0">
