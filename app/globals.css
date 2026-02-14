@@ -1960,17 +1960,34 @@ button[data-streamdown="link"]:hover {
 }
 
 /* Stagger log entries */
-.task-log-entry:nth-child(1) { animation-delay: 0s; }
-.task-log-entry:nth-child(2) { animation-delay: 0.05s; }
-.task-log-entry:nth-child(3) { animation-delay: 0.1s; }
-.task-log-entry:nth-child(4) { animation-delay: 0.15s; }
-.task-log-entry:nth-child(5) { animation-delay: 0.2s; }
-.task-log-entry:nth-child(n+6) { animation-delay: 0.25s; }
+.task-log-entry:nth-child(1) {
+  animation-delay: 0s;
+}
+.task-log-entry:nth-child(2) {
+  animation-delay: 0.05s;
+}
+.task-log-entry:nth-child(3) {
+  animation-delay: 0.1s;
+}
+.task-log-entry:nth-child(4) {
+  animation-delay: 0.15s;
+}
+.task-log-entry:nth-child(5) {
+  animation-delay: 0.2s;
+}
+.task-log-entry:nth-child(n + 6) {
+  animation-delay: 0.25s;
+}
 
 /* Terminal cursor blink for waiting state */
 @keyframes terminal-blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
 }
 
 .terminal-cursor {

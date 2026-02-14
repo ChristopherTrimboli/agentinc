@@ -132,9 +132,7 @@ function LogEntry({ log, index }: { log: TaskLog; index: number }) {
         <div className="flex items-center gap-2.5">
           <span
             className={`flex h-5 w-5 items-center justify-center rounded text-[10px] font-mono font-bold ${
-              isError
-                ? "bg-red-500/15 text-red-400"
-                : "bg-coral/10 text-coral"
+              isError ? "bg-red-500/15 text-red-400" : "bg-coral/10 text-coral"
             }`}
           >
             {log.iteration}
@@ -156,13 +154,13 @@ function LogEntry({ log, index }: { log: TaskLog; index: number }) {
       </div>
 
       {/* Content */}
-        <div
-          className={`rounded-lg border px-4 py-3 ${
+      <div
+        className={`rounded-lg border px-4 py-3 ${
           isError
             ? "border-red-800/20 bg-red-950/10"
             : "border-zinc-800/60 bg-zinc-900/30"
         }`}
-        >
+      >
         <div className="font-mono text-[13px] leading-relaxed text-zinc-300 whitespace-pre-wrap">
           {log.content}
         </div>
@@ -233,9 +231,7 @@ export function TaskTabContent({
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const headersRef = useRef<Record<string, string>>({});
-  headersRef.current = identityToken
-    ? { "privy-id-token": identityToken }
-    : {};
+  headersRef.current = identityToken ? { "privy-id-token": identityToken } : {};
 
   // Fetch task data
   const fetchTask = useCallback(async () => {

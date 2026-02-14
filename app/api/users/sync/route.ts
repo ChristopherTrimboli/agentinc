@@ -90,6 +90,12 @@ export async function POST(req: NextRequest) {
 
     // Sync all Solana wallets to UserWallet table
     if (solanaWallets && solanaWallets.length > 0) {
+      // If the legacy walletSignerAdded is true, propagate to matching
+      // UserWallet entries. This handles existing users whose signer was
+      // added before the multi-wallet migration.
+      const signerAlreadyAdded =
+        existingUser?.walletSignerAdded ?? user.walletSignerAdded;
+
       for (const wallet of solanaWallets) {
         // Check if wallet already exists
         const existingWallet = existingUser?.wallets.find(
@@ -97,16 +103,31 @@ export async function POST(req: NextRequest) {
         );
 
         if (!existingWallet) {
-          // Create new wallet entry
+          // Create new wallet entry — inherit signer status from legacy field
+          // if this wallet matches the primary wallet address
+          const inheritSignerStatus =
+            signerAlreadyAdded && wallet.address === primaryWallet?.address;
+
           await prisma.userWallet.create({
             data: {
               userId: privyUser.id,
               privyWalletId: wallet.id,
               address: wallet.address,
-              signerAdded: false,
+              signerAdded: inheritSignerStatus,
               label: null,
               importedFrom: null,
             },
+          });
+        } else if (
+          signerAlreadyAdded &&
+          !existingWallet.signerAdded &&
+          wallet.address === primaryWallet?.address
+        ) {
+          // Auto-repair: legacy flag is true but per-wallet flag is false
+          // for the primary wallet — fix the inconsistency
+          await prisma.userWallet.update({
+            where: { id: existingWallet.id },
+            data: { signerAdded: true },
           });
         }
       }

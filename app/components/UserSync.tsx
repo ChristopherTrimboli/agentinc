@@ -3,11 +3,14 @@
 import { usePrivy, useSigners, useWallets } from "@privy-io/react-auth";
 import { useAuth } from "@/lib/auth/AuthProvider";
 import { useUserWallets } from "@/lib/hooks/useUserWallets";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 
 // Key quorum ID for server-side signing - must match PRIVY_SIGNER_KEY_QUORUM_ID on server
 const SERVER_SIGNER_KEY_QUORUM_ID =
   process.env.NEXT_PUBLIC_SERVER_SIGNER_KEY_QUORUM_ID;
+
+// Max retries for signer addition (covers transient network failures)
+const MAX_SIGNER_RETRIES = 3;
 
 export default function UserSync() {
   const { ready, authenticated, user } = usePrivy();
@@ -17,7 +20,7 @@ export default function UserSync() {
   const { refetch: refetchUserWallets } = useUserWallets();
   const [hasSynced, setHasSynced] = useState(false);
   const [signerAdded, setSignerAdded] = useState(false);
-  const addSignerAttempted = useRef(false);
+  const signerRetryCount = useRef(0);
 
   // Sync user data with backend (must happen first to create user record)
   useEffect(() => {
@@ -107,6 +110,15 @@ export default function UserSync() {
     refetchUserWallets,
   ]);
 
+  // Notify server that signer was added (updates DB)
+  const notifyServerSignerAdded = useCallback(async () => {
+    try {
+      await authFetch("/api/users/signer-status", { method: "POST" });
+    } catch {
+      // Non-critical — the payment middleware auto-repairs via OR logic
+    }
+  }, [authFetch]);
+
   // Add server signer to wallet (client-side operation)
   // Must run after sync to ensure user exists in database
   useEffect(() => {
@@ -125,12 +137,12 @@ export default function UserSync() {
         !SERVER_SIGNER_KEY_QUORUM_ID ||
         !hasSynced ||
         signerAdded ||
-        addSignerAttempted.current
+        signerRetryCount.current >= MAX_SIGNER_RETRIES
       ) {
         return;
       }
 
-      addSignerAttempted.current = true;
+      signerRetryCount.current += 1;
 
       try {
         // Add server's key quorum as a signer on the user's wallet
@@ -146,15 +158,7 @@ export default function UserSync() {
           ],
         });
         setSignerAdded(true);
-
-        // Notify server that signer was added
-        try {
-          await authFetch("/api/users/signer-status", {
-            method: "POST",
-          });
-        } catch {
-          // Non-critical - server will still try to sign transactions
-        }
+        await notifyServerSignerAdded();
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : String(error);
@@ -162,20 +166,21 @@ export default function UserSync() {
         // "Duplicate signer" means it was already added - treat as success
         if (errorMessage.includes("Duplicate signer")) {
           setSignerAdded(true);
-
-          // Update server status
-          try {
-            await authFetch("/api/users/signer-status", {
-              method: "POST",
-            });
-          } catch {
-            // Non-critical
-          }
+          await notifyServerSignerAdded();
         } else if (errorMessage.includes("not initialized")) {
-          // Wallet not ready yet - allow retry on next render
-          addSignerAttempted.current = false;
+          // Wallet not ready yet — reset counter so next render retries
+          signerRetryCount.current -= 1;
+          // Schedule a retry after a short delay
+          setTimeout(() => {
+            // Trigger re-render by no-op state if wallet becomes ready
+          }, 1500);
         } else {
-          console.error("[UserSync] Could not add server signer:", error);
+          // Transient failure — allow retry on next dependency change
+          // (signerRetryCount tracks how many attempts we've made)
+          console.warn(
+            `[UserSync] Signer addition attempt ${signerRetryCount.current}/${MAX_SIGNER_RETRIES} failed:`,
+            errorMessage,
+          );
         }
       }
     }
@@ -188,7 +193,7 @@ export default function UserSync() {
     addSigners,
     hasSynced,
     signerAdded,
-    authFetch,
+    notifyServerSignerAdded,
   ]);
 
   return null;

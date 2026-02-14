@@ -149,10 +149,7 @@ export function ChatHistorySidebar({
     [filteredChats],
   );
 
-  const handleSelectChat = (
-    chatId: string,
-    agentSlug?: string | null,
-  ) => {
+  const handleSelectChat = (chatId: string, agentSlug?: string | null) => {
     const url = `/dashboard/chat?agent=${agentSlug}&chatId=${chatId}`;
     router.push(url);
     onMobileClose?.();
@@ -294,7 +291,12 @@ export function ChatHistorySidebar({
                     }`}
                   >
                     <button
-                      onClick={() => handleSelectChat(chat.id, chat.agent?.tokenMint || chat.agentId)}
+                      onClick={() =>
+                        handleSelectChat(
+                          chat.id,
+                          chat.agent?.tokenMint || chat.agentId,
+                        )
+                      }
                       className="w-full text-left p-2 pr-8"
                     >
                       {/* Agent avatar */}

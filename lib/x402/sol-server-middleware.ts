@@ -441,6 +441,97 @@ export async function getUserRefunds(userId: string): Promise<PendingRefund[]> {
 export const SOL_PRICING = PRICING;
 export const SOL_ROUTE_DESCRIPTIONS = ROUTE_DESCRIPTIONS;
 
+// ── Unified wallet resolution for payments ──────────────────────────────
+
+/**
+ * Wallet info needed for server-side payment operations.
+ */
+interface PaymentWalletInfo {
+  walletId: string;
+  walletAddress: string;
+  signerAdded: boolean;
+}
+
+/**
+ * Resolve the correct wallet for payment operations.
+ *
+ * This bridges the legacy single-wallet fields on User and the new
+ * multi-wallet UserWallet table. Priority:
+ *
+ * 1. Active wallet from UserWallet table (new system)
+ * 2. Legacy User.walletId / walletAddress fields (backward compat)
+ *
+ * Signer status uses OR logic: if EITHER the per-wallet `signerAdded`
+ * or the legacy `walletSignerAdded` is true, the wallet is considered
+ * configured. This handles the transition period where signer-status
+ * only updated the legacy field.
+ *
+ * If signer status was out of sync, this also auto-repairs the
+ * UserWallet.signerAdded field in the background (fire-and-forget).
+ */
+async function getPaymentWalletInfo(
+  userId: string,
+): Promise<PaymentWalletInfo | null> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      // New multi-wallet system
+      activeWallet: {
+        select: {
+          id: true,
+          privyWalletId: true,
+          address: true,
+          signerAdded: true,
+        },
+      },
+      // Legacy fields (fallback)
+      walletId: true,
+      walletAddress: true,
+      walletSignerAdded: true,
+    },
+    cacheStrategy: { ttl: 5 },
+  });
+
+  if (!user) return null;
+
+  // Prefer active wallet from UserWallet table
+  if (user.activeWallet?.privyWalletId && user.activeWallet?.address) {
+    const signerAdded = user.activeWallet.signerAdded || user.walletSignerAdded;
+
+    // Auto-repair: if legacy flag is true but per-wallet flag isn't, fix it
+    if (user.walletSignerAdded && !user.activeWallet.signerAdded) {
+      prisma.userWallet
+        .update({
+          where: { id: user.activeWallet.id },
+          data: { signerAdded: true },
+        })
+        .catch((err) =>
+          console.warn(
+            "[Payment] Auto-repair UserWallet.signerAdded failed:",
+            err,
+          ),
+        );
+    }
+
+    return {
+      walletId: user.activeWallet.privyWalletId,
+      walletAddress: user.activeWallet.address,
+      signerAdded,
+    };
+  }
+
+  // Legacy fallback
+  if (user.walletId && user.walletAddress) {
+    return {
+      walletId: user.walletId,
+      walletAddress: user.walletAddress,
+      signerAdded: user.walletSignerAdded,
+    };
+  }
+
+  return null;
+}
+
 /**
  * Result of a usage-based billing charge
  */
@@ -519,30 +610,32 @@ export async function chargeForUsage(
   }
 
   try {
-    // Get user's wallet info
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        walletId: true,
-        walletAddress: true,
-        walletSignerAdded: true,
-      },
-    });
+    // Resolve wallet via unified helper (supports both legacy and multi-wallet)
+    const walletInfo = await getPaymentWalletInfo(userId);
 
-    if (!user?.walletId || !user?.walletAddress || !user.walletSignerAdded) {
+    if (!walletInfo) {
       return {
         success: false,
         usdCost,
         solCost: "0",
         lamports: "0",
         ...metadata,
-        error: "User wallet not configured",
+        error: "No wallet associated with account",
       };
     }
 
-    // Non-null assertion safe here: we checked walletAddress above
-    const walletAddress = user.walletAddress!;
-    const walletId = user.walletId!;
+    if (!walletInfo.signerAdded) {
+      return {
+        success: false,
+        usdCost,
+        solCost: "0",
+        lamports: "0",
+        ...metadata,
+        error: "User wallet not configured for automatic payments",
+      };
+    }
+
+    const { walletAddress, walletId } = walletInfo;
 
     // Use wallet lock to prevent race conditions between balance check and payment.
     // usdToLamports() is called INSIDE the lock so the SOL price can't change
@@ -748,18 +841,10 @@ async function handlePrivyPayment(
   userId: string,
   usdPrice: number,
 ): Promise<Response> {
-  // Get user's wallet info from database
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      walletId: true,
-      walletAddress: true,
-      walletSignerAdded: true,
-    },
-  });
+  // Resolve wallet via unified helper (supports both legacy and multi-wallet)
+  const walletInfo = await getPaymentWalletInfo(userId);
 
-  // Check if wallet is set up for server payments
-  if (!user?.walletId || !user?.walletAddress) {
+  if (!walletInfo) {
     return NextResponse.json(
       {
         error: "Wallet not found",
@@ -773,13 +858,11 @@ async function handlePrivyPayment(
     );
   }
 
-  if (!user.walletSignerAdded) {
+  if (!walletInfo.signerAdded) {
     return createWalletNotSetupResponse();
   }
 
-  // Non-null assertion safe here: we checked walletAddress above
-  const walletAddress = user.walletAddress!;
-  const walletId = user.walletId!;
+  const { walletAddress, walletId } = walletInfo;
 
   // Use wallet lock to prevent race conditions.
   // usdToLamports() is called INSIDE the lock so the SOL price can't drift
@@ -1099,18 +1182,10 @@ export function withUsageBasedPayment<
     if (isServerSignerConfigured()) {
       const authResult = await verifyAuth(req);
       if (authResult) {
-        // Get user's wallet info
-        const user = await prisma.user.findUnique({
-          where: { id: authResult.userId },
-          select: {
-            walletId: true,
-            walletAddress: true,
-            walletSignerAdded: true,
-          },
-        });
+        // Resolve wallet via unified helper (supports both legacy and multi-wallet)
+        const walletInfo = await getPaymentWalletInfo(authResult.userId);
 
-        // Validate wallet setup
-        if (!user?.walletId || !user?.walletAddress) {
+        if (!walletInfo) {
           return NextResponse.json(
             {
               error: "Wallet not found",
@@ -1124,14 +1199,14 @@ export function withUsageBasedPayment<
           );
         }
 
-        if (!user.walletSignerAdded) {
+        if (!walletInfo.signerAdded) {
           return createWalletNotSetupResponse();
         }
 
         // Create billing context for the handler
         const billingContext: BillingContext = {
           userId: authResult.userId,
-          walletAddress: user.walletAddress,
+          walletAddress: walletInfo.walletAddress,
           chargeUsage: (
             usdCost: number,
             desc?: string,

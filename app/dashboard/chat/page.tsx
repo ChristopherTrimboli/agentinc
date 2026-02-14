@@ -155,7 +155,9 @@ const AgentCard = React.memo(function AgentCard({
 
   return (
     <button
-      onClick={() => router.push(`/dashboard/chat?agent=${agent.tokenMint || agent.id}`)}
+      onClick={() =>
+        router.push(`/dashboard/chat?agent=${agent.tokenMint || agent.id}`)
+      }
       className={`group relative aspect-square rounded-xl sm:rounded-2xl overflow-hidden bg-[#0a0520] ring-2 ${rarity.ring} transition-all duration-300 ease-out ${rarity.glow} text-left cursor-pointer ${rarity.hoverRing} ${rarity.hoverGlow} hover:-translate-y-1`}
       style={{ animationDelay: `${index * 30}ms` }}
     >
@@ -1514,10 +1516,9 @@ function ChatInterface({
 
         // Check if tool has completed with a result (support both result and output)
         if (isTaskTool) {
-          const result = (toolPart.result || toolPart.output) as Record<
-            string,
-            unknown
-          > | undefined;
+          const result = (toolPart.result || toolPart.output) as
+            | Record<string, unknown>
+            | undefined;
 
           if (result) {
             const taskId = result.taskId as string | undefined;
@@ -2723,22 +2724,22 @@ function ChatPageContent() {
 
       {/* Tab bar (always visible) */}
       <TabBar
-          tabs={tabs}
-          activeTabId={activeTabId}
-          onTabSelect={handleTabSelect}
-          onTabClose={handleTabClose}
-          onNewChat={handleNewChat}
-          rightActions={
-            <button
-              onClick={() => setTasksModalOpen(true)}
-              className="flex h-9 items-center gap-1.5 px-3 text-zinc-500 transition-colors hover:bg-zinc-800/50 hover:text-zinc-300"
-              title="Task Dashboard"
-            >
-              <ListTodo className="h-3.5 w-3.5" />
-              <span className="text-xs">Tasks</span>
-            </button>
-          }
-        />
+        tabs={tabs}
+        activeTabId={activeTabId}
+        onTabSelect={handleTabSelect}
+        onTabClose={handleTabClose}
+        onNewChat={handleNewChat}
+        rightActions={
+          <button
+            onClick={() => setTasksModalOpen(true)}
+            className="flex h-9 items-center gap-1.5 px-3 text-zinc-500 transition-colors hover:bg-zinc-800/50 hover:text-zinc-300"
+            title="Task Dashboard"
+          >
+            <ListTodo className="h-3.5 w-3.5" />
+            <span className="text-xs">Tasks</span>
+          </button>
+        }
+      />
 
       {/* Content area */}
       <div className="flex-1 min-h-0">

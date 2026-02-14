@@ -80,12 +80,22 @@ export async function GET(req: NextRequest, context: RouteContext) {
     const [getAgentById, getAgentByMint] = await Promise.all([
       prisma.agent.findUnique({
         where: { id },
-        select: { id: true, tokenMint: true, isMinted: true, createdById: true },
+        select: {
+          id: true,
+          tokenMint: true,
+          isMinted: true,
+          createdById: true,
+        },
         cacheStrategy: { ttl: 60, swr: 120 },
       }),
       prisma.agent.findUnique({
         where: { tokenMint: id },
-        select: { id: true, tokenMint: true, isMinted: true, createdById: true },
+        select: {
+          id: true,
+          tokenMint: true,
+          isMinted: true,
+          createdById: true,
+        },
         cacheStrategy: { ttl: 60, swr: 120 },
       }),
     ]);

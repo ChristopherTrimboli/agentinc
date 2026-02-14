@@ -29,7 +29,9 @@ export function MintSuccessScreen({
   creatorAddress,
 }: MintSuccessScreenProps) {
   const router = useRouter();
-  const chatUrl = chatPath || `/dashboard/chat?agent=${launchResult.tokenMint || launchResult.agentId}`;
+  const chatUrl =
+    chatPath ||
+    `/dashboard/chat?agent=${launchResult.tokenMint || launchResult.agentId}`;
 
   return (
     <div className="p-6 lg:p-8 flex items-center justify-center min-h-[calc(100vh-64px)]">
