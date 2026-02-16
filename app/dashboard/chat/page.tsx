@@ -1279,10 +1279,12 @@ function ChatInterface({
   );
 
   // Get user-provided API keys for enabled skills
+  // Always send user keys — the server merges them with env-based keys
+  // (server keys take precedence via: serverConfig.apiKey || userApiKey)
   const skillApiKeys = useMemo(() => {
     const keys: Record<string, string> = {};
     skills
-      .filter((s) => s.enabled && s.apiKey && !s.isConfigured)
+      .filter((s) => s.enabled && s.apiKey)
       .forEach((s) => {
         if (s.apiKey) keys[s.id] = s.apiKey;
       });
