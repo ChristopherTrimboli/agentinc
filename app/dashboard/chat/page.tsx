@@ -91,6 +91,10 @@ import {
 } from "@/components/ai-elements/attachments";
 import { Loader } from "@/components/ai-elements/loader";
 import {
+  WalletConfirmation,
+  isWalletApprovalTool,
+} from "@/components/ai-elements/confirmation";
+import {
   ToolPanel,
   ToolGroup,
   SkillConfig,
@@ -1350,59 +1354,65 @@ function ChatInterface({
     });
   }, [identityToken]);
 
-  const { messages, sendMessage, status, regenerate, stop, setMessages } =
-    useChat({
-      transport,
-      onError: (error) => {
-        const status = (error as Error & { status?: number }).status;
-        const code = (error as Error & { code?: string }).code;
+  const {
+    messages,
+    sendMessage,
+    status,
+    regenerate,
+    stop,
+    setMessages,
+    addToolApprovalResponse,
+  } = useChat({
+    transport,
+    onError: (error) => {
+      const status = (error as Error & { status?: number }).status;
+      const code = (error as Error & { code?: string }).code;
 
-        if (code === "WALLET_NOT_SETUP") {
-          toast.error("Wallet not configured", {
-            description:
-              "Your wallet is not configured for automatic payments. Please log out and log back in.",
-            duration: 8000,
-          });
-        } else if (code === "NO_WALLET") {
-          toast.error("No wallet found", {
-            description:
-              "No wallet is associated with your account. Please log out and log back in.",
-            duration: 8000,
-          });
-        } else if (
-          status === 402 ||
-          code === "INSUFFICIENT_BALANCE" ||
-          code === "PAYMENT_FAILED"
-        ) {
-          toast.error("Insufficient balance", {
-            description: "You need to deposit SOL to your wallet for AI usage.",
-            duration: 8000,
-          });
-        } else if (status === 401) {
-          toast.error("Session expired", {
-            description: "Please log in again to continue.",
-            duration: 5000,
-          });
-        } else if (status === 429) {
-          toast.error("Rate limited", {
-            description: "Too many requests. Please wait a moment.",
-            duration: 5000,
-          });
-        } else if (status === 503) {
-          toast.error("Service unavailable", {
-            description:
-              "The payment system is currently unavailable. Please try again later.",
-            duration: 5000,
-          });
-        } else {
-          toast.error("Something went wrong", {
-            description:
-              error.message || "An error occurred. Please try again.",
-            duration: 5000,
-          });
-        }
-      },
-    });
+      if (code === "WALLET_NOT_SETUP") {
+        toast.error("Wallet not configured", {
+          description:
+            "Your wallet is not configured for automatic payments. Please log out and log back in.",
+          duration: 8000,
+        });
+      } else if (code === "NO_WALLET") {
+        toast.error("No wallet found", {
+          description:
+            "No wallet is associated with your account. Please log out and log back in.",
+          duration: 8000,
+        });
+      } else if (
+        status === 402 ||
+        code === "INSUFFICIENT_BALANCE" ||
+        code === "PAYMENT_FAILED"
+      ) {
+        toast.error("Insufficient balance", {
+          description: "You need to deposit SOL to your wallet for AI usage.",
+          duration: 8000,
+        });
+      } else if (status === 401) {
+        toast.error("Session expired", {
+          description: "Please log in again to continue.",
+          duration: 5000,
+        });
+      } else if (status === 429) {
+        toast.error("Rate limited", {
+          description: "Too many requests. Please wait a moment.",
+          duration: 5000,
+        });
+      } else if (status === 503) {
+        toast.error("Service unavailable", {
+          description:
+            "The payment system is currently unavailable. Please try again later.",
+          duration: 5000,
+        });
+      } else {
+        toast.error("Something went wrong", {
+          description: error.message || "An error occurred. Please try again.",
+          duration: 5000,
+        });
+      }
+    },
+  });
 
   // Load initial messages when chat is loaded from history
   const loadedInitialMessagesRef = useRef(false);
@@ -2203,6 +2213,8 @@ function ChatInterface({
                                     input?: unknown; // Legacy property name
                                     result?: unknown;
                                     output?: unknown; // Legacy property name
+                                    // AI SDK approval flow (requireApproval: true)
+                                    approval?: { id: string };
                                   };
 
                                   // Get values with fallbacks for different property names
@@ -2217,9 +2229,11 @@ function ChatInterface({
 
                                   // Map AI SDK tool states to our ToolState
                                   // AI SDK states: "partial-call" (streaming), "call" (params complete), "result" (executed)
+                                  // Approval states: "approval-requested", "approval-responded", "output-available", "output-denied"
                                   let toolState: ToolState = "running";
                                   if (
                                     toolPart.state === "result" ||
+                                    toolPart.state === "output-available" ||
                                     toolResult !== undefined
                                   ) {
                                     toolState = "complete";
@@ -2227,8 +2241,66 @@ function ChatInterface({
                                     toolPart.state === "partial-call"
                                   ) {
                                     toolState = "pending";
+                                  } else if (
+                                    toolPart.state === "output-denied"
+                                  ) {
+                                    toolState = "complete";
                                   } else if (toolPart.state === "call") {
                                     toolState = "running";
+                                  }
+
+                                  // Check if this is a wallet approval tool in an approval state
+                                  const isApprovalTool =
+                                    isWalletApprovalTool(toolDisplayName);
+                                  const isInApprovalState =
+                                    toolPart.state === "approval-requested" ||
+                                    toolPart.state === "approval-responded" ||
+                                    toolPart.state === "output-available" ||
+                                    toolPart.state === "output-denied";
+
+                                  // Render wallet approval confirmation card
+                                  if (isApprovalTool && isInApprovalState) {
+                                    return (
+                                      <div
+                                        key={`${message.id}-${i}`}
+                                        className={
+                                          isLastToolInSequence ? "mb-6" : ""
+                                        }
+                                      >
+                                        <WalletConfirmation
+                                          toolName={toolDisplayName}
+                                          args={
+                                            (toolArgs as Record<
+                                              string,
+                                              unknown
+                                            >) || {}
+                                          }
+                                          state={
+                                            toolPart.state as
+                                              | "approval-requested"
+                                              | "approval-responded"
+                                              | "output-available"
+                                              | "output-denied"
+                                          }
+                                          onApprove={() => {
+                                            if (toolPart.approval?.id) {
+                                              addToolApprovalResponse({
+                                                id: toolPart.approval.id,
+                                                approved: true,
+                                              });
+                                            }
+                                          }}
+                                          onReject={() => {
+                                            if (toolPart.approval?.id) {
+                                              addToolApprovalResponse({
+                                                id: toolPart.approval.id,
+                                                approved: false,
+                                              });
+                                            }
+                                          }}
+                                        />
+                                      </div>
+                                    );
                                   }
 
                                   // Find the tool's icon from tool groups or skills

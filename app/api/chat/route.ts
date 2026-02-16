@@ -588,6 +588,61 @@ async function chatHandler(req: RequestWithBilling) {
         console.error("[Chat API] Failed to load Twitter tools:", error);
       }
     }
+
+    // Add Wallet tools if the wallet group is enabled
+    // Wallet tools require the user's active wallet context for server-side signing
+    if (enabledToolGroups.includes("wallet")) {
+      try {
+        const { createWalletTools } = await import("@/lib/tools/wallet");
+
+        // Resolve user's active wallet from the database
+        const walletUser = await prisma.user.findUnique({
+          where: { id: userId },
+          select: {
+            activeWallet: {
+              select: {
+                id: true,
+                privyWalletId: true,
+                address: true,
+              },
+            },
+          },
+        });
+
+        if (walletUser?.activeWallet) {
+          const walletTools = createWalletTools({
+            userId,
+            walletId: walletUser.activeWallet.privyWalletId,
+            walletAddress: walletUser.activeWallet.address,
+            agentId: resolvedAgentId,
+            billingContext,
+          });
+
+          // Mark wallet tools as deferred for tool search
+          // NOTE: Write tools (transferSol, transferToken, batchTransferTokens) have
+          // requireApproval: true — the AI SDK will pause execution and send an
+          // approval-requested state to the client before executing them.
+          const deferredWalletTools = Object.fromEntries(
+            Object.entries(walletTools).map(([name, tool]) => [
+              name,
+              {
+                ...tool,
+                providerOptions: {
+                  anthropic: { deferLoading: true },
+                },
+              },
+            ]),
+          );
+          tools = { ...tools, ...deferredWalletTools };
+        } else {
+          console.warn(
+            "[Chat API] Wallet tools requested but user has no active wallet.",
+          );
+        }
+      } catch (error) {
+        console.error("[Chat API] Failed to load Wallet tools:", error);
+      }
+    }
   }
 
   const toolNames = Object.keys(tools);

@@ -18,7 +18,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
     // Try both lookups in parallel: by database ID and by tokenMint
     const includeConfig = {
       createdBy: {
-        select: { id: true, walletAddress: true },
+        select: { id: true, activeWallet: { select: { address: true } } },
       },
       corporation: {
         select: {

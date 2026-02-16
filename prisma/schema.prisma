@@ -16,11 +16,6 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Deprecated single wallet fields (kept for backward compatibility during migration)
-  walletId          String?  // Privy wallet ID (e.g., "wallet_xxx")
-  walletAddress     String?  // Solana wallet address
-  walletSignerAdded Boolean  @default(false) // True if server signer has been added
-
   // Active wallet reference (points to currently selected wallet)
   activeWalletId String?     @unique
   activeWallet   UserWallet? @relation("ActiveWallet", fields: [activeWalletId], references: [id], onDelete: SetNull)
@@ -34,31 +29,32 @@ model User {
   twitterConnectedAt       DateTime? // When user connected Twitter
 
   // Relations
-  agents            Agent[]
-  chats             Chat[]
-  tasks             AgentTask[]
-  resources         Resource[]
-  agentChatMessages AgentChatMessage[] @relation("UserChatMessages")
-  stakingPools      StakingPool[]      @relation("UserStakingPools")
-  wallets           UserWallet[]       @relation("UserWallets")
+  agents              Agent[]
+  chats               Chat[]
+  tasks               AgentTask[]
+  resources           Resource[]
+  agentChatMessages   AgentChatMessage[] @relation("UserChatMessages")
+  stakingPools        StakingPool[]      @relation("UserStakingPools")
+  wallets             UserWallet[]       @relation("UserWallets")
+  walletTransactions  WalletTransaction[]
 
-  @@index([walletId])
   @@index([twitterUserId])
   @@index([twitterUsername])
-  @@index([walletAddress])
   @@index([activeWalletId])
 }
 
 // Multi-wallet support - each user can have multiple Solana wallets
+// Server-owned wallets are created via Privy Node SDK with an authorization key as owner.
+// The server can sign transactions directly without any client-side signer ceremony.
 model UserWallet {
   id              String   @id @default(cuid())
   userId          String
   user            User     @relation("UserWallets", fields: [userId], references: [id], onDelete: Cascade)
   privyWalletId   String   // Privy wallet ID (e.g., "wallet_xxx")
   address         String   // Solana wallet address
-  signerAdded     Boolean  @default(false) // True if server signer has been added
+  serverOwned     Boolean  @default(true)  // True if server owns this wallet (can sign directly)
   label           String?  // Optional user-friendly label
-  importedFrom    String?  // Source of wallet (e.g., "bags", "phantom", null for embedded)
+  importedFrom    String?  // Source of wallet (e.g., "bags", "phantom", null for server-created)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -378,6 +374,40 @@ model AgentTask {
   @@index([agentId])
   @@index([userId, status])
   @@index([workflowRunId])
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WALLET TRANSACTIONS — Audit log for AI-initiated wallet operations
+// ═══════════════════════════════════════════════════════════════════════════
+
+model WalletTransaction {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  walletAddress String
+  type          String   // "sol_transfer" | "token_transfer" | "batch_transfer"
+  signature     String?  // Solana tx signature (null if failed)
+  status        String   // "success" | "failed"
+
+  // Transfer details
+  recipient     String?  // Single recipient address
+  recipients    Json?    // Array of { address, amount } for batch transfers
+  tokenMint     String?  // Null for SOL transfers
+  tokenSymbol   String?
+  amount        String   // Lamports or token base units (string for BigInt)
+  amountUi      String?  // Human-readable amount (e.g., "1.5 SOL")
+
+  // Context
+  agentId       String?  // Which agent initiated the transfer
+  chatId        String?  // Which chat conversation
+  errorMessage  String?  @db.Text
+
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
+  @@index([walletAddress])
+  @@index([signature])
+  @@index([userId, createdAt])
 }
 
 // Individual iteration log entry for an AgentTask

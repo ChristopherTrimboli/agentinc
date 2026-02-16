@@ -37,14 +37,15 @@ Users have **Privy embedded Solana wallets**. Server-side operations use authori
 import { sendSolWithPrivy } from "@/lib/privy/serverWallet";
 ```
 
-### Server Signer Pattern
+### Server-Owned Wallets
 
-For server-side wallet operations (x402 payments):
+For server-side wallet operations (x402 payments, AI agent transfers):
 
-1. User's wallet is created by Privy on signup.
-2. Server has an authorization key (P-256 keypair) registered with Privy.
-3. Server can sign transactions on behalf of the user (with their consent via `walletSignerAdded` flag).
-4. This enables automatic micropayments without user interaction.
+1. Wallets are created server-side via `privy.wallets().create()` — the app owns them.
+2. Server signs transactions using the authorization private key (`PRIVY_AUTHORIZATION_PRIVATE_KEY`).
+3. No client-side signer ceremony needed — the server has full control.
+4. This enables automatic micropayments and AI-initiated transfers without user interaction.
+5. Legacy user-owned wallets (with server as additional signer) also work for signing.
 
 **Never store or log private keys.** Authorization keys are in environment variables only.
 

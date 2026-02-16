@@ -130,13 +130,13 @@ export async function POST(req: NextRequest, context: RouteContext) {
       );
     }
 
-    // Get user's wallet address
+    // Get user's active wallet address
     const user = await prisma.user.findUnique({
       where: { id: authResult.userId },
-      select: { walletAddress: true },
+      select: { activeWallet: { select: { address: true } } },
     });
 
-    if (!user?.walletAddress) {
+    if (!user?.activeWallet?.address) {
       return NextResponse.json(
         { error: "No wallet connected. Please connect your wallet." },
         { status: 400 },
@@ -147,7 +147,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
     const message = await prisma.agentChatMessage.create({
       data: {
         content: content.trim(),
-        walletAddress: user.walletAddress,
+        walletAddress: user.activeWallet.address,
         agentId: agent.id,
         userId: authResult.userId,
         isVip: false,

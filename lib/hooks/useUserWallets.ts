@@ -16,7 +16,7 @@ export interface UserWallet {
   id: string;
   privyWalletId: string;
   address: string;
-  signerAdded: boolean;
+  serverOwned: boolean;
   label: string | null;
   importedFrom: string | null;
   createdAt: string;

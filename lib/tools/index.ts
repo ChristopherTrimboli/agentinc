@@ -41,6 +41,7 @@ import { createTwilioTools, twilioTools } from "./twilio";
 // Note: Twitter tools are created dynamically with user OAuth token via createTwitterTools()
 // Note: Knowledge tools are created dynamically with userId/agentId via createKnowledgeTools()
 // Note: Task tools are created dynamically with userId/agentId via createTaskTools()
+// Note: Wallet tools are created dynamically with wallet context via createWalletTools()
 
 // Export types
 export * from "./types";
@@ -113,6 +114,8 @@ export {
 } from "./twilio";
 // Task management (recurring background tasks)
 export { createTaskTools } from "./tasks";
+// Wallet management (balances, holders, transfers, airdrops)
+export { createWalletTools, type WalletToolContext } from "./wallet";
 
 /**
  * Tool function metadata
@@ -307,6 +310,55 @@ export const TOOL_GROUPS: ToolGroup[] = [
         id: "getPoolTrades",
         name: "Pool Trades",
         description: "Recent trades for a pool",
+      },
+    ],
+  },
+
+  {
+    id: "wallet",
+    name: "Wallet",
+    description:
+      "View balances, token holders, transfer SOL & tokens from your wallet",
+    icon: "💳",
+    category: "CRYPTO",
+    source: "Solana",
+    functions: [
+      {
+        id: "getWalletBalance",
+        name: "SOL Balance",
+        description: "Get SOL balance of your active wallet",
+      },
+      {
+        id: "getTokenBalances",
+        name: "Token Holdings",
+        description: "List all SPL token holdings in your wallet",
+      },
+      {
+        id: "getTokenHolders",
+        name: "Token Holders",
+        description: "Get top holders of any SPL token by mint",
+      },
+      {
+        id: "getTransactionHistory",
+        name: "Tx History",
+        description: "View recent transactions for your wallet",
+      },
+      {
+        id: "transferSol",
+        name: "Send SOL",
+        description: "Transfer SOL to another address (requires approval)",
+      },
+      {
+        id: "transferToken",
+        name: "Send Token",
+        description:
+          "Transfer SPL tokens to another address (requires approval)",
+      },
+      {
+        id: "batchTransferTokens",
+        name: "Batch Airdrop",
+        description:
+          "Airdrop tokens to multiple addresses at once (requires approval)",
       },
     ],
   },
@@ -690,6 +742,7 @@ export function getToolsForGroups(
     // SOCIAL (paid — use factory with billing)
     twilio: createTwilioTools(billingContext),
     // Note: twitter group is handled separately in chat API (requires OAuth token)
+    // Note: wallet group is handled separately in chat API (requires wallet context)
   };
 
   const result: ToolMap = {};

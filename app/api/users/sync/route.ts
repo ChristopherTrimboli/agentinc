@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getPrivyClient } from "@/lib/auth/verifyRequest";
-import { isServerSignerConfigured } from "@/lib/privy/wallet-service";
+import {
+  isServerWalletConfigured,
+  createServerOwnedWallet,
+} from "@/lib/privy/wallet-service";
 import { rateLimitByUser } from "@/lib/rateLimit";
 
 export async function POST(req: NextRequest) {
@@ -15,7 +18,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verify identity token and get user data (email comes from verified token)
+    // Verify identity token and get user data
     const privy = getPrivyClient();
     const privyUser = await privy.users().get({ id_token: idToken });
 
@@ -28,130 +31,94 @@ export async function POST(req: NextRequest) {
       (account) => account.type === "email",
     ) as { type: "email"; address: string } | undefined;
 
-    // Extract ALL Solana wallets from linked_accounts
-    const solanaWallets = privyUser.linked_accounts?.filter((account) => {
-      if (account.type !== "wallet") return false;
-      const wallet = account as {
-        chain_type?: string;
-        chainType?: string;
-        chain?: string;
-      };
-      return (
-        wallet.chain_type === "solana" ||
-        wallet.chainType === "solana" ||
-        wallet.chain === "solana"
-      );
-    }) as Array<{ id: string; address: string }> | undefined;
-
-    // Primary wallet (first Solana wallet) for backward compatibility
-    const primaryWallet = solanaWallets?.[0];
-
-    // Get existing user to preserve signer status and active wallet
+    // Get existing user to check if they already have wallets
     const existingUser = await prisma.user.findUnique({
       where: { id: privyUser.id },
       select: {
-        walletSignerAdded: true,
         activeWalletId: true,
         wallets: true,
       },
     });
 
-    // Upsert user with primary wallet info (backward compatibility)
+    // Upsert user record
     const user = await prisma.user.upsert({
       where: { id: privyUser.id },
       create: {
         id: privyUser.id,
         email: emailAccount?.address ?? null,
-        walletId: primaryWallet?.id ?? null,
-        walletAddress: primaryWallet?.address ?? null,
-        walletSignerAdded: false,
       },
       update: {
         email: emailAccount?.address ?? null,
-        walletId: primaryWallet?.id ?? null,
-        walletAddress: primaryWallet?.address ?? null,
-        // Preserve existing signer status - client updates this separately
-        walletSignerAdded: existingUser?.walletSignerAdded ?? false,
       },
-      // Only return safe fields - exclude tokens and secrets
       select: {
         id: true,
         email: true,
-        walletAddress: true,
-        walletSignerAdded: true,
+        activeWalletId: true,
         twitterUserId: true,
         twitterUsername: true,
         twitterConnectedAt: true,
-        activeWalletId: true,
         createdAt: true,
         updatedAt: true,
       },
     });
 
-    // Sync all Solana wallets to UserWallet table
-    if (solanaWallets && solanaWallets.length > 0) {
-      // If the legacy walletSignerAdded is true, propagate to matching
-      // UserWallet entries. This handles existing users whose signer was
-      // added before the multi-wallet migration.
-      const signerAlreadyAdded =
-        existingUser?.walletSignerAdded ?? user.walletSignerAdded;
+    // Ensure user has a server-owned wallet
+    if (isServerWalletConfigured()) {
+      const hasServerOwnedWallet = existingUser?.wallets?.some(
+        (w) => w.serverOwned,
+      );
 
-      for (const wallet of solanaWallets) {
-        // Check if wallet already exists
-        const existingWallet = existingUser?.wallets.find(
-          (w) => w.address === wallet.address,
-        );
+      if (!hasServerOwnedWallet) {
+        // New user with no wallets, OR existing user with only legacy user-owned wallets.
+        // Create a fresh server-owned wallet so the server has full control.
+        try {
+          const { walletId, address } = await createServerOwnedWallet();
 
-        if (!existingWallet) {
-          // Create new wallet entry — inherit signer status from legacy field
-          // if this wallet matches the primary wallet address
-          const inheritSignerStatus =
-            signerAlreadyAdded && wallet.address === primaryWallet?.address;
-
-          await prisma.userWallet.create({
+          const wallet = await prisma.userWallet.create({
             data: {
               userId: privyUser.id,
-              privyWalletId: wallet.id,
-              address: wallet.address,
-              signerAdded: inheritSignerStatus,
-              label: null,
-              importedFrom: null,
+              privyWalletId: walletId,
+              address,
+              serverOwned: true,
+              label: "Primary",
             },
           });
-        } else if (
-          signerAlreadyAdded &&
-          !existingWallet.signerAdded &&
-          wallet.address === primaryWallet?.address
-        ) {
-          // Auto-repair: legacy flag is true but per-wallet flag is false
-          // for the primary wallet — fix the inconsistency
-          await prisma.userWallet.update({
-            where: { id: existingWallet.id },
-            data: { signerAdded: true },
-          });
-        }
-      }
 
-      // If no active wallet is set, set the first wallet as active
-      if (!existingUser?.activeWalletId) {
-        const firstWallet = await prisma.userWallet.findFirst({
-          where: { userId: privyUser.id },
-          orderBy: { createdAt: "asc" },
-        });
-
-        if (firstWallet) {
+          // Set the new server-owned wallet as active (replaces legacy wallet)
           await prisma.user.update({
             where: { id: privyUser.id },
-            data: { activeWalletId: firstWallet.id },
+            data: { activeWalletId: wallet.id },
           });
+
+          console.log(
+            `[UserSync] Created server-owned wallet for user ${privyUser.id}: ${address}`,
+          );
+        } catch (error) {
+          console.error(
+            "[UserSync] Failed to create server-owned wallet:",
+            error,
+          );
+          // Non-fatal — user can still use legacy wallet, retry on next sync
         }
       }
+    }
+
+    // Ensure an active wallet is set if wallets exist but none is active
+    if (existingUser?.wallets?.length && !existingUser.activeWalletId) {
+      // Prefer server-owned wallets
+      const preferred =
+        existingUser.wallets.find((w) => w.serverOwned) ??
+        existingUser.wallets[0];
+      await prisma.user.update({
+        where: { id: privyUser.id },
+        data: { activeWalletId: preferred.id },
+      });
     }
 
     return NextResponse.json({
       success: true,
       user,
-      signerConfigured: isServerSignerConfigured(),
+      serverWalletConfigured: isServerWalletConfigured(),
     });
   } catch (error) {
     console.error("User sync error:", error);

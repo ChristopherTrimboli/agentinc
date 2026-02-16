@@ -5,12 +5,14 @@
  */
 
 export {
-  isServerSignerConfigured,
-  getPrivyWalletClient,
+  isServerWalletConfigured,
+  createServerOwnedWallet,
+  getAuthorizationContext,
   getWalletBalance,
   sendSolFromWallet,
   hasEnoughBalance,
   lamportsToSol,
   acquireWalletLock,
   withWalletLock,
+  TRANSACTION_FEE_BUFFER_LAMPORTS,
 } from "./wallet-service";

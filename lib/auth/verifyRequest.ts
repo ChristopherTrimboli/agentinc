@@ -52,76 +52,44 @@ function authCacheKey(idToken: string): string {
 }
 
 /**
- * Cached Privy verification result. Only caches the expensive Privy API
- * verification — the active wallet is resolved separately from the DB
- * so wallet switches take effect immediately.
- */
-interface CachedPrivyAuth {
-  userId: string;
-  /** First Solana wallet from Privy (fallback if no active wallet in DB) */
-  privyWalletAddress?: string;
-  privyWalletId?: string;
-}
-
-/**
  * Verify authentication from request headers.
  * Returns user info if authenticated, null otherwise.
  *
- * The Privy token → userId verification is cached in Redis for 60s.
- * The active wallet is always resolved from the database so that
- * wallet switches take effect immediately (no stale cache).
+ * Two-step process:
+ * 1. Verify Privy ID token → userId (cached in Redis for 60s)
+ * 2. Resolve active wallet from DB (always fresh, never cached)
+ *
+ * Wallet resolution always comes from the database (UserWallet table),
+ * never from Privy linked_accounts. Server-owned wallets don't appear
+ * in linked_accounts, so that path would return unusable addresses.
  */
 export async function verifyAuth(req: NextRequest): Promise<AuthResult | null> {
   const idToken = req.headers.get("privy-id-token");
   if (!idToken) return null;
 
-  let cached: CachedPrivyAuth | null = null;
+  // ── Step 1: Verify token → userId (cached) ─────────────────────
+  let userId: string | null = null;
 
-  // Try Redis cache for the expensive Privy token verification
   if (isRedisConfigured()) {
     try {
       const redis = getRedis();
-      cached = await redis.get<CachedPrivyAuth>(authCacheKey(idToken));
+      userId = await redis.get<string>(authCacheKey(idToken));
     } catch {
       // Cache miss or error — fall through to Privy
     }
   }
 
-  // If not cached, verify with Privy (expensive network call)
-  if (!cached) {
+  if (!userId) {
     const privy = getPrivyClient();
-
     try {
       const user = await privy.users().get({ id_token: idToken });
+      userId = user.id;
 
-      // Find the first Solana wallet as default fallback
-      const solanaWallet = user.linked_accounts?.find((account) => {
-        if (account.type !== "wallet") return false;
-        const w = account as unknown as Record<string, unknown>;
-        return (
-          w.chain_type === "solana" ||
-          w.chainType === "solana" ||
-          w.chain === "solana"
-        );
-      });
-
-      const w = solanaWallet as unknown as Record<string, unknown> | undefined;
-      const walletData =
-        w && typeof w.id === "string" && typeof w.address === "string"
-          ? { id: w.id, address: w.address }
-          : undefined;
-
-      cached = {
-        userId: user.id,
-        privyWalletAddress: walletData?.address,
-        privyWalletId: walletData?.id,
-      };
-
-      // Cache the Privy verification result
+      // Cache the userId (the only expensive part is the Privy API call)
       if (isRedisConfigured()) {
         try {
           const redis = getRedis();
-          await redis.set(authCacheKey(idToken), cached, {
+          await redis.set(authCacheKey(idToken), userId, {
             ex: AUTH_CACHE_TTL,
           });
         } catch {
@@ -129,17 +97,16 @@ export async function verifyAuth(req: NextRequest): Promise<AuthResult | null> {
         }
       }
     } catch (error) {
-      console.error("[Auth] verifyAuth error:", error);
+      console.error("[Auth] Privy token verification failed:", error);
       return null;
     }
   }
 
-  // ── Resolve active wallet from DB (always fresh, not cached) ────
-  // This ensures wallet switches take effect immediately for transaction
-  // building, billing, and all other wallet-dependent operations.
+  // ── Step 2: Resolve active wallet from DB (always fresh) ────────
+  // Never cached so wallet switches take effect immediately.
   try {
     const user = await prisma.user.findUnique({
-      where: { id: cached.userId },
+      where: { id: userId },
       select: {
         activeWallet: {
           select: { address: true, privyWalletId: true },
@@ -150,24 +117,17 @@ export async function verifyAuth(req: NextRequest): Promise<AuthResult | null> {
 
     if (user?.activeWallet) {
       return {
-        userId: cached.userId,
+        userId,
         walletAddress: user.activeWallet.address,
         walletId: user.activeWallet.privyWalletId,
       };
     }
   } catch (error) {
-    console.warn(
-      "[Auth] Failed to look up active wallet, falling back to Privy default:",
-      error,
-    );
+    console.warn("[Auth] Failed to look up active wallet:", error);
   }
 
-  // Fall back to first Privy wallet if no active wallet in DB
-  return {
-    userId: cached.userId,
-    walletAddress: cached.privyWalletAddress,
-    walletId: cached.privyWalletId,
-  };
+  // User is authenticated but has no active wallet yet (new user pre-sync)
+  return { userId };
 }
 
 /**

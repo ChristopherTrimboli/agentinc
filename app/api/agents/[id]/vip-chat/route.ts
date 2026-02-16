@@ -118,14 +118,17 @@ export async function GET(req: NextRequest, context: RouteContext) {
     let vipAccess = null;
 
     if (isAuthResult(authResult)) {
-      // Look up user's wallet
+      // Look up user's active wallet
       const user = await prisma.user.findUnique({
         where: { id: authResult.userId },
-        select: { walletAddress: true },
+        select: { activeWallet: { select: { address: true } } },
       });
 
-      if (user?.walletAddress) {
-        vipAccess = await checkVipAccess(user.walletAddress, agent.tokenMint);
+      if (user?.activeWallet?.address) {
+        vipAccess = await checkVipAccess(
+          user.activeWallet.address,
+          agent.tokenMint,
+        );
       }
     }
 
@@ -227,13 +230,13 @@ export async function POST(req: NextRequest, context: RouteContext) {
       );
     }
 
-    // Get user's wallet address
+    // Get user's active wallet address
     const user = await prisma.user.findUnique({
       where: { id: authResult.userId },
-      select: { walletAddress: true },
+      select: { activeWallet: { select: { address: true } } },
     });
 
-    if (!user?.walletAddress) {
+    if (!user?.activeWallet?.address) {
       return NextResponse.json(
         { error: "No wallet connected. Please connect your wallet." },
         { status: 400 },
@@ -241,7 +244,10 @@ export async function POST(req: NextRequest, context: RouteContext) {
     }
 
     // Verify VIP access (on-chain token check)
-    const access = await checkVipAccess(user.walletAddress, agent.tokenMint);
+    const access = await checkVipAccess(
+      user.activeWallet.address,
+      agent.tokenMint,
+    );
 
     if (!access.hasAccess) {
       return NextResponse.json(
@@ -258,7 +264,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
     const message = await prisma.agentChatMessage.create({
       data: {
         content: content.trim(),
-        walletAddress: user.walletAddress,
+        walletAddress: user.activeWallet.address,
         agentId: agent.id,
         userId: authResult.userId,
         isVip: true,

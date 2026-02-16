@@ -90,8 +90,7 @@ export async function POST(req: NextRequest) {
       select: {
         id: true,
         email: true,
-        walletId: true,
-        walletAddress: true,
+        activeWalletId: true,
       },
     });
 
@@ -185,6 +184,8 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Step 5: Import private key into Privy ────────────────────────────────
+    // Import without an owner so the app controls the wallet (server-owned).
+    // This lets the server sign transactions using the authorization key.
     const privy = getPrivyClient();
 
     let importedWalletId: string;
@@ -196,7 +197,6 @@ export async function POST(req: NextRequest) {
           address: walletAddress,
           private_key: privateKey,
         },
-        owner: { user_id: ownerUser.id },
       });
 
       importedWalletId = wallet.id;
@@ -211,17 +211,42 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ── Step 6: Update user with imported wallet (only if not set) ───────────
-    // Only set the user's primary wallet if they don't have one yet.
-    // This prevents overwriting their primary wallet when importing multiple agents.
-    if (!ownerUser.walletId) {
-      await prisma.user.update({
-        where: { id: ownerUser.id },
+    // ── Step 6: Update user wallets ─────────────────────────────────────────
+    // Create a UserWallet record for the imported wallet
+    const existingUserWallet = await prisma.userWallet.findUnique({
+      where: {
+        userId_address: { userId: ownerUser.id, address: walletAddress },
+      },
+    });
+
+    let userWalletId: string | undefined;
+    if (!existingUserWallet) {
+      const newUserWallet = await prisma.userWallet.create({
         data: {
-          walletId: importedWalletId,
-          walletAddress: walletAddress,
+          userId: ownerUser.id,
+          privyWalletId: importedWalletId,
+          address: walletAddress,
+          serverOwned: true,
+          label: sanitizedName, // Label with agent name for easy identification
+          importedFrom: "agent-import",
         },
       });
+      userWalletId = newUserWallet.id;
+
+      // If user has no active wallet set, make this one active
+      const userActiveWallet = await prisma.user.findUnique({
+        where: { id: ownerUser.id },
+        select: { activeWalletId: true },
+      });
+
+      if (!userActiveWallet?.activeWalletId) {
+        await prisma.user.update({
+          where: { id: ownerUser.id },
+          data: { activeWalletId: newUserWallet.id },
+        });
+      }
+    } else {
+      userWalletId = existingUserWallet.id;
     }
 
     // ── Step 7: Generate personality traits ───────────────────────────────────

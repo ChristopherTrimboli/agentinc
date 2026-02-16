@@ -56,7 +56,7 @@ interface Agent {
   updatedAt: string;
   createdBy: {
     id: string;
-    walletAddress: string | null;
+    activeWallet: { address: string } | null;
   };
   corporation: Corporation | null;
 }
@@ -359,20 +359,20 @@ export default function AgentProfilePage({
                       )}
                     </div>
                   </div>
-                  {agent.createdBy.walletAddress && (
+                  {agent.createdBy.activeWallet?.address && (
                     <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-[#0a0520] border border-white/10">
                       <div className="text-[10px] sm:text-xs text-white/40 mb-1">
                         Creator
                       </div>
                       <div className="flex items-center gap-1.5 min-w-0">
                         <code className="text-xs sm:text-sm text-white/80 font-mono truncate">
-                          {agent.createdBy.walletAddress.slice(0, 4)}...
-                          {agent.createdBy.walletAddress.slice(-4)}
+                          {agent.createdBy.activeWallet?.address.slice(0, 4)}...
+                          {agent.createdBy.activeWallet?.address.slice(-4)}
                         </code>
                         <button
                           onClick={() =>
                             copyToClipboard(
-                              agent.createdBy.walletAddress!,
+                              agent.createdBy.activeWallet!.address,
                               "creator-mobile",
                             )
                           }
@@ -668,18 +668,18 @@ export default function AgentProfilePage({
                       )}
                     </div>
                   </div>
-                  {agent.createdBy.walletAddress && (
+                  {agent.createdBy.activeWallet?.address && (
                     <div className="p-5 rounded-2xl bg-[#0a0520] border border-white/10">
                       <div className="text-xs text-white/40 mb-2">Creator</div>
                       <div className="flex items-center gap-2 min-w-0">
                         <code className="text-sm text-white/80 font-mono truncate">
-                          {agent.createdBy.walletAddress.slice(0, 4)}...
-                          {agent.createdBy.walletAddress.slice(-4)}
+                          {agent.createdBy.activeWallet?.address.slice(0, 4)}...
+                          {agent.createdBy.activeWallet?.address.slice(-4)}
                         </code>
                         <button
                           onClick={() =>
                             copyToClipboard(
-                              agent.createdBy.walletAddress!,
+                              agent.createdBy.activeWallet!.address,
                               "creator-desktop",
                             )
                           }

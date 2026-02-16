@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import {
-  requireAuth,
-  isAuthResult,
-  getPrivyClient,
-} from "@/lib/auth/verifyRequest";
+import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
 import { rateLimitByUser } from "@/lib/rateLimit";
+import { createServerOwnedWallet } from "@/lib/privy/wallet-service";
 
 /**
  * GET /api/users/wallets - Get all wallets for the authenticated user
@@ -28,7 +25,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         id: true,
         privyWalletId: true,
         address: true,
-        signerAdded: true,
+        serverOwned: true,
         label: true,
         importedFrom: true,
         createdAt: true,
@@ -55,8 +52,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 }
 
 /**
- * POST /api/users/wallets - Add a new wallet or set active wallet
- * Body: { action: "add" | "setActive", walletId?, address?, label?, importedFrom? }
+ * POST /api/users/wallets - Create a new server-owned wallet or set active wallet
+ * Body: { action: "create" | "setActive", walletId?, label? }
  */
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
@@ -69,7 +66,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     if (rateLimited) return rateLimited;
 
     const body = await req.json();
-    const { action, walletId, address, label, importedFrom } = body;
+    const { action, walletId, address, label } = body;
 
     if (action === "setActive") {
       if (!walletId && !address) {
@@ -104,82 +101,49 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       });
 
       return NextResponse.json({ success: true, activeWalletId: wallet.id });
-    } else if (action === "add") {
-      if (!address) {
-        return NextResponse.json(
-          { error: "address is required for add" },
-          { status: 400 },
-        );
-      }
+    } else if (action === "create") {
+      // Create a new server-owned wallet via Privy
+      try {
+        const { walletId: privyWalletId, address: walletAddress } =
+          await createServerOwnedWallet();
 
-      // Check if wallet already exists
-      const existing = await prisma.userWallet.findUnique({
-        where: { userId_address: { userId, address } },
-      });
-
-      if (existing) {
-        return NextResponse.json(
-          { error: "Wallet already exists", wallet: existing },
-          { status: 409 },
-        );
-      }
-
-      // Get Privy user to access linked accounts
-      const privy = getPrivyClient();
-      const idToken = req.headers.get("privy-id-token");
-
-      if (!idToken) {
-        return NextResponse.json(
-          { error: "Missing identity token" },
-          { status: 401 },
-        );
-      }
-
-      const privyUser = await privy.users().get({ id_token: idToken });
-
-      // Get Privy wallet ID from linked accounts
-      const privyWallet = privyUser.linked_accounts?.find((account) => {
-        if (account.type !== "wallet") return false;
-        const w = account as { address?: string };
-        return w.address === address;
-      }) as { id: string; address: string } | undefined;
-
-      if (!privyWallet) {
-        return NextResponse.json(
-          { error: "Wallet not found in Privy linked accounts" },
-          { status: 404 },
-        );
-      }
-
-      // Create new wallet
-      const wallet = await prisma.userWallet.create({
-        data: {
-          userId,
-          privyWalletId: privyWallet.id,
-          address,
-          label: label ?? null,
-          importedFrom: importedFrom ?? null,
-          signerAdded: false,
-        },
-      });
-
-      // If this is the first wallet, set it as active
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { activeWalletId: true },
-      });
-
-      if (!user?.activeWalletId) {
-        await prisma.user.update({
-          where: { id: userId },
-          data: { activeWalletId: wallet.id },
+        const wallet = await prisma.userWallet.create({
+          data: {
+            userId,
+            privyWalletId,
+            address: walletAddress,
+            serverOwned: true,
+            label: label ?? null,
+          },
         });
-      }
 
-      return NextResponse.json({ success: true, wallet });
+        // If this is the first wallet, set it as active
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { activeWalletId: true },
+        });
+
+        if (!user?.activeWalletId) {
+          await prisma.user.update({
+            where: { id: userId },
+            data: { activeWalletId: wallet.id },
+          });
+        }
+
+        return NextResponse.json({ success: true, wallet });
+      } catch (error) {
+        console.error(
+          "[POST /api/users/wallets] Wallet creation failed:",
+          error,
+        );
+        return NextResponse.json(
+          { error: "Failed to create wallet" },
+          { status: 500 },
+        );
+      }
     } else {
       return NextResponse.json(
-        { error: "Invalid action. Use 'add' or 'setActive'" },
+        { error: "Invalid action. Use 'create' or 'setActive'" },
         { status: 400 },
       );
     }

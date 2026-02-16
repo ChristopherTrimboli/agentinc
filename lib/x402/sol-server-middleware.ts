@@ -24,7 +24,7 @@ import prisma from "@/lib/prisma";
 import {
   sendSolFromWallet,
   hasEnoughBalance,
-  isServerSignerConfigured,
+  isServerWalletConfigured,
   lamportsToSol,
   withWalletLock,
   getWalletBalance,
@@ -315,7 +315,7 @@ export function isAutoRefundEnabled(): boolean {
   return !!(
     TREASURY_WALLET_ID &&
     SOL_TREASURY_ADDRESS &&
-    isServerSignerConfigured()
+    isServerWalletConfigured()
   );
 }
 
@@ -441,33 +441,20 @@ export async function getUserRefunds(userId: string): Promise<PendingRefund[]> {
 export const SOL_PRICING = PRICING;
 export const SOL_ROUTE_DESCRIPTIONS = ROUTE_DESCRIPTIONS;
 
-// ── Unified wallet resolution for payments ──────────────────────────────
+// ── Wallet resolution for payments ───────────────────────────────────
 
 /**
  * Wallet info needed for server-side payment operations.
+ * Server-owned wallets can always sign — no signer check needed.
  */
 interface PaymentWalletInfo {
   walletId: string;
   walletAddress: string;
-  signerAdded: boolean;
 }
 
 /**
- * Resolve the correct wallet for payment operations.
- *
- * This bridges the legacy single-wallet fields on User and the new
- * multi-wallet UserWallet table. Priority:
- *
- * 1. Active wallet from UserWallet table (new system)
- * 2. Legacy User.walletId / walletAddress fields (backward compat)
- *
- * Signer status uses OR logic: if EITHER the per-wallet `signerAdded`
- * or the legacy `walletSignerAdded` is true, the wallet is considered
- * configured. This handles the transition period where signer-status
- * only updated the legacy field.
- *
- * If signer status was out of sync, this also auto-repairs the
- * UserWallet.signerAdded field in the background (fire-and-forget).
+ * Resolve the user's active wallet for payment operations.
+ * Returns the active wallet from the UserWallet table.
  */
 async function getPaymentWalletInfo(
   userId: string,
@@ -475,61 +462,24 @@ async function getPaymentWalletInfo(
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
-      // New multi-wallet system
       activeWallet: {
         select: {
-          id: true,
           privyWalletId: true,
           address: true,
-          signerAdded: true,
         },
       },
-      // Legacy fields (fallback)
-      walletId: true,
-      walletAddress: true,
-      walletSignerAdded: true,
     },
     cacheStrategy: { ttl: 5 },
   });
 
-  if (!user) return null;
-
-  // Prefer active wallet from UserWallet table
-  if (user.activeWallet?.privyWalletId && user.activeWallet?.address) {
-    const signerAdded = user.activeWallet.signerAdded || user.walletSignerAdded;
-
-    // Auto-repair: if legacy flag is true but per-wallet flag isn't, fix it
-    if (user.walletSignerAdded && !user.activeWallet.signerAdded) {
-      prisma.userWallet
-        .update({
-          where: { id: user.activeWallet.id },
-          data: { signerAdded: true },
-        })
-        .catch((err) =>
-          console.warn(
-            "[Payment] Auto-repair UserWallet.signerAdded failed:",
-            err,
-          ),
-        );
-    }
-
-    return {
-      walletId: user.activeWallet.privyWalletId,
-      walletAddress: user.activeWallet.address,
-      signerAdded,
-    };
+  if (!user?.activeWallet?.privyWalletId || !user.activeWallet.address) {
+    return null;
   }
 
-  // Legacy fallback
-  if (user.walletId && user.walletAddress) {
-    return {
-      walletId: user.walletId,
-      walletAddress: user.walletAddress,
-      signerAdded: user.walletSignerAdded,
-    };
-  }
-
-  return null;
+  return {
+    walletId: user.activeWallet.privyWalletId,
+    walletAddress: user.activeWallet.address,
+  };
 }
 
 /**
@@ -621,17 +571,6 @@ export async function chargeForUsage(
         lamports: "0",
         ...metadata,
         error: "No wallet associated with account",
-      };
-    }
-
-    if (!walletInfo.signerAdded) {
-      return {
-        success: false,
-        usdCost,
-        solCost: "0",
-        lamports: "0",
-        ...metadata,
-        error: "User wallet not configured for automatic payments",
       };
     }
 
@@ -745,23 +684,6 @@ function createInsufficientBalanceResponse(
   );
 }
 
-/**
- * Create wallet not setup error response
- */
-function createWalletNotSetupResponse(): NextResponse {
-  return NextResponse.json(
-    {
-      error: "Wallet not configured for payments",
-      code: "WALLET_NOT_SETUP",
-      details: {
-        message:
-          "Your wallet is not configured for automatic payments. Please log out and log back in.",
-      },
-    },
-    { status: 403 },
-  );
-}
-
 // buildPaymentRequirements and addPaymentReceiptHeader are imported from ./shared
 
 /**
@@ -856,10 +778,6 @@ async function handlePrivyPayment(
       },
       { status: 403 },
     );
-  }
-
-  if (!walletInfo.signerAdded) {
-    return createWalletNotSetupResponse();
   }
 
   const { walletAddress, walletId } = walletInfo;
@@ -1039,7 +957,7 @@ export function withServerSolPayment<
     }
 
     // FLOW 2: Check for Privy authentication (server-side payment)
-    if (isServerSignerConfigured()) {
+    if (isServerWalletConfigured()) {
       const authResult = await verifyAuth(req);
       if (authResult) {
         return handlePrivyPayment(req, handler, authResult.userId, usdPrice);
@@ -1057,16 +975,16 @@ export function withServerSolPayment<
  * Check if server-side SOL payments are fully enabled
  */
 export function isServerSolPaymentEnabled(): boolean {
-  return !!(SOL_TREASURY_ADDRESS && isServerSignerConfigured());
+  return !!(SOL_TREASURY_ADDRESS && isServerWalletConfigured());
 }
 
 /**
- * Check if usage-based billing is enabled (Treasury + Server Signer).
+ * Check if usage-based billing is enabled (Treasury + Server Wallet).
  * AI Gateway costs come from providerMetadata in the AI SDK response,
  * so no separate API key is needed for billing.
  */
 export function isUsageBasedBillingEnabled(): boolean {
-  return !!(SOL_TREASURY_ADDRESS && isServerSignerConfigured());
+  return !!(SOL_TREASURY_ADDRESS && isServerWalletConfigured());
 }
 
 /**
@@ -1179,10 +1097,9 @@ export function withUsageBasedPayment<
     }
 
     // FLOW 2: Check for Privy authentication (usage-based billing)
-    if (isServerSignerConfigured()) {
+    if (isServerWalletConfigured()) {
       const authResult = await verifyAuth(req);
       if (authResult) {
-        // Resolve wallet via unified helper (supports both legacy and multi-wallet)
         const walletInfo = await getPaymentWalletInfo(authResult.userId);
 
         if (!walletInfo) {
@@ -1197,10 +1114,6 @@ export function withUsageBasedPayment<
             },
             { status: 403 },
           );
-        }
-
-        if (!walletInfo.signerAdded) {
-          return createWalletNotSetupResponse();
         }
 
         // Create billing context for the handler

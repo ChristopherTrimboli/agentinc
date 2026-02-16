@@ -1,16 +1,21 @@
 /**
  * Privy Wallet Service
  *
- * Server-side wallet operations for x402 payments.
- * Uses Privy's "Additional Signer" pattern to allow the server to
- * sign transactions from user-owned wallets without user interaction.
+ * Server-side wallet operations supporting two wallet types:
  *
- * ARCHITECTURE:
- * 1. Signer is added CLIENT-SIDE via useSigners().addSigners() in UserSync.tsx
- * 2. Once added, this service can sign transactions SERVER-SIDE
- * 3. Settlement goes through the standard x402 facilitator
+ * 1. SERVER-OWNED wallets (new, serverOwned=true):
+ *    - Created server-side via privy.wallets().create()
+ *    - Server signs as the wallet OWNER (full control: sign, export, etc.)
+ *    - No client-side ceremony needed
  *
- * This keeps the protocol spec-compliant and reusable for external users.
+ * 2. LEGACY USER-OWNED wallets (migrated, serverOwned=false):
+ *    - Created client-side, user is the owner
+ *    - Server signs as an ADDITIONAL SIGNER (can sign, but can't export)
+ *    - Signer was added via the old client-side addSigners() flow
+ *
+ * Both types use the same authorization_context for signing — Privy
+ * doesn't distinguish between owner and signer for sign operations.
+ * The only difference is that server-owned wallets support export/import.
  */
 
 import {
@@ -18,7 +23,6 @@ import {
   PublicKey,
   SystemProgram,
   Transaction,
-  LAMPORTS_PER_SOL,
 } from "@solana/web3.js";
 import { SOLANA_RPC_URL } from "@/lib/constants/solana";
 import { getPrivyClient } from "@/lib/auth/verifyRequest";
@@ -31,22 +35,12 @@ import { isRedisConfigured, getRedis } from "@/lib/redis";
  */
 export const TRANSACTION_FEE_BUFFER_LAMPORTS = BigInt(1_000_000);
 
-/**
- * Distributed wallet lock using Redis SET NX EX.
- *
- * In serverless environments each request can hit a different instance,
- * making in-memory locks useless. This uses Redis for a distributed
- * mutex with automatic TTL expiration as a safety net.
- *
- * Falls back to in-memory promise-chaining when Redis is unavailable
- * (e.g. local dev without Redis).
- */
+// ── Distributed Wallet Lock ──────────────────────────────────────────
 
 const WALLET_LOCK_TTL_SECONDS = 30;
 const WALLET_LOCK_RETRY_DELAY_MS = 100;
 const WALLET_LOCK_MAX_RETRIES = 50; // 50 * 100ms = 5s max wait
 
-// In-memory fallback for when Redis is unavailable
 const memoryWalletLocks = new Map<string, Promise<void>>();
 
 /**
@@ -59,7 +53,6 @@ const memoryWalletLocks = new Map<string, Promise<void>>();
 export async function acquireWalletLock(
   walletAddress: string,
 ): Promise<() => void> {
-  // Use distributed Redis lock when available
   if (isRedisConfigured()) {
     const redis = getRedis();
     const lockKey = `wallet-lock:${walletAddress}`;
@@ -72,7 +65,6 @@ export async function acquireWalletLock(
           ex: WALLET_LOCK_TTL_SECONDS,
         });
         if (acquired) {
-          // Return release function that only deletes if we still hold the lock
           return async () => {
             try {
               const current = await redis.get(lockKey);
@@ -85,7 +77,6 @@ export async function acquireWalletLock(
           };
         }
       } catch (error) {
-        // Redis error — fall through to in-memory
         console.warn(
           "[WalletLock] Redis lock failed, using in-memory fallback:",
           error,
@@ -130,37 +121,55 @@ export async function withWalletLock<T>(
   }
 }
 
-/**
- * Check if server signer is configured
- */
-export function isServerSignerConfigured(): boolean {
-  return !!(
-    process.env.PRIVY_AUTHORIZATION_PRIVATE_KEY &&
-    process.env.PRIVY_SIGNER_KEY_QUORUM_ID
-  );
-}
+// ── Server-Owned Wallet Helpers ──────────────────────────────────────
 
 /**
- * Get the Privy client for wallet operations.
- * Uses the shared singleton from verifyRequest.ts to avoid duplicate clients.
+ * Check if server wallet operations are configured.
+ * Requires the authorization private key (server owns the wallets).
  */
-export function getPrivyWalletClient() {
-  return getPrivyClient();
+export function isServerWalletConfigured(): boolean {
+  return !!process.env.PRIVY_AUTHORIZATION_PRIVATE_KEY;
 }
 
 /**
  * Get the authorization context for server-side wallet operations.
- * This must be passed to each wallet operation that requires authorization.
+ * Since the server OWNS these wallets (not just a signer), the auth
+ * key has full control: sign, send, export, update policies, etc.
  */
 export function getAuthorizationContext() {
   const privateKey = process.env.PRIVY_AUTHORIZATION_PRIVATE_KEY;
   if (!privateKey) {
     throw new Error(
-      "PRIVY_AUTHORIZATION_PRIVATE_KEY not configured - required for server wallet operations",
+      "PRIVY_AUTHORIZATION_PRIVATE_KEY not configured — required for server wallet operations",
     );
   }
   return {
     authorization_private_keys: [privateKey],
+  };
+}
+
+/**
+ * Create a new server-owned Solana wallet via Privy.
+ *
+ * Created without an explicit user owner — the app controls the wallet
+ * and signs transactions using the authorization private key. This means
+ * the server can immediately sign without any client-side ceremony.
+ *
+ * @returns The created wallet's Privy ID and Solana address
+ */
+export async function createServerOwnedWallet(): Promise<{
+  walletId: string;
+  address: string;
+}> {
+  const privy = getPrivyClient();
+
+  const wallet = await privy.wallets().create({
+    chain_type: "solana",
+  });
+
+  return {
+    walletId: wallet.id,
+    address: wallet.address,
   };
 }
 
@@ -175,27 +184,12 @@ export async function getWalletBalance(walletAddress: string): Promise<bigint> {
 }
 
 /**
- * Build and sign a SOL transfer transaction using Privy.
- * Returns the signed transaction in base64 format for use with x402 facilitator.
- *
- * This keeps the x402 flow intact - Privy signs, facilitator settles.
- *
- * @param walletId - The Privy wallet ID
- * @param walletAddress - The sender's Solana address
- * @param recipientAddress - The recipient's Solana address
- * @param lamports - Amount to send in lamports
- * @returns Signed transaction in base64 format
- */
-/**
- * Send SOL from a Privy wallet.
+ * Send SOL from a server-owned Privy wallet.
  *
  * This function:
  * 1. Builds the transaction with a fresh blockhash from our RPC
- * 2. Signs via Privy's server-side API
+ * 2. Signs via Privy's server-side API (as wallet owner)
  * 3. Submits to OUR RPC (ensures blockhash consistency)
- *
- * This avoids the "blockhash not found" error that occurs when
- * Privy's internal RPC has different blockhashes than ours.
  */
 export async function sendSolFromWallet(
   walletId: string,
@@ -204,10 +198,9 @@ export async function sendSolFromWallet(
   lamports: bigint,
 ): Promise<{ signature: string; success: boolean; error?: string }> {
   try {
-    const privy = getPrivyWalletClient();
+    const privy = getPrivyClient();
     const connection = new Connection(SOLANA_RPC_URL, "confirmed");
 
-    // Build the transfer transaction
     const fromPubkey = new PublicKey(walletAddress);
     const toPubkey = new PublicKey(recipientAddress);
 
@@ -219,25 +212,21 @@ export async function sendSolFromWallet(
       }),
     );
 
-    // Get recent blockhash from OUR RPC
     const { blockhash, lastValidBlockHeight } =
       await connection.getLatestBlockhash("confirmed");
     transaction.recentBlockhash = blockhash;
     transaction.feePayer = fromPubkey;
 
-    // Serialize unsigned transaction to base64
     const unsignedTx = transaction
       .serialize({ requireAllSignatures: false })
       .toString("base64");
 
-    // Sign via Privy (just sign, don't broadcast)
     const authContext = getAuthorizationContext();
     const rawResult = await privy.wallets().solana().signTransaction(walletId, {
       transaction: unsignedTx,
       authorization_context: authContext,
     });
 
-    // Validate the response structure
     const validation = validatePrivySignResponse(rawResult);
     if (!validation.success) {
       return {
@@ -247,19 +236,16 @@ export async function sendSolFromWallet(
       };
     }
 
-    // Decode the signed transaction
     const signedTxBuffer = Buffer.from(
       validation.data.signed_transaction,
       "base64",
     );
 
-    // Submit to OUR RPC (ensures blockhash consistency)
     const signature = await connection.sendRawTransaction(signedTxBuffer, {
       skipPreflight: false,
       preflightCommitment: "confirmed",
     });
 
-    // Confirm the transaction
     await connection.confirmTransaction(
       {
         signature,
@@ -284,10 +270,6 @@ export async function sendSolFromWallet(
 
 /**
  * Check if a wallet has sufficient balance for a transaction
- *
- * @param walletAddress - The wallet address to check
- * @param requiredLamports - Amount needed in lamports (including buffer for fees)
- * @returns true if balance is sufficient
  */
 export async function hasEnoughBalance(
   walletAddress: string,

@@ -147,11 +147,9 @@ Copy `example.env.local` to `.env.local`. Here's what you need:
 
 **Server signer (x402 auto-payments):**
 
-| Variable                                  | What it does                       |
-| ----------------------------------------- | ---------------------------------- |
-| `PRIVY_AUTHORIZATION_PRIVATE_KEY`         | P-256 PKCS8 private key (base64)   |
-| `PRIVY_SIGNER_KEY_QUORUM_ID`              | Key quorum ID from Privy dashboard |
-| `NEXT_PUBLIC_SERVER_SIGNER_KEY_QUORUM_ID` | Same quorum ID (public)            |
+| Variable                          | What it does                                               |
+| --------------------------------- | ---------------------------------------------------------- |
+| `PRIVY_AUTHORIZATION_PRIVATE_KEY` | P-256 PKCS8 private key (base64) for server wallet signing |
 
 **Optional:**
 
