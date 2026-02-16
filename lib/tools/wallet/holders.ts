@@ -86,7 +86,7 @@ async function fetchTokenHolders(
     const params: Record<string, unknown> = {
       mint,
       limit: pageSize,
-      showZeroBalance: false,
+      displayOptions: { showZeroBalance: false },
     };
     if (cursor) {
       params.cursor = cursor;

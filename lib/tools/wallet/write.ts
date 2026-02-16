@@ -19,8 +19,10 @@ import {
   Connection,
   PublicKey,
   SystemProgram,
-  Transaction,
+  TransactionMessage,
+  VersionedTransaction,
   LAMPORTS_PER_SOL,
+  type TransactionInstruction,
 } from "@solana/web3.js";
 import {
   getAssociatedTokenAddress,
@@ -30,6 +32,10 @@ import {
   TOKEN_2022_PROGRAM_ID,
 } from "@solana/spl-token";
 import { SOLANA_RPC_URL } from "@/lib/constants/solana";
+import {
+  createComputeBudgetInstructions,
+  COMPUTE_UNITS,
+} from "@/lib/solana/fees";
 import { getPrivyClient } from "@/lib/auth/verifyRequest";
 import {
   getAuthorizationContext,
@@ -370,20 +376,30 @@ async function executeSolTransfer(
     };
   }
 
-  // Build transaction
-  const transaction = new Transaction().add(
-    SystemProgram.transfer({ fromPubkey, toPubkey: recipient, lamports }),
+  // Build versioned transaction with priority fees
+  const priorityIxs = await createComputeBudgetInstructions(
+    COMPUTE_UNITS.SOL_TRANSFER,
+    [ctx.walletAddress],
   );
+
+  const instructions = [
+    ...priorityIxs,
+    SystemProgram.transfer({ fromPubkey, toPubkey: recipient, lamports }),
+  ];
 
   const { blockhash, lastValidBlockHeight } =
     await connection.getLatestBlockhash("confirmed");
-  transaction.recentBlockhash = blockhash;
-  transaction.feePayer = fromPubkey;
+
+  const message = new TransactionMessage({
+    payerKey: fromPubkey,
+    recentBlockhash: blockhash,
+    instructions,
+  }).compileToV0Message();
+
+  const transaction = new VersionedTransaction(message);
 
   // Sign via Privy
-  const unsignedTx = transaction
-    .serialize({ requireAllSignatures: false })
-    .toString("base64");
+  const unsignedTx = Buffer.from(transaction.serialize()).toString("base64");
 
   const privy = getPrivyClient();
   const authContext = getAuthorizationContext();
@@ -466,8 +482,8 @@ async function executeTokenTransfer(
     };
   }
 
-  // Build transaction
-  const transaction = new Transaction();
+  // Build instructions
+  const instructions: TransactionInstruction[] = [];
 
   // Create recipient ATA if needed
   const recipientAta = await getAssociatedTokenAddress(
@@ -479,7 +495,7 @@ async function executeTokenTransfer(
   try {
     const recipientAccount = await connection.getAccountInfo(recipientAta);
     if (!recipientAccount) {
-      transaction.add(
+      instructions.push(
         createAssociatedTokenAccountInstruction(
           fromPubkey,
           recipientAta,
@@ -491,7 +507,7 @@ async function executeTokenTransfer(
     }
   } catch {
     // Account doesn't exist, create it
-    transaction.add(
+    instructions.push(
       createAssociatedTokenAccountInstruction(
         fromPubkey,
         recipientAta,
@@ -503,7 +519,7 @@ async function executeTokenTransfer(
   }
 
   // Add transfer instruction
-  transaction.add(
+  instructions.push(
     createTransferInstruction(
       senderAta,
       recipientAta,
@@ -514,15 +530,25 @@ async function executeTokenTransfer(
     ),
   );
 
+  // Build versioned transaction with priority fees
+  const priorityIxs = await createComputeBudgetInstructions(
+    COMPUTE_UNITS.TOKEN_TRANSFER,
+    [ctx.walletAddress],
+  );
+
   const { blockhash, lastValidBlockHeight } =
     await connection.getLatestBlockhash("confirmed");
-  transaction.recentBlockhash = blockhash;
-  transaction.feePayer = fromPubkey;
+
+  const message = new TransactionMessage({
+    payerKey: fromPubkey,
+    recentBlockhash: blockhash,
+    instructions: [...priorityIxs, ...instructions],
+  }).compileToV0Message();
+
+  const transaction = new VersionedTransaction(message);
 
   // Sign via Privy
-  const unsignedTx = transaction
-    .serialize({ requireAllSignatures: false })
-    .toString("base64");
+  const unsignedTx = Buffer.from(transaction.serialize()).toString("base64");
 
   const privy = getPrivyClient();
   const authContext = getAuthorizationContext();
@@ -560,6 +586,9 @@ async function executeTokenTransfer(
     rawAmount: rawAmount.toString(),
   };
 }
+
+/** Timeout for confirming a single batch transaction on-chain */
+const CONFIRM_TIMEOUT_MS = 60_000; // 60 seconds
 
 async function executeBatchTransfer(
   ctx: WalletToolContext,
@@ -613,11 +642,17 @@ async function executeBatchTransfer(
     } as BatchTransferResult & { decimals?: number; error?: string };
   }
 
-  // Split into batches of MAX_BATCH_RECIPIENTS
+  // Split into batches of 5 per tx to stay within Solana's 1232-byte transaction
+  // size limit (each recipient may need ATA creation + transfer = ~2 instructions)
+  const BATCH_SIZE = 5;
   const batches: PublicKey[][] = [];
-  for (let i = 0; i < recipients.length; i += MAX_BATCH_RECIPIENTS) {
-    batches.push(recipients.slice(i, i + MAX_BATCH_RECIPIENTS));
+  for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
+    batches.push(recipients.slice(i, i + BATCH_SIZE));
   }
+
+  console.log(
+    `[Wallet] Starting batch airdrop: ${recipients.length} recipients in ${batches.length} batches of ${BATCH_SIZE}`,
+  );
 
   const result: BatchTransferResult = {
     totalRecipients: recipients.length,
@@ -626,10 +661,22 @@ async function executeBatchTransfer(
     transactions: [],
   };
 
-  // Execute batches sequentially (each needs its own blockhash/signature)
-  for (const batch of batches) {
+  // Phase 1: Sign and send all batches (sequential signing to avoid Privy rate limits)
+  const pendingTxs: Array<{
+    signature: string;
+    blockhash: string;
+    lastValidBlockHeight: number;
+    batchSize: number;
+  }> = [];
+
+  for (let batchIdx = 0; batchIdx < batches.length; batchIdx++) {
+    const batch = batches[batchIdx];
+    console.log(
+      `[Wallet] Signing batch ${batchIdx + 1}/${batches.length} (${batch.length} recipients)`,
+    );
+
     try {
-      const txResult = await executeSingleBatchTx(
+      const sent = await signAndSendBatchTx(
         ctx,
         connection,
         fromPubkey,
@@ -640,19 +687,29 @@ async function executeBatchTransfer(
         tokenProgram,
       );
 
-      result.transactions.push({
-        signature: txResult.signature,
-        success: txResult.success,
-        recipientCount: batch.length,
-        error: txResult.error,
-      });
-
-      if (txResult.success) {
-        result.successCount += batch.length;
-      } else {
+      if (sent.error) {
+        console.error(
+          `[Wallet] Batch ${batchIdx + 1} sign/send failed: ${sent.error}`,
+        );
+        result.transactions.push({
+          success: false,
+          recipientCount: batch.length,
+          error: sent.error,
+        });
         result.failureCount += batch.length;
+      } else {
+        console.log(
+          `[Wallet] Batch ${batchIdx + 1} sent: ${sent.signature!.slice(0, 16)}...`,
+        );
+        pendingTxs.push({
+          signature: sent.signature!,
+          blockhash: sent.blockhash!,
+          lastValidBlockHeight: sent.lastValidBlockHeight!,
+          batchSize: batch.length,
+        });
       }
     } catch (error) {
+      console.error(`[Wallet] Batch ${batchIdx + 1} exception:`, error);
       result.transactions.push({
         success: false,
         recipientCount: batch.length,
@@ -662,10 +719,79 @@ async function executeBatchTransfer(
     }
   }
 
+  if (pendingTxs.length === 0) {
+    console.error("[Wallet] All batches failed to send, skipping confirmation");
+    return { ...result, decimals };
+  }
+
+  console.log(
+    `[Wallet] Confirming ${pendingTxs.length} transactions in parallel...`,
+  );
+
+  // Phase 2: Confirm all sent transactions in parallel (with timeout per confirmation)
+  const confirmResults = await Promise.allSettled(
+    pendingTxs.map(async (tx) => {
+      const confirmPromise = connection.confirmTransaction(
+        {
+          signature: tx.signature,
+          blockhash: tx.blockhash,
+          lastValidBlockHeight: tx.lastValidBlockHeight,
+        },
+        "confirmed",
+      );
+
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(
+          () => reject(new Error("Transaction confirmation timed out")),
+          CONFIRM_TIMEOUT_MS,
+        ),
+      );
+
+      await Promise.race([confirmPromise, timeoutPromise]);
+      return tx;
+    }),
+  );
+
+  for (const settled of confirmResults) {
+    if (settled.status === "fulfilled") {
+      const tx = settled.value;
+      result.transactions.push({
+        signature: tx.signature,
+        success: true,
+        recipientCount: tx.batchSize,
+      });
+      result.successCount += tx.batchSize;
+    } else {
+      // Find the matching pending tx for batch size
+      const failedTx = pendingTxs.find(
+        (t) => !result.transactions.some((r) => r.signature === t.signature),
+      );
+      const errMsg =
+        settled.reason instanceof Error
+          ? settled.reason.message
+          : "Confirmation failed";
+      console.error(`[Wallet] Batch confirmation failed: ${errMsg}`);
+      result.transactions.push({
+        success: false,
+        recipientCount: failedTx?.batchSize ?? 0,
+        error: errMsg,
+      });
+      result.failureCount += failedTx?.batchSize ?? 0;
+    }
+  }
+
+  console.log(
+    `[Wallet] Batch airdrop complete: ${result.successCount} succeeded, ${result.failureCount} failed`,
+  );
+
   return { ...result, decimals };
 }
 
-async function executeSingleBatchTx(
+/**
+ * Build, sign, and send a single batch transaction (without waiting for confirmation).
+ * Returns the signature + blockhash info needed to confirm later.
+ */
+async function signAndSendBatchTx(
   ctx: WalletToolContext,
   connection: Connection,
   fromPubkey: PublicKey,
@@ -674,33 +800,31 @@ async function executeSingleBatchTx(
   recipients: PublicKey[],
   rawAmountPer: bigint,
   tokenProgram: PublicKey,
-): Promise<TransferResult> {
-  const transaction = new Transaction();
+): Promise<{
+  signature?: string;
+  blockhash?: string;
+  lastValidBlockHeight?: number;
+  error?: string;
+}> {
+  const instructions: TransactionInstruction[] = [];
 
-  // For each recipient: create ATA if needed + add transfer instruction
-  for (const recipient of recipients) {
-    const recipientAta = await getAssociatedTokenAddress(
-      mint,
-      recipient,
-      true,
-      tokenProgram,
-    );
+  // Derive all recipient ATAs (local computation, no RPC)
+  const recipientAtas = await Promise.all(
+    recipients.map((r) =>
+      getAssociatedTokenAddress(mint, r, true, tokenProgram),
+    ),
+  );
 
-    try {
-      const account = await connection.getAccountInfo(recipientAta);
-      if (!account) {
-        transaction.add(
-          createAssociatedTokenAccountInstruction(
-            fromPubkey,
-            recipientAta,
-            recipient,
-            mint,
-            tokenProgram,
-          ),
-        );
-      }
-    } catch {
-      transaction.add(
+  // Batch-check which ATAs already exist in a single RPC call
+  const ataAccounts = await connection.getMultipleAccountsInfo(recipientAtas);
+
+  // Build instructions: create missing ATAs + add transfer for each recipient
+  for (let i = 0; i < recipients.length; i++) {
+    const recipient = recipients[i];
+    const recipientAta = recipientAtas[i];
+
+    if (!ataAccounts[i]) {
+      instructions.push(
         createAssociatedTokenAccountInstruction(
           fromPubkey,
           recipientAta,
@@ -711,7 +835,7 @@ async function executeSingleBatchTx(
       );
     }
 
-    transaction.add(
+    instructions.push(
       createTransferInstruction(
         senderAta,
         recipientAta,
@@ -723,15 +847,24 @@ async function executeSingleBatchTx(
     );
   }
 
+  // Build versioned transaction with priority fees
+  const priorityIxs = await createComputeBudgetInstructions(
+    COMPUTE_UNITS.TOKEN_BATCH,
+  );
+
   const { blockhash, lastValidBlockHeight } =
     await connection.getLatestBlockhash("confirmed");
-  transaction.recentBlockhash = blockhash;
-  transaction.feePayer = fromPubkey;
+
+  const message = new TransactionMessage({
+    payerKey: fromPubkey,
+    recentBlockhash: blockhash,
+    instructions: [...priorityIxs, ...instructions],
+  }).compileToV0Message();
+
+  const transaction = new VersionedTransaction(message);
 
   // Sign via Privy
-  const unsignedTx = transaction
-    .serialize({ requireAllSignatures: false })
-    .toString("base64");
+  const unsignedTx = Buffer.from(transaction.serialize()).toString("base64");
 
   const privy = getPrivyClient();
   const authContext = getAuthorizationContext();
@@ -745,24 +878,20 @@ async function executeSingleBatchTx(
 
   const validation = validatePrivySignResponse(rawResult);
   if (!validation.success) {
-    return { signature: "", success: false, error: validation.error };
+    return { error: validation.error };
   }
 
   const signedTxBuffer = Buffer.from(
     validation.data.signed_transaction,
     "base64",
   );
+
   const signature = await connection.sendRawTransaction(signedTxBuffer, {
     skipPreflight: false,
     preflightCommitment: "confirmed",
   });
 
-  await connection.confirmTransaction(
-    { signature, blockhash, lastValidBlockHeight },
-    "confirmed",
-  );
-
-  return { signature, success: true };
+  return { signature, blockhash, lastValidBlockHeight };
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────

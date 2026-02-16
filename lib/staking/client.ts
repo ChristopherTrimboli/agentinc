@@ -3,8 +3,9 @@ import { ICluster } from "@streamflow/common";
 import {
   Connection,
   PublicKey,
-  Transaction,
   TransactionInstruction,
+  TransactionMessage,
+  VersionedTransaction,
 } from "@solana/web3.js";
 import {
   getAssociatedTokenAddress,
@@ -13,6 +14,10 @@ import {
   TOKEN_2022_PROGRAM_ID,
 } from "@solana/spl-token";
 import { SOLANA_RPC_URL } from "@/lib/constants/solana";
+import {
+  createComputeBudgetInstructions,
+  COMPUTE_UNITS,
+} from "@/lib/solana/fees";
 import prisma from "@/lib/prisma";
 import BN from "bn.js";
 
@@ -279,19 +284,23 @@ export async function buildCreatePoolTransaction(params: {
   const ixs = result.ixs;
   const stakePoolAddress = result.publicKey.toBase58();
 
-  // Build transaction
-  const { blockhash, lastValidBlockHeight } =
-    await connection.getLatestBlockhash("confirmed");
+  // Build versioned transaction with priority fees
+  const priorityIxs = await createComputeBudgetInstructions(
+    COMPUTE_UNITS.STAKING,
+  );
+  const { blockhash } = await connection.getLatestBlockhash("confirmed");
+  const payer = new PublicKey(params.walletAddress);
 
-  const transaction = new Transaction();
-  transaction.add(...ixs);
-  transaction.recentBlockhash = blockhash;
-  transaction.lastValidBlockHeight = lastValidBlockHeight;
-  transaction.feePayer = new PublicKey(params.walletAddress);
+  const message = new TransactionMessage({
+    payerKey: payer,
+    recentBlockhash: blockhash,
+    instructions: [...priorityIxs, ...ixs],
+  }).compileToV0Message();
 
-  const transactionBase64 = Buffer.from(
-    transaction.serialize({ requireAllSignatures: false }),
-  ).toString("base64");
+  const transaction = new VersionedTransaction(message);
+  const transactionBase64 = Buffer.from(transaction.serialize()).toString(
+    "base64",
+  );
 
   return { transaction: transactionBase64, stakePoolAddress };
 }
@@ -371,19 +380,20 @@ export async function buildCreateRewardPoolTransaction(params: {
     }
   }
 
-  // Build transaction
-  const { blockhash, lastValidBlockHeight } =
-    await connection.getLatestBlockhash("confirmed");
+  // Build versioned transaction with priority fees
+  const priorityIxs = await createComputeBudgetInstructions(
+    COMPUTE_UNITS.STAKING,
+  );
+  const { blockhash } = await connection.getLatestBlockhash("confirmed");
 
-  const transaction = new Transaction();
-  transaction.add(...result.ixs);
-  transaction.recentBlockhash = blockhash;
-  transaction.lastValidBlockHeight = lastValidBlockHeight;
-  transaction.feePayer = payer;
+  const message = new TransactionMessage({
+    payerKey: payer,
+    recentBlockhash: blockhash,
+    instructions: [...priorityIxs, ...result.ixs],
+  }).compileToV0Message();
 
-  return Buffer.from(
-    transaction.serialize({ requireAllSignatures: false }),
-  ).toString("base64");
+  const transaction = new VersionedTransaction(message);
+  return Buffer.from(transaction.serialize()).toString("base64");
 }
 
 /**
@@ -426,19 +436,20 @@ export async function buildFundRewardPoolTransaction(params: {
     { invoker },
   );
 
-  // Build transaction
-  const { blockhash, lastValidBlockHeight } =
-    await connection.getLatestBlockhash("confirmed");
+  // Build versioned transaction with priority fees
+  const priorityIxs = await createComputeBudgetInstructions(
+    COMPUTE_UNITS.STAKING,
+  );
+  const { blockhash } = await connection.getLatestBlockhash("confirmed");
 
-  const transaction = new Transaction();
-  transaction.add(...result.ixs);
-  transaction.recentBlockhash = blockhash;
-  transaction.lastValidBlockHeight = lastValidBlockHeight;
-  transaction.feePayer = payer;
+  const message = new TransactionMessage({
+    payerKey: payer,
+    recentBlockhash: blockhash,
+    instructions: [...priorityIxs, ...result.ixs],
+  }).compileToV0Message();
 
-  return Buffer.from(
-    transaction.serialize({ requireAllSignatures: false }),
-  ).toString("base64");
+  const transaction = new VersionedTransaction(message);
+  return Buffer.from(transaction.serialize()).toString("base64");
 }
 
 /**
@@ -532,22 +543,20 @@ export async function buildStakeTransaction(params: {
     stakeIxs = result.ixs;
   }
 
-  // ── Build full transaction ─────────────────────────────────
-  const { blockhash, lastValidBlockHeight } =
-    await connection.getLatestBlockhash("confirmed");
+  // ── Build versioned transaction with priority fees ────────
+  const priorityIxs = await createComputeBudgetInstructions(
+    COMPUTE_UNITS.STAKING,
+  );
+  const { blockhash } = await connection.getLatestBlockhash("confirmed");
 
-  const transaction = new Transaction();
-  // Add ATA creation first, then stake
-  if (preIxs.length > 0) transaction.add(...preIxs);
-  transaction.add(...stakeIxs);
-  transaction.recentBlockhash = blockhash;
-  transaction.lastValidBlockHeight = lastValidBlockHeight;
-  transaction.feePayer = payer;
+  const message = new TransactionMessage({
+    payerKey: payer,
+    recentBlockhash: blockhash,
+    instructions: [...priorityIxs, ...preIxs, ...stakeIxs],
+  }).compileToV0Message();
 
-  // Serialize unsigned
-  return Buffer.from(
-    transaction.serialize({ requireAllSignatures: false }),
-  ).toString("base64");
+  const transaction = new VersionedTransaction(message);
+  return Buffer.from(transaction.serialize()).toString("base64");
 }
 
 /**
@@ -609,20 +618,20 @@ export async function buildUnstakeTransaction(params: {
     unstakeIxs = result.ixs;
   }
 
-  // ── Build full transaction ─────────────────────────────────
-  const { blockhash, lastValidBlockHeight } =
-    await connection.getLatestBlockhash("confirmed");
+  // ── Build versioned transaction with priority fees ────────
+  const priorityIxs = await createComputeBudgetInstructions(
+    COMPUTE_UNITS.STAKING,
+  );
+  const { blockhash } = await connection.getLatestBlockhash("confirmed");
 
-  const transaction = new Transaction();
-  if (preIxs.length > 0) transaction.add(...preIxs);
-  transaction.add(...unstakeIxs);
-  transaction.recentBlockhash = blockhash;
-  transaction.lastValidBlockHeight = lastValidBlockHeight;
-  transaction.feePayer = payer;
+  const message = new TransactionMessage({
+    payerKey: payer,
+    recentBlockhash: blockhash,
+    instructions: [...priorityIxs, ...preIxs, ...unstakeIxs],
+  }).compileToV0Message();
 
-  return Buffer.from(
-    transaction.serialize({ requireAllSignatures: false }),
-  ).toString("base64");
+  const transaction = new VersionedTransaction(message);
+  return Buffer.from(transaction.serialize()).toString("base64");
 }
 
 /**
@@ -671,20 +680,20 @@ export async function buildClaimRewardsTransaction(params: {
     claimIxs.push(...result.ixs);
   }
 
-  // ── Build full transaction ─────────────────────────────────
-  const { blockhash, lastValidBlockHeight } =
-    await connection.getLatestBlockhash("confirmed");
+  // ── Build versioned transaction with priority fees ────────
+  const priorityIxs = await createComputeBudgetInstructions(
+    COMPUTE_UNITS.STAKING,
+  );
+  const { blockhash } = await connection.getLatestBlockhash("confirmed");
 
-  const transaction = new Transaction();
-  if (preIxs.length > 0) transaction.add(...preIxs);
-  transaction.add(...claimIxs);
-  transaction.recentBlockhash = blockhash;
-  transaction.lastValidBlockHeight = lastValidBlockHeight;
-  transaction.feePayer = payer;
+  const message = new TransactionMessage({
+    payerKey: payer,
+    recentBlockhash: blockhash,
+    instructions: [...priorityIxs, ...preIxs, ...claimIxs],
+  }).compileToV0Message();
 
-  return Buffer.from(
-    transaction.serialize({ requireAllSignatures: false }),
-  ).toString("base64");
+  const transaction = new VersionedTransaction(message);
+  return Buffer.from(transaction.serialize()).toString("base64");
 }
 
 /**

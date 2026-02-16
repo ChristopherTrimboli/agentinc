@@ -22,9 +22,14 @@ import {
   Connection,
   PublicKey,
   SystemProgram,
-  Transaction,
+  TransactionMessage,
+  VersionedTransaction,
 } from "@solana/web3.js";
 import { SOLANA_RPC_URL } from "@/lib/constants/solana";
+import {
+  createComputeBudgetInstructions,
+  COMPUTE_UNITS,
+} from "@/lib/solana/fees";
 import { getPrivyClient } from "@/lib/auth/verifyRequest";
 import { validatePrivySignResponse } from "@/lib/x402/validation";
 import { isRedisConfigured, getRedis } from "@/lib/redis";
@@ -41,14 +46,24 @@ const WALLET_LOCK_TTL_SECONDS = 30;
 const WALLET_LOCK_RETRY_DELAY_MS = 100;
 const WALLET_LOCK_MAX_RETRIES = 50; // 50 * 100ms = 5s max wait
 
-const memoryWalletLocks = new Map<string, Promise<void>>();
+/** In-memory lock TTL — auto-release if holder dies (e.g. serverless timeout) */
+const MEMORY_LOCK_TTL_MS = 120_000; // 2 minutes
+/** Max wait time to acquire the in-memory lock before giving up */
+const MEMORY_LOCK_ACQUIRE_TIMEOUT_MS = 10_000; // 10 seconds
+
+interface MemoryLockEntry {
+  gate: Promise<void>;
+  expiresAt: number;
+}
+
+const memoryWalletLocks = new Map<string, MemoryLockEntry>();
 
 /**
  * Acquire a distributed lock for a wallet address via Redis.
  * Returns a release function that must be called when done.
  *
  * Uses Redis SET NX EX for atomic acquire with TTL safety net.
- * Falls back to in-memory promise-chaining if Redis is unavailable.
+ * Falls back to in-memory promise-chaining with TTL if Redis is unavailable.
  */
 export async function acquireWalletLock(
   walletAddress: string,
@@ -88,26 +103,58 @@ export async function acquireWalletLock(
   }
 
   // In-memory fallback (for local dev or Redis failure)
+  // Includes TTL to prevent deadlocks from timed-out serverless functions
+
+  // Clean up expired locks first
+  const existing = memoryWalletLocks.get(walletAddress);
+  if (existing && existing.expiresAt < Date.now()) {
+    console.warn(
+      `[WalletLock] Clearing expired in-memory lock for ${walletAddress.slice(0, 8)}...`,
+    );
+    memoryWalletLocks.delete(walletAddress);
+  }
+
   let releaseLock: () => void;
   const gate = new Promise<void>((resolve) => {
     releaseLock = resolve;
   });
 
-  const prev = memoryWalletLocks.get(walletAddress) ?? Promise.resolve();
-  memoryWalletLocks.set(walletAddress, gate);
-  await prev;
+  const entry: MemoryLockEntry = {
+    gate,
+    expiresAt: Date.now() + MEMORY_LOCK_TTL_MS,
+  };
+
+  const prev = memoryWalletLocks.get(walletAddress);
+  memoryWalletLocks.set(walletAddress, entry);
+
+  // Wait for previous lock holder, but with a timeout to prevent infinite hangs
+  if (prev) {
+    const timeout = new Promise<void>((resolve) =>
+      setTimeout(() => {
+        console.warn(
+          `[WalletLock] In-memory lock acquire timeout for ${walletAddress.slice(0, 8)}..., proceeding`,
+        );
+        resolve();
+      }, MEMORY_LOCK_ACQUIRE_TIMEOUT_MS),
+    );
+    await Promise.race([prev.gate, timeout]);
+  }
 
   return () => {
-    if (memoryWalletLocks.get(walletAddress) === gate) {
+    if (memoryWalletLocks.get(walletAddress) === entry) {
       memoryWalletLocks.delete(walletAddress);
     }
     releaseLock!();
   };
 }
 
+/** Max time a wallet-locked operation can run before being aborted */
+const WALLET_OP_TIMEOUT_MS = 240_000; // 4 minutes (below 5-minute serverless limit)
+
 /**
  * Execute a function with wallet lock protection.
  * Prevents concurrent operations on the same wallet.
+ * Includes a hard timeout to prevent indefinite hangs.
  */
 export async function withWalletLock<T>(
   walletAddress: string,
@@ -115,7 +162,21 @@ export async function withWalletLock<T>(
 ): Promise<T> {
   const release = await acquireWalletLock(walletAddress);
   try {
-    return await fn();
+    const result = await Promise.race([
+      fn(),
+      new Promise<never>((_, reject) =>
+        setTimeout(
+          () =>
+            reject(
+              new Error(
+                "Wallet operation timed out after 4 minutes. The transactions may still be processing on-chain.",
+              ),
+            ),
+          WALLET_OP_TIMEOUT_MS,
+        ),
+      ),
+    ]);
+    return result;
   } finally {
     release();
   }
@@ -204,22 +265,28 @@ export async function sendSolFromWallet(
     const fromPubkey = new PublicKey(walletAddress);
     const toPubkey = new PublicKey(recipientAddress);
 
-    const transaction = new Transaction().add(
-      SystemProgram.transfer({
-        fromPubkey,
-        toPubkey,
-        lamports,
-      }),
+    // Build instructions with dynamic priority fees
+    const priorityIxs = await createComputeBudgetInstructions(
+      COMPUTE_UNITS.SOL_TRANSFER,
+      [walletAddress, recipientAddress],
     );
+
+    const instructions = [
+      ...priorityIxs,
+      SystemProgram.transfer({ fromPubkey, toPubkey, lamports }),
+    ];
 
     const { blockhash, lastValidBlockHeight } =
       await connection.getLatestBlockhash("confirmed");
-    transaction.recentBlockhash = blockhash;
-    transaction.feePayer = fromPubkey;
 
-    const unsignedTx = transaction
-      .serialize({ requireAllSignatures: false })
-      .toString("base64");
+    const message = new TransactionMessage({
+      payerKey: fromPubkey,
+      recentBlockhash: blockhash,
+      instructions,
+    }).compileToV0Message();
+
+    const transaction = new VersionedTransaction(message);
+    const unsignedTx = Buffer.from(transaction.serialize()).toString("base64");
 
     const authContext = getAuthorizationContext();
     const rawResult = await privy.wallets().solana().signTransaction(walletId, {

@@ -103,16 +103,24 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Ensure an active wallet is set if wallets exist but none is active
-    if (existingUser?.wallets?.length && !existingUser.activeWalletId) {
-      // Prefer server-owned wallets
-      const preferred =
-        existingUser.wallets.find((w) => w.serverOwned) ??
-        existingUser.wallets[0];
-      await prisma.user.update({
-        where: { id: privyUser.id },
-        data: { activeWalletId: preferred.id },
-      });
+    // Ensure active wallet is set and points to a server-owned wallet if available.
+    // This handles: no active wallet, or active wallet is a legacy user-owned one.
+    if (existingUser?.wallets?.length) {
+      const activeWallet = existingUser.wallets.find(
+        (w) => w.id === existingUser.activeWalletId,
+      );
+      const serverWallet = existingUser.wallets.find((w) => w.serverOwned);
+
+      const shouldSwitch =
+        !existingUser.activeWalletId ||
+        (activeWallet && !activeWallet.serverOwned && serverWallet);
+
+      if (shouldSwitch && serverWallet) {
+        await prisma.user.update({
+          where: { id: privyUser.id },
+          data: { activeWalletId: serverWallet.id },
+        });
+      }
     }
 
     return NextResponse.json({

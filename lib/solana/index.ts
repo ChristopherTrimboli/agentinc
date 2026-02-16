@@ -23,6 +23,13 @@ export function getPrivyClient(): PrivyClient {
 // Re-export getConnection from constants
 export { getConnection };
 
+// Re-export priority fee utilities
+export {
+  estimatePriorityFee,
+  createComputeBudgetInstructions,
+  COMPUTE_UNITS,
+} from "@/lib/solana/fees";
+
 /**
  * Validate a transaction before signing.
  * Checks:

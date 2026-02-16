@@ -69,8 +69,9 @@ function sanitizeAgentPrompt(prompt: string): string {
   return sanitized.trim();
 }
 
-// Allow streaming responses up to 60 seconds (multi-step tool use can be slow)
-export const maxDuration = 60;
+// Allow streaming responses up to 300 seconds (batch transfers can require
+// many sequential Privy signing calls + on-chain confirmations)
+export const maxDuration = 300;
 
 // Allowed models to prevent cost abuse via user-controlled model selection
 const ALLOWED_MODELS = new Set([
