@@ -1,7 +1,10 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport } from "ai";
+import {
+  DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithApprovalResponses,
+} from "ai";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import {
   Bot,
@@ -1364,6 +1367,7 @@ function ChatInterface({
     addToolApprovalResponse,
   } = useChat({
     transport,
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
     onError: (error) => {
       const status = (error as Error & { status?: number }).status;
       const code = (error as Error & { code?: string }).code;
