@@ -1,4 +1,3 @@
-import { PrivyClient } from "@privy-io/node";
 import bs58 from "bs58";
 import { Transaction, VersionedTransaction } from "@solana/web3.js";
 import {
@@ -6,19 +5,12 @@ import {
   FALLBACK_RPC_URLS,
   getConnection,
 } from "@/lib/constants/solana";
-
-// Singleton Privy client
-let _privyClient: PrivyClient | null = null;
-
-export function getPrivyClient(): PrivyClient {
-  if (!_privyClient) {
-    _privyClient = new PrivyClient({
-      appId: process.env.NEXT_PUBLIC_PRIVY_APP_ID!,
-      appSecret: process.env.PRIVY_APP_SECRET!,
-    });
-  }
-  return _privyClient;
-}
+import { getPrivyClient } from "@/lib/auth/verifyRequest";
+import {
+  getAuthorizationContext,
+  isServerWalletConfigured,
+} from "@/lib/privy/wallet-service";
+import { validatePrivySignResponse } from "@/lib/x402/validation";
 
 // Re-export getConnection from constants
 export { getConnection };
@@ -118,7 +110,8 @@ export function validateTransaction(transactionBase64: string): {
   }
 }
 
-// Sign a transaction server-side using Privy embedded wallet
+// Sign a transaction server-side using Privy embedded wallet.
+// Passes authorization_context when server wallet is configured (server-owned wallets).
 export async function signTransaction(
   walletId: string,
   transaction: string, // base64 encoded unsigned transaction
@@ -131,13 +124,22 @@ export async function signTransaction(
 
   const privy = getPrivyClient();
 
-  const response = await privy.wallets().solana().signTransaction(walletId, {
+  const signParams: { transaction: string; authorization_context?: ReturnType<typeof getAuthorizationContext> } = {
     transaction,
-  });
+  };
 
-  // Response type uses snake_case
-  const data = response as unknown as { signed_transaction: string };
-  return data.signed_transaction;
+  if (isServerWalletConfigured()) {
+    signParams.authorization_context = getAuthorizationContext();
+  }
+
+  const rawResult = await privy.wallets().solana().signTransaction(walletId, signParams);
+
+  const validated = validatePrivySignResponse(rawResult);
+  if (!validated.success) {
+    throw new Error(`[Solana] signTransaction failed: ${validated.error}`);
+  }
+
+  return validated.data.signed_transaction;
 }
 
 // Send via Jito for priority landing
@@ -269,59 +271,6 @@ export async function serverSignAndSend(
   const result = await sendSignedTransaction(signedTransaction, options);
 
   return result;
-}
-
-// Verify auth from request headers
-export async function verifyAuth(
-  idToken: string | null,
-): Promise<{ userId: string; walletAddress: string; walletId: string } | null> {
-  if (!idToken) return null;
-
-  const privy = getPrivyClient();
-
-  try {
-    const user = await privy.users().get({ id_token: idToken });
-
-    // Find the Solana embedded wallet - check multiple possible property names
-    const solanaWallet = user.linked_accounts?.find((account) => {
-      if (account.type !== "wallet") return false;
-
-      const wallet = account as {
-        chain_type?: string;
-        chainType?: string;
-        chain?: string;
-      };
-
-      return (
-        wallet.chain_type === "solana" ||
-        wallet.chainType === "solana" ||
-        wallet.chain === "solana"
-      );
-    });
-
-    if (!solanaWallet) {
-      console.error(
-        "[Solana] No Solana wallet found. Available accounts:",
-        JSON.stringify(
-          user.linked_accounts?.filter((a) => a.type === "wallet"),
-          null,
-          2,
-        ),
-      );
-      return null;
-    }
-
-    const walletData = solanaWallet as { id: string; address: string };
-
-    return {
-      userId: user.id,
-      walletAddress: walletData.address,
-      walletId: walletData.id,
-    };
-  } catch (error) {
-    console.error("[Solana] verifyAuth error:", error);
-    return null;
-  }
 }
 
 // Get recent blockhash

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { BagsSDK } from "@bagsfm/bags-sdk";
-import { Connection } from "@solana/web3.js";
 import { put } from "@vercel/blob";
 import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
 import { getConnection } from "@/lib/constants/solana";
@@ -111,7 +110,7 @@ export async function POST(req: NextRequest) {
       tokenLaunch: tokenInfoResponse.tokenLaunch,
     });
   } catch (error) {
-    console.error("Error creating token metadata:", error);
+    console.error("[Mint Metadata] Error creating token metadata:", error);
     const errorMessage =
       error instanceof Error
         ? error.message

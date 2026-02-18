@@ -359,11 +359,9 @@ export function useMintAgent() {
               transaction: txBytes,
               wallet: signingWallet!,
             });
-            const signedTxBase64 = btoa(
-              String.fromCharCode(
-                ...new Uint8Array(signResult.signedTransaction),
-              ),
-            );
+            const signedTxBase64 = Buffer.from(
+              signResult.signedTransaction,
+            ).toString("base64");
 
             const sendResponse = await authFetch(
               "/api/agents/mint/send-transaction",
@@ -387,6 +385,61 @@ export function useMintAgent() {
           }
         }
       }
+
+      // Sign and send any fee share bundles (Jito atomic multi-tx flows)
+      if (feeShareData.bundles?.length > 0) {
+        for (let b = 0; b < feeShareData.bundles.length; b++) {
+          const bundle = feeShareData.bundles[b] as Array<{
+            transaction: string;
+            isTip: boolean;
+            tipLamports?: number;
+          }>;
+          try {
+            const signedTxs: string[] = [];
+            for (let t = 0; t < bundle.length; t++) {
+              const txData = bundle[t];
+              let txBytes: Uint8Array;
+              try {
+                txBytes = Uint8Array.from(atob(txData.transaction), (c) =>
+                  c.charCodeAt(0),
+                );
+              } catch {
+                throw new Error(
+                  `Invalid transaction data in fee config bundle ${b + 1}, tx ${t + 1}`,
+                );
+              }
+              const signResult = await signTransaction({
+                transaction: txBytes,
+                wallet: signingWallet!,
+              });
+              const signedTxBase64 = Buffer.from(
+                signResult.signedTransaction,
+              ).toString("base64");
+              signedTxs.push(signedTxBase64);
+            }
+
+            const bundleResponse = await authFetch(
+              "/api/agents/mint/send-bundle",
+              {
+                method: "POST",
+                body: JSON.stringify({ signedTransactions: signedTxs }),
+              },
+            );
+
+            if (!bundleResponse.ok) {
+              const errorData = await bundleResponse.json().catch(() => ({}));
+              throw new Error(
+                errorData.error || `Failed to send fee config bundle ${b + 1}`,
+              );
+            }
+          } catch (error) {
+            throw new Error(
+              `Fee config bundle ${b + 1} failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+            );
+          }
+        }
+      }
+
       updateStep("feeShare", "complete");
 
       // Step 3: Create and sign launch transaction
@@ -423,9 +476,9 @@ export function useMintAgent() {
         transaction: launchTxBytes,
         wallet: signingWallet!,
       });
-      const signedLaunchTxBase64 = btoa(
-        String.fromCharCode(...new Uint8Array(signResult.signedTransaction)),
-      );
+      const signedLaunchTxBase64 = Buffer.from(
+        signResult.signedTransaction,
+      ).toString("base64");
       updateStep("sign", "complete");
 
       // Step 4: Broadcast
@@ -493,6 +546,7 @@ export function useMintAgent() {
   }, [
     identityToken,
     embeddedWallet,
+    signingWallet,
     walletAddress,
     agentTraits,
     imageUrl,

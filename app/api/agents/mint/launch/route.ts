@@ -78,17 +78,11 @@ export async function POST(req: NextRequest) {
       transaction: transactionBase64,
     });
   } catch (error) {
-    console.error("Error creating launch transaction:", error);
-
-    // Sanitize error message - don't expose internal SDK details
+    console.error("[Mint Launch] Error creating launch transaction:", error);
     const errorMessage =
       error instanceof Error
         ? error.message
         : "Failed to create launch transaction";
-
-    return NextResponse.json(
-      { error: "Failed to create launch transaction" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
