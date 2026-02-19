@@ -97,14 +97,14 @@ function ImageView({
         <div className="flex items-center gap-1">
           <button
             onClick={handleOpenInNewTab}
-            className="p-1.5 rounded-lg hover:bg-[#6FEC06]/15 text-white/70 hover:text-white hover:border-[#6FEC06]/25 transition-all duration-200 border border-transparent active:scale-95 hover:shadow-[0_0_8px_rgba(111,236,6,0.12)]"
+            className="p-1.5 rounded-lg hover:bg-[#6FEC06]/15 text-white/70 hover:text-white hover:border-[#6FEC06]/25 transition-all duration-200 border border-transparent active:scale-95"
             title="Open in new tab"
           >
             <ExternalLink className="w-3 h-3" />
           </button>
           <button
             onClick={handleDownload}
-            className="p-1.5 rounded-lg hover:bg-[#6FEC06]/15 text-white/70 hover:text-white hover:border-[#6FEC06]/25 transition-all duration-200 border border-transparent active:scale-95 hover:shadow-[0_0_8px_rgba(111,236,6,0.12)]"
+            className="p-1.5 rounded-lg hover:bg-[#6FEC06]/15 text-white/70 hover:text-white hover:border-[#6FEC06]/25 transition-all duration-200 border border-transparent active:scale-95"
             title="Download image"
           >
             <Download className="w-3 h-3" />

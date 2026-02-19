@@ -1236,6 +1236,46 @@ h6,
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Inline images rendered from markdown (e.g. flower grids, diagrams) */
+[data-streamdown] img {
+  display: block;
+  float: none !important;
+  clear: both !important;
+  max-width: 140px;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  margin: 0 0 8px 0;
+}
+
+[data-streamdown] p:has(img) {
+  display: block !important;
+  margin-bottom: 10px;
+}
+
+/* Keep markdown image + text stacked cleanly (no side-by-side drift) */
+[data-streamdown] li:has(img),
+[data-streamdown] p:has(img) {
+  display: block !important;
+}
+
+/* If renderer wraps image+text in one container, force vertical layout */
+[data-streamdown] :is(p, li, div, span):has(> img) {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 6px;
+}
+
+/* Hide markdown image action controls (e.g. download buttons) */
+[data-streamdown] :is(figure, [data-streamdown="image"], p, li):has(img) button,
+[data-streamdown] :is(figure, [data-streamdown="image"], p, li):has(img) [role="button"] {
+  display: none !important;
+}
+
 /* Link styling for chat messages - high contrast on dark background */
 [data-streamdown] a,
 .streaming-message a,

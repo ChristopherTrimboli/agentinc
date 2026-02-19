@@ -38,6 +38,7 @@ import {
 } from "./imageGeneration";
 import { webSearchTools } from "./webSearch";
 import { createTwilioTools, twilioTools } from "./twilio";
+import { createFlowerTools, flowerTools } from "./flowers";
 // Note: Twitter tools are created dynamically with user OAuth token via createTwitterTools()
 // Note: Knowledge tools are created dynamically with userId/agentId via createKnowledgeTools()
 // Note: Task tools are created dynamically with userId/agentId via createTaskTools()
@@ -112,6 +113,12 @@ export {
   // Default bundle (no billing, backward compat)
   twilioTools,
 } from "./twilio";
+// Flower delivery (Florist One — partner billing, pay in SOL)
+export {
+  createFlowerTools,
+  flowerTools,
+  FLOWER_CATEGORIES,
+} from "./flowers";
 // Task management (recurring background tasks)
 export { createTaskTools } from "./tasks";
 // Wallet management (balances, holders, transfers, airdrops)
@@ -588,6 +595,39 @@ export const TOOL_GROUPS: ToolGroup[] = [
     ],
   },
   {
+    id: "flowers",
+    name: "Send Flowers",
+    description:
+      "Order real flowers for delivery to anyone in the US — pay in SOL",
+    icon: "🌸",
+    category: "UTILITIES",
+    logoUrl: "https://www.floristone.com/images/floristonelogo.jpg",
+    source: "Florist One",
+    functions: [
+      {
+        id: "browseFlowers",
+        name: "Browse Products",
+        description: "Browse flower arrangements by category or occasion",
+      },
+      {
+        id: "checkFlowerDelivery",
+        name: "Check Delivery",
+        description: "Get available delivery dates for a zip code",
+      },
+      {
+        id: "getFlowerQuote",
+        name: "Get Quote",
+        description: "Calculate total including delivery and tax",
+      },
+      {
+        id: "sendFlowers",
+        name: "Send Flowers",
+        description: "Place a real flower order (charges SOL)",
+      },
+    ],
+  },
+
+  {
     id: "tasks",
     name: "Background Tasks",
     description:
@@ -713,6 +753,7 @@ export function getAllTools(): ToolMap {
     ...imageGenerationTools,
     ...webSearchTools,
     ...twilioTools,
+    // Note: flowerTools excluded — sendFlowers requires a billing context (createFlowerTools(billingContext))
     // Note: twitterTools excluded - requires user OAuth token, added dynamically in chat API
   };
 }
@@ -741,6 +782,8 @@ export function getToolsForGroups(
     datetime: datetimeTools,
     // SOCIAL (paid — use factory with billing)
     twilio: createTwilioTools(billingContext),
+    // UTILITIES (paid — flower sendFlowers charges order total in SOL)
+    flowers: createFlowerTools(billingContext),
     // Note: twitter group is handled separately in chat API (requires OAuth token)
     // Note: wallet group is handled separately in chat API (requires wallet context)
   };

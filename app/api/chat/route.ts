@@ -113,7 +113,24 @@ When the user asks to generate, create, draw, or make an image/picture/illustrat
 - Enhance the user's description with artistic details for better results
 - Choose an appropriate aspect ratio (1:1 for square, 16:9 for landscape, 9:16 for portrait)
 - After the image is generated, briefly describe what you created
-- Examples of triggers: "make me an image of...", "draw a...", "generate a picture of...", "create an illustration of..."`;
+- Examples of triggers: "make me an image of...", "draw a...", "generate a picture of...", "create an illustration of..."
+
+### browseFlowers Guidelines:
+After calling browseFlowers, present products as a simple markdown list (not cards).
+Use this exact per-item format:
+
+**Name** - **$price**
+![Name](thumbnailUrl)
+Short plain-text description.
+
+---
+
+Formatting rules:
+- Do not put images inside bullet list items.
+- Keep one blank line between name/price, image, and description.
+- Do NOT use italics for descriptions.
+- Do NOT output raw URLs.
+- Show at most 4-6 products per response, then ask what they want next.`;
 
 async function chatHandler(req: RequestWithBilling) {
   // Get billing context if available (injected by withUsageBasedPayment middleware)

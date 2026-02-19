@@ -228,6 +228,25 @@ export const TWILIO_PRICING = {
 export type TwilioPricingKey = keyof typeof TWILIO_PRICING;
 
 /**
+ * Flower delivery per-tool pricing in USD.
+ *
+ * Browse/check/quote tools are free (read-only API calls).
+ * sendFlowers charges the exact Florist One order total (no extra fee).
+ *
+ * Revenue model:
+ *   - Florist One pays a 20% affiliate commission upfront (partner billing)
+ *   - Platform pays 80% of order total, keeps 20% commission as revenue
+ */
+export const FLOWERS_PRICING = {
+  browseFlowers: 0, // Free — read-only product browse
+  checkFlowerDelivery: 0, // Free — delivery date check
+  getFlowerQuote: 0, // Free — price calculation
+  sendFlowers: 0, // Variable — charged dynamically (order total + platform fee %)
+} as const;
+
+export type FlowersPricingKey = keyof typeof FLOWERS_PRICING;
+
+/**
  * Image Generation per-tool pricing in USD.
  *
  * Based on Black Forest Labs Flux Pro 1.1 API pricing.

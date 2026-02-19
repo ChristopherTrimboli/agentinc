@@ -3,7 +3,7 @@ import { TOOL_GROUPS } from "@/lib/tools";
 import { rateLimitByIP } from "@/lib/rateLimit";
 import { isRedisConfigured, getRedis } from "@/lib/redis";
 
-const TOOLS_CACHE_KEY = "api:tools:list:v2";
+const TOOLS_CACHE_KEY = "api:tools:list:v3";
 const TOOLS_CACHE_TTL = 3600; // 1 hour (tools rarely change)
 
 /**
