@@ -5,7 +5,10 @@ import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
 import { rateLimitByUser } from "@/lib/rateLimit";
 import { start } from "workflow/api";
 import { recurringTaskWorkflow } from "@/workflows/tasks/workflow";
-import type { TaskConfig, TaskTriggerMode } from "@/workflows/tasks/steps/execute";
+import type {
+  TaskConfig,
+  TaskTriggerMode,
+} from "@/workflows/tasks/steps/execute";
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -122,20 +125,28 @@ export async function POST(req: NextRequest) {
   // intervalMs is required for interval and event-or-interval modes
   if (triggerMode !== "event" && !intervalMs) {
     return NextResponse.json(
-      { error: "intervalMs is required for interval and event-or-interval trigger modes" },
+      {
+        error:
+          "intervalMs is required for interval and event-or-interval trigger modes",
+      },
       { status: 400 },
     );
   }
 
   if (!VALID_TRIGGER_MODES.includes(triggerMode)) {
     return NextResponse.json(
-      { error: `triggerMode must be one of: ${VALID_TRIGGER_MODES.join(", ")}` },
+      {
+        error: `triggerMode must be one of: ${VALID_TRIGGER_MODES.join(", ")}`,
+      },
       { status: 400 },
     );
   }
 
   // Validate interval when provided
-  if (intervalMs && (intervalMs < MIN_INTERVAL_MS || intervalMs > MAX_INTERVAL_MS)) {
+  if (
+    intervalMs &&
+    (intervalMs < MIN_INTERVAL_MS || intervalMs > MAX_INTERVAL_MS)
+  ) {
     return NextResponse.json(
       {
         error: `intervalMs must be between ${MIN_INTERVAL_MS} (1 min) and ${MAX_INTERVAL_MS} (24 hrs)`,
@@ -185,9 +196,7 @@ export async function POST(req: NextRequest) {
 
     // Generate a webhook secret for event-triggered tasks
     const webhookSecret =
-      triggerMode !== "interval"
-        ? randomBytes(32).toString("hex")
-        : null;
+      triggerMode !== "interval" ? randomBytes(32).toString("hex") : null;
 
     // Create task record
     const task = await prisma.agentTask.create({

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { useWallets, useSignTransaction } from "@privy-io/react-auth/solana";
 import { nanoid } from "nanoid";
 import {
   generateRandomAgent,
@@ -32,8 +31,6 @@ export interface LaunchResult {
 
 export function useMintAgent() {
   const { authFetch, identityToken } = useAuth();
-  const { wallets } = useWallets();
-  const { signTransaction } = useSignTransaction();
 
   // Wizard state
   const [currentStep, setCurrentStep] = useState(0);
@@ -85,19 +82,6 @@ export function useMintAgent() {
 
   const walletAddress = useActiveWalletAddress();
 
-  // Get the wallet object for signing — prefer active wallet to match server-side feePayer
-  const signingWallet = useMemo(() => {
-    if (walletAddress) {
-      const activeMatch = wallets.find((w) => w.address === walletAddress);
-      if (activeMatch) return activeMatch;
-    }
-    const embedded = wallets.find((w) => w.standardWallet?.name === "Privy");
-    return embedded || wallets[0] || null;
-  }, [wallets, walletAddress]);
-
-  // Keep `embeddedWallet` alias for backward compatibility in guard checks
-  const embeddedWallet = signingWallet;
-
   // Realtime wallet balance via Solana WebSocket subscription
   const {
     balance: walletBalance,
@@ -128,14 +112,12 @@ export function useMintAgent() {
 
   // Randomize agent traits
   const randomizeAgent = useCallback(() => {
-    // Clear any existing timeout
     if (randomizeTimeoutRef.current) {
       clearTimeout(randomizeTimeoutRef.current);
     }
 
     setIsRandomizing(true);
     randomizeTimeoutRef.current = setTimeout(() => {
-      // Check if still mounted before updating state
       if (!isMountedRef.current) return;
 
       const newTraits = generateRandomAgent();
@@ -197,21 +179,17 @@ export function useMintAgent() {
       if (!identityToken) return;
       setIsUploadingImage(true);
       try {
-        // Validate file type
         if (!file.type.startsWith("image/")) {
           throw new Error("Please select an image file");
         }
-        // Validate file size (max 5MB)
         if (file.size > 5 * 1024 * 1024) {
           throw new Error("Image must be less than 5MB");
         }
 
-        // Convert to base64
         const base64 = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
           reader.onload = () => {
             const result = reader.result as string;
-            // Remove the data URL prefix to get just the base64
             const base64Data = result.split(",")[1];
             resolve(base64Data);
           };
@@ -254,18 +232,12 @@ export function useMintAgent() {
     [],
   );
 
-  // Main launch function
+  // Main launch function — all transactions are signed server-side via Privy authorization key
   const handleLaunch = useCallback(async () => {
     setLaunchError("");
     setLaunchResult(null);
 
-    if (
-      !identityToken ||
-      !embeddedWallet ||
-      !walletAddress ||
-      !agentTraits ||
-      !imageUrl
-    ) {
+    if (!identityToken || !walletAddress || !agentTraits || !imageUrl) {
       setLaunchError("Please complete all steps before launching");
       return;
     }
@@ -285,7 +257,6 @@ export function useMintAgent() {
       return;
     }
 
-    // Initialize steps
     setLaunchSteps(
       DEFAULT_LAUNCH_STEPS.map((step) => ({
         ...step,
@@ -299,8 +270,10 @@ export function useMintAgent() {
       updateStep("metadata", "loading");
 
       const websiteUrl = `${APP_BASE_URL}/agent/${agentId}`;
-      const formattedTwitter =
-        twitterHandle.trim().replace(/^@/, "") || undefined;
+      const twitterUsername = twitterHandle.trim().replace(/^@/, "");
+      const formattedTwitter = twitterUsername
+        ? `https://x.com/${twitterUsername}`
+        : undefined;
 
       const metadataResponse = await authFetch("/api/agents/mint/metadata", {
         method: "POST",
@@ -329,7 +302,6 @@ export function useMintAgent() {
       const feeShareResponse = await authFetch("/api/agents/mint/fee-share", {
         method: "POST",
         body: JSON.stringify({
-          wallet: walletAddress,
           tokenMint: metadataData.tokenMint,
         }),
       });
@@ -340,34 +312,26 @@ export function useMintAgent() {
       }
       const feeShareData = await feeShareResponse.json();
 
-      // Sign and send any fee share transactions
+      // Send fee share transactions — server signs using the user's wallet
       if (feeShareData.transactions?.length > 0) {
         for (let i = 0; i < feeShareData.transactions.length; i++) {
           try {
             const txData = feeShareData.transactions[i];
-            let txBytes: Uint8Array;
-            try {
-              txBytes = Uint8Array.from(atob(txData.transaction), (c) =>
-                c.charCodeAt(0),
-              );
-            } catch {
+            if (!txData.transaction || typeof txData.transaction !== "string") {
               throw new Error(
                 `Invalid transaction data for fee config ${i + 1}`,
               );
             }
-            const signResult = await signTransaction({
-              transaction: txBytes,
-              wallet: signingWallet!,
-            });
-            const signedTxBase64 = Buffer.from(
-              signResult.signedTransaction,
-            ).toString("base64");
 
             const sendResponse = await authFetch(
               "/api/agents/mint/send-transaction",
               {
                 method: "POST",
-                body: JSON.stringify({ signedTransaction: signedTxBase64 }),
+                body: JSON.stringify({
+                  transaction: txData.transaction, // unsigned — server signs
+                  useJito: false,
+                  waitForConfirmation: true,
+                }),
               },
             );
 
@@ -386,7 +350,7 @@ export function useMintAgent() {
         }
       }
 
-      // Sign and send any fee share bundles (Jito atomic multi-tx flows)
+      // Send fee share bundles (Jito atomic multi-tx flows) — server signs each tx
       if (feeShareData.bundles?.length > 0) {
         for (let b = 0; b < feeShareData.bundles.length; b++) {
           const bundle = feeShareData.bundles[b] as Array<{
@@ -395,34 +359,24 @@ export function useMintAgent() {
             tipLamports?: number;
           }>;
           try {
-            const signedTxs: string[] = [];
-            for (let t = 0; t < bundle.length; t++) {
-              const txData = bundle[t];
-              let txBytes: Uint8Array;
-              try {
-                txBytes = Uint8Array.from(atob(txData.transaction), (c) =>
-                  c.charCodeAt(0),
-                );
-              } catch {
+            const unsignedTxs: string[] = bundle.map((txData) => {
+              if (
+                !txData.transaction ||
+                typeof txData.transaction !== "string"
+              ) {
                 throw new Error(
-                  `Invalid transaction data in fee config bundle ${b + 1}, tx ${t + 1}`,
+                  `Invalid transaction data in fee config bundle ${b + 1}`,
                 );
               }
-              const signResult = await signTransaction({
-                transaction: txBytes,
-                wallet: signingWallet!,
-              });
-              const signedTxBase64 = Buffer.from(
-                signResult.signedTransaction,
-              ).toString("base64");
-              signedTxs.push(signedTxBase64);
-            }
+              return txData.transaction;
+            });
 
             const bundleResponse = await authFetch(
               "/api/agents/mint/send-bundle",
               {
                 method: "POST",
-                body: JSON.stringify({ signedTransactions: signedTxs }),
+                // unsignedTransactions → server signs before Jito submission
+                body: JSON.stringify({ unsignedTransactions: unsignedTxs }),
               },
             );
 
@@ -442,7 +396,7 @@ export function useMintAgent() {
 
       updateStep("feeShare", "complete");
 
-      // Step 3: Create and sign launch transaction
+      // Step 3: Get launch transaction (server signs and sends)
       updateStep("sign", "loading");
 
       const launchTxResponse = await authFetch("/api/agents/mint/launch", {
@@ -450,7 +404,6 @@ export function useMintAgent() {
         body: JSON.stringify({
           tokenMint: metadataData.tokenMint,
           metadataUrl: metadataData.tokenMetadata,
-          wallet: walletAddress,
           initialBuyLamports: Math.floor(initialBuy * 1e9),
           configKey: feeShareData.meteoraConfigKey,
         }),
@@ -463,32 +416,18 @@ export function useMintAgent() {
         );
       }
       const launchTxData = await launchTxResponse.json();
-
-      let launchTxBytes: Uint8Array;
-      try {
-        launchTxBytes = Uint8Array.from(atob(launchTxData.transaction), (c) =>
-          c.charCodeAt(0),
-        );
-      } catch {
-        throw new Error("Invalid launch transaction data");
-      }
-      const signResult = await signTransaction({
-        transaction: launchTxBytes,
-        wallet: signingWallet!,
-      });
-      const signedLaunchTxBase64 = Buffer.from(
-        signResult.signedTransaction,
-      ).toString("base64");
       updateStep("sign", "complete");
 
-      // Step 4: Broadcast
+      // Step 4: Broadcast — server signs the unsigned launch transaction
       updateStep("broadcast", "loading");
 
       const broadcastResponse = await authFetch(
         "/api/agents/mint/send-transaction",
         {
           method: "POST",
-          body: JSON.stringify({ signedTransaction: signedLaunchTxBase64 }),
+          body: JSON.stringify({
+            transaction: launchTxData.transaction, // unsigned — server signs
+          }),
         },
       );
 
@@ -545,8 +484,6 @@ export function useMintAgent() {
     }
   }, [
     identityToken,
-    embeddedWallet,
-    signingWallet,
     walletAddress,
     agentTraits,
     imageUrl,
@@ -557,7 +494,6 @@ export function useMintAgent() {
     agentName,
     tokenSymbol,
     description,
-    signTransaction,
     updateStep,
     authFetch,
   ]);

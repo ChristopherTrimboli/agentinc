@@ -18,6 +18,8 @@
  * The only difference is that server-owned wallets support export/import.
  */
 
+import { createPrivateKey, createPublicKey } from "crypto";
+
 import {
   Connection,
   PublicKey,
@@ -210,11 +212,34 @@ export function getAuthorizationContext() {
 }
 
 /**
- * Create a new server-owned Solana wallet via Privy.
+ * Derive the SPKI-formatted P-256 public key (base64) from the PKCS8 private key
+ * stored in PRIVY_AUTHORIZATION_PRIVATE_KEY. This is the format Privy requires
+ * when setting an authorization key as the wallet owner.
  *
- * Created without an explicit user owner — the app controls the wallet
- * and signs transactions using the authorization private key. This means
- * the server can immediately sign without any client-side ceremony.
+ * The PRIVY_AUTHORIZATION_PRIVATE_KEY is base64-encoded PKCS8.
+ * The returned public key is base64-encoded SPKI — accepted by Privy's
+ * `owner: { public_key }` field on wallet create/update.
+ */
+export function getAuthorizationPublicKey(): string {
+  const privateKeyBase64 = process.env.PRIVY_AUTHORIZATION_PRIVATE_KEY;
+  if (!privateKeyBase64) {
+    throw new Error("PRIVY_AUTHORIZATION_PRIVATE_KEY not configured");
+  }
+  const privateKeyDer = Buffer.from(privateKeyBase64, "base64");
+  const privateKey = createPrivateKey({
+    key: privateKeyDer,
+    format: "der",
+    type: "pkcs8",
+  });
+  const publicKey = createPublicKey(privateKey);
+  const publicKeySpki = publicKey.export({ type: "spki", format: "der" });
+  return Buffer.from(publicKeySpki).toString("base64");
+}
+
+/**
+ * Create a new server-owned Solana wallet via Privy, with the authorization
+ * key set as the wallet owner. This allows the server to sign AND export the
+ * wallet's private key using the authorization context.
  *
  * @returns The created wallet's Privy ID and Solana address
  */
@@ -224,8 +249,23 @@ export async function createServerOwnedWallet(): Promise<{
 }> {
   const privy = getPrivyClient();
 
+  // Set the authorization key as owner so the wallet is exportable.
+  // The public key is derived from PRIVY_AUTHORIZATION_PRIVATE_KEY.
+  let ownerParam: { owner: { public_key: string } } | object = {};
+  if (isServerWalletConfigured()) {
+    try {
+      ownerParam = { owner: { public_key: getAuthorizationPublicKey() } };
+    } catch (err) {
+      console.warn(
+        "[WalletService] Could not derive authorization public key; wallet will be created without owner:",
+        err,
+      );
+    }
+  }
+
   const wallet = await privy.wallets().create({
     chain_type: "solana",
+    ...ownerParam,
   });
 
   return {

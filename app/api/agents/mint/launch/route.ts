@@ -23,16 +23,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (!auth.walletAddress) {
+      return NextResponse.json(
+        { error: "No active wallet found" },
+        { status: 400 },
+      );
+    }
+
     const body = await req.json();
-    const { tokenMint, metadataUrl, wallet, initialBuyLamports, configKey } =
-      body;
+    const { tokenMint, metadataUrl, initialBuyLamports, configKey } = body;
 
     // Validate required fields
-    if (!tokenMint || !metadataUrl || !wallet || !configKey) {
+    if (!tokenMint || !metadataUrl || !configKey) {
       return NextResponse.json(
         {
-          error:
-            "Missing required fields: tokenMint, metadataUrl, wallet, configKey",
+          error: "Missing required fields: tokenMint, metadataUrl, configKey",
         },
         { status: 400 },
       );
@@ -41,7 +46,6 @@ export async function POST(req: NextRequest) {
     // Validate PublicKeys before use
     const invalidKeys: string[] = [];
     if (!isValidPublicKey(tokenMint)) invalidKeys.push("tokenMint");
-    if (!isValidPublicKey(wallet)) invalidKeys.push("wallet");
     if (!isValidPublicKey(configKey)) invalidKeys.push("configKey");
 
     if (invalidKeys.length > 0) {
@@ -57,17 +61,29 @@ export async function POST(req: NextRequest) {
 
     // Convert to PublicKeys (validated above)
     const tokenMintPubkey = validatePublicKey(tokenMint, "tokenMint");
-    const walletPubkey = validatePublicKey(wallet, "wallet");
+    const walletPubkey = validatePublicKey(auth.walletAddress, "wallet");
     const configKeyPubkey = validatePublicKey(configKey, "configKey");
 
     // Create launch transaction using SDK
-    const launchTransaction = await sdk.tokenLaunch.createLaunchTransaction({
-      metadataUrl,
-      tokenMint: tokenMintPubkey,
-      launchWallet: walletPubkey,
-      initialBuyLamports: initialBuyLamports || 0,
-      configKey: configKeyPubkey,
-    });
+    let launchTransaction;
+    try {
+      launchTransaction = await sdk.tokenLaunch.createLaunchTransaction({
+        metadataUrl,
+        tokenMint: tokenMintPubkey,
+        launchWallet: walletPubkey,
+        initialBuyLamports: initialBuyLamports || 0,
+        configKey: configKeyPubkey,
+      });
+    } catch (sdkError: unknown) {
+      console.error("[Mint Launch] SDK error details:", sdkError);
+      if (sdkError && typeof sdkError === "object" && "data" in sdkError) {
+        console.error(
+          "[Mint Launch] Error data:",
+          JSON.stringify((sdkError as { data: unknown }).data, null, 2),
+        );
+      }
+      throw sdkError;
+    }
 
     // Serialize the transaction to base64 for frontend signing
     const transactionBase64 = Buffer.from(

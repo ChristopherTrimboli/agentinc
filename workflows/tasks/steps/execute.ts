@@ -12,8 +12,8 @@ import type { ToolMap } from "@/lib/tools/types";
 
 /** How a task decides when to fire the next iteration */
 export type TaskTriggerMode =
-  | "interval"         // sleep N ms between runs (default)
-  | "event"            // block until an external webhook event arrives
+  | "interval" // sleep N ms between runs (default)
+  | "event" // block until an external webhook event arrives
   | "event-or-interval"; // race: run on whichever comes first
 
 /** Event payload forwarded from an external webhook trigger */

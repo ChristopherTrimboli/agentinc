@@ -8,6 +8,7 @@ export {
   isServerWalletConfigured,
   createServerOwnedWallet,
   getAuthorizationContext,
+  getAuthorizationPublicKey,
   getWalletBalance,
   sendSolFromWallet,
   hasEnoughBalance,

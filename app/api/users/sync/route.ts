@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { getPrivyClient } from "@/lib/auth/verifyRequest";
+import {
+  requireAuth,
+  isAuthResult,
+  getPrivyClient,
+} from "@/lib/auth/verifyRequest";
 import {
   isServerWalletConfigured,
   createServerOwnedWallet,
@@ -8,23 +12,23 @@ import {
 import { rateLimitByUser } from "@/lib/rateLimit";
 
 export async function POST(req: NextRequest) {
+  // Use requireAuth to verify the token — this caches the userId in Redis,
+  // avoiding a redundant Privy API call on every page load.
+  const authResult = await requireAuth(req);
+  if (!isAuthResult(authResult)) return authResult;
+
+  const { userId } = authResult;
+
+  // Rate limit: 10 sync requests per minute per user
+  const rateLimited = await rateLimitByUser(userId, "user-sync", 10);
+  if (rateLimited) return rateLimited;
+
   try {
-    const idToken = req.headers.get("privy-id-token");
-
-    if (!idToken) {
-      return NextResponse.json(
-        { error: "Missing identity token" },
-        { status: 401 },
-      );
-    }
-
-    // Verify identity token and get user data
+    // Fetch full Privy user object for linked_accounts (email, etc.).
+    // Auth is already verified by requireAuth above; this call is data-only.
+    const idToken = req.headers.get("privy-id-token")!;
     const privy = getPrivyClient();
     const privyUser = await privy.users().get({ id_token: idToken });
-
-    // Rate limit: 10 sync requests per minute per user
-    const rateLimited = await rateLimitByUser(privyUser.id, "user-sync", 10);
-    if (rateLimited) return rateLimited;
 
     // Extract email from linked_accounts
     const emailAccount = privyUser.linked_accounts?.find(
@@ -33,7 +37,7 @@ export async function POST(req: NextRequest) {
 
     // Get existing user to check if they already have wallets
     const existingUser = await prisma.user.findUnique({
-      where: { id: privyUser.id },
+      where: { id: userId },
       select: {
         activeWalletId: true,
         wallets: true,
@@ -42,9 +46,9 @@ export async function POST(req: NextRequest) {
 
     // Upsert user record
     const user = await prisma.user.upsert({
-      where: { id: privyUser.id },
+      where: { id: userId },
       create: {
-        id: privyUser.id,
+        id: userId,
         email: emailAccount?.address ?? null,
       },
       update: {
@@ -76,7 +80,7 @@ export async function POST(req: NextRequest) {
 
           const wallet = await prisma.userWallet.create({
             data: {
-              userId: privyUser.id,
+              userId,
               privyWalletId: walletId,
               address,
               serverOwned: true,
@@ -86,12 +90,12 @@ export async function POST(req: NextRequest) {
 
           // Set the new server-owned wallet as active (replaces legacy wallet)
           await prisma.user.update({
-            where: { id: privyUser.id },
+            where: { id: userId },
             data: { activeWalletId: wallet.id },
           });
 
           console.log(
-            `[UserSync] Created server-owned wallet for user ${privyUser.id}: ${address}`,
+            `[UserSync] Created server-owned wallet for user ${userId}: ${address}`,
           );
         } catch (error) {
           console.error(
@@ -117,7 +121,7 @@ export async function POST(req: NextRequest) {
 
       if (shouldSwitch && serverWallet) {
         await prisma.user.update({
-          where: { id: privyUser.id },
+          where: { id: userId },
           data: { activeWalletId: serverWallet.id },
         });
       }

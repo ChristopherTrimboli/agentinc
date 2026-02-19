@@ -2,7 +2,11 @@ import { sleep } from "workflow";
 
 import { taskControlHook } from "./hooks/taskControl";
 import { taskEventHook } from "./hooks/taskEvent";
-import { executeIteration, type TaskConfig, type TaskEventContext } from "./steps/execute";
+import {
+  executeIteration,
+  type TaskConfig,
+  type TaskEventContext,
+} from "./steps/execute";
 import {
   updateTaskProgress,
   updateNextExecution,
@@ -106,7 +110,11 @@ export async function recurringTaskWorkflow(
     // For "interval" mode, eventContext stays null and sleep happens after.
 
     // Execute the AI task iteration (with optional event context in prompt)
-    const result = await executeIteration(config, iteration, eventContext ?? undefined);
+    const result = await executeIteration(
+      config,
+      iteration,
+      eventContext ?? undefined,
+    );
 
     // Save iteration result to DB
     await saveTaskLog(config.taskId, iteration, result.content, result.status, {

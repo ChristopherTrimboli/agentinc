@@ -103,7 +103,7 @@ export async function verifyAuth(req: NextRequest): Promise<AuthResult | null> {
   }
 
   // ── Step 2: Resolve active wallet from DB (always fresh) ────────
-  // Never cached so wallet switches take effect immediately.
+  // Not cached — wallet switches must take effect on the next request.
   try {
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -112,7 +112,6 @@ export async function verifyAuth(req: NextRequest): Promise<AuthResult | null> {
           select: { address: true, privyWalletId: true },
         },
       },
-      cacheStrategy: { ttl: 5 },
     });
 
     if (user?.activeWallet) {

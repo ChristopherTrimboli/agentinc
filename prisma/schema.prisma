@@ -63,6 +63,7 @@ model UserWallet {
 
   @@unique([userId, address])
   @@index([userId])
+  @@index([userId, serverOwned])
   @@index([address])
   @@index([privyWalletId])
 }

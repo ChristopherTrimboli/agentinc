@@ -124,7 +124,10 @@ export async function signTransaction(
 
   const privy = getPrivyClient();
 
-  const signParams: { transaction: string; authorization_context?: ReturnType<typeof getAuthorizationContext> } = {
+  const signParams: {
+    transaction: string;
+    authorization_context?: ReturnType<typeof getAuthorizationContext>;
+  } = {
     transaction,
   };
 
@@ -132,7 +135,10 @@ export async function signTransaction(
     signParams.authorization_context = getAuthorizationContext();
   }
 
-  const rawResult = await privy.wallets().solana().signTransaction(walletId, signParams);
+  const rawResult = await privy
+    .wallets()
+    .solana()
+    .signTransaction(walletId, signParams);
 
   const validated = validatePrivySignResponse(rawResult);
   if (!validated.success) {
@@ -197,7 +203,7 @@ async function sendViaRpc(base58Tx: string): Promise<string | null> {
               encoding: "base58",
               skipPreflight: false,
               preflightCommitment: "confirmed",
-              maxRetries: 3,
+              maxRetries: 5,
             },
           ],
         }),
@@ -208,8 +214,14 @@ async function sendViaRpc(base58Tx: string): Promise<string | null> {
       const data = await response.json();
 
       if (data.error) {
-        if (data.error.message?.includes("insufficient")) {
-          throw new Error(data.error.message);
+        const msg: string = data.error.message ?? JSON.stringify(data.error);
+        console.error(`[RPC] sendTransaction error from ${rpcUrl}:`, msg);
+        // Re-throw fatal errors immediately
+        if (
+          msg.includes("insufficient") ||
+          msg.includes("Blockhash not found")
+        ) {
+          throw new Error(msg);
         }
         continue;
       }
@@ -227,6 +239,31 @@ async function sendViaRpc(base58Tx: string): Promise<string | null> {
     }
   }
   return null;
+}
+
+/**
+ * Simulate a signed base64 transaction and return the full simulation result.
+ * Useful for diagnosing why a transaction isn't landing.
+ */
+export async function simulateSignedTransaction(
+  signedTransactionBase64: string,
+): Promise<{
+  err: unknown;
+  logs: string[] | null;
+  unitsConsumed?: number;
+}> {
+  const connection = getConnection();
+  const txBytes = Buffer.from(signedTransactionBase64, "base64");
+  const tx = VersionedTransaction.deserialize(txBytes);
+  const result = await connection.simulateTransaction(tx, {
+    commitment: "confirmed",
+    sigVerify: false,
+  });
+  return {
+    err: result.value.err,
+    logs: result.value.logs,
+    unitsConsumed: result.value.unitsConsumed ?? undefined,
+  };
 }
 
 // Send a signed transaction (base64) with Jito priority + RPC fallback
@@ -271,6 +308,46 @@ export async function serverSignAndSend(
   const result = await sendSignedTransaction(signedTransaction, options);
 
   return result;
+}
+
+/**
+ * Wait for a submitted transaction signature to reach "confirmed" commitment
+ * by polling getSignatureStatuses. Does not require the original blockhash.
+ */
+export async function confirmTransactionBySignature(
+  signature: string,
+  timeoutMs = 90_000,
+  pollIntervalMs = 1_500,
+): Promise<void> {
+  const connection = getConnection();
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    const { value } = await connection.getSignatureStatuses([signature], {
+      searchTransactionHistory: false,
+    });
+    const status = value[0];
+
+    if (status) {
+      if (status.err) {
+        throw new Error(
+          `Transaction ${signature} failed on-chain: ${JSON.stringify(status.err)}`,
+        );
+      }
+      if (
+        status.confirmationStatus === "confirmed" ||
+        status.confirmationStatus === "finalized"
+      ) {
+        return;
+      }
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+  }
+
+  throw new Error(
+    `Transaction ${signature} confirmation timed out after ${timeoutMs / 1000}s`,
+  );
 }
 
 // Get recent blockhash

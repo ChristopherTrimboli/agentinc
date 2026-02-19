@@ -30,24 +30,23 @@ export async function POST(req: NextRequest) {
     const partnerWallet = process.env.BAGS_PARTNER_WALLET;
     const partnerConfig = process.env.BAGS_PARTNER_KEY;
 
+    if (!auth.walletAddress) {
+      return NextResponse.json(
+        { error: "No active wallet found" },
+        { status: 400 },
+      );
+    }
+
     const body = await req.json();
-    const { wallet, tokenMint } = body;
+    const { tokenMint } = body;
 
-    // Validate required fields
-    if (!wallet || !tokenMint) {
+    if (!tokenMint) {
       return NextResponse.json(
-        { error: "Missing required fields: wallet, tokenMint" },
+        { error: "Missing required field: tokenMint" },
         { status: 400 },
       );
     }
 
-    // Validate PublicKeys before use
-    if (!isValidPublicKey(wallet)) {
-      return NextResponse.json(
-        { error: "Invalid wallet address: not a valid Solana public key" },
-        { status: 400 },
-      );
-    }
     if (!isValidPublicKey(tokenMint)) {
       return NextResponse.json(
         { error: "Invalid tokenMint: not a valid Solana public key" },
@@ -59,8 +58,7 @@ export async function POST(req: NextRequest) {
     const connection = getConnection();
     const sdk = new BagsSDK(apiKey, connection, "confirmed");
 
-    // Convert to PublicKeys (validated above)
-    const walletPubkey = validatePublicKey(wallet, "wallet");
+    const walletPubkey = validatePublicKey(auth.walletAddress, "wallet");
     const tokenMintPubkey = validatePublicKey(tokenMint, "tokenMint");
 
     // Creator gets 100% of fees (single claimer, no LUT needed)

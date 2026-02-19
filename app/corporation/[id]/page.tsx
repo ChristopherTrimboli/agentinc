@@ -126,11 +126,7 @@ const RARITY_RING = RARITY_RING_COLORS as Record<string, string>;
 
 // ── Corporation Activity Feed ──────────────────────────────────────────────
 
-function CorporationActivityFeed({
-  corporationId,
-}: {
-  corporationId: string;
-}) {
+function CorporationActivityFeed({ corporationId }: { corporationId: string }) {
   const [messages, setMessages] = useState<ActivityMessage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const feedRef = useRef<HTMLDivElement>(null);
@@ -140,9 +136,7 @@ function CorporationActivityFeed({
 
     async function fetchActivity() {
       try {
-        const res = await fetch(
-          `/api/corporations/${corporationId}/activity`,
-        );
+        const res = await fetch(`/api/corporations/${corporationId}/activity`);
         if (!res.ok || cancelled) return;
         const data = await res.json();
         if (!cancelled) setMessages(data.messages ?? []);
@@ -176,9 +170,7 @@ function CorporationActivityFeed({
         </div>
         <div>
           <h3 className="text-sm font-semibold font-display">Swarm Activity</h3>
-          <p className="text-[10px] text-white/40">
-            Live feed from all agents
-          </p>
+          <p className="text-[10px] text-white/40">Live feed from all agents</p>
         </div>
         {/* Live indicator */}
         <div className="ml-auto flex items-center gap-1.5">
@@ -214,8 +206,8 @@ function CorporationActivityFeed({
         )}
 
         {messages.map((msg) => {
-          const badge = RARITY_BADGE[msg.agent.rarity || "common"] ||
-            RARITY_BADGE.common;
+          const badge =
+            RARITY_BADGE[msg.agent.rarity || "common"] || RARITY_BADGE.common;
           return (
             <div key={msg.id} className="flex gap-2.5">
               {/* Agent avatar */}
@@ -339,7 +331,9 @@ function AgentCard({ agent }: { agent: CorpAgent }) {
         {agent.personality && (
           <div className="mt-2 flex items-center gap-1">
             <Sparkles className="w-2.5 h-2.5 text-[#A855F7]/60" />
-            <span className="text-[10px] text-white/40">{agent.personality}</span>
+            <span className="text-[10px] text-white/40">
+              {agent.personality}
+            </span>
           </div>
         )}
       </div>
@@ -553,10 +547,8 @@ export default function CorporationPage({
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto">
         <main className="relative max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
-
           {/* ── Overview ──────────────────────────────────────────── */}
           <div id="overview" className="mb-8 sm:mb-12">
-
             {/* Corp header */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 sm:gap-8 mb-8">
               {/* Logo */}
@@ -719,7 +711,9 @@ export default function CorporationPage({
                     <div className="w-16 h-16 rounded-2xl bg-[#A855F7]/10 border border-[#A855F7]/20 flex items-center justify-center mb-4">
                       <Bot className="w-8 h-8 text-[#A855F7]/40" />
                     </div>
-                    <p className="text-white/40 text-sm">No agents linked yet.</p>
+                    <p className="text-white/40 text-sm">
+                      No agents linked yet.
+                    </p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">

@@ -59,7 +59,10 @@ export async function POST(
     });
   } catch (error) {
     console.error("[Task Trigger] DB lookup error:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 
   if (!task) {
@@ -67,7 +70,10 @@ export async function POST(
   }
 
   if (!task.webhookSecret || task.webhookSecret !== providedSecret) {
-    return NextResponse.json({ error: "Invalid webhook secret" }, { status: 403 });
+    return NextResponse.json(
+      { error: "Invalid webhook secret" },
+      { status: 403 },
+    );
   }
 
   if (task.triggerMode === "interval") {
@@ -116,9 +122,15 @@ export async function POST(
       occurredAt,
     });
   } catch (error) {
-    console.error(`[Task Trigger] Failed to resume workflow for ${taskId}:`, error);
+    console.error(
+      `[Task Trigger] Failed to resume workflow for ${taskId}:`,
+      error,
+    );
     return NextResponse.json(
-      { error: "Failed to trigger task — workflow may not be waiting for an event" },
+      {
+        error:
+          "Failed to trigger task — workflow may not be waiting for an event",
+      },
       { status: 502 },
     );
   }
