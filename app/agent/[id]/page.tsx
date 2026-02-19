@@ -365,10 +365,13 @@ export default function AgentProfilePage({
                         Creator
                       </div>
                       <div className="flex items-center gap-1.5 min-w-0">
-                        <code className="text-xs sm:text-sm text-white/80 font-mono truncate">
-                          {agent.createdBy.activeWallet?.address.slice(0, 4)}...
-                          {agent.createdBy.activeWallet?.address.slice(-4)}
-                        </code>
+                        <Link
+                          href={`/profile/${agent.createdBy.activeWallet.address}`}
+                          className="text-xs sm:text-sm text-white/80 font-mono truncate hover:text-[#6FEC06] transition-colors"
+                        >
+                          {agent.createdBy.activeWallet.address.slice(0, 4)}...
+                          {agent.createdBy.activeWallet.address.slice(-4)}
+                        </Link>
                         <button
                           onClick={() =>
                             copyToClipboard(
@@ -672,10 +675,13 @@ export default function AgentProfilePage({
                     <div className="p-5 rounded-2xl bg-[#0a0520] border border-white/10">
                       <div className="text-xs text-white/40 mb-2">Creator</div>
                       <div className="flex items-center gap-2 min-w-0">
-                        <code className="text-sm text-white/80 font-mono truncate">
-                          {agent.createdBy.activeWallet?.address.slice(0, 4)}...
-                          {agent.createdBy.activeWallet?.address.slice(-4)}
-                        </code>
+                        <Link
+                          href={`/profile/${agent.createdBy.activeWallet.address}`}
+                          className="text-sm text-white/80 font-mono truncate hover:text-[#6FEC06] transition-colors"
+                        >
+                          {agent.createdBy.activeWallet.address.slice(0, 4)}...
+                          {agent.createdBy.activeWallet.address.slice(-4)}
+                        </Link>
                         <button
                           onClick={() =>
                             copyToClipboard(

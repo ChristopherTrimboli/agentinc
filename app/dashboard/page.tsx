@@ -27,7 +27,6 @@ import {
   User,
   Droplets,
 } from "lucide-react";
-import { getSolscanUrl } from "@/lib/constants/urls";
 import { formatPrice } from "@/lib/utils/formatting";
 import {
   useReactTable,
@@ -883,18 +882,15 @@ export default function ExplorePage() {
         cell: ({ getValue }) => {
           const wallet = getValue();
           if (!wallet) return <span className="text-white/40">-</span>;
-          // Truncate the wallet address for display
           const truncated = `${wallet.slice(0, 4)}...${wallet.slice(-4)}`;
           return (
-            <a
-              href={getSolscanUrl("account", wallet)}
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              href={`/profile/${wallet}`}
               className="font-mono text-xs text-white/60 hover:text-[#6FEC06] transition-colors"
               title={wallet}
             >
               {truncated}
-            </a>
+            </Link>
           );
         },
       }),
