@@ -217,6 +217,45 @@ const timelineSchema = z.object({
     .describe("Number of tweets to retrieve"),
 });
 
+const mentionsSchema = z.object({
+  maxResults: z
+    .number()
+    .min(5)
+    .max(100)
+    .default(20)
+    .describe("Number of mentions to retrieve"),
+  sinceId: z
+    .string()
+    .optional()
+    .describe("Optional tweet ID for incremental sync (returns newer mentions)"),
+});
+
+const myTweetsSchema = z.object({
+  maxResults: z
+    .number()
+    .min(5)
+    .max(100)
+    .default(20)
+    .describe("Number of your tweets to retrieve"),
+  sinceId: z
+    .string()
+    .optional()
+    .describe("Optional tweet ID for incremental sync (returns newer tweets)"),
+});
+
+const readDirectMessagesSchema = z.object({
+  maxResults: z
+    .number()
+    .min(1)
+    .max(100)
+    .default(20)
+    .describe("Number of DM events to retrieve"),
+  dmConversationId: z
+    .string()
+    .optional()
+    .describe("Optional DM conversation ID to fetch messages from a specific thread"),
+});
+
 const searchTweetsSchema = z.object({
   query: z
     .string()
@@ -312,6 +351,36 @@ export function createTwitterTools(
       };
     }
     return cachedMe;
+  }
+
+  async function xApiGet(
+    path: string,
+    params?: Record<string, string | undefined>,
+  ): Promise<Record<string, unknown>> {
+    const query = new URLSearchParams();
+    if (params) {
+      for (const [key, value] of Object.entries(params)) {
+        if (value) query.set(key, value);
+      }
+    }
+
+    const url = `https://api.x.com${path}${query.toString() ? `?${query.toString()}` : ""}`;
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    const payload = (await response.json()) as Record<string, unknown>;
+    if (!response.ok) {
+      const message =
+        (payload.detail as string | undefined) ||
+        (payload.title as string | undefined) ||
+        `HTTP ${response.status}`;
+      throw new Error(message);
+    }
+
+    return payload;
   }
 
   return {
@@ -573,6 +642,84 @@ export function createTwitterTools(
           } catch (error: unknown) {
             const err = error as Error;
             return { error: `Failed to get timeline: ${err.message}` };
+          }
+        },
+      },
+      billingContext,
+    ),
+
+    getMyMentions: billedTool(
+      "getMyMentions",
+      {
+        description:
+          "Read tweets that mention the authenticated account. Useful for inbound engagement and autonomous reply workflows.",
+        inputSchema: mentionsSchema,
+        category: "X API",
+        cost: X_API_PRICING.getMyMentions,
+        execute: async (input: z.infer<typeof mentionsSchema>) => {
+          try {
+            const me = await getMe();
+            const mentions = await xApiGet(`/2/users/${me.id}/mentions`, {
+              max_results: String(input.maxResults),
+              since_id: input.sinceId,
+              expansions: "author_id",
+              "tweet.fields":
+                "created_at,public_metrics,conversation_id,author_id",
+              "user.fields": "username,name,profile_image_url",
+            });
+
+            return {
+              success: true,
+              mentions:
+                (mentions.data as Array<Record<string, unknown>> | undefined) ||
+                [],
+              users:
+                ((mentions.includes as { users?: Array<Record<string, unknown>> })
+                  ?.users as Array<Record<string, unknown>> | undefined) || [],
+              meta: mentions.meta,
+            };
+          } catch (error: unknown) {
+            const err = error as Error;
+            return { error: `Failed to get mentions: ${err.message}` };
+          }
+        },
+      },
+      billingContext,
+    ),
+
+    getMyTweets: billedTool(
+      "getMyTweets",
+      {
+        description:
+          "Read tweets posted by the authenticated account. Useful for timeline context and de-duplication in autonomous tasks.",
+        inputSchema: myTweetsSchema,
+        category: "X API",
+        cost: X_API_PRICING.getMyTweets,
+        execute: async (input: z.infer<typeof myTweetsSchema>) => {
+          try {
+            const me = await getMe();
+            const tweets = await xApiGet(`/2/users/${me.id}/tweets`, {
+              max_results: String(input.maxResults),
+              since_id: input.sinceId,
+              expansions: "author_id",
+              "tweet.fields":
+                "created_at,public_metrics,conversation_id,author_id",
+              "user.fields": "username,name,profile_image_url",
+            });
+
+            return {
+              success: true,
+              tweets:
+                (tweets.data as Array<Record<string, unknown>> | undefined) ||
+                [],
+              users:
+                ((tweets.includes as { users?: Array<Record<string, unknown>> })
+                  ?.users as Array<Record<string, unknown>> | undefined) || [],
+              meta: tweets.meta,
+            };
+          } catch (error: unknown) {
+            const err = error as Error;
+            return { error: `Failed to get my tweets: ${err.message}` };
           }
         },
       },
@@ -893,6 +1040,40 @@ export function createTwitterTools(
           } catch (error: unknown) {
             const err = error as Error;
             return { error: `Failed to send DM: ${err.message}` };
+          }
+        },
+      },
+      billingContext,
+    ),
+
+    getDirectMessages: billedTool(
+      "getDirectMessages",
+      {
+        description:
+          "Read inbound and outbound direct message events. Optionally scope to a DM conversation ID.",
+        inputSchema: readDirectMessagesSchema,
+        category: "X API",
+        cost: X_API_PRICING.getDirectMessages,
+        execute: async (input: z.infer<typeof readDirectMessagesSchema>) => {
+          try {
+            const dmPath = input.dmConversationId
+              ? `/2/dm_conversations/${input.dmConversationId}/dm_events`
+              : "/2/dm_events";
+            const dms = await xApiGet(dmPath, {
+              max_results: String(input.maxResults),
+              dm_event_fields:
+                "id,text,created_at,sender_id,dm_conversation_id",
+            });
+
+            return {
+              success: true,
+              messages:
+                (dms.data as Array<Record<string, unknown>> | undefined) || [],
+              meta: dms.meta,
+            };
+          } catch (error: unknown) {
+            const err = error as Error;
+            return { error: `Failed to read direct messages: ${err.message}` };
           }
         },
       },

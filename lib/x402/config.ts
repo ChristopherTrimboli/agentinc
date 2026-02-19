@@ -164,10 +164,13 @@ export const X_API_PRICING = {
   getTweet: 0.005, // Posts: Read ($0.005)
   searchTweets: 0.005, // Posts: Read/search ($0.005)
   getHomeTimeline: 0.005, // Posts: Read ($0.005)
+  getMyMentions: 0.005, // Posts: Read mentions timeline ($0.005)
+  getMyTweets: 0.005, // Posts: Read user timeline ($0.005)
   getUserProfile: 0.01, // User: Read ($0.010)
   getMyProfile: 0.01, // User: Read ($0.010)
   getFollowers: 0.01, // Following/Followers: Read ($0.010)
   getFollowing: 0.01, // Following/Followers: Read ($0.010)
+  getDirectMessages: 0.015, // DM Interaction: Read ($0.015)
 
   // Write operations
   postTweet: 0.01, // Content: Create ($0.010)

@@ -561,6 +561,8 @@ export function createFlowerTools(billingContext?: BillingContext) {
     description:
       "Send real flowers to someone. Collects payment in SOL from the user then places the order using the platform's card. Always call getFlowerQuote first and confirm the total with the user before calling this.",
     inputSchema: sendFlowersSchema,
+    // Explicitly non-interactive so autonomous tasks can execute purchases.
+    needsApproval: false,
     execute: async (input: z.infer<typeof sendFlowersSchema>) => {
       // Declared outside try so it remains accessible in the catch block.
       // If the catch fires after SOL was collected, the TX signature is still

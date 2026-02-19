@@ -351,6 +351,12 @@ export const TOOL_GROUPS: ToolGroup[] = [
         description: "View recent transactions for your wallet",
       },
       {
+        id: "verifyPaymentTx",
+        name: "Verify Payment TX",
+        description:
+          "Verify recipient, amount, and finality for a SOL transaction",
+      },
+      {
         id: "transferSol",
         name: "Send SOL",
         description: "Transfer SOL to another address (requires approval)",
@@ -558,6 +564,16 @@ export const TOOL_GROUPS: ToolGroup[] = [
         description: "Get your home timeline",
       },
       {
+        id: "getMyMentions",
+        name: "My Mentions",
+        description: "Read tweets mentioning your account",
+      },
+      {
+        id: "getMyTweets",
+        name: "My Tweets",
+        description: "Read tweets posted by your account",
+      },
+      {
         id: "searchTweets",
         name: "Search Tweets",
         description: "Search for tweets",
@@ -586,6 +602,11 @@ export const TOOL_GROUPS: ToolGroup[] = [
         id: "sendDirectMessage",
         name: "Send DM",
         description: "Send a direct message",
+      },
+      {
+        id: "getDirectMessages",
+        name: "Read DMs",
+        description: "Read direct message events",
       },
       {
         id: "createList",
