@@ -510,7 +510,7 @@ export default function AgentProfilePage({
                     </h2>
                   </div>
                   <Link
-                    href={`/incorporate?id=${agent.corporation.id}`}
+                    href={`/corporation/${agent.corporation.tokenMint || agent.corporation.id}`}
                     className="group flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg sm:rounded-xl bg-[#120557]/30 border border-[#A855F7]/20 hover:border-[#A855F7]/40 transition-all"
                   >
                     {/* Corporation Logo */}

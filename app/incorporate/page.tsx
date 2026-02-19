@@ -957,23 +957,24 @@ export default function IncorporatePage() {
             </div>
 
             {/* Action buttons */}
-            <div className="flex gap-3 justify-center">
+            <div className="flex flex-wrap gap-3 justify-center">
+              <button
+                onClick={() =>
+                  router.push(`/corporation/${launchResult.tokenMint}`)
+                }
+                className="group relative flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-xl text-white font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-purple-500/25"
+              >
+                <Building2 className="w-4 h-4" />
+                View Corporation
+              </button>
               <a
                 href={getBagsFmUrl(launchResult.tokenMint)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group relative flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-cyan-500 rounded-xl text-white font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-purple-500/25"
+                className="flex items-center gap-2 px-6 py-3 bg-gray-800/80 hover:bg-gray-700/80 border border-gray-700/60 rounded-xl font-semibold transition-all duration-300 hover:scale-105 hover:border-gray-600"
               >
-                <span className="relative z-10 flex items-center gap-2">
-                  View on Bags <ExternalLink className="w-4 h-4" />
-                </span>
+                View on Bags <ExternalLink className="w-4 h-4" />
               </a>
-              <button
-                onClick={() => router.push("/swarm")}
-                className="px-6 py-3 bg-gray-800/80 hover:bg-gray-700/80 border border-gray-700/60 rounded-xl font-semibold transition-all duration-300 hover:scale-105 hover:border-gray-600"
-              >
-                View Swarm
-              </button>
             </div>
           </div>
         </main>

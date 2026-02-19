@@ -157,7 +157,7 @@ function PriceTicker({
               href={
                 item.type === "agent"
                   ? `/agent/${item.tokenMint || item.id}`
-                  : `/dashboard/network`
+                  : `/corporation/${(item as { tokenMint?: string | null }).tokenMint || item.id}`
               }
               className="flex items-center gap-2 px-3 py-1 hover:bg-white/5 rounded-lg transition-colors"
             >
@@ -522,11 +522,11 @@ function ItemCard({
             href={
               isAgent
                 ? `/agent/${item.tokenMint || item.id}`
-                : `/dashboard/network`
+                : `/corporation/${item.tokenMint || item.id}`
             }
             className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#6FEC06]/10 border border-[#6FEC06]/30 rounded-xl text-[#6FEC06] text-sm font-medium hover:bg-[#6FEC06]/20 hover:border-[#6FEC06]/50 transition-all"
           >
-            {isAgent ? "View Profile" : "View Network"}
+            {isAgent ? "View Profile" : "View Corporation"}
           </Link>
         </div>
       </div>
@@ -638,7 +638,7 @@ export default function ExplorePage() {
               href={
                 isAgent
                   ? `/agent/${item.tokenMint || item.id}`
-                  : `/dashboard/network`
+                  : `/corporation/${item.tokenMint || item.id}`
               }
               className="flex items-center gap-3 group/link"
             >

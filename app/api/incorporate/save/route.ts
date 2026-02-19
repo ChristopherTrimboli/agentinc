@@ -164,6 +164,12 @@ export async function POST(request: NextRequest) {
         data: swarmAgentData,
       });
 
+      // Link the user's Agent records to the new corporation
+      await tx.agent.updateMany({
+        where: { id: { in: agentIds }, createdById: userId },
+        data: { corporationId: corp.id },
+      });
+
       // Fetch the corporation with its agents
       return tx.corporation.findUnique({
         where: { id: corp.id },
