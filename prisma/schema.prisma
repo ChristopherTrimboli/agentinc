@@ -344,8 +344,14 @@ model AgentTask {
 
   // Task configuration
   taskPrompt    String @db.Text // The recurring instruction
-  intervalMs    Int // Milliseconds between iterations
+  intervalMs    Int // Milliseconds between iterations (used by interval + event-or-interval modes)
   maxIterations Int? // Optional cap on iterations
+
+  // Event trigger configuration
+  // "interval" = sleep N ms (default), "event" = block on webhook, "event-or-interval" = race
+  triggerMode   String  @default("interval")
+  // Shared secret callers must include as Bearer token to POST /api/tasks/[id]/trigger
+  webhookSecret String? @db.VarChar(128)
 
   // Tool configuration (same format as chat)
   enabledToolGroups String[]

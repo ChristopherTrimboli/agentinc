@@ -1,15 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomBytes } from "crypto";
 import prisma from "@/lib/prisma";
 import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
 import { rateLimitByUser } from "@/lib/rateLimit";
 import { start } from "workflow/api";
 import { recurringTaskWorkflow } from "@/workflows/tasks/workflow";
-import type { TaskConfig } from "@/workflows/tasks/steps/execute";
+import type { TaskConfig, TaskTriggerMode } from "@/workflows/tasks/steps/execute";
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
 const MIN_INTERVAL_MS = 60_000; // 1 minute
 const MAX_INTERVAL_MS = 86_400_000; // 24 hours
+const VALID_TRIGGER_MODES: TaskTriggerMode[] = [
+  "interval",
+  "event",
+  "event-or-interval",
+];
 const MAX_CONCURRENT_TASKS = 10;
 
 // ── GET: List user's tasks ──────────────────────────────────────────────────
@@ -91,6 +97,7 @@ export async function POST(req: NextRequest) {
     maxIterations,
     enabledToolGroups = [],
     enabledSkills = [],
+    triggerMode = "interval",
   }: {
     name: string;
     taskPrompt: string;
@@ -99,20 +106,36 @@ export async function POST(req: NextRequest) {
     maxIterations?: number;
     enabledToolGroups?: string[];
     enabledSkills?: string[];
+    triggerMode?: TaskTriggerMode;
   } = body;
 
   // Validate required fields
-  if (!name || !taskPrompt || !intervalMs || !agentId) {
+  if (!name || !taskPrompt || !agentId) {
     return NextResponse.json(
       {
-        error: "Missing required fields: name, taskPrompt, intervalMs, agentId",
+        error: "Missing required fields: name, taskPrompt, agentId",
       },
       { status: 400 },
     );
   }
 
-  // Validate interval
-  if (intervalMs < MIN_INTERVAL_MS || intervalMs > MAX_INTERVAL_MS) {
+  // intervalMs is required for interval and event-or-interval modes
+  if (triggerMode !== "event" && !intervalMs) {
+    return NextResponse.json(
+      { error: "intervalMs is required for interval and event-or-interval trigger modes" },
+      { status: 400 },
+    );
+  }
+
+  if (!VALID_TRIGGER_MODES.includes(triggerMode)) {
+    return NextResponse.json(
+      { error: `triggerMode must be one of: ${VALID_TRIGGER_MODES.join(", ")}` },
+      { status: 400 },
+    );
+  }
+
+  // Validate interval when provided
+  if (intervalMs && (intervalMs < MIN_INTERVAL_MS || intervalMs > MAX_INTERVAL_MS)) {
     return NextResponse.json(
       {
         error: `intervalMs must be between ${MIN_INTERVAL_MS} (1 min) and ${MAX_INTERVAL_MS} (24 hrs)`,
@@ -160,6 +183,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Generate a webhook secret for event-triggered tasks
+    const webhookSecret =
+      triggerMode !== "interval"
+        ? randomBytes(32).toString("hex")
+        : null;
+
     // Create task record
     const task = await prisma.agentTask.create({
       data: {
@@ -167,10 +196,12 @@ export async function POST(req: NextRequest) {
         description: taskPrompt,
         status: "running",
         taskPrompt,
-        intervalMs,
+        intervalMs: intervalMs ?? 0,
         maxIterations,
         enabledToolGroups,
         enabledSkills,
+        triggerMode,
+        webhookSecret,
         userId: auth.userId,
         agentId,
       },
@@ -184,10 +215,11 @@ export async function POST(req: NextRequest) {
       taskPrompt,
       systemPrompt: agent.systemPrompt,
       model: "anthropic/claude-haiku-4.5",
-      intervalMs,
+      intervalMs: intervalMs ?? 0,
       maxIterations: maxIterations ?? undefined,
       enabledToolGroups,
       enabledSkills,
+      triggerMode,
     };
 
     // Start the durable workflow
@@ -209,6 +241,12 @@ export async function POST(req: NextRequest) {
           intervalMs: task.intervalMs,
           maxIterations: task.maxIterations,
           enabledToolGroups: task.enabledToolGroups,
+          triggerMode: task.triggerMode,
+          // Returned once at creation time — store securely, it won't be exposed again
+          webhookSecret: task.webhookSecret ?? undefined,
+          triggerUrl: task.webhookSecret
+            ? `/api/tasks/${task.id}/trigger`
+            : undefined,
           createdAt: task.createdAt,
         },
       },

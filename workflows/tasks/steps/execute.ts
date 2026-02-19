@@ -10,6 +10,21 @@ import { calculateCost } from "@/lib/x402/ai-gateway-cost";
 import type { BillingContext } from "@/lib/x402";
 import type { ToolMap } from "@/lib/tools/types";
 
+/** How a task decides when to fire the next iteration */
+export type TaskTriggerMode =
+  | "interval"         // sleep N ms between runs (default)
+  | "event"            // block until an external webhook event arrives
+  | "event-or-interval"; // race: run on whichever comes first
+
+/** Event payload forwarded from an external webhook trigger */
+export interface TaskEventContext {
+  source: string;
+  eventType: string;
+  payload?: Record<string, unknown>;
+  summary?: string;
+  occurredAt?: string;
+}
+
 /** Configuration passed to each task iteration */
 export interface TaskConfig {
   taskId: string;
@@ -22,6 +37,8 @@ export interface TaskConfig {
   maxIterations?: number;
   enabledToolGroups: string[];
   enabledSkills: string[];
+  /** Determines what wakes the next iteration. Defaults to "interval". */
+  triggerMode?: TaskTriggerMode;
 }
 
 /** Result from a single task iteration */
@@ -36,10 +53,14 @@ export interface IterationResult {
 /**
  * Execute a single iteration of a recurring task.
  * Loads tools, runs the AI agent, charges for usage, and returns the result.
+ *
+ * @param eventContext - When provided, the event data is prepended to the prompt
+ *   so the agent knows what triggered this iteration.
  */
 export async function executeIteration(
   config: TaskConfig,
   iteration: number,
+  eventContext?: TaskEventContext,
 ): Promise<IterationResult> {
   "use step";
 
@@ -168,8 +189,26 @@ export async function executeIteration(
       }
     }
 
-    // Build iteration prompt with context
-    const iterationPrompt = `[Task Iteration ${iteration}] ${config.taskPrompt}`;
+    // Build iteration prompt with optional event context
+    let iterationPrompt = `[Task Iteration ${iteration}] ${config.taskPrompt}`;
+    if (eventContext) {
+      const eventLines = [
+        `\n\n--- Triggered by external event ---`,
+        `Source: ${eventContext.source}`,
+        `Event type: ${eventContext.eventType}`,
+        eventContext.occurredAt
+          ? `Occurred at: ${eventContext.occurredAt}`
+          : null,
+        eventContext.summary ? `Summary: ${eventContext.summary}` : null,
+        eventContext.payload
+          ? `Payload: ${JSON.stringify(eventContext.payload, null, 2)}`
+          : null,
+        `---`,
+      ]
+        .filter(Boolean)
+        .join("\n");
+      iterationPrompt += eventLines;
+    }
 
     // Use generateText (non-streaming) for background task execution
     // Pass model string directly to route through AI Gateway (not anthropic() wrapper)

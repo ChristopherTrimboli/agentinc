@@ -1,7 +1,8 @@
 import { sleep } from "workflow";
 
 import { taskControlHook } from "./hooks/taskControl";
-import { executeIteration, type TaskConfig } from "./steps/execute";
+import { taskEventHook } from "./hooks/taskEvent";
+import { executeIteration, type TaskConfig, type TaskEventContext } from "./steps/execute";
 import {
   updateTaskProgress,
   updateNextExecution,
@@ -15,25 +16,27 @@ import {
 /**
  * Recurring Task Workflow
  *
- * A durable workflow that repeatedly executes an AI agent task at a configured
- * interval. Supports pause, resume, and stop via the taskControlHook.
+ * A durable workflow that repeatedly executes an AI agent task.
+ * Supports three trigger modes:
  *
- * Each iteration:
- * 1. Runs the AI agent with configured tools and prompt
- * 2. Saves the result as a TaskLog entry
- * 3. Bills the user for AI inference and tool usage
- * 4. Sleeps for the configured interval (zero resource usage)
- * 5. Checks for control signals (stop/pause)
+ * - "interval": sleeps N ms between iterations (default).
+ * - "event": blocks until an external webhook fires taskEventHook, then runs.
+ * - "event-or-interval": races between an incoming event and a timeout —
+ *     whichever arrives first triggers the next iteration.
  *
- * The workflow survives deployments, crashes, and restarts via Vercel Workflow.
+ * All modes support pause, resume, and stop via taskControlHook.
+ * Event context (source, payload, summary) is injected into the agent prompt.
  */
 export async function recurringTaskWorkflow(
   config: TaskConfig,
 ): Promise<{ taskId: string; iterations: number }> {
   "use workflow";
 
-  // Create control hook with taskId as deterministic token
-  const hook = taskControlHook.create({ token: config.taskId });
+  const triggerMode = config.triggerMode ?? "interval";
+
+  // Create both hooks with taskId as deterministic token
+  const controlHook = taskControlHook.create({ token: config.taskId });
+  const eventHook = taskEventHook.create({ token: config.taskId });
 
   let iteration = 0;
   let running = true;
@@ -41,8 +44,69 @@ export async function recurringTaskWorkflow(
   while (running) {
     iteration++;
 
-    // Execute the AI task iteration
-    const result = await executeIteration(config, iteration);
+    // Resolve event context for this iteration (only present in event modes)
+    let eventContext: TaskEventContext | null = null;
+
+    if (triggerMode === "event") {
+      // Block with zero resource usage until an external event arrives.
+      // Also race against control signals so pause/stop still work immediately.
+      const outcome = await Promise.race([
+        eventHook.then((e) => ({ kind: "event" as const, event: e })),
+        controlHook.then((s) => ({ kind: "control" as const, signal: s })),
+      ]);
+
+      if (outcome.kind === "control") {
+        if (outcome.signal.action === "stop") {
+          await markTaskStopped(config.taskId);
+          break;
+        }
+        if (outcome.signal.action === "pause") {
+          await markTaskPaused(config.taskId);
+          const resumeSignal = await controlHook;
+          if (resumeSignal.action === "stop") {
+            await markTaskStopped(config.taskId);
+            break;
+          }
+          await markTaskRunning(config.taskId);
+          // Decrement so this iteration slot isn't wasted
+          iteration--;
+          continue;
+        }
+      }
+
+      eventContext = outcome.kind === "event" ? outcome.event : null;
+    } else if (triggerMode === "event-or-interval") {
+      // Race event, interval sleep, and control — first wins.
+      const outcome = await Promise.race([
+        eventHook.then((e) => ({ kind: "event" as const, event: e })),
+        sleep(config.intervalMs).then(() => ({ kind: "interval" as const })),
+        controlHook.then((s) => ({ kind: "control" as const, signal: s })),
+      ]);
+
+      if (outcome.kind === "control") {
+        if (outcome.signal.action === "stop") {
+          await markTaskStopped(config.taskId);
+          break;
+        }
+        if (outcome.signal.action === "pause") {
+          await markTaskPaused(config.taskId);
+          const resumeSignal = await controlHook;
+          if (resumeSignal.action === "stop") {
+            await markTaskStopped(config.taskId);
+            break;
+          }
+          await markTaskRunning(config.taskId);
+          iteration--;
+          continue;
+        }
+      }
+
+      eventContext = outcome.kind === "event" ? outcome.event : null;
+    }
+    // For "interval" mode, eventContext stays null and sleep happens after.
+
+    // Execute the AI task iteration (with optional event context in prompt)
+    const result = await executeIteration(config, iteration, eventContext ?? undefined);
 
     // Save iteration result to DB
     await saveTaskLog(config.taskId, iteration, result.content, result.status, {
@@ -60,47 +124,43 @@ export async function recurringTaskWorkflow(
       break;
     }
 
-    // If iteration failed, still continue but log it
     if (result.status === "error") {
-      // Don't stop on individual iteration errors - the next one may succeed
       console.warn(
         `[Task ${config.taskId}] Iteration ${iteration} failed: ${result.error}`,
       );
     }
 
-    // Set next execution time
-    const nextExecution = new Date(Date.now() + config.intervalMs);
-    await updateNextExecution(config.taskId, nextExecution);
+    // ── Interval mode: sleep then check for control signals ────────────────
+    if (triggerMode === "interval") {
+      const nextExecution = new Date(Date.now() + config.intervalMs);
+      await updateNextExecution(config.taskId, nextExecution);
 
-    // Race: wait for interval to pass OR a control signal
-    const signal = await Promise.race([
-      sleep(config.intervalMs).then(() => null),
-      hook.then((s) => s),
-    ]);
+      const signal = await Promise.race([
+        sleep(config.intervalMs).then(() => null),
+        controlHook.then((s) => s),
+      ]);
 
-    if (signal) {
-      if (signal.action === "stop") {
-        await markTaskStopped(config.taskId);
-        running = false;
-        break;
-      }
-
-      if (signal.action === "pause") {
-        await markTaskPaused(config.taskId);
-
-        // Block until resume or stop signal
-        const resumeSignal = await hook;
-
-        if (resumeSignal.action === "stop") {
+      if (signal) {
+        if (signal.action === "stop") {
           await markTaskStopped(config.taskId);
           running = false;
           break;
         }
 
-        // Resumed - continue loop
-        await markTaskRunning(config.taskId);
+        if (signal.action === "pause") {
+          await markTaskPaused(config.taskId);
+          const resumeSignal = await controlHook;
+          if (resumeSignal.action === "stop") {
+            await markTaskStopped(config.taskId);
+            running = false;
+            break;
+          }
+          await markTaskRunning(config.taskId);
+        }
       }
     }
+    // Event modes loop back immediately — the hook at the top of the loop
+    // is what provides the "wait" before the next iteration.
   }
 
   return { taskId: config.taskId, iterations: iteration };
