@@ -325,8 +325,12 @@ export function createTwitterTools(
         cost: X_API_PRICING.postTweet,
         execute: async (input: z.infer<typeof postTweetSchema>) => {
           try {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const tweetBody: any = { text: input.text };
+            const tweetBody: {
+              text: string;
+              media?: { mediaIds: string[] };
+              reply?: { inReplyToTweetId: string };
+              quoteTweetId?: string;
+            } = { text: input.text };
 
             if (input.mediaIds && input.mediaIds.length > 0) {
               tweetBody.media = { mediaIds: input.mediaIds };

@@ -385,8 +385,12 @@ export function createTwilioTools(billingContext?: BillingContext) {
             };
           }
 
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const messageParams: any = {
+          const messageParams: {
+            from: string;
+            to: string;
+            mediaUrl: string[];
+            body?: string;
+          } = {
             from: fromNumber,
             to: input.to,
             mediaUrl: [input.mediaUrl],
@@ -666,8 +670,12 @@ export function createTwilioTools(billingContext?: BillingContext) {
             return { success: false, error: "Invalid phone number format" };
           }
 
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const messageParams: any = {
+          const messageParams: {
+            from: string;
+            to: string;
+            body: string;
+            mediaUrl?: string[];
+          } = {
             from: whatsappNumber.startsWith("whatsapp:")
               ? whatsappNumber
               : `whatsapp:${whatsappNumber}`,
@@ -858,8 +866,11 @@ export function createTwilioTools(billingContext?: BillingContext) {
             return { success: false, error: "Twilio not configured" };
           }
 
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const params: any = {
+          const params: {
+            limit: number;
+            to?: string;
+            dateSentAfter?: Date;
+          } = {
             limit: input.limit || 10,
           };
 

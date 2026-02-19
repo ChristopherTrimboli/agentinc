@@ -244,14 +244,10 @@ export const bagsSkill: Skill = {
 
   systemPrompt: BAGS_SYSTEM_PROMPT,
 
-  validate(config: SkillConfig): true | string {
-    // Always allow - the initAuth tool doesn't need an API key
-    // Other tools will return auth errors if no key is configured
-    if (!config.apiKey) {
-      console.log(
-        "[Bags] No JWT token configured - agent can use initAuth to authenticate",
-      );
-    }
+  validate(_config: SkillConfig): true | string {
+    // Always allow - the initAuth tool doesn't need an API key.
+    // Other tools will return auth errors if no key is configured,
+    // prompting the agent to use initAuth to authenticate first.
     return true;
   },
 

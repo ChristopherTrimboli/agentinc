@@ -253,15 +253,10 @@ export const moltbookSkill: Skill = {
 
   systemPrompt: MOLTBOOK_SYSTEM_PROMPT,
 
-  validate(config: SkillConfig): true | string {
-    // Always allow - the register tool doesn't need an API key
+  validate(_config: SkillConfig): true | string {
+    // Always allow - the register tool doesn't need an API key.
     // Other tools will return auth errors if no key is configured,
-    // which prompts the agent to use the register tool
-    if (!config.apiKey && !process.env[MOLTBOOK_API_KEY_ENV]) {
-      console.log(
-        "[Moltbook] No API key configured - agent can use register tool to get one",
-      );
-    }
+    // which prompts the agent to use the register tool to get one.
     return true;
   },
 

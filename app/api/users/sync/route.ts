@@ -26,7 +26,10 @@ export async function POST(req: NextRequest) {
   try {
     // Fetch full Privy user object for linked_accounts (email, etc.).
     // Auth is already verified by requireAuth above; this call is data-only.
-    const idToken = req.headers.get("privy-id-token")!;
+    const idToken = req.headers.get("privy-id-token");
+    if (!idToken) {
+      return NextResponse.json({ error: "Missing token" }, { status: 401 });
+    }
     const privy = getPrivyClient();
     const privyUser = await privy.users().get({ id_token: idToken });
 
