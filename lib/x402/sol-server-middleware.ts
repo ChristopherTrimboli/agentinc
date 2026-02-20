@@ -141,10 +141,6 @@ async function retryPaymentWithBackoff(
 
 /**
  * Queue a failed payment for later retry.
- * Persisted in Redis so it survives restarts.
- */
-/**
- * Queue a failed payment for later retry.
  * Uses Redis RPUSH for atomic append (no read-modify-write race condition).
  * Falls back to non-atomic load/save if RPUSH is unavailable.
  */
@@ -639,6 +635,146 @@ export async function chargeForUsage(
   }
 }
 
+// ── Token Payment Billing ─────────────────────────────────────────────────────
+
+/**
+ * Result of a token-based usage billing charge.
+ * Extends the standard billing result with token-specific fields.
+ */
+export interface TokenUsageBillingResult extends UsageBillingResult {
+  /** SPL token mint address used for payment */
+  tokenMint?: string;
+  /** Token quantity transferred (human-readable) */
+  tokenAmount?: number;
+  /** Token USD price at time of payment */
+  tokenPriceUsd?: number;
+  /** USD cost after the 20% discount was applied */
+  discountedUsdCost?: number;
+}
+
+/**
+ * Charge a user for AI usage by transferring their agent's SPL token.
+ *
+ * Applies a 20% discount to the USD cost, converts to token amount using
+ * DexScreener price data, then transfers tokens from the user's Privy wallet
+ * to the treasury. Falls back to SOL billing if the token price is unavailable.
+ *
+ * @param userId - Privy user ID
+ * @param tokenMint - Agent's SPL token mint address
+ * @param decimals - Token decimal places (from the prior holding check)
+ * @param usdCost - Full USD cost before discount
+ * @param description - Human-readable label for logging
+ * @param metadata - Optional model/token usage metadata for logging
+ */
+export async function chargeForUsageInToken(
+  userId: string,
+  tokenMint: string,
+  decimals: number,
+  usdCost: number,
+  description: string = "AI Generation (token payment)",
+  metadata?: { model?: string; inputTokens?: number; outputTokens?: number },
+): Promise<TokenUsageBillingResult> {
+  const fallbackError = (error: string): TokenUsageBillingResult => ({
+    success: false,
+    usdCost,
+    solCost: "0",
+    lamports: "0",
+    tokenMint,
+    ...metadata,
+    error,
+  });
+
+  if (!userId || !tokenMint)
+    return fallbackError("Missing userId or tokenMint");
+  if (
+    typeof usdCost !== "number" ||
+    !Number.isFinite(usdCost) ||
+    usdCost <= 0
+  ) {
+    return fallbackError("Invalid cost value");
+  }
+
+  // Dynamic imports to avoid circular deps
+  const [
+    { applyTokenDiscount, getTokenPriceUsd, usdToTokenAmount },
+    { sendTokensFromWallet },
+  ] = await Promise.all([
+    import("@/lib/x402/token-holder-discount"),
+    import("@/lib/privy/spl-token-transfer"),
+  ]);
+
+  const discountedUsdCost = applyTokenDiscount(usdCost);
+
+  // Get token price — fall back to SOL billing if price is unavailable
+  const tokenPriceUsd = await getTokenPriceUsd(tokenMint);
+  if (!tokenPriceUsd) {
+    console.warn(
+      `[TokenBilling] No price data for ${tokenMint}; falling back to SOL billing`,
+    );
+    const solResult = await chargeForUsage(
+      userId,
+      usdCost,
+      description,
+      metadata,
+    );
+    return { ...solResult, tokenMint };
+  }
+
+  const tokenAmount = usdToTokenAmount(discountedUsdCost, tokenPriceUsd);
+  if (!tokenAmount || tokenAmount <= 0)
+    return fallbackError("Token amount is zero");
+
+  const walletInfo = await getPaymentWalletInfo(userId);
+  if (!walletInfo) return fallbackError("No wallet associated with account");
+
+  const { walletId, walletAddress } = walletInfo;
+
+  const transferResult = await withWalletLock(walletAddress, () =>
+    sendTokensFromWallet(
+      walletId,
+      walletAddress,
+      SOL_TREASURY_ADDRESS,
+      tokenMint,
+      tokenAmount,
+      decimals,
+    ),
+  );
+
+  if (transferResult.success) {
+    return {
+      success: true,
+      transaction: transferResult.signature,
+      usdCost,
+      discountedUsdCost,
+      solCost: "0",
+      lamports: "0",
+      tokenMint,
+      tokenAmount,
+      tokenPriceUsd,
+      ...metadata,
+    };
+  }
+
+  // Token transfer failed (e.g. user sold tokens within the cache window).
+  // Fall back to standard SOL billing so the charge is never silently dropped.
+  console.warn(
+    `[TokenBilling] Token transfer failed for user ${userId} (${transferResult.error}); falling back to SOL billing`,
+  );
+  const solResult = await chargeForUsage(
+    userId,
+    usdCost,
+    description,
+    metadata,
+  );
+  return {
+    ...solResult,
+    tokenMint,
+    tokenAmount,
+    tokenPriceUsd,
+    discountedUsdCost,
+  };
+}
+
 /**
  * Payment receipt added to successful responses
  * Follows x402 response format for compatibility
@@ -1025,7 +1161,7 @@ export interface BillingContext {
   /** User's wallet address */
   walletAddress: string;
   /**
-   * Charge for AI usage after generation completes.
+   * Charge for AI usage after generation completes (SOL payment).
    * Call this from onFinish with the cost from providerMetadata.
    *
    * @param usdCost - Cost in USD (from AI SDK providerMetadata.cost or calculated)
@@ -1037,6 +1173,26 @@ export interface BillingContext {
     description?: string,
     metadata?: { model?: string; inputTokens?: number; outputTokens?: number },
   ) => Promise<UsageBillingResult>;
+  /**
+   * Charge for AI usage using the agent's SPL token (20% discount).
+   *
+   * The cost is discounted 20%, converted to the token's current USD price,
+   * and transferred from the user's wallet to the treasury. Falls back to
+   * standard SOL billing if token price data is unavailable.
+   *
+   * @param usdCost - Full USD cost before discount
+   * @param tokenMint - Agent's SPL token mint address
+   * @param decimals - Token decimal places (from prior balance check)
+   * @param description - Human-readable description for logging
+   * @param metadata - Optional metadata (model, tokens) for logging
+   */
+  chargeUsageInToken: (
+    usdCost: number,
+    tokenMint: string,
+    decimals: number,
+    description?: string,
+    metadata?: { model?: string; inputTokens?: number; outputTokens?: number },
+  ) => Promise<TokenUsageBillingResult>;
 }
 
 /**
@@ -1133,6 +1289,25 @@ export function withUsageBasedPayment<
               authResult.userId,
               usdCost,
               desc || description,
+              metadata,
+            ),
+          chargeUsageInToken: (
+            usdCost: number,
+            tokenMint: string,
+            decimals: number,
+            desc?: string,
+            metadata?: {
+              model?: string;
+              inputTokens?: number;
+              outputTokens?: number;
+            },
+          ) =>
+            chargeForUsageInToken(
+              authResult.userId,
+              tokenMint,
+              decimals,
+              usdCost,
+              desc || `${description} (token payment)`,
               metadata,
             ),
         };

@@ -145,9 +145,7 @@ const txHistorySchema = z.object({
 });
 
 const verifyPaymentTxSchema = z.object({
-  signature: z
-    .string()
-    .describe("Transaction signature to verify on Solana"),
+  signature: z.string().describe("Transaction signature to verify on Solana"),
   expectedRecipient: z
     .string()
     .describe("Expected recipient Solana address (treasury/payee)"),
@@ -265,7 +263,9 @@ function createVerifyPaymentTx() {
           finalized: 3,
         };
         const requiredRank =
-          input.requiredFinality === "finalized" ? statusRank.finalized : statusRank.confirmed;
+          input.requiredFinality === "finalized"
+            ? statusRank.finalized
+            : statusRank.confirmed;
         const gotRank = statusRank[confirmationStatus] ?? 0;
         const meetsFinality = gotRank >= requiredRank;
 
@@ -343,7 +343,9 @@ function createVerifyPaymentTx() {
           payer,
           expectedRecipient: input.expectedRecipient,
           receivedLamportsToRecipient: matchedLamports,
-          receivedSolToRecipient: (matchedLamports / LAMPORTS_PER_SOL).toFixed(9),
+          receivedSolToRecipient: (matchedLamports / LAMPORTS_PER_SOL).toFixed(
+            9,
+          ),
           minAmountSolRequired: input.minAmountSol,
           minLamportsRequired: minLamports,
           amountValid,

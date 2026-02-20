@@ -117,7 +117,18 @@
     "unrs-resolver"
   ],
   "trustedDependencies": [
+    "@nestjs/core",
+    "@prisma/engines",
+    "@reown/appkit",
+    "@swc/core",
+    "bigint-buffer",
+    "bufferutil",
+    "cbor-extract",
+    "esbuild",
+    "keccak",
+    "prisma",
     "sharp",
-    "unrs-resolver"
+    "unrs-resolver",
+    "utf-8-validate"
   ]
 }

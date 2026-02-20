@@ -185,6 +185,7 @@ async function chatHandler(req: RequestWithBilling) {
     enabledSkills = [],
     enabledToolGroups = [],
     skillApiKeys = {},
+    payWithAgentToken = false,
   }: {
     messages: UIMessage[];
     agentId?: string;
@@ -192,6 +193,8 @@ async function chatHandler(req: RequestWithBilling) {
     enabledSkills?: AvailableSkill[];
     enabledToolGroups?: string[];
     skillApiKeys?: Record<string, string>; // User-provided API keys
+    /** When true, pay with the agent's token at a 20% discount (if user holds it) */
+    payWithAgentToken?: boolean;
   } = requestBody;
 
   // Validate model against allowlist to prevent cost abuse
@@ -214,6 +217,13 @@ async function chatHandler(req: RequestWithBilling) {
   let agentSkills: string[] = [];
   // resolvedAgentId holds the actual DB ID after dual lookup (agentId may be a tokenMint)
   let resolvedAgentId = agentId;
+
+  // Token payment context: populated after agent fetch when payWithAgentToken is true
+  // and the user is confirmed to hold the agent's token.
+  let tokenPaymentContext: {
+    tokenMint: string;
+    decimals: number;
+  } | null = null;
 
   // If agentId is provided, fetch the agent's system prompt and skills
   // Supports both database ID and tokenMint for dual-use URLs
@@ -256,6 +266,8 @@ async function chatHandler(req: RequestWithBilling) {
         resolvedAgentId = agent.id;
 
         // Check if user can access this agent (owner or public)
+        // This must happen BEFORE the token holding RPC call to avoid
+        // wasting a network round-trip on agents the user can't access.
         if (!agent.isPublic && agent.createdById !== userId) {
           return new Response(
             JSON.stringify({ error: "Access denied to this agent" }),
@@ -264,6 +276,32 @@ async function chatHandler(req: RequestWithBilling) {
               headers: { "Content-Type": "application/json" },
             },
           );
+        }
+
+        // Token holder discount: check if user holds the agent's token
+        // Only applicable when the agent has a launched token and the user opted in
+        if (
+          payWithAgentToken &&
+          agent.tokenMint &&
+          billingContext?.walletAddress
+        ) {
+          try {
+            const { checkTokenHolding } =
+              await import("@/lib/x402/token-holder-discount");
+            const holding = await checkTokenHolding(
+              billingContext.walletAddress,
+              agent.tokenMint,
+            );
+            if (holding.holdsToken) {
+              tokenPaymentContext = {
+                tokenMint: agent.tokenMint,
+                decimals: holding.decimals,
+              };
+            }
+          } catch (err) {
+            // Non-fatal: fall back to standard SOL billing
+            console.error("[Chat] Token holding check failed:", err);
+          }
         }
 
         agentName = agent.name;
@@ -708,25 +746,54 @@ Remember: CALL these tools, don't write code about them!`;
         });
 
         if (costResult && costResult.totalCost > 0) {
-          // Charge asynchronously - don't block the response
-          billingContext
-            .chargeUsage(
-              costResult.totalCost,
-              `AI Chat [${model}] - ${usage.totalTokens || 0} tokens`,
-              {
-                model,
-                inputTokens: usage.inputTokens,
-                outputTokens: usage.outputTokens,
-              },
-            )
-            .then((result) => {
-              if (!result.success && result.error) {
-                console.error(`[Chat] Billing failed: ${result.error}`);
-              }
-            })
-            .catch((error) => {
-              console.error("[Chat] Billing error:", error);
-            });
+          const description = `AI Chat [${model}] - ${usage.totalTokens || 0} tokens`;
+          const metadata = {
+            model,
+            inputTokens: usage.inputTokens,
+            outputTokens: usage.outputTokens,
+          };
+
+          // Token holder path: pay with the agent's token at 20% discount
+          if (tokenPaymentContext) {
+            billingContext
+              .chargeUsageInToken(
+                costResult.totalCost,
+                tokenPaymentContext.tokenMint,
+                tokenPaymentContext.decimals,
+                description,
+                metadata,
+              )
+              .then((result) => {
+                if (!result.success && result.error) {
+                  console.error(`[Chat] Token billing failed: ${result.error}`);
+                } else if (result.success) {
+                  const discount = Math.round(
+                    (1 -
+                      (result.discountedUsdCost ?? costResult.totalCost) /
+                        costResult.totalCost) *
+                      100,
+                  );
+                  console.log(
+                    `[Chat] Token payment: ${result.tokenAmount?.toFixed(4)} ${tokenPaymentContext!.tokenMint.slice(0, 8)}... ($${result.discountedUsdCost?.toFixed(6)} after ${discount}% discount)`,
+                  );
+                }
+              })
+              .catch((error) => {
+                console.error("[Chat] Token billing error:", error);
+              });
+          } else {
+            // Standard SOL billing path
+            billingContext
+              .chargeUsage(costResult.totalCost, description, metadata)
+              .then((result) => {
+                if (!result.success && result.error) {
+                  console.error(`[Chat] Billing failed: ${result.error}`);
+                }
+              })
+              .catch((error) => {
+                console.error("[Chat] Billing error:", error);
+              });
+          }
         } else {
           // No cost calculated - either no pricing or zero tokens
           console.warn(

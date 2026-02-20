@@ -227,7 +227,9 @@ const mentionsSchema = z.object({
   sinceId: z
     .string()
     .optional()
-    .describe("Optional tweet ID for incremental sync (returns newer mentions)"),
+    .describe(
+      "Optional tweet ID for incremental sync (returns newer mentions)",
+    ),
 });
 
 const myTweetsSchema = z.object({
@@ -253,7 +255,9 @@ const readDirectMessagesSchema = z.object({
   dmConversationId: z
     .string()
     .optional()
-    .describe("Optional DM conversation ID to fetch messages from a specific thread"),
+    .describe(
+      "Optional DM conversation ID to fetch messages from a specific thread",
+    ),
 });
 
 const searchTweetsSchema = z.object({
@@ -674,8 +678,11 @@ export function createTwitterTools(
                 (mentions.data as Array<Record<string, unknown>> | undefined) ||
                 [],
               users:
-                ((mentions.includes as { users?: Array<Record<string, unknown>> })
-                  ?.users as Array<Record<string, unknown>> | undefined) || [],
+                ((
+                  mentions.includes as {
+                    users?: Array<Record<string, unknown>>;
+                  }
+                )?.users as Array<Record<string, unknown>> | undefined) || [],
               meta: mentions.meta,
             };
           } catch (error: unknown) {

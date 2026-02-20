@@ -35,6 +35,7 @@ import {
   XIcon,
   FileTextIcon,
   ListTodo,
+  Coins,
 } from "lucide-react";
 import { TabBar, TaskTabContent, TasksModal } from "@/components/chat";
 import type { Tab, TaskStatus } from "@/components/chat/TabBar";
@@ -557,6 +558,14 @@ function AttachmentsPreview() {
 }
 
 // Isolated Chat Input Component - prevents parent re-renders on every keystroke
+interface TokenHolding {
+  holdsToken: boolean;
+  balance: number;
+  decimals: number;
+  tokenMint: string | null;
+  tokenSymbol: string | null;
+}
+
 interface ChatInputAreaProps {
   displayName: string;
   status: "ready" | "submitted" | "streaming" | "error";
@@ -566,6 +575,9 @@ interface ChatInputAreaProps {
   identityToken: string | null | undefined;
   selectedModel: string;
   onModelChange: (model: string) => void;
+  tokenHolding?: TokenHolding | null;
+  payWithAgentToken?: boolean;
+  onPayWithAgentTokenChange?: (value: boolean) => void;
 }
 
 const ChatInputArea = React.memo(function ChatInputArea({
@@ -577,6 +589,9 @@ const ChatInputArea = React.memo(function ChatInputArea({
   identityToken,
   selectedModel,
   onModelChange,
+  tokenHolding,
+  payWithAgentToken = false,
+  onPayWithAgentTokenChange,
 }: ChatInputAreaProps) {
   const [input, setInput] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -682,6 +697,47 @@ const ChatInputArea = React.memo(function ChatInputArea({
             </PromptInputBody>
             <PromptInputFooter>
               <PromptInputTools>
+                {/* Token pay toggle — only shown when user holds the agent's token */}
+                {tokenHolding?.holdsToken && tokenHolding.tokenSymbol && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onPayWithAgentTokenChange?.(!payWithAgentToken)
+                    }
+                    title={
+                      payWithAgentToken
+                        ? `Paying with $${tokenHolding.tokenSymbol} — click to switch to SOL`
+                        : `Pay with $${tokenHolding.tokenSymbol} and save 20%`
+                    }
+                    className={`h-9 px-2.5 rounded-lg border transition-all duration-200 flex items-center gap-1.5 text-xs font-medium shrink-0 ${
+                      payWithAgentToken
+                        ? "bg-[#6FEC06]/15 border-[#6FEC06]/40 text-[#6FEC06] shadow-[0_0_12px_rgba(111,236,6,0.2)] hover:bg-[#6FEC06]/20"
+                        : "bg-white/[0.03] border-white/[0.10] text-white/40 hover:text-white/70 hover:bg-white/[0.06] hover:border-white/20"
+                    }`}
+                  >
+                    <Coins className="w-3.5 h-3.5 shrink-0" />
+                    <span className="hidden sm:inline">
+                      ${tokenHolding.tokenSymbol}
+                    </span>
+                    {payWithAgentToken ? (
+                      <>
+                        <span className="text-[9px] font-bold bg-[#6FEC06] text-black rounded-full px-1.5 py-0.5 leading-none">
+                          -20%
+                        </span>
+                        <span className="hidden md:inline text-[10px] opacity-70">
+                          {tokenHolding.balance >= 1000
+                            ? `${(tokenHolding.balance / 1000).toFixed(1)}k`
+                            : tokenHolding.balance.toFixed(
+                                tokenHolding.balance < 1 ? 2 : 0,
+                              )}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-[9px] opacity-50">-20%</span>
+                    )}
+                  </button>
+                )}
+
                 {/* Model Picker - Enhanced with neon green accents */}
                 <Select value={selectedModel} onValueChange={onModelChange}>
                   <SelectTrigger className="h-9 w-9 p-0 rounded-lg bg-white/[0.03] border border-white/[0.12] hover:bg-[#7fff00]/[0.08] hover:border-[#7fff00]/40 hover:shadow-[0_0_16px_rgba(127,255,0,0.2)] active:scale-95 transition-all duration-200 flex items-center justify-center [&_svg[class*='opacity']]:hidden">
@@ -1087,8 +1143,12 @@ function ChatInterface({
 
   // Model selection state
   const [selectedModel, setSelectedModel] = useState<string>(
-    "anthropic/claude-haiku-4-5",
+    "anthropic/claude-haiku-4.5",
   );
+
+  // Token holding state — populated when the agent has a launched token
+  const [tokenHolding, setTokenHolding] = useState<TokenHolding | null>(null);
+  const [payWithAgentToken, setPayWithAgentToken] = useState(false);
 
   // Chat history state
   const [chatId, setChatId] = useState<string | undefined>(initialChatId);
@@ -1306,6 +1366,7 @@ function ChatInterface({
     enabledSkills: enabledSkillIds,
     enabledToolGroups,
     skillApiKeys,
+    payWithAgentToken,
   });
 
   // Keep ref updated with latest values
@@ -1316,6 +1377,7 @@ function ChatInterface({
       enabledSkills: enabledSkillIds,
       enabledToolGroups,
       skillApiKeys,
+      payWithAgentToken,
     };
   }, [
     resolvedAgentId,
@@ -1323,6 +1385,7 @@ function ChatInterface({
     enabledSkillIds,
     enabledToolGroups,
     skillApiKeys,
+    payWithAgentToken,
   ]);
 
   // Transport with stable identity - body function reads from ref
@@ -1389,10 +1452,18 @@ function ChatInterface({
         code === "INSUFFICIENT_BALANCE" ||
         code === "PAYMENT_FAILED"
       ) {
-        toast.error("Insufficient balance", {
-          description: "You need to deposit SOL to your wallet for AI usage.",
-          duration: 8000,
-        });
+        if (payWithAgentToken && tokenHolding?.tokenSymbol) {
+          toast.error("Insufficient token balance", {
+            description: `You need more $${tokenHolding.tokenSymbol} tokens to pay for AI usage, or switch to SOL billing.`,
+            duration: 8000,
+          });
+          setPayWithAgentToken(false);
+        } else {
+          toast.error("Insufficient balance", {
+            description: "You need to deposit SOL to your wallet for AI usage.",
+            duration: 8000,
+          });
+        }
       } else if (status === 401) {
         toast.error("Session expired", {
           description: "Please log in again to continue.",
@@ -1585,6 +1656,29 @@ function ChatInterface({
     }
     fetchAgentInfo();
   }, [agentId, identityToken]);
+
+  // Fetch token holding info when agent has a launched token
+  useEffect(() => {
+    if (!agentInfo?.tokenMint || !identityToken) return;
+
+    async function fetchTokenHolding() {
+      try {
+        const response = await fetch(`/api/agents/${agentId}/token-balance`, {
+          headers: { "privy-id-token": identityToken! },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setTokenHolding(data);
+          // Reset toggle if user no longer holds the token
+          if (!data.holdsToken) setPayWithAgentToken(false);
+        }
+      } catch {
+        // Non-fatal — token pay feature stays hidden
+      }
+    }
+
+    fetchTokenHolding();
+  }, [agentInfo?.tokenMint, agentId, identityToken]);
 
   // Load existing chat messages if chatId is provided
   useEffect(() => {
@@ -1836,6 +1930,26 @@ function ChatInterface({
                       <span className="w-1 h-1 rounded-full bg-white/20" />
                       <span className="text-[#6FEC06] font-medium">
                         ${agentInfo.tokenSymbol}
+                      </span>
+                    </>
+                  )}
+                  {tokenHolding?.holdsToken && tokenHolding.tokenSymbol && (
+                    <>
+                      <span className="w-1 h-1 rounded-full bg-white/20" />
+                      <span
+                        className="flex items-center gap-1 text-[#6FEC06] bg-[#6FEC06]/10 border border-[#6FEC06]/25 rounded-full px-1.5 py-0.5 leading-none"
+                        title={`You hold ${tokenHolding.balance} $${tokenHolding.tokenSymbol} — eligible for 20% off`}
+                      >
+                        <Coins className="w-2.5 h-2.5" />
+                        <span>
+                          {tokenHolding.balance >= 1_000_000
+                            ? `${(tokenHolding.balance / 1_000_000).toFixed(1)}M`
+                            : tokenHolding.balance >= 1000
+                              ? `${(tokenHolding.balance / 1000).toFixed(1)}k`
+                              : tokenHolding.balance.toFixed(
+                                  tokenHolding.balance < 1 ? 2 : 0,
+                                )}
+                        </span>
                       </span>
                     </>
                   )}
@@ -2547,6 +2661,9 @@ function ChatInterface({
           identityToken={identityToken}
           selectedModel={selectedModel}
           onModelChange={setSelectedModel}
+          tokenHolding={tokenHolding}
+          payWithAgentToken={payWithAgentToken}
+          onPayWithAgentTokenChange={setPayWithAgentToken}
         />
       </div>
 

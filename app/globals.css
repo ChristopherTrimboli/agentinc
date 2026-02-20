@@ -1272,7 +1272,9 @@ h6,
 
 /* Hide markdown image action controls (e.g. download buttons) */
 [data-streamdown] :is(figure, [data-streamdown="image"], p, li):has(img) button,
-[data-streamdown] :is(figure, [data-streamdown="image"], p, li):has(img) [role="button"] {
+[data-streamdown]
+  :is(figure, [data-streamdown="image"], p, li):has(img)
+  [role="button"] {
   display: none !important;
 }
 

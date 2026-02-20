@@ -38,6 +38,7 @@ export {
   // Usage-based billing (post-payment from AI SDK costs)
   withUsageBasedPayment,
   chargeForUsage,
+  chargeForUsageInToken,
   isUsageBasedBillingEnabled,
   // Failed payment queue management
   queueFailedPayment,
@@ -54,7 +55,20 @@ export type {
   BillingContext,
   RequestWithBilling,
   UsageBillingResult,
+  TokenUsageBillingResult,
 } from "./sol-server-middleware";
+
+// Re-export token holder discount utilities
+export {
+  TOKEN_DISCOUNT_RATE,
+  TOKEN_DISCOUNT_MULTIPLIER,
+  checkTokenHolding,
+  getTokenPriceUsd,
+  applyTokenDiscount,
+  usdToTokenAmount,
+} from "./token-holder-discount";
+
+export type { TokenHoldingResult } from "./token-holder-discount";
 
 // Re-export AI Gateway pricing utilities
 export {

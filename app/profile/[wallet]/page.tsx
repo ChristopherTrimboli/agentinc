@@ -420,7 +420,9 @@ export default function PublicProfilePage({
                     <Copy className="w-4 h-4" />
                   )}
                   <span className="hidden sm:inline">
-                    {copiedWallet ? "Copied!" : truncateWallet(data.profile.walletAddress)}
+                    {copiedWallet
+                      ? "Copied!"
+                      : truncateWallet(data.profile.walletAddress)}
                   </span>
                   <span className="sm:hidden">
                     {copiedWallet ? "Copied!" : "Copy"}
@@ -508,7 +510,9 @@ export default function PublicProfilePage({
               className={`rounded-2xl border border-white/8 bg-[#0a0520]/80 p-4 transition-all duration-200 ${border} group`}
             >
               <div className="flex items-start justify-between mb-2">
-                <div className={`w-8 h-8 rounded-xl ${bg} flex items-center justify-center`}>
+                <div
+                  className={`w-8 h-8 rounded-xl ${bg} flex items-center justify-center`}
+                >
                   <Icon className={`w-4 h-4 ${color}`} />
                 </div>
                 <ArrowUpRight className="w-3.5 h-3.5 text-white/15 group-hover:text-white/30 transition-colors" />
@@ -532,7 +536,8 @@ export default function PublicProfilePage({
                   Public Agents
                 </h2>
                 <p className="text-white/35 text-xs mt-0.5">
-                  {data.agents.length} agent{data.agents.length !== 1 ? "s" : ""} published
+                  {data.agents.length} agent
+                  {data.agents.length !== 1 ? "s" : ""} published
                 </p>
               </div>
               <div className="flex items-center gap-2">

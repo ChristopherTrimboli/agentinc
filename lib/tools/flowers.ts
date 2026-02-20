@@ -187,14 +187,16 @@ async function tokenizeCompanyCard(): Promise<
   { ok: true; opaqueData: OpaqueData } | { ok: false; error: string }
 > {
   // 1. Fetch Florist One's Authorize.net public credentials
-  const keyRes =
-    await floristFetch<AuthNetKeyResponse>("/getauthorizenetkey");
+  const keyRes = await floristFetch<AuthNetKeyResponse>("/getauthorizenetkey");
   if (!keyRes.ok) {
     return { ok: false, error: `Failed to get payment key: ${keyRes.error}` };
   }
 
-  const { USERNAME: loginId, AUTHORIZENET_KEY: clientKey, AUTHORIZENET_URL } =
-    keyRes.data;
+  const {
+    USERNAME: loginId,
+    AUTHORIZENET_KEY: clientKey,
+    AUTHORIZENET_URL,
+  } = keyRes.data;
 
   // Determine whether to use sandbox or production Authorize.net API
   const isSandbox = AUTHORIZENET_URL.includes("jstest");
@@ -258,8 +260,13 @@ async function tokenizeCompanyCard(): Promise<
 
     const tokenData = (await tokenRes.json()) as {
       opaqueData?: OpaqueData;
-      messages?: { resultCode: string; message: Array<{ code: string; text: string }> };
-      errorResponse?: { messages?: { message: Array<{ code: string; text: string }> } };
+      messages?: {
+        resultCode: string;
+        message: Array<{ code: string; text: string }>;
+      };
+      errorResponse?: {
+        messages?: { message: Array<{ code: string; text: string }> };
+      };
     };
 
     if (
@@ -277,7 +284,8 @@ async function tokenizeCompanyCard(): Promise<
   } catch (err) {
     return {
       ok: false,
-      error: err instanceof Error ? err.message : "Authorize.net request failed",
+      error:
+        err instanceof Error ? err.message : "Authorize.net request failed",
     };
   }
 }
@@ -304,7 +312,9 @@ const browseFlowersSchema = z.object({
     .string()
     .default("bs")
     .describe(
-      `Category code. Common values: bs=Best Sellers, bd=Birthday, an=Anniversary, lr=Love & Romance, gw=Get Well, nb=New Baby, ty=Thank You, sy=Funeral & Sympathy, r=Roses, p=Plants, u60=Under $60, a100=Over $100. Full list: ${Object.entries(FLOWER_CATEGORIES)
+      `Category code. Common values: bs=Best Sellers, bd=Birthday, an=Anniversary, lr=Love & Romance, gw=Get Well, nb=New Baby, ty=Thank You, sy=Funeral & Sympathy, r=Roses, p=Plants, u60=Under $60, a100=Over $100. Full list: ${Object.entries(
+        FLOWER_CATEGORIES,
+      )
         .slice(0, 20)
         .map(([k, v]) => `${k}=${v}`)
         .join(", ")}`,
@@ -682,9 +692,10 @@ export function createFlowerTools(billingContext?: BillingContext) {
         //    - ccinfo uses lowercase key "authorizenet_token"
         //    - phone fields are strings, not integers
 
-        const companyPhone = (
-          process.env.FLORIST_COMPANY_PHONE ?? ""
-        ).replace(/\D/g, "");
+        const companyPhone = (process.env.FLORIST_COMPANY_PHONE ?? "").replace(
+          /\D/g,
+          "",
+        );
 
         const customer = JSON.stringify({
           name: process.env.FLORIST_COMPANY_NAME,
@@ -734,15 +745,15 @@ export function createFlowerTools(billingContext?: BillingContext) {
         formBody.append("products", orderProducts);
         formBody.append("ccinfo", ccinfo);
         formBody.append("ordertotal", String(orderTotal));
-        formBody.append("allowsubstitutions", input.allowSubstitutions ? "1" : "0");
-
-        const orderRes = await floristFetch<PlaceOrderResponse>(
-          "/placeorder",
-          {
-            method: "POST",
-            body: formBody,
-          },
+        formBody.append(
+          "allowsubstitutions",
+          input.allowSubstitutions ? "1" : "0",
         );
+
+        const orderRes = await floristFetch<PlaceOrderResponse>("/placeorder", {
+          method: "POST",
+          body: formBody,
+        });
 
         if (!orderRes.ok) {
           return {

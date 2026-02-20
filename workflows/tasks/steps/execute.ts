@@ -76,6 +76,14 @@ export async function executeIteration(
           desc || `Task [${config.taskId}]`,
           meta,
         ),
+      // Token payment not supported in automated task execution
+      chargeUsageInToken: (usdCost, _tokenMint, _decimals, desc, meta) =>
+        chargeForUsage(
+          config.userId,
+          usdCost,
+          desc || `Task [${config.taskId}]`,
+          meta,
+        ),
     };
 
     // Build tools from task configuration
