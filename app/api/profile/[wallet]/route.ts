@@ -7,6 +7,19 @@ type RouteContext = {
   params: Promise<{ wallet: string }>;
 };
 
+interface CommunityMessageResult {
+  content: string;
+  isVip: boolean;
+  createdAt: Date;
+  agent: {
+    id: string;
+    name: string;
+    imageUrl: string | null;
+    tokenMint: string | null;
+    tokenSymbol: string | null;
+  };
+}
+
 interface ActivityItem {
   type: "agent_created" | "agent_launched" | "community_message";
   createdAt: Date;
@@ -55,6 +68,31 @@ export async function GET(_req: NextRequest, context: RouteContext) {
     }
 
     const userId = walletRecord.userId;
+
+    // withAccelerate() overrides findMany's type inference for nested relations;
+    // an explicit return type annotation is required here.
+    // withAccelerate() v3 drops the select generic from findMany's return type;
+    // cast is safe because the select is correct at runtime.
+    const communityMessagesPromise = prisma.agentChatMessage.findMany({
+      where: { walletAddress: normalizedWallet },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+      select: {
+        content: true,
+        isVip: true,
+        createdAt: true,
+        agent: {
+          select: {
+            id: true,
+            name: true,
+            imageUrl: true,
+            tokenMint: true,
+            tokenSymbol: true,
+          },
+        },
+      },
+      cacheStrategy,
+    }) as unknown as Promise<CommunityMessageResult[]>;
 
     const [
       publicAgents,
@@ -107,26 +145,7 @@ export async function GET(_req: NextRequest, context: RouteContext) {
         where: { walletAddress: normalizedWallet },
         cacheStrategy,
       }),
-      prisma.agentChatMessage.findMany({
-        where: { walletAddress: normalizedWallet },
-        orderBy: { createdAt: "desc" },
-        take: 20,
-        select: {
-          content: true,
-          isVip: true,
-          createdAt: true,
-          agent: {
-            select: {
-              id: true,
-              name: true,
-              imageUrl: true,
-              tokenMint: true,
-              tokenSymbol: true,
-            },
-          },
-        },
-        cacheStrategy,
-      }),
+      communityMessagesPromise,
       prisma.agent.findMany({
         where: {
           createdById: userId,
