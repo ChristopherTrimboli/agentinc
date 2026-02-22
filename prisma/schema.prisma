@@ -129,6 +129,7 @@ model Agent {
   // Minted agent fields
   isMinted      Boolean  @default(false)
   imageUrl      String?  // AI-generated profile picture
+  bannerUrl     String?  // Optional banner image
   
   // Agent personality (stored as JSON)
   personality       String?  // MBTI type (e.g., "INTJ", "ENTP")

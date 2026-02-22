@@ -12,6 +12,7 @@ interface GenerateImageBody {
   customPrompt?: string;
   uploadedImage?: string; // base64 encoded
   contentType?: string;
+  imageType?: "avatar" | "banner"; // avatar (default) or banner
 }
 
 async function generateImageHandler(req: NextRequest) {
@@ -27,7 +28,14 @@ async function generateImageHandler(req: NextRequest) {
 
   try {
     const body = (await req.json()) as GenerateImageBody;
-    const { name, traits, customPrompt, uploadedImage, contentType } = body;
+    const {
+      name,
+      traits,
+      customPrompt,
+      uploadedImage,
+      contentType,
+      imageType = "avatar",
+    } = body;
 
     if (!name) {
       return NextResponse.json(
@@ -39,6 +47,7 @@ async function generateImageHandler(req: NextRequest) {
     // Generate a unique filename
     const timestamp = Date.now();
     const sanitizedName = name.toLowerCase().replace(/[^a-z0-9]/g, "-");
+    const blobFolder = imageType === "banner" ? "agents/banners" : "agents";
 
     // Handle manual image upload
     if (uploadedImage) {
@@ -69,7 +78,7 @@ async function generateImageHandler(req: NextRequest) {
       }
 
       const extension = contentType.split("/")[1] || "png";
-      const filename = `agents/${sanitizedName}-${timestamp}.${extension}`;
+      const filename = `${blobFolder}/${sanitizedName}-${timestamp}.${extension}`;
 
       const blob = await put(filename, imageBuffer, {
         access: "public",
@@ -117,7 +126,7 @@ async function generateImageHandler(req: NextRequest) {
       ? Buffer.from(image.uint8Array)
       : Buffer.from(image.base64, "base64");
 
-    const filename = `agents/${sanitizedName}-${timestamp}.png`;
+    const filename = `${blobFolder}/${sanitizedName}-${timestamp}.png`;
 
     // Upload to Vercel Blob
     const blob = await put(filename, imageBuffer, {

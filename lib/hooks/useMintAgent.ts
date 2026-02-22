@@ -52,6 +52,10 @@ export function useMintAgent() {
   const [customImagePrompt, setCustomImagePrompt] = useState("");
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
+  // Banner configuration
+  const [bannerUrl, setBannerUrl] = useState("");
+  const [isUploadingBanner, setIsUploadingBanner] = useState(false);
+
   // Pre-generated agent ID for consistent website URL in token metadata
   const [agentId] = useState(() => nanoid(21));
 
@@ -215,6 +219,54 @@ export function useMintAgent() {
         );
       } finally {
         setIsUploadingImage(false);
+      }
+    },
+    [identityToken, agentName, authFetch],
+  );
+
+  // Upload banner manually
+  const uploadBanner = useCallback(
+    async (file: File) => {
+      if (!identityToken) return;
+      setIsUploadingBanner(true);
+      try {
+        if (!file.type.startsWith("image/")) {
+          throw new Error("Please select an image file");
+        }
+        if (file.size > 5 * 1024 * 1024) {
+          throw new Error("Image must be less than 5MB");
+        }
+
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = reader.result as string;
+            const base64Data = result.split(",")[1];
+            resolve(base64Data);
+          };
+          reader.onerror = () => reject(new Error("Failed to read file"));
+          reader.readAsDataURL(file);
+        });
+
+        const response = await authFetch("/api/agents/mint/generate-image", {
+          method: "POST",
+          body: JSON.stringify({
+            name: agentName,
+            uploadedImage: base64,
+            contentType: file.type,
+            imageType: "banner",
+          }),
+        });
+        const data = await response.json();
+        if (!response.ok)
+          throw new Error(data.error || "Failed to upload banner");
+        setBannerUrl(data.imageUrl);
+      } catch (error) {
+        setLaunchError(
+          error instanceof Error ? error.message : "Failed to upload banner",
+        );
+      } finally {
+        setIsUploadingBanner(false);
       }
     },
     [identityToken, agentName, authFetch],
@@ -448,6 +500,7 @@ export function useMintAgent() {
           name: agentName.trim(),
           description: description.trim() || null,
           imageUrl: imageUrl,
+          bannerUrl: bannerUrl || null,
           traits: agentTraits,
           tokenMint: metadataData.tokenMint,
           tokenSymbol: tokenSymbol.trim().toUpperCase(),
@@ -487,6 +540,7 @@ export function useMintAgent() {
     walletAddress,
     agentTraits,
     imageUrl,
+    bannerUrl,
     initialBuyAmount,
     walletBalance,
     agentId,
@@ -505,6 +559,7 @@ export function useMintAgent() {
     setAgentName(generateAgentName());
     setAgentTraits(generateRandomAgent());
     setImageUrl("");
+    setBannerUrl("");
     setTokenSymbol("");
     setDescription("");
     setTwitterHandle("");
@@ -552,6 +607,8 @@ export function useMintAgent() {
     imageMode,
     customImagePrompt,
     isUploadingImage,
+    bannerUrl,
+    isUploadingBanner,
 
     // Computed
     requiredBalance,
@@ -571,12 +628,14 @@ export function useMintAgent() {
     setImageMode,
     setCustomImagePrompt,
     setImageUrl,
+    setBannerUrl,
 
     // Actions
     randomizeAgent,
     toggleLock,
     generateImage,
     uploadImage,
+    uploadBanner,
     handleLaunch,
     resetMint,
     fetchBalance,

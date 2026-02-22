@@ -45,6 +45,7 @@ interface Agent {
   systemPrompt: string;
   isPublic: boolean;
   imageUrl: string | null;
+  bannerUrl: string | null;
   rarity: string | null;
   personality: string | null;
   personalityScores: PersonalityScores | null;
@@ -296,6 +297,20 @@ export default function AgentProfilePage({
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto">
+        {/* Banner */}
+        {agent.bannerUrl && (
+          <div className="relative w-full h-40 sm:h-56 md:h-64 overflow-hidden">
+            <Image
+              src={agent.bannerUrl}
+              alt={`${agent.name} banner`}
+              fill
+              className="object-cover"
+              priority
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[var(--background)]" />
+          </div>
+        )}
+
         {/* Main Content */}
         <main className="relative max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-12">
           <div

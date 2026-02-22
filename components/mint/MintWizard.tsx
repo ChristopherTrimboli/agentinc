@@ -38,6 +38,7 @@ interface MintWizardProps {
 
 export function MintWizard({ mint, chatPath }: MintWizardProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
 
   const {
     currentStep,
@@ -66,6 +67,8 @@ export function MintWizard({ mint, chatPath }: MintWizardProps) {
     imageMode,
     customImagePrompt,
     isUploadingImage,
+    bannerUrl,
+    isUploadingBanner,
     setCurrentStep,
     setAgentName,
     setTokenSymbol,
@@ -75,10 +78,12 @@ export function MintWizard({ mint, chatPath }: MintWizardProps) {
     setLaunchError,
     setImageMode,
     setCustomImagePrompt,
+    setBannerUrl,
     randomizeAgent,
     toggleLock,
     generateImage,
     uploadImage,
+    uploadBanner,
     handleLaunch,
     resetMint,
     fetchBalance,
@@ -92,6 +97,16 @@ export function MintWizard({ mint, chatPath }: MintWizardProps) {
     // Reset input so the same file can be selected again
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
+    }
+  };
+
+  const handleBannerSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      uploadBanner(file);
+    }
+    if (bannerInputRef.current) {
+      bannerInputRef.current.value = "";
     }
   };
 
@@ -481,6 +496,78 @@ export function MintWizard({ mint, chatPath }: MintWizardProps) {
                       </div>
                     )}
                   </div>
+                )}
+              </div>
+
+              {/* Banner Upload Section */}
+              <div className="mt-4 space-y-2">
+                <input
+                  ref={bannerInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
+                  onChange={handleBannerSelect}
+                  className="hidden"
+                  aria-describedby="banner-upload-desc"
+                />
+                <label className="text-[11px] uppercase tracking-wide text-white/50 font-bold flex items-center gap-1">
+                  <ImageIcon className="w-3 h-3" />
+                  Banner Image
+                  <span className="text-white/30">(optional)</span>
+                </label>
+                {bannerUrl ? (
+                  <div className="space-y-2">
+                    <div className="relative w-full h-24 rounded-xl overflow-hidden border border-[#6FEC06]/30">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={bannerUrl}
+                        alt="Banner"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => bannerInputRef.current?.click()}
+                        disabled={isUploadingBanner}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#120557]/50 hover:bg-[#120557]/70 border border-[#6FEC06]/20 rounded-lg text-xs font-medium transition-all focus-visible:ring-2 focus-visible:ring-[#6FEC06]/50 focus-visible:outline-none"
+                      >
+                        {isUploadingBanner ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <RefreshCw className="w-3.5 h-3.5" />
+                        )}
+                        Change Banner
+                      </button>
+                      <button
+                        onClick={() => setBannerUrl("")}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#120557]/50 hover:bg-[#120557]/70 border border-white/10 rounded-lg text-xs font-medium text-white/50 hover:text-white/70 transition-all focus-visible:ring-2 focus-visible:ring-[#6FEC06]/50 focus-visible:outline-none"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => bannerInputRef.current?.click()}
+                    disabled={isUploadingBanner}
+                    className="w-full h-20 rounded-xl bg-[#120557]/50 border-2 border-dashed border-white/10 flex flex-col items-center justify-center cursor-pointer hover:bg-[#120557]/70 hover:border-[#6FEC06]/30 transition-all focus-visible:ring-2 focus-visible:ring-[#6FEC06]/50 focus-visible:outline-none"
+                  >
+                    {isUploadingBanner ? (
+                      <div className="text-center">
+                        <Loader2 className="w-6 h-6 text-[#6FEC06] animate-spin mx-auto mb-1" />
+                        <p className="text-xs text-white/50">Uploading...</p>
+                      </div>
+                    ) : (
+                      <>
+                        <Upload className="w-5 h-5 text-white/30 mb-1" />
+                        <p
+                          id="banner-upload-desc"
+                          className="text-xs text-white/40"
+                        >
+                          Upload banner (16:9 recommended)
+                        </p>
+                      </>
+                    )}
+                  </button>
                 )}
               </div>
 

@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
       name,
       description,
       imageUrl,
+      bannerUrl,
       traits,
       tokenMint,
       tokenSymbol,
@@ -37,6 +38,7 @@ export async function POST(req: NextRequest) {
       name: string;
       description: string;
       imageUrl: string;
+      bannerUrl?: string;
       traits: AgentTraitData;
       tokenMint: string;
       tokenSymbol: string;
@@ -115,6 +117,7 @@ export async function POST(req: NextRequest) {
           description: description || null,
           systemPrompt,
           imageUrl: imageUrl || null,
+          bannerUrl: bannerUrl || null,
           isPublic: true, // Minted agents are public by default
           isMinted: true,
 
