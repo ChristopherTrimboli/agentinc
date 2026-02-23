@@ -25,6 +25,13 @@ import {
   Users,
 } from "lucide-react";
 import { PersonalityRadar } from "@/components/ui/PersonalityRadar";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { APP_BASE_URL, MINT_TX_FEE_ESTIMATE } from "@/lib/constants/mint";
 import { UseMintAgentReturn } from "@/lib/hooks/useMintAgent";
 import { EXTERNAL_APIS } from "@/lib/constants/urls";
@@ -749,20 +756,27 @@ export function MintWizard({ mint, chatPath }: MintWizardProps) {
                         key={index}
                         className="flex items-center gap-2 mb-2"
                       >
-                        <select
+                        <Select
                           value={earner.provider}
-                          onChange={(e) =>
+                          onValueChange={(value) =>
                             updateFeeEarner(index, {
-                              provider: e.target.value as "twitter" | "kick" | "github" | "solana",
+                              provider: value as "twitter" | "kick" | "github" | "solana",
                             })
                           }
-                          className="w-24 shrink-0 px-2 py-2 bg-[#120557]/50 border border-[#6FEC06]/20 rounded-lg text-white text-xs focus:outline-none focus:border-[#6FEC06]/50 focus:ring-2 focus:ring-[#6FEC06]/20 transition-all duration-200 appearance-none cursor-pointer"
                         >
-                          <option value="twitter">Twitter</option>
-                          <option value="github">GitHub</option>
-                          <option value="kick">Kick</option>
-                          <option value="solana">Wallet</option>
-                        </select>
+                          <SelectTrigger
+                            size="sm"
+                            className="w-24 shrink-0 bg-[#120557]/50 border-[#6FEC06]/20 text-white text-xs rounded-lg hover:border-[#6FEC06]/30 focus-visible:border-[#6FEC06]/50 focus-visible:ring-[#6FEC06]/20"
+                          >
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-[#0a0520] border-[#6FEC06]/20 text-white">
+                            <SelectItem value="twitter">Twitter</SelectItem>
+                            <SelectItem value="github">GitHub</SelectItem>
+                            <SelectItem value="kick">Kick</SelectItem>
+                            <SelectItem value="solana">Wallet</SelectItem>
+                          </SelectContent>
+                        </Select>
                         <input
                           type="text"
                           value={earner.username}
