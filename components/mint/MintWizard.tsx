@@ -20,6 +20,9 @@ import {
   Upload,
   Sparkles,
   PenLine,
+  Plus,
+  Trash2,
+  Users,
 } from "lucide-react";
 import { PersonalityRadar } from "@/components/ui/PersonalityRadar";
 import { APP_BASE_URL, MINT_TX_FEE_ESTIMATE } from "@/lib/constants/mint";
@@ -79,6 +82,12 @@ export function MintWizard({ mint, chatPath }: MintWizardProps) {
     setImageMode,
     setCustomImagePrompt,
     setBannerUrl,
+    feeEarners,
+    totalFeeEarnerBps,
+    creatorBps,
+    addFeeEarner,
+    removeFeeEarner,
+    updateFeeEarner,
     randomizeAgent,
     toggleLock,
     generateImage,
@@ -699,6 +708,122 @@ export function MintWizard({ mint, chatPath }: MintWizardProps) {
                     </div>
                   </div>
 
+                  {/* Fee Sharing Section */}
+                  <div className="pt-2 border-t border-white/10">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-[11px] uppercase tracking-wide text-white/50 font-bold flex items-center gap-1">
+                        <Users className="w-3 h-3" />
+                        Share Fees{" "}
+                        <span className="text-white/30">(optional)</span>
+                      </p>
+                      {feeEarners.length < 99 && (
+                        <button
+                          type="button"
+                          onClick={addFeeEarner}
+                          className="flex items-center gap-1 px-2 py-1 text-xs text-[#6FEC06] hover:bg-[#6FEC06]/10 rounded-lg transition-all focus-visible:ring-2 focus-visible:ring-[#6FEC06]/50 focus-visible:outline-none"
+                        >
+                          <Plus className="w-3 h-3" />
+                          Add Earner
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Creator share (always shown) */}
+                    <div className="flex items-center justify-between px-3 py-2 bg-[#120557]/30 border border-white/10 rounded-lg mb-2">
+                      <div className="flex items-center gap-2">
+                        <Wallet className="w-3.5 h-3.5 text-[#6FEC06]" />
+                        <span className="text-xs text-white/70">
+                          Your share (creator)
+                        </span>
+                      </div>
+                      <span
+                        className={`text-sm font-bold ${creatorBps < 0 ? "text-red-400" : "text-[#6FEC06]"}`}
+                      >
+                        {(creatorBps / 100).toFixed(2)}%
+                      </span>
+                    </div>
+
+                    {/* Fee earner rows */}
+                    {feeEarners.map((earner, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-2 mb-2"
+                      >
+                        <select
+                          value={earner.provider}
+                          onChange={(e) =>
+                            updateFeeEarner(index, {
+                              provider: e.target.value as "twitter" | "kick" | "github" | "solana",
+                            })
+                          }
+                          className="w-24 shrink-0 px-2 py-2 bg-[#120557]/50 border border-[#6FEC06]/20 rounded-lg text-white text-xs focus:outline-none focus:border-[#6FEC06]/50 focus:ring-2 focus:ring-[#6FEC06]/20 transition-all duration-200 appearance-none cursor-pointer"
+                        >
+                          <option value="twitter">Twitter</option>
+                          <option value="github">GitHub</option>
+                          <option value="kick">Kick</option>
+                          <option value="solana">Wallet</option>
+                        </select>
+                        <input
+                          type="text"
+                          value={earner.username}
+                          onChange={(e) =>
+                            updateFeeEarner(index, {
+                              username: e.target.value.replace(/^@/, "").replace(/\s/g, ""),
+                            })
+                          }
+                          className="flex-1 min-w-0 px-3 py-2 bg-[#120557]/50 border border-[#6FEC06]/20 rounded-lg text-white text-xs placeholder-white/30 hover:border-[#6FEC06]/30 hover:bg-[#120557]/60 focus:outline-none focus:border-[#6FEC06]/50 focus:ring-2 focus:ring-[#6FEC06]/20 transition-all duration-200"
+                          placeholder={
+                            earner.provider === "solana"
+                              ? "Wallet address"
+                              : "username"
+                          }
+                        />
+                        <div className="relative w-20 shrink-0">
+                          <input
+                            type="number"
+                            value={earner.bps ? earner.bps / 100 : ""}
+                            onChange={(e) => {
+                              const pct = parseFloat(e.target.value);
+                              updateFeeEarner(index, {
+                                bps: isNaN(pct) ? 0 : Math.min(Math.round(pct * 100), 9999),
+                              });
+                            }}
+                            className="w-full px-2 py-2 pr-6 bg-[#120557]/50 border border-[#6FEC06]/20 rounded-lg text-white text-xs placeholder-white/30 focus:outline-none focus:border-[#6FEC06]/50 focus:ring-2 focus:ring-[#6FEC06]/20 transition-all duration-200"
+                            placeholder="0"
+                            min="0.01"
+                            max="99.99"
+                            step="0.01"
+                          />
+                          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-white/40 text-xs pointer-events-none">
+                            %
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeFeeEarner(index)}
+                          className="p-1.5 text-white/30 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all focus-visible:ring-2 focus-visible:ring-red-400/50 focus-visible:outline-none"
+                          aria-label="Remove fee earner"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+
+                    {totalFeeEarnerBps > 0 && creatorBps < 0 && (
+                      <p className="text-xs text-red-400 flex items-center gap-1 mt-1">
+                        <AlertCircle className="w-3 h-3" />
+                        Total shares exceed 100%
+                      </p>
+                    )}
+
+                    {feeEarners.length === 0 && (
+                      <p className="text-xs text-white/40 mt-1">
+                        All trading fees go to your wallet. Add earners to
+                        share fees with others.
+                      </p>
+                    )}
+                  </div>
+
                   <div>
                     <label className="block text-[11px] uppercase tracking-wide text-white/50 mb-1.5 font-bold">
                       Initial Buy Amount
@@ -780,11 +905,13 @@ export function MintWizard({ mint, chatPath }: MintWizardProps) {
                 </button>
                 <button
                   onClick={() => setCurrentStep(3)}
-                  disabled={!tokenSymbol.trim()}
+                  disabled={!tokenSymbol.trim() || creatorBps < 0}
                   title={
                     !tokenSymbol.trim()
                       ? "Enter a token symbol to continue"
-                      : ""
+                      : creatorBps < 0
+                        ? "Fee shares exceed 100%"
+                        : ""
                   }
                   className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#6FEC06] to-[#4a9f10] rounded-lg text-black text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90 transition-opacity shadow-lg shadow-[#6FEC06]/20 focus-visible:ring-2 focus-visible:ring-[#6FEC06]/50 focus-visible:outline-none"
                 >
@@ -831,6 +958,24 @@ export function MintWizard({ mint, chatPath }: MintWizardProps) {
                       {parseFloat(initialBuyAmount) > 0
                         ? `${initialBuyAmount} SOL`
                         : "None"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-white/10">
+                    <span className="text-white/50 text-xs">Fee Sharing</span>
+                    <span className="font-semibold text-sm">
+                      {feeEarners.filter((e) => e.username && e.bps > 0)
+                        .length > 0 ? (
+                        <span className="text-[#6FEC06]">
+                          {(creatorBps / 100).toFixed(1)}% you +{" "}
+                          {feeEarners.filter((e) => e.username && e.bps > 0).length}{" "}
+                          earner
+                          {feeEarners.filter((e) => e.username && e.bps > 0).length > 1
+                            ? "s"
+                            : ""}
+                        </span>
+                      ) : (
+                        "100% to you"
+                      )}
                     </span>
                   </div>
                   <div className="flex justify-between items-center py-2">

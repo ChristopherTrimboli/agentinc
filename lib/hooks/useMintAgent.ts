@@ -29,6 +29,12 @@ export interface LaunchResult {
   agentId: string;
 }
 
+export interface FeeEarner {
+  provider: "twitter" | "kick" | "github" | "solana";
+  username: string;
+  bps: number;
+}
+
 export function useMintAgent() {
   const { authFetch, identityToken } = useAuth();
 
@@ -55,6 +61,9 @@ export function useMintAgent() {
   // Banner configuration
   const [bannerUrl, setBannerUrl] = useState("");
   const [isUploadingBanner, setIsUploadingBanner] = useState(false);
+
+  // Fee sharing configuration
+  const [feeEarners, setFeeEarners] = useState<FeeEarner[]>([]);
 
   // Pre-generated agent ID for consistent website URL in token metadata
   const [agentId] = useState(() => nanoid(21));
@@ -272,6 +281,34 @@ export function useMintAgent() {
     [identityToken, agentName, authFetch],
   );
 
+  // Fee earner management
+  const addFeeEarner = useCallback(() => {
+    setFeeEarners((prev) => [
+      ...prev,
+      { provider: "twitter" as const, username: "", bps: 0 },
+    ]);
+  }, []);
+
+  const removeFeeEarner = useCallback((index: number) => {
+    setFeeEarners((prev) => prev.filter((_, i) => i !== index));
+  }, []);
+
+  const updateFeeEarner = useCallback(
+    (index: number, updates: Partial<FeeEarner>) => {
+      setFeeEarners((prev) =>
+        prev.map((earner, i) => (i === index ? { ...earner, ...updates } : earner)),
+      );
+    },
+    [],
+  );
+
+  const totalFeeEarnerBps = useMemo(
+    () => feeEarners.reduce((sum, e) => sum + (e.bps || 0), 0),
+    [feeEarners],
+  );
+
+  const creatorBps = 10000 - totalFeeEarnerBps;
+
   // Update a specific launch step
   const updateStep = useCallback(
     (stepId: string, status: LaunchStep["status"], error?: string) => {
@@ -351,10 +388,15 @@ export function useMintAgent() {
       // Step 2: Fee share config
       updateStep("feeShare", "loading");
 
+      const validFeeEarners = feeEarners.filter(
+        (e) => e.username.trim() && e.bps > 0,
+      );
+
       const feeShareResponse = await authFetch("/api/agents/mint/fee-share", {
         method: "POST",
         body: JSON.stringify({
           tokenMint: metadataData.tokenMint,
+          feeEarners: validFeeEarners.length > 0 ? validFeeEarners : undefined,
         }),
       });
 
@@ -548,6 +590,7 @@ export function useMintAgent() {
     agentName,
     tokenSymbol,
     description,
+    feeEarners,
     updateStep,
     authFetch,
   ]);
@@ -563,6 +606,7 @@ export function useMintAgent() {
     setTokenSymbol("");
     setDescription("");
     setTwitterHandle("");
+    setFeeEarners([]);
     setLaunchError("");
     setLaunchSteps([]);
     setImageMode("generate");
@@ -577,11 +621,18 @@ export function useMintAgent() {
 
   const canProceedToStep1 = agentTraits !== null && agentName.trim().length > 0;
   const canProceedToStep2 = canProceedToStep1 && imageUrl.length > 0;
+  const hasFeeShareError =
+    creatorBps < 0 ||
+    feeEarners.some(
+      (e) => (e.username.trim() && e.bps <= 0) || (!e.username.trim() && e.bps > 0),
+    );
+
   const canLaunch =
     canProceedToStep2 &&
     tokenSymbol.trim().length > 0 &&
     walletAddress &&
-    hasEnoughBalance;
+    hasEnoughBalance &&
+    !hasFeeShareError;
 
   return {
     // State
@@ -609,6 +660,9 @@ export function useMintAgent() {
     isUploadingImage,
     bannerUrl,
     isUploadingBanner,
+    feeEarners,
+    totalFeeEarnerBps,
+    creatorBps,
 
     // Computed
     requiredBalance,
@@ -629,6 +683,7 @@ export function useMintAgent() {
     setCustomImagePrompt,
     setImageUrl,
     setBannerUrl,
+    setFeeEarners,
 
     // Actions
     randomizeAgent,
@@ -639,6 +694,9 @@ export function useMintAgent() {
     handleLaunch,
     resetMint,
     fetchBalance,
+    addFeeEarner,
+    removeFeeEarner,
+    updateFeeEarner,
   };
 }
 
