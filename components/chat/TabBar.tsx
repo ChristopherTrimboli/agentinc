@@ -86,7 +86,6 @@ export function TabBar({
   activeTabId,
   onTabSelect,
   onTabClose,
-  onNewChat,
   rightActions,
 }: TabBarProps) {
   const scrollRef = useRef<HTMLDivElement>(null);

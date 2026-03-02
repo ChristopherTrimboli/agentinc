@@ -234,7 +234,7 @@ function Stepper({
 
 export default function IncorporatePage() {
   const router = useRouter();
-  const { user, ready, authenticated } = usePrivy();
+  const { ready, authenticated } = usePrivy();
   const { identityToken } = useIdentityToken();
   const { wallets } = useWallets();
   const { signTransaction } = useSignTransaction();

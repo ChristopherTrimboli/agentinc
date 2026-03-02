@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useAuth } from "@/lib/auth/AuthProvider";
-import { useRouter } from "next/navigation";
 import {
   Download,
   Loader2,
@@ -33,7 +32,6 @@ const steps: ImportStep[] = [
 
 export default function ImportAgentPage() {
   const { authFetch, identityToken } = useAuth();
-  const router = useRouter();
 
   const [currentStep, setCurrentStep] = useState<ImportStep["id"]>("input");
   const [tokenMint, setTokenMint] = useState("");

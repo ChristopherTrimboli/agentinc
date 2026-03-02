@@ -62,7 +62,7 @@ export function validateTransaction(transactionBase64: string): {
       // Fall back to legacy transaction
       try {
         tx = Transaction.from(txBuffer);
-      } catch (deserializeError) {
+      } catch {
         return {
           valid: false,
           error: "Invalid transaction format",

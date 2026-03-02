@@ -1,10 +1,7 @@
 "use client";
 
 import { usePrivy } from "@privy-io/react-auth";
-import {
-  useExportWallet,
-  useWallets as useSolanaWallets,
-} from "@privy-io/react-auth/solana";
+import { useExportWallet } from "@privy-io/react-auth/solana";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/lib/auth/AuthProvider";
 import {
@@ -50,7 +47,6 @@ export default function WalletProfile({
 }: WalletProfileProps) {
   const { logout, user } = usePrivy();
   const { authFetch, identityToken } = useAuth();
-  const { wallets: solanaWallets } = useSolanaWallets();
   const { exportWallet } = useExportWallet();
   const walletAddress = useActiveWalletAddress();
   const [isOpen, setIsOpen] = useState(false);

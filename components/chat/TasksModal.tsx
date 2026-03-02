@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   X,
   Zap,
@@ -295,9 +295,12 @@ export function TasksModal({
     ? { "privy-id-token": identityToken }
     : {};
 
-  const fetchTasks = async () => {
+  const fetchTasks = useCallback(async () => {
     try {
-      const res = await fetch("/api/tasks", { headers });
+      const h: Record<string, string> = identityToken
+        ? { "privy-id-token": identityToken }
+        : {};
+      const res = await fetch("/api/tasks", { headers: h });
       if (!res.ok) return;
       const data = await res.json();
       setTasks(data.tasks || []);
@@ -306,14 +309,14 @@ export function TasksModal({
     } finally {
       setLoading(false);
     }
-  };
+  }, [identityToken]);
 
   useEffect(() => {
     if (isOpen) {
       setLoading(true);
       fetchTasks();
     }
-  }, [isOpen]);
+  }, [isOpen, fetchTasks]);
 
   const handleControl = async (
     taskId: string,

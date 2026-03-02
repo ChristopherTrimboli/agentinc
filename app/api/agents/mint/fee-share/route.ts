@@ -83,7 +83,10 @@ export async function POST(req: NextRequest) {
       const totalEarnerBps = feeEarners.reduce((sum, e) => sum + e.bps, 0);
       if (totalEarnerBps >= 10000) {
         return NextResponse.json(
-          { error: "Fee earner shares cannot total 100% — creator must keep some share" },
+          {
+            error:
+              "Fee earner shares cannot total 100% — creator must keep some share",
+          },
           { status: 400 },
         );
       }
@@ -132,7 +135,9 @@ export async function POST(req: NextRequest) {
           if (earner.provider === "solana") {
             if (!isValidPublicKey(earner.username)) {
               return NextResponse.json(
-                { error: `Invalid Solana address for fee earner: ${earner.username}` },
+                {
+                  error: `Invalid Solana address for fee earner: ${earner.username}`,
+                },
                 { status: 400 },
               );
             }

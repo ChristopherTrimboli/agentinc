@@ -38,7 +38,7 @@ import {
 } from "./imageGeneration";
 import { webSearchTools } from "./webSearch";
 import { createTwilioTools, twilioTools } from "./twilio";
-import { createFlowerTools, flowerTools } from "./flowers";
+import { createFlowerTools } from "./flowers";
 // Note: Twitter tools are created dynamically with user OAuth token via createTwitterTools()
 // Note: Knowledge tools are created dynamically with userId/agentId via createKnowledgeTools()
 // Note: Task tools are created dynamically with userId/agentId via createTaskTools()

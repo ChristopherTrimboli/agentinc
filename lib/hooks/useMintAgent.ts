@@ -296,7 +296,9 @@ export function useMintAgent() {
   const updateFeeEarner = useCallback(
     (index: number, updates: Partial<FeeEarner>) => {
       setFeeEarners((prev) =>
-        prev.map((earner, i) => (i === index ? { ...earner, ...updates } : earner)),
+        prev.map((earner, i) =>
+          i === index ? { ...earner, ...updates } : earner,
+        ),
       );
     },
     [],
@@ -624,7 +626,8 @@ export function useMintAgent() {
   const hasFeeShareError =
     creatorBps < 0 ||
     feeEarners.some(
-      (e) => (e.username.trim() && e.bps <= 0) || (!e.username.trim() && e.bps > 0),
+      (e) =>
+        (e.username.trim() && e.bps <= 0) || (!e.username.trim() && e.bps > 0),
     );
 
   const canLaunch =

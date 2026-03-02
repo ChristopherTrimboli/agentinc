@@ -22,7 +22,7 @@ function createGetWalletBalance(ctx: WalletToolContext) {
     description:
       "Get the SOL balance of your active wallet. Returns the balance in SOL and lamports.",
     inputSchema: z.object({}),
-    execute: async (_input: Record<string, never>) => {
+    execute: async () => {
       try {
         const connection = getConnection();
         const pubkey = new PublicKey(ctx.walletAddress);
@@ -51,7 +51,7 @@ function createGetTokenBalances(ctx: WalletToolContext) {
     description:
       "Get all SPL token holdings in your active wallet. Returns token mints, symbols, names, balances, and metadata.",
     inputSchema: z.object({}),
-    execute: async (_input: Record<string, never>) => {
+    execute: async () => {
       try {
         // Use Helius enhanced RPC for richer token data
         const response = await fetch(SOLANA_RPC_URL, {

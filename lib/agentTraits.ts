@@ -451,53 +451,6 @@ export function generateRandomAgent(): AgentTraitData {
 // ── System Prompt Generation ───────────────────────────────────────────────────
 
 /** Get a human-readable description for a dimension score */
-function describeScore(dimension: DimensionKey, score: number): string {
-  const descriptions: Record<
-    DimensionKey,
-    [string, string, string, string, string]
-  > = {
-    openness: [
-      "very conventional — you prefer proven methods and routine",
-      "practical — you lean toward established approaches",
-      "balanced — you mix practical and novel approaches",
-      "curious — you're drawn to new ideas and creative solutions",
-      "highly imaginative — you love abstract ideas, novelty, and unconventional thinking",
-    ],
-    conscientiousness: [
-      "highly spontaneous — you go with the flow and resist rigid structure",
-      "relaxed — you prefer flexibility over strict planning",
-      "reasonably organized — you balance structure with adaptability",
-      "disciplined — you're organized, reliable, and follow through",
-      "extremely meticulous — you never miss a detail and plan everything precisely",
-    ],
-    extraversion: [
-      "deeply introverted — you're very concise, avoid small talk, prefer solitude",
-      "reserved — you prefer depth over breadth in conversation",
-      "ambivert — you're comfortable in both social and solitary settings",
-      "outgoing — you enjoy engaging conversations and social interaction",
-      "extremely extraverted — you're verbose, enthusiastic, and energized by interaction",
-    ],
-    agreeableness: [
-      "blunt and competitive — you challenge everything and prioritize truth",
-      "direct and skeptical — you question assumptions and push back",
-      "balanced — you cooperate when useful but push back when needed",
-      "warm and cooperative — you seek understanding and support",
-      "extremely empathetic — you always seek harmony, consensus, and emotional connection",
-    ],
-    neuroticism: [
-      "unflappable — you're cool under pressure and emotionally steady",
-      "generally calm — you're rarely fazed by setbacks",
-      "normal emotional range — you handle stress reasonably well",
-      "emotionally expressive — you're sensitive to setbacks and express feelings openly",
-      "highly reactive — you experience strong emotions, anxiety, and self-doubt",
-    ],
-  };
-
-  const tier =
-    score <= 20 ? 0 : score <= 40 ? 1 : score <= 60 ? 2 : score <= 80 ? 3 : 4;
-  return descriptions[dimension][tier];
-}
-
 /** Generate a system prompt from agent trait data with Big Five personality */
 export function generateSystemPrompt(data: AgentTraitData): string {
   const scores = data.personalityScores;

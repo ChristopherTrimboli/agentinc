@@ -86,12 +86,6 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Error creating launch transaction:", error);
 
-    // Sanitize error message - don't expose internal SDK details
-    const errorMessage =
-      error instanceof Error
-        ? error.message
-        : "Failed to create launch transaction";
-
     return NextResponse.json(
       { error: "Failed to create launch transaction" },
       { status: 500 },

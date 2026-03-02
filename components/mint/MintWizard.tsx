@@ -752,15 +752,16 @@ export function MintWizard({ mint, chatPath }: MintWizardProps) {
 
                     {/* Fee earner rows */}
                     {feeEarners.map((earner, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center gap-2 mb-2"
-                      >
+                      <div key={index} className="flex items-center gap-2 mb-2">
                         <Select
                           value={earner.provider}
                           onValueChange={(value) =>
                             updateFeeEarner(index, {
-                              provider: value as "twitter" | "kick" | "github" | "solana",
+                              provider: value as
+                                | "twitter"
+                                | "kick"
+                                | "github"
+                                | "solana",
                             })
                           }
                         >
@@ -782,7 +783,9 @@ export function MintWizard({ mint, chatPath }: MintWizardProps) {
                           value={earner.username}
                           onChange={(e) =>
                             updateFeeEarner(index, {
-                              username: e.target.value.replace(/^@/, "").replace(/\s/g, ""),
+                              username: e.target.value
+                                .replace(/^@/, "")
+                                .replace(/\s/g, ""),
                             })
                           }
                           className="flex-1 min-w-0 px-3 py-2 bg-[#120557]/50 border border-[#6FEC06]/20 rounded-lg text-white text-xs placeholder-white/30 hover:border-[#6FEC06]/30 hover:bg-[#120557]/60 focus:outline-none focus:border-[#6FEC06]/50 focus:ring-2 focus:ring-[#6FEC06]/20 transition-all duration-200"
@@ -799,7 +802,9 @@ export function MintWizard({ mint, chatPath }: MintWizardProps) {
                             onChange={(e) => {
                               const pct = parseFloat(e.target.value);
                               updateFeeEarner(index, {
-                                bps: isNaN(pct) ? 0 : Math.min(Math.round(pct * 100), 9999),
+                                bps: isNaN(pct)
+                                  ? 0
+                                  : Math.min(Math.round(pct * 100), 9999),
                               });
                             }}
                             className="w-full px-2 py-2 pr-6 bg-[#120557]/50 border border-[#6FEC06]/20 rounded-lg text-white text-xs placeholder-white/30 focus:outline-none focus:border-[#6FEC06]/50 focus:ring-2 focus:ring-[#6FEC06]/20 transition-all duration-200"
@@ -832,8 +837,8 @@ export function MintWizard({ mint, chatPath }: MintWizardProps) {
 
                     {feeEarners.length === 0 && (
                       <p className="text-xs text-white/40 mt-1">
-                        All trading fees go to your wallet. Add earners to
-                        share fees with others.
+                        All trading fees go to your wallet. Add earners to share
+                        fees with others.
                       </p>
                     )}
                   </div>
@@ -981,9 +986,13 @@ export function MintWizard({ mint, chatPath }: MintWizardProps) {
                         .length > 0 ? (
                         <span className="text-[#6FEC06]">
                           {(creatorBps / 100).toFixed(1)}% you +{" "}
-                          {feeEarners.filter((e) => e.username && e.bps > 0).length}{" "}
+                          {
+                            feeEarners.filter((e) => e.username && e.bps > 0)
+                              .length
+                          }{" "}
                           earner
-                          {feeEarners.filter((e) => e.username && e.bps > 0).length > 1
+                          {feeEarners.filter((e) => e.username && e.bps > 0)
+                            .length > 1
                             ? "s"
                             : ""}
                         </span>

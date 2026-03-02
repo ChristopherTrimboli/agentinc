@@ -51,7 +51,6 @@ import type {
   BatchTransferResult,
 } from "./types";
 import {
-  MAX_BATCH_RECIPIENTS,
   MAX_TOTAL_BATCH_RECIPIENTS,
   WALLET_TRANSFER_RATE_LIMIT,
 } from "./types";
@@ -110,12 +109,7 @@ function createTransferSol(ctx: WalletToolContext) {
 
         // Execute with wallet lock to prevent concurrent operations
         const result = await withWalletLock(ctx.walletAddress, async () => {
-          return await executeSolTransfer(
-            ctx,
-            recipientPubkey,
-            lamports,
-            solAmount,
-          );
+          return await executeSolTransfer(ctx, recipientPubkey, lamports);
         });
 
         // Audit log
@@ -359,7 +353,6 @@ async function executeSolTransfer(
   ctx: WalletToolContext,
   recipient: PublicKey,
   lamports: bigint,
-  _solAmount: number,
 ): Promise<TransferResult & { rawAmount?: string }> {
   const connection = new Connection(SOLANA_RPC_URL, "confirmed");
   const fromPubkey = new PublicKey(ctx.walletAddress);

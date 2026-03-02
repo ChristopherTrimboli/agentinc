@@ -244,7 +244,7 @@ export const bagsSkill: Skill = {
 
   systemPrompt: BAGS_SYSTEM_PROMPT,
 
-  validate(_config: SkillConfig): true | string {
+  validate(): true | string {
     // Always allow - the initAuth tool doesn't need an API key.
     // Other tools will return auth errors if no key is configured,
     // prompting the agent to use initAuth to authenticate first.

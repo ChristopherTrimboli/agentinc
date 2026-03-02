@@ -219,7 +219,6 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    let userWalletId: string | undefined;
     if (!existingUserWallet) {
       const newUserWallet = await prisma.userWallet.create({
         data: {
@@ -227,11 +226,10 @@ export async function POST(req: NextRequest) {
           privyWalletId: importedWalletId,
           address: walletAddress,
           serverOwned: true,
-          label: sanitizedName, // Label with agent name for easy identification
+          label: sanitizedName,
           importedFrom: "agent-import",
         },
       });
-      userWalletId = newUserWallet.id;
 
       // If user has no active wallet set, make this one active
       const userActiveWallet = await prisma.user.findUnique({
@@ -245,8 +243,6 @@ export async function POST(req: NextRequest) {
           data: { activeWalletId: newUserWallet.id },
         });
       }
-    } else {
-      userWalletId = existingUserWallet.id;
     }
 
     // ── Step 7: Generate personality traits ───────────────────────────────────
