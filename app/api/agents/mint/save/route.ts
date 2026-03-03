@@ -4,6 +4,7 @@ import { generateSystemPrompt, AgentTraitData } from "@/lib/agentTraits";
 import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
 import { rateLimitByUser } from "@/lib/rateLimit";
 import { PublicKey } from "@solana/web3.js";
+import { registerAgentOn8004 } from "@/lib/erc8004";
 
 // POST /api/agents/mint/save - Save minted agent to database
 export async function POST(req: NextRequest) {
@@ -142,6 +143,40 @@ export async function POST(req: NextRequest) {
         },
       });
     });
+
+    // Fire-and-forget: register on 8004 if user has an active wallet
+    if (auth.walletAddress && auth.walletId) {
+      registerAgentOn8004({
+        name: agent.name,
+        description: agent.description || "",
+        imageUrl: agent.imageUrl || undefined,
+        tokenMint: agent.tokenMint || undefined,
+        agentId: agent.id,
+        walletAddress: auth.walletAddress,
+        walletId: auth.walletId,
+      })
+        .then(async (result) => {
+          await prisma.agent.update({
+            where: { id: agent.id },
+            data: {
+              erc8004Asset: result.asset,
+              erc8004Uri: result.metadataUri,
+              erc8004CollectionPointer: result.collectionPointer || null,
+              erc8004AtomEnabled: true,
+              erc8004RegisteredAt: new Date(),
+            },
+          });
+          console.log(
+            `[ERC8004] Agent ${agent.id} registered: ${result.asset} (tx: ${result.signature})`,
+          );
+        })
+        .catch((err) => {
+          console.error(
+            `[ERC8004] Background registration failed for ${agent.id}:`,
+            err,
+          );
+        });
+    }
 
     return NextResponse.json({ agent }, { status: 201 });
   } catch (error) {

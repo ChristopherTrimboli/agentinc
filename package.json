@@ -40,6 +40,7 @@
     "db:studio": "bun prisma studio"
   },
   "dependencies": {
+    "8004-solana": "^0.7.8",
     "@ai-sdk/anthropic": "^3.0.50",
     "@ai-sdk/openai": "^3.0.37",
     "@ai-sdk/react": "^3.0.107",

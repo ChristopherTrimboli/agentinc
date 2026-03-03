@@ -150,6 +150,13 @@ model Agent {
   launchSignature String?  // Transaction signature
   launchedAt      DateTime? // When the token was launched
 
+  // ERC-8004 on-chain identity (Solana agent registry)
+  erc8004Asset             String?  @unique // Metaplex Core asset pubkey on 8004 registry
+  erc8004Uri               String?  // IPFS metadata URI for 8004 registration file
+  erc8004CollectionPointer String?  // Collection pointer (c1:bafybeig...)
+  erc8004AtomEnabled       Boolean  @default(false) // ATOM reputation engine opt-in
+  erc8004RegisteredAt      DateTime? // When the agent was registered on 8004
+
   // Corporation relation (optional - agent can belong to a corporation)
   corporationId String?
   corporation   Corporation? @relation(fields: [corporationId], references: [id], onDelete: SetNull)
@@ -172,6 +179,7 @@ model Agent {
   @@index([createdById, createdAt])
   @@index([isMinted, rarity, createdAt])
   @@index([isMinted, isPublic])
+  @@index([erc8004Asset])
 }
 
 // Staking pool tracking - links agents to their Streamflow staking pools
