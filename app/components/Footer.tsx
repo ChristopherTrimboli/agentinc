@@ -33,7 +33,7 @@ export default function Footer({ variant = "full" }: FooterProps) {
           <div className="col-span-2">
             <Link href="/" className="flex items-center mb-3 sm:mb-4">
               <Image
-                src="/agentinc.svg"
+                src="/agentinc-logo.svg"
                 alt="Agent Inc."
                 width={180}
                 height={48}

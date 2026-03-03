@@ -16,7 +16,7 @@ export default function PrivacyPolicyPage() {
           <div className="flex items-center justify-between h-16">
             <Link href="/" className="flex items-center gap-2">
               <Image
-                src="/agentinc.svg"
+                src="/agentinc-logo.svg"
                 alt="Agent Inc."
                 width={140}
                 height={40}

@@ -109,7 +109,7 @@ export default function Sidebar() {
             />
             {/* Full logo - shown when expanded */}
             <Image
-              src="/agentinc.svg"
+              src="/agentinc-logo.svg"
               alt="Agent Inc."
               width={180}
               height={48}

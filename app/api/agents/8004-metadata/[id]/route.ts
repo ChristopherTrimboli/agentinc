@@ -55,7 +55,7 @@ export async function GET(_req: NextRequest, context: RouteContext) {
     description: agent.description || `${agent.name} — an Agent Inc. AI agent`,
     image: agent.imageUrl
       ? `${appUrl}/api/agents/image/${agentSlug}`
-      : `${appUrl}/agentinc.svg`,
+      : `${appUrl}/agentinc.jpg`,
     services,
     active: true,
     x402Support: true,
