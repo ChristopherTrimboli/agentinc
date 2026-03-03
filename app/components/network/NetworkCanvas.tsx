@@ -1,7 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Application, Container, Graphics, Text, TextStyle } from "pixi.js";
+import {
+  Application,
+  Container,
+  Graphics,
+  Text,
+  TextStyle,
+  Sprite,
+  Texture,
+  ImageSource,
+} from "pixi.js";
 import { ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
 import type {
   NetworkData,
@@ -17,9 +26,10 @@ import {
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const MIN_ZOOM = 0.1;
+const MIN_ZOOM = 0.3;
 const MAX_ZOOM = 4;
-const ZOOM_STEP = 0.15;
+const ZOOM_STEP = 0.06;
+const TEXT_RES = 3;
 const GRID_SIZE = 60;
 const BG = 0x030712;
 const GRID_MINOR = 0x111827;
@@ -32,7 +42,7 @@ const ALPHA_DECAY = 0.997;
 const ALPHA_MIN = 0.005;
 
 const AGENTS_PER_RING = 14;
-const RING_GAP = 22;
+const RING_GAP = 30;
 const ORBIT_SPEED = 0.00015;
 
 // ── Force Simulation Node ────────────────────────────────────────────────────
@@ -61,12 +71,7 @@ interface VisAgent {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function tickForce(
-  nodes: ForceNode[],
-  cx: number,
-  cy: number,
-  alpha: number,
-) {
+function tickForce(nodes: ForceNode[], cx: number, cy: number, alpha: number) {
   for (let i = 0; i < nodes.length; i++) {
     for (let j = i + 1; j < nodes.length; j++) {
       const a = nodes[i];
@@ -75,12 +80,18 @@ function tickForce(
       const dy = b.y - a.y;
       const dist = Math.max(Math.sqrt(dx * dx + dy * dy), 60);
       const minDist = a.radius + b.radius + 80;
-      const force = K_REPEL * ((a.mass + b.mass) / 2) / (dist * dist);
+      const force = (K_REPEL * ((a.mass + b.mass) / 2)) / (dist * dist);
       const extra = dist < minDist ? (minDist - dist) * 2 : 0;
       const fx = (dx / dist) * (force + extra);
       const fy = (dy / dist) * (force + extra);
-      if (!a.fixed) { a.vx -= fx; a.vy -= fy; }
-      if (!b.fixed) { b.vx += fx; b.vy += fy; }
+      if (!a.fixed) {
+        a.vx -= fx;
+        a.vy -= fy;
+      }
+      if (!b.fixed) {
+        b.vx += fx;
+        b.vy += fy;
+      }
     }
   }
 
@@ -95,12 +106,8 @@ function tickForce(
   }
 }
 
-function positionAgents(
-  agents: VisAgent[],
-  collNode: ForceNode,
-  time: number,
-) {
-  const baseR = collNode.radius + 30;
+function positionAgents(agents: VisAgent[], collNode: ForceNode, time: number) {
+  const baseR = collNode.radius + 36;
   const len = agents.length;
   for (let i = 0; i < len; i++) {
     const ring = Math.floor(i / AGENTS_PER_RING);
@@ -127,13 +134,143 @@ function drawGrid(g: Graphics, w: number, h: number, scale: number) {
     const major = Math.round(x) % (GRID_SIZE * 5) === 0;
     g.moveTo(x, sy);
     g.lineTo(x, ey);
-    g.stroke({ width: major ? 1 : 0.5, color: major ? GRID_MAJOR : GRID_MINOR, alpha: major ? 0.5 : 0.3 });
+    g.stroke({
+      width: major ? 1 : 0.5,
+      color: major ? GRID_MAJOR : GRID_MINOR,
+      alpha: major ? 0.5 : 0.3,
+    });
   }
   for (let y = sy; y <= ey; y += GRID_SIZE) {
     const major = Math.round(y) % (GRID_SIZE * 5) === 0;
     g.moveTo(sx, y);
     g.lineTo(ex, y);
-    g.stroke({ width: major ? 1 : 0.5, color: major ? GRID_MAJOR : GRID_MINOR, alpha: major ? 0.5 : 0.3 });
+    g.stroke({
+      width: major ? 1 : 0.5,
+      color: major ? GRID_MAJOR : GRID_MINOR,
+      alpha: major ? 0.5 : 0.3,
+    });
+  }
+}
+
+// ── Image Helpers ─────────────────────────────────────────────────────────────
+
+const CORS_SAFE_HOSTS = [
+  ".blob.vercel-storage.com",
+  "ipfs.io",
+  "arweave.net",
+  "nftstorage.link",
+  "cloudflare-ipfs.com",
+];
+
+function canLoadDirectly(url: string): boolean {
+  if (url.startsWith("/") || url.startsWith("data:")) return true;
+  try {
+    const u = new URL(url);
+    if (u.origin === globalThis.location?.origin) return true;
+    const h = u.hostname;
+    return CORS_SAFE_HOSTS.some((s) => h === s || h.endsWith(s));
+  } catch {
+    return false;
+  }
+}
+
+function resolveImageUrl(url: string | null | undefined): string | null {
+  if (!url || url.trim() === "") return null;
+  if (/example|placeholder|test|dummy/i.test(url)) return null;
+  if (url.startsWith("ipfs://")) return `https://ipfs.io/ipfs/${url.slice(7)}`;
+  if (url.startsWith("ar://")) return `https://arweave.net/${url.slice(5)}`;
+  if (
+    url.startsWith("http://") ||
+    url.startsWith("https://") ||
+    url.startsWith("data:") ||
+    url.startsWith("/")
+  )
+    return url;
+  return null;
+}
+
+function loadImage(url: string, timeoutMs = 10000): Promise<HTMLImageElement> {
+  const direct = canLoadDirectly(url);
+  const src = direct ? url : `/api/image-proxy?url=${encodeURIComponent(url)}`;
+
+  return new Promise((resolve, reject) => {
+    const el = document.createElement("img");
+    el.crossOrigin = "anonymous";
+    const timer = setTimeout(() => {
+      el.src = "";
+      reject(new Error("timeout"));
+    }, timeoutMs);
+    el.onload = () => {
+      clearTimeout(timer);
+      resolve(el);
+    };
+    el.onerror = () => {
+      clearTimeout(timer);
+      if (direct && !canLoadDirectly(url)) {
+        reject(new Error("load"));
+        return;
+      }
+      if (direct && url.startsWith("http")) {
+        const proxySrc = `/api/image-proxy?url=${encodeURIComponent(url)}`;
+        const timer2 = setTimeout(() => {
+          el.src = "";
+          reject(new Error("timeout"));
+        }, timeoutMs);
+        el.onload = () => {
+          clearTimeout(timer2);
+          resolve(el);
+        };
+        el.onerror = () => {
+          clearTimeout(timer2);
+          reject(new Error("load"));
+        };
+        el.src = proxySrc;
+        return;
+      }
+      reject(new Error("load"));
+    };
+    el.src = src;
+  });
+}
+
+async function loadCircularImage(
+  url: string,
+  outerRadius: number,
+  container: Container,
+  border: number,
+): Promise<boolean> {
+  try {
+    const r = outerRadius - border;
+    if (r <= 1) return false;
+
+    const img = await loadImage(url);
+    if (container.destroyed) return false;
+
+    const source = new ImageSource({ resource: img });
+    const texture = new Texture({ source });
+
+    const mask = new Graphics();
+    mask.circle(0, 0, r);
+    mask.fill({ color: 0xffffff });
+
+    const sprite = new Sprite(texture);
+    sprite.anchor.set(0.5, 0.5);
+    const d = r * 2;
+    const aspect = (img.naturalWidth || 1) / (img.naturalHeight || 1);
+    if (aspect >= 1) {
+      sprite.height = d;
+      sprite.width = d * aspect;
+    } else {
+      sprite.width = d;
+      sprite.height = d / aspect;
+    }
+    sprite.mask = mask;
+
+    container.addChild(mask);
+    container.addChild(sprite);
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -165,8 +302,13 @@ export default function NetworkCanvas({
   const connGfxRef = useRef<Graphics | null>(null);
   const highlightGfxRef = useRef<Graphics | null>(null);
 
+  const collLayerRef = useRef<Container | null>(null);
+  const agentLayerRef = useRef<Container | null>(null);
+  const labelLayerRef = useRef<Container | null>(null);
+
   const collContainersRef = useRef(new Map<string, Container>());
   const agentContainersRef = useRef(new Map<string, Container>());
+  const labelContainersRef = useRef(new Map<string, Container>());
 
   const forceNodesRef = useRef<ForceNode[]>([]);
   const visAgentsRef = useRef<VisAgent[]>([]);
@@ -185,9 +327,15 @@ export default function NetworkCanvas({
   const lastPan = useRef({ x: 0, y: 0 });
 
   // Keep refs current
-  useEffect(() => { dataRef.current = data; }, [data]);
-  useEffect(() => { selectedCollIdRef.current = selectedCollectionId; }, [selectedCollectionId]);
-  useEffect(() => { selectedAgentRef.current = selectedAgentAsset; }, [selectedAgentAsset]);
+  useEffect(() => {
+    dataRef.current = data;
+  }, [data]);
+  useEffect(() => {
+    selectedCollIdRef.current = selectedCollectionId;
+  }, [selectedCollectionId]);
+  useEffect(() => {
+    selectedAgentRef.current = selectedAgentAsset;
+  }, [selectedAgentAsset]);
 
   // ── Build force nodes + agent nodes when data changes ──────────────────
 
@@ -302,8 +450,10 @@ export default function NetworkCanvas({
 
         for (let i = 0; i < 2; i++) {
           const t = (time * 0.15 + i / 2) % 1;
-          const px = (1 - t) ** 2 * node.x + 2 * (1 - t) * t * mx + t * t * target.x;
-          const py = (1 - t) ** 2 * node.y + 2 * (1 - t) * t * my + t * t * target.y;
+          const px =
+            (1 - t) ** 2 * node.x + 2 * (1 - t) * t * mx + t * t * target.x;
+          const py =
+            (1 - t) ** 2 * node.y + 2 * (1 - t) * t * my + t * t * target.y;
           gfx.circle(px, py, 2.5);
           gfx.fill({ color: node.color, alpha: Math.sin(t * Math.PI) * 0.4 });
         }
@@ -353,8 +503,11 @@ export default function NetworkCanvas({
       try {
         let pref: "webgpu" | "webgl" = "webgl";
         try {
-          if (navigator.gpu && (await navigator.gpu.requestAdapter())) pref = "webgpu";
-        } catch { /* fallback */ }
+          if (navigator.gpu && (await navigator.gpu.requestAdapter()))
+            pref = "webgpu";
+        } catch {
+          /* fallback */
+        }
 
         await app.init({
           background: BG,
@@ -370,7 +523,10 @@ export default function NetworkCanvas({
         return;
       }
 
-      if (destroyed) { app.destroy(true); return; }
+      if (destroyed) {
+        app.destroy(true);
+        return;
+      }
 
       el.appendChild(app.canvas);
       appRef.current = app;
@@ -392,6 +548,18 @@ export default function NetworkCanvas({
       const connGfx = new Graphics();
       world.addChild(connGfx);
       connGfxRef.current = connGfx;
+
+      const collLayer = new Container();
+      world.addChild(collLayer);
+      collLayerRef.current = collLayer;
+
+      const agentLayer = new Container();
+      world.addChild(agentLayer);
+      agentLayerRef.current = agentLayer;
+
+      const labelLayer = new Container();
+      world.addChild(labelLayer);
+      labelLayerRef.current = labelLayer;
 
       const highlightGfx = new Graphics();
       world.addChild(highlightGfx);
@@ -428,11 +596,22 @@ export default function NetworkCanvas({
         // Update PixiJS container positions
         for (const node of nodes) {
           const c = collContainersRef.current.get(node.id);
-          if (c) { c.x = node.x; c.y = node.y; }
+          if (c) {
+            c.x = node.x;
+            c.y = node.y;
+          }
+          const lbl = labelContainersRef.current.get(node.id);
+          if (lbl) {
+            lbl.x = node.x;
+            lbl.y = node.y;
+          }
         }
         for (const a of agents) {
           const c = agentContainersRef.current.get(a.asset);
-          if (c) { c.x = a.x; c.y = a.y; }
+          if (c) {
+            c.x = a.x;
+            c.y = a.y;
+          }
         }
 
         drawConnections();
@@ -467,18 +646,25 @@ export default function NetworkCanvas({
   // ── Create / update collection containers ──────────────────────────────
 
   useEffect(() => {
-    const world = worldRef.current;
-    if (!world || !appRef.current) return;
+    const collParent = collLayerRef.current;
+    const lblParent = labelLayerRef.current;
+    if (!collParent || !lblParent || !appRef.current) return;
 
     const existing = collContainersRef.current;
+    const existingLabels = labelContainersRef.current;
     const newIds = new Set(data.collections.map((c) => c.id));
 
-    // Remove stale
     for (const [id, c] of existing) {
       if (!newIds.has(id)) {
-        world.removeChild(c);
+        collParent.removeChild(c);
         c.destroy({ children: true });
         existing.delete(id);
+        const lbl = existingLabels.get(id);
+        if (lbl) {
+          lblParent.removeChild(lbl);
+          lbl.destroy({ children: true });
+          existingLabels.delete(id);
+        }
       }
     }
 
@@ -493,40 +679,91 @@ export default function NetworkCanvas({
       const color = getCollectionColor(coll.name, coll.isOwn);
 
       const gfx = new Graphics();
-
-      // Outer glow
       gfx.circle(0, 0, radius + 18);
       gfx.fill({ color, alpha: 0.1 });
-
-      // Mid ring
       gfx.circle(0, 0, radius + 8);
       gfx.fill({ color, alpha: 0.2 });
-
-      // Main
       gfx.circle(0, 0, radius);
       gfx.fill({ color, alpha: 0.85 });
-
-      // Highlight
-      gfx.circle(-radius * 0.2, -radius * 0.2, radius * 0.35);
-      gfx.fill({ color: 0xffffff, alpha: 0.18 });
-
       c.addChild(gfx);
 
-      // Name
+      const imgLayer = new Container();
+      c.addChild(imgLayer);
+
+      const specular = new Graphics();
+      specular.circle(-radius * 0.2, -radius * 0.2, radius * 0.35);
+      specular.fill({ color: 0xffffff, alpha: 0.18 });
+      c.addChild(specular);
+
+      let fallbackTxt: Text | null = null;
+      if (coll.isOwn) {
+        const style = new TextStyle({
+          fontFamily: "system-ui, -apple-system, sans-serif",
+          fontSize: radius * 0.45,
+          align: "center",
+        });
+        fallbackTxt = new Text({ text: "🏠", style, resolution: TEXT_RES });
+        fallbackTxt.anchor.set(0.5, 0.5);
+        c.addChild(fallbackTxt);
+      } else if (coll.symbol) {
+        const style = new TextStyle({
+          fontFamily: "system-ui, -apple-system, sans-serif",
+          fontSize: Math.min(14, radius * 0.35),
+          fontWeight: "bold",
+          fill: 0xffffff,
+          align: "center",
+        });
+        fallbackTxt = new Text({
+          text: coll.symbol,
+          style,
+          resolution: TEXT_RES,
+        });
+        fallbackTxt.anchor.set(0.5, 0.5);
+        c.addChild(fallbackTxt);
+      }
+
+      const imageUrl = coll.isOwn
+        ? "/agentinc.jpg"
+        : resolveImageUrl(coll.image);
+      if (imageUrl) {
+        loadCircularImage(imageUrl, radius, imgLayer, 3).then((ok) => {
+          if (ok && !c.destroyed) {
+            specular.visible = false;
+            if (fallbackTxt) fallbackTxt.visible = false;
+          }
+        });
+      }
+
+      c.on("pointerdown", () => {
+        clickedNodeRef.current = true;
+        onSelectAgent(null);
+        onSelectCollection(coll);
+      });
+
+      collParent.addChild(c);
+      existing.set(coll.id, c);
+
+      // Labels in a separate top-layer container so they render above agents
+      const lblContainer = new Container();
+      lblContainer.eventMode = "none";
+
       const nameStyle = new TextStyle({
         fontFamily: "system-ui, -apple-system, sans-serif",
         fontSize: 15,
         fontWeight: "bold",
         fill: 0xffffff,
         align: "center",
-        dropShadow: { color: 0x000000, alpha: 0.6, blur: 4, distance: 0 },
+        dropShadow: { color: 0x000000, alpha: 0.8, blur: 4, distance: 0 },
       });
-      const nameTxt = new Text({ text: coll.name, style: nameStyle });
+      const nameTxt = new Text({
+        text: coll.name,
+        style: nameStyle,
+        resolution: TEXT_RES,
+      });
       nameTxt.anchor.set(0.5, 0.5);
       nameTxt.y = radius + 24;
-      c.addChild(nameTxt);
+      lblContainer.addChild(nameTxt);
 
-      // Agent count badge
       const badgeStyle = new TextStyle({
         fontFamily: "system-ui, -apple-system, sans-serif",
         fontSize: 11,
@@ -536,61 +773,37 @@ export default function NetworkCanvas({
       const badgeTxt = new Text({
         text: `${coll.agentCount} agent${coll.agentCount !== 1 ? "s" : ""}`,
         style: badgeStyle,
+        resolution: TEXT_RES,
       });
       badgeTxt.anchor.set(0.5, 0.5);
       badgeTxt.y = radius + 42;
-      c.addChild(badgeTxt);
+      lblContainer.addChild(badgeTxt);
 
-      // If own collection, add a star/home badge
-      if (coll.isOwn) {
-        const homeStyle = new TextStyle({
-          fontFamily: "system-ui, -apple-system, sans-serif",
-          fontSize: radius * 0.45,
-          align: "center",
-        });
-        const homeTxt = new Text({ text: "🏠", style: homeStyle });
-        homeTxt.anchor.set(0.5, 0.5);
-        c.addChild(homeTxt);
-      } else if (coll.symbol) {
-        const symStyle = new TextStyle({
-          fontFamily: "system-ui, -apple-system, sans-serif",
-          fontSize: Math.min(14, radius * 0.35),
-          fontWeight: "bold",
-          fill: 0xffffff,
-          align: "center",
-        });
-        const symTxt = new Text({ text: coll.symbol, style: symStyle });
-        symTxt.anchor.set(0.5, 0.5);
-        c.addChild(symTxt);
-      }
-
-      c.on("pointerdown", () => {
-        clickedNodeRef.current = true;
-        onSelectAgent(null);
-        onSelectCollection(coll);
-      });
-
-      world.addChild(c);
-      existing.set(coll.id, c);
+      lblParent.addChild(lblContainer);
+      existingLabels.set(coll.id, lblContainer);
     }
   }, [data, pixiReady, onSelectCollection, onSelectAgent]);
 
   // ── Create / update agent containers ───────────────────────────────────
 
   useEffect(() => {
-    const world = worldRef.current;
-    if (!world || !appRef.current) return;
+    const agentParent = agentLayerRef.current;
+    if (!agentParent || !appRef.current) return;
 
     const existing = agentContainersRef.current;
     const allAgents = data.collections.flatMap((c) =>
-      c.agents.map((a) => ({ ...a, collId: c.id, collName: c.name, collIsOwn: c.isOwn })),
+      c.agents.map((a) => ({
+        ...a,
+        collId: c.id,
+        collName: c.name,
+        collIsOwn: c.isOwn,
+      })),
     );
     const newAssets = new Set(allAgents.map((a) => a.asset));
 
-    // Remove stale
     for (const [asset, c] of existing) {
       if (!newAssets.has(asset)) {
-        world.removeChild(c);
+        agentParent.removeChild(c);
         c.destroy({ children: true });
         existing.delete(asset);
       }
@@ -606,16 +819,25 @@ export default function NetworkCanvas({
       const radius = getAgentRadius(a.qualityScore);
       const color = TRUST_TIER_COLORS[a.trustTier] ?? TRUST_TIER_COLORS[0];
 
+      // Border ring + glow
       const gfx = new Graphics();
       gfx.circle(0, 0, radius + 4);
       gfx.fill({ color, alpha: 0.15 });
       gfx.circle(0, 0, radius);
       gfx.fill({ color, alpha: 0.9 });
-      gfx.circle(-radius * 0.2, -radius * 0.2, radius * 0.3);
-      gfx.fill({ color: 0xffffff, alpha: 0.25 });
       c.addChild(gfx);
 
-      // Name label (hidden by default, shown on hover / zoom)
+      // Image layer
+      const imgLayer = new Container();
+      c.addChild(imgLayer);
+
+      // Specular highlight (hidden when image loads)
+      const specular = new Graphics();
+      specular.circle(-radius * 0.2, -radius * 0.2, radius * 0.3);
+      specular.fill({ color: 0xffffff, alpha: 0.25 });
+      c.addChild(specular);
+
+      // Name label (hidden by default, shown on hover)
       const labelStyle = new TextStyle({
         fontFamily: "system-ui, -apple-system, sans-serif",
         fontSize: 10,
@@ -623,11 +845,25 @@ export default function NetworkCanvas({
         align: "center",
         dropShadow: { color: 0x000000, alpha: 0.8, blur: 3, distance: 0 },
       });
-      const label = new Text({ text: a.name || "Agent", style: labelStyle });
+      const label = new Text({
+        text: a.name || "Agent",
+        style: labelStyle,
+        resolution: TEXT_RES,
+      });
       label.anchor.set(0.5, 0.5);
       label.y = radius + 14;
       label.visible = false;
       c.addChild(label);
+
+      // Async: load agent profile image
+      const imageUrl = resolveImageUrl(a.image);
+      if (imageUrl) {
+        loadCircularImage(imageUrl, radius, imgLayer, 2).then((ok) => {
+          if (ok && !c.destroyed) {
+            specular.visible = false;
+          }
+        });
+      }
 
       c.on("pointerdown", () => {
         clickedNodeRef.current = true;
@@ -638,10 +874,14 @@ export default function NetworkCanvas({
         onSelectAgent(fullAgent ?? null);
       });
 
-      c.on("pointerover", () => { label.visible = true; });
-      c.on("pointerout", () => { label.visible = false; });
+      c.on("pointerover", () => {
+        label.visible = true;
+      });
+      c.on("pointerout", () => {
+        label.visible = false;
+      });
 
-      world.addChild(c);
+      agentParent.addChild(c);
       existing.set(a.asset, c);
     }
   }, [data, pixiReady, onSelectCollection, onSelectAgent]);
@@ -653,39 +893,42 @@ export default function NetworkCanvas({
     for (const coll of data.collections) {
       const c = collContainersRef.current.get(coll.id);
       if (!c) continue;
-      if (!q) { c.alpha = 1; continue; }
+      if (!q) {
+        c.alpha = 1;
+        continue;
+      }
       c.alpha = coll.name.toLowerCase().includes(q) ? 1 : 0.15;
     }
     const allAgents = data.collections.flatMap((col) => col.agents);
     for (const a of allAgents) {
       const c = agentContainersRef.current.get(a.asset);
       if (!c) continue;
-      if (!q) { c.alpha = 1; continue; }
+      if (!q) {
+        c.alpha = 1;
+        continue;
+      }
       c.alpha = (a.name || "").toLowerCase().includes(q) ? 1 : 0.15;
     }
   }, [searchQuery, data]);
 
   // ── Zoom handler ───────────────────────────────────────────────────────
 
-  const handleZoom = useCallback(
-    (delta: number, cx?: number, cy?: number) => {
-      const world = worldRef.current;
-      const app = appRef.current;
-      if (!world || !app) return;
-      const old = world.scale.x;
-      const next = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, old + delta));
-      if (next === old) return;
-      const px = cx ?? app.screen.width / 2;
-      const py = cy ?? app.screen.height / 2;
-      const wx = (px - world.x) / old;
-      const wy = (py - world.y) / old;
-      world.scale.set(next);
-      world.x = px - wx * next;
-      world.y = py - wy * next;
-      setZoom(next);
-    },
-    [],
-  );
+  const handleZoom = useCallback((delta: number, cx?: number, cy?: number) => {
+    const world = worldRef.current;
+    const app = appRef.current;
+    if (!world || !app) return;
+    const old = world.scale.x;
+    const next = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, old + delta));
+    if (next === old) return;
+    const px = cx ?? app.screen.width / 2;
+    const py = cy ?? app.screen.height / 2;
+    const wx = (px - world.x) / old;
+    const wy = (py - world.y) / old;
+    world.scale.set(next);
+    world.x = px - wx * next;
+    world.y = py - wy * next;
+    setZoom(next);
+  }, []);
 
   const handleResetZoom = useCallback(() => {
     const world = worldRef.current;
@@ -791,11 +1034,23 @@ export default function NetworkCanvas({
         <div className="absolute inset-0 flex items-center justify-center bg-gray-900/60 rounded-2xl">
           <div className="text-center p-8 max-w-md">
             <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-red-500/20 flex items-center justify-center">
-              <svg className="w-8 h-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              <svg
+                className="w-8 h-8 text-red-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
               </svg>
             </div>
-            <h3 className="text-lg font-semibold text-white mb-2">Visualization Error</h3>
+            <h3 className="text-lg font-semibold text-white mb-2">
+              Visualization Error
+            </h3>
             <p className="text-gray-400 text-sm">{error}</p>
           </div>
         </div>

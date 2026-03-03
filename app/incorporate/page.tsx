@@ -41,7 +41,6 @@ interface LaunchStep {
   error?: string;
 }
 
-
 // Diverse agent avatars based on characteristics
 const agentAvatars = [
   "🤖",
@@ -1103,7 +1102,15 @@ export default function IncorporatePage() {
                   {selectedAgentIds.length > 0 ? (
                     selectedAgentIds.map((id, i) => {
                       const agent = agents.find((a) => a.id === id);
-                      const agentColor = agent?.color || "#a855f7";
+                      const rarityColors: Record<string, string> = {
+                        legendary: "#f59e0b",
+                        epic: "#a855f7",
+                        rare: "#3b82f6",
+                        uncommon: "#10b981",
+                        common: "#6b7280",
+                      };
+                      const agentColor =
+                        rarityColors[agent?.rarity || "common"] || "#a855f7";
                       const avatar = agent
                         ? getAgentAvatar(agent.id, agent.name)
                         : "🤖";

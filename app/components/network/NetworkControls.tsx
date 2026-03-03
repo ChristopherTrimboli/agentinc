@@ -1,11 +1,14 @@
 "use client";
 
-import { RefreshCw, Search, ShieldCheck, Users, MessageSquare } from "lucide-react";
-import type { NetworkStats } from "@/lib/network/types";
 import {
-  TRUST_TIER_NAMES,
-  TRUST_TIER_CSS,
-} from "@/lib/network/types";
+  RefreshCw,
+  Search,
+  ShieldCheck,
+  Users,
+  MessageSquare,
+} from "lucide-react";
+import type { NetworkStats } from "@/lib/network/types";
+import { TRUST_TIER_NAMES, TRUST_TIER_CSS } from "@/lib/network/types";
 
 interface Props {
   stats: NetworkStats | null;

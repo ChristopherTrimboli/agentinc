@@ -5,6 +5,69 @@ import type { NetworkData } from "@/lib/network/types";
 
 export const dynamic = "force-dynamic";
 
+// ── Metadata Image Fetcher ──────────────────────────────────────────────────
+
+const METADATA_TIMEOUT = 4000;
+const METADATA_CONCURRENCY = 15;
+
+const PLACEHOLDER_RE = /example|placeholder|test|dummy/i;
+
+function isPlaceholderUri(uri: string): boolean {
+  return PLACEHOLDER_RE.test(uri) || uri.length < 10;
+}
+
+function resolveUri(uri: string): string {
+  if (uri.startsWith("ipfs://")) return `https://ipfs.io/ipfs/${uri.slice(7)}`;
+  if (uri.startsWith("ar://")) return `https://arweave.net/${uri.slice(5)}`;
+  return uri;
+}
+
+async function fetchMetadataImage(uri: string): Promise<string | null> {
+  try {
+    const url = resolveUri(uri);
+    const resp = await fetch(url, {
+      signal: AbortSignal.timeout(METADATA_TIMEOUT),
+      headers: { Accept: "application/json" },
+    });
+    if (!resp.ok) return null;
+    const json = await resp.json();
+    const img = json?.image;
+    if (
+      typeof img === "string" &&
+      img.length > 0 &&
+      !img.startsWith("data:") &&
+      !isPlaceholderUri(img)
+    )
+      return img;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/** Fetch images for a batch of agents from their metadata URIs. */
+async function batchFetchAgentImages(
+  agents: { asset: string; uri: string | null }[],
+): Promise<Map<string, string>> {
+  const result = new Map<string, string>();
+  const pending = agents.filter((a) => a.uri && a.uri.length > 5);
+
+  for (let i = 0; i < pending.length; i += METADATA_CONCURRENCY) {
+    const batch = pending.slice(i, i + METADATA_CONCURRENCY);
+    const settled = await Promise.allSettled(
+      batch.map(async (a) => {
+        const img = await fetchMetadataImage(a.uri!);
+        if (img) result.set(a.asset, img);
+      }),
+    );
+    void settled;
+  }
+
+  return result;
+}
+
+// ── Route Handler ───────────────────────────────────────────────────────────
+
 export async function GET() {
   try {
     const sdk = getErc8004Sdk();
@@ -28,17 +91,16 @@ export async function GET() {
       sdk.getCollectionPointers(),
     ]);
 
-    const stats =
-      statsResult.status === "fulfilled" ? statsResult.value : null;
+    const stats = statsResult.status === "fulfilled" ? statsResult.value : null;
     const pointers =
       pointersResult.status === "fulfilled" ? pointersResult.value : [];
 
-    // Pre-fetch our own agents from DB for name enrichment
     let ownAgentNames = new Map<string, string>();
+    let ownAgentImages = new Map<string, string>();
     try {
       const dbAgents = await prisma.agent.findMany({
         where: { erc8004Asset: { not: null } },
-        select: { erc8004Asset: true, name: true },
+        select: { erc8004Asset: true, name: true, imageUrl: true },
         cacheStrategy: { ttl: 300, swr: 600 },
       });
       ownAgentNames = new Map(
@@ -46,11 +108,18 @@ export async function GET() {
           .filter((a) => a.erc8004Asset)
           .map((a) => [a.erc8004Asset!, a.name]),
       );
+      ownAgentImages = new Map(
+        dbAgents
+          .filter(
+            (a) =>
+              a.erc8004Asset && a.imageUrl && !a.imageUrl.startsWith("data:"),
+          )
+          .map((a) => [a.erc8004Asset!, a.imageUrl!]),
+      );
     } catch {
       /* DB lookup is best-effort */
     }
 
-    // Deduplicate pointers by `col` (same pointer can appear multiple times)
     const uniquePointers = new Map<string, (typeof pointers)[number]>();
     for (const ptr of pointers) {
       if (!uniquePointers.has(ptr.col)) {
@@ -76,7 +145,7 @@ export async function GET() {
           name: ptr.name || "Unknown Collection",
           symbol: ptr.symbol || null,
           description: ptr.description || null,
-          image: ptr.image || null,
+          image: ptr.image && !isPlaceholderUri(ptr.image) ? ptr.image : null,
           bannerImage: ptr.banner_image || null,
           website: ptr.social_website || null,
           twitter: ptr.social_x || null,
@@ -86,10 +155,9 @@ export async function GET() {
             asset: a.asset,
             owner: a.owner,
             name:
-              a.nft_name ||
-              (isOwn ? ownAgentNames.get(a.asset) : null) ||
-              null,
+              a.nft_name || (isOwn ? ownAgentNames.get(a.asset) : null) || null,
             uri: a.agent_uri,
+            image: isOwn ? ownAgentImages.get(a.asset) || null : null,
             trustTier: a.trust_tier,
             qualityScore: a.quality_score,
             feedbackCount: a.feedback_count,
@@ -104,7 +172,28 @@ export async function GET() {
       }),
     );
 
-    const loadedAgentCount = collections.reduce((s, c) => s + c.agents.length, 0);
+    // Fetch images from metadata for agents that don't have one yet
+    const agentsNeedingImages = collections.flatMap((c) =>
+      c.agents
+        .filter((a) => !a.image && a.uri)
+        .map((a) => ({ asset: a.asset, uri: a.uri })),
+    );
+
+    if (agentsNeedingImages.length > 0) {
+      const fetchedImages = await batchFetchAgentImages(agentsNeedingImages);
+      for (const coll of collections) {
+        for (const agent of coll.agents) {
+          if (!agent.image) {
+            agent.image = fetchedImages.get(agent.asset) || null;
+          }
+        }
+      }
+    }
+
+    const loadedAgentCount = collections.reduce(
+      (s, c) => s + c.agents.length,
+      0,
+    );
 
     const data: NetworkData = {
       stats: {

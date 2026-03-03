@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import Image from "next/image";
 import {
   X,
   ShieldCheck,
@@ -32,6 +34,84 @@ function copyText(text: string) {
   navigator.clipboard.writeText(text);
 }
 
+const CORS_SAFE_HOSTS = [
+  ".blob.vercel-storage.com",
+  "ipfs.io",
+  "arweave.net",
+  "nftstorage.link",
+  "cloudflare-ipfs.com",
+];
+
+function resolveImageSrc(url: string | null | undefined): string | null {
+  if (!url || url.trim() === "") return null;
+  if (/example|placeholder|test|dummy/i.test(url)) return null;
+  if (url.startsWith("ipfs://")) return `https://ipfs.io/ipfs/${url.slice(7)}`;
+  if (url.startsWith("ar://")) return `https://arweave.net/${url.slice(5)}`;
+  if (url.startsWith("data:") || url.startsWith("/")) return url;
+  if (url.startsWith("http://") || url.startsWith("https://")) {
+    try {
+      const u = new URL(url);
+      if (typeof window !== "undefined" && u.origin === window.location.origin)
+        return url;
+      const h = u.hostname;
+      if (CORS_SAFE_HOSTS.some((s) => h === s || h.endsWith(s))) return url;
+    } catch {
+      /* fall through */
+    }
+    return `/api/image-proxy?url=${encodeURIComponent(url)}`;
+  }
+  return null;
+}
+
+function Avatar({
+  src,
+  fallback,
+  color,
+  size = 48,
+  rounded = "rounded-xl",
+}: {
+  src: string | null;
+  fallback: React.ReactNode;
+  color: string;
+  size?: number;
+  rounded?: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  const resolved = resolveImageSrc(src);
+
+  if (!resolved || failed) {
+    return (
+      <div
+        className={`${rounded} flex items-center justify-center text-lg font-bold shrink-0`}
+        style={{
+          width: size,
+          height: size,
+          backgroundColor: color + "30",
+          color,
+        }}
+      >
+        {fallback}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={`${rounded} overflow-hidden shrink-0 relative`}
+      style={{ width: size, height: size }}
+    >
+      <Image
+        src={resolved}
+        alt=""
+        fill
+        className="object-cover"
+        unoptimized
+        onError={() => setFailed(true)}
+      />
+    </div>
+  );
+}
+
 // ── Collection Panel ─────────────────────────────────────────────────────────
 
 function CollectionPanel({
@@ -51,12 +131,11 @@ function CollectionPanel({
     <div className="fixed top-[88px] right-4 w-80 bg-gray-900/95 backdrop-blur-lg border border-gray-700 rounded-2xl p-5 shadow-2xl z-40 overflow-y-auto max-h-[calc(100vh-120px)]">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div
-            className="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-bold"
-            style={{ backgroundColor: color + "30", color }}
-          >
-            {coll.isOwn ? "🏠" : (coll.symbol || coll.name[0])}
-          </div>
+          <Avatar
+            src={coll.isOwn ? "/agentinc.jpg" : coll.image}
+            fallback={coll.isOwn ? "🏠" : coll.symbol || coll.name[0]}
+            color={color}
+          />
           <div>
             <h3 className="font-bold text-white text-sm">{coll.name}</h3>
             {coll.symbol && (
@@ -160,7 +239,7 @@ function CollectionPanel({
           <h4 className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2">
             Top Agents
           </h4>
-          <div className="space-y-1.5 max-h-40 overflow-y-auto">
+          <div className="space-y-1.5 max-h-48 overflow-y-auto">
             {[...coll.agents]
               .sort((a, b) => b.qualityScore - a.qualityScore)
               .slice(0, 8)
@@ -169,13 +248,22 @@ function CollectionPanel({
                 return (
                   <div
                     key={a.asset}
-                    className="flex items-center justify-between text-xs"
+                    className="flex items-center gap-2 text-xs"
                   >
-                    <span className="text-gray-300 truncate max-w-[140px]">
+                    <Avatar
+                      src={a.image}
+                      fallback={(a.name || "?")[0]}
+                      color={
+                        css.text.includes("violet") ? "#a78bfa" : "#6b7280"
+                      }
+                      size={24}
+                      rounded="rounded-full"
+                    />
+                    <span className="text-gray-300 truncate flex-1 min-w-0">
                       {a.name || truncate(a.asset)}
                     </span>
                     <span
-                      className={`px-1.5 py-0.5 rounded text-[10px] ${css.bg} ${css.text}`}
+                      className={`px-1.5 py-0.5 rounded text-[10px] shrink-0 ${css.bg} ${css.text}`}
                     >
                       {TRUST_TIER_NAMES[a.trustTier]}
                     </span>
@@ -204,9 +292,22 @@ function AgentPanel({
     <div className="fixed top-[88px] right-4 w-80 bg-gray-900/95 backdrop-blur-lg border border-gray-700 rounded-2xl p-5 shadow-2xl z-40">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-gray-800 flex items-center justify-center">
-            <ShieldCheck className="w-6 h-6 text-gray-300" />
-          </div>
+          <Avatar
+            src={agent.image}
+            fallback={<ShieldCheck className="w-6 h-6 text-gray-300" />}
+            color={
+              tierCss.text.includes("violet")
+                ? "#a78bfa"
+                : tierCss.text.includes("yellow")
+                  ? "#eab308"
+                  : tierCss.text.includes("slate")
+                    ? "#94a3b8"
+                    : tierCss.text.includes("amber")
+                      ? "#cd7f32"
+                      : "#6b7280"
+            }
+            rounded="rounded-full"
+          />
           <div>
             <h3 className="font-bold text-white text-sm">
               {agent.name || "Agent"}
@@ -270,6 +371,15 @@ function AgentPanel({
       {/* Links */}
       <div className="space-y-1.5 pt-3 border-t border-gray-800">
         <a
+          href={`https://8004market.io/agent/solana/mainnet/${agent.asset}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 text-xs text-gray-400 hover:text-white transition-colors"
+        >
+          <ExternalLink className="w-3.5 h-3.5" />
+          View on 8004market
+        </a>
+        <a
           href={`https://solscan.io/account/${agent.asset}`}
           target="_blank"
           rel="noopener noreferrer"
@@ -332,6 +442,7 @@ function Stat({
 
 export default function NetworkDetails({ collection, agent, onClose }: Props) {
   if (agent) return <AgentPanel agent={agent} onClose={onClose} />;
-  if (collection) return <CollectionPanel coll={collection} onClose={onClose} />;
+  if (collection)
+    return <CollectionPanel coll={collection} onClose={onClose} />;
   return null;
 }

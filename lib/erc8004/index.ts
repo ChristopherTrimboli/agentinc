@@ -57,9 +57,7 @@ interface CollectionSetupResult {
 export async function createAgentIncCollection(): Promise<CollectionSetupResult> {
   const key = process.env.ERC8004_SIGNER_PRIVATE_KEY;
   if (!key) {
-    throw new Error(
-      "ERC8004_SIGNER_PRIVATE_KEY required for collection setup",
-    );
+    throw new Error("ERC8004_SIGNER_PRIVATE_KEY required for collection setup");
   }
   const signer = Keypair.fromSecretKey(bs58.decode(key));
   const ipfs = getIpfsClient();
@@ -107,7 +105,10 @@ export async function createAgentIncCollection(): Promise<CollectionSetupResult>
  * so the public URL matches Bags-style routing, not internal IDs.
  * Served by GET /api/agents/8004-metadata/[id] (supports both CA and DB ID).
  */
-export function getMetadataUri(tokenMint: string | undefined, agentId: string): string {
+export function getMetadataUri(
+  tokenMint: string | undefined,
+  agentId: string,
+): string {
   return `${APP_URL}/api/agents/8004-metadata/${tokenMint || agentId}`;
 }
 
@@ -168,9 +169,7 @@ export async function registerAgentOn8004(
   }
 
   // Deserialize, partial-sign with asset keypair, re-serialize
-  const tx = Transaction.from(
-    Buffer.from(prepared.transaction, "base64"),
-  );
+  const tx = Transaction.from(Buffer.from(prepared.transaction, "base64"));
   tx.partialSign(assetKeypair);
   const partialSignedBase64 = Buffer.from(
     tx.serialize({ requireAllSignatures: false }),
@@ -198,7 +197,9 @@ export async function registerAgentOn8004(
       );
 
       if (!("transaction" in pointerPrepared)) {
-        throw new Error("Expected PreparedTransaction for setCollectionPointer");
+        throw new Error(
+          "Expected PreparedTransaction for setCollectionPointer",
+        );
       }
 
       const pointerTx = Transaction.from(
@@ -208,7 +209,10 @@ export async function registerAgentOn8004(
         pointerTx.serialize({ requireAllSignatures: false }),
       ).toString("base64");
 
-      const pointerSigned = await signTransaction(input.walletId, pointerBase64);
+      const pointerSigned = await signTransaction(
+        input.walletId,
+        pointerBase64,
+      );
       await sendSignedTransaction(pointerSigned, { useJito: true });
     } catch (err) {
       console.error(

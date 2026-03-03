@@ -32,8 +32,7 @@ async function main() {
   console.log(`  ERC8004_COLLECTION_POINTER=${result.pointer}`);
 }
 
-main()
-  .catch((err) => {
-    console.error("Failed to create collection:", err);
-    process.exit(1);
-  });
+main().catch((err) => {
+  console.error("Failed to create collection:", err);
+  process.exit(1);
+});

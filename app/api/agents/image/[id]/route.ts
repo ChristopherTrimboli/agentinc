@@ -23,7 +23,11 @@ export async function GET(_req: NextRequest, context: RouteContext) {
 
   const [byId, byMint] = await Promise.all([
     prisma.agent.findUnique({ where: { id }, select, cacheStrategy }),
-    prisma.agent.findUnique({ where: { tokenMint: id }, select, cacheStrategy }),
+    prisma.agent.findUnique({
+      where: { tokenMint: id },
+      select,
+      cacheStrategy,
+    }),
   ]);
 
   const agent = byId || byMint;
@@ -34,9 +38,7 @@ export async function GET(_req: NextRequest, context: RouteContext) {
 
   // Data URIs can't be used as redirect targets — decode and serve inline
   if (agent.imageUrl.startsWith("data:")) {
-    const match = agent.imageUrl.match(
-      /^data:([^;]+);base64,(.+)$/,
-    );
+    const match = agent.imageUrl.match(/^data:([^;]+);base64,(.+)$/);
     if (!match) {
       return NextResponse.json(
         { error: "Invalid image data" },

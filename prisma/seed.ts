@@ -49,7 +49,9 @@ export async function main() {
     });
     console.log(`Created corporation: ${agentInc.name}`);
   } else {
-    console.log(`Corporations already exist (${existingCorporations}), skipping.`);
+    console.log(
+      `Corporations already exist (${existingCorporations}), skipping.`,
+    );
   }
 
   console.log("Seeding complete.");

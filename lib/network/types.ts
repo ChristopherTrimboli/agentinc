@@ -38,6 +38,7 @@ export interface NetworkAgent {
   owner: string;
   name: string | null;
   uri: string | null;
+  image: string | null;
   trustTier: number;
   qualityScore: number;
   feedbackCount: number;
@@ -78,8 +79,8 @@ export const TRUST_TIER_CSS: Record<number, { bg: string; text: string }> = {
 // ── Collection Color Palette ─────────────────────────────────────────────────
 
 export const COLLECTION_PALETTE = [
-  0x8b5cf6, 0x06b6d4, 0xf59e0b, 0xef4444, 0xec4899,
-  0x6366f1, 0x14b8a6, 0x3b82f6, 0xf97316, 0x84cc16,
+  0x8b5cf6, 0x06b6d4, 0xf59e0b, 0xef4444, 0xec4899, 0x6366f1, 0x14b8a6,
+  0x3b82f6, 0xf97316, 0x84cc16,
 ];
 
 export const AGENT_INC_COLOR = 0x10b981;
@@ -107,8 +108,8 @@ export function getCollectionRadius(agentCount: number): number {
   return Math.min(COLL_MAX_R, COLL_MIN_R + Math.sqrt(agentCount) * 10);
 }
 
-const AGENT_MIN_R = 5;
-const AGENT_MAX_R = 14;
+const AGENT_MIN_R = 8;
+const AGENT_MAX_R = 18;
 
 export function getAgentRadius(qualityScore: number): number {
   return AGENT_MIN_R + (qualityScore / 100) * (AGENT_MAX_R - AGENT_MIN_R);

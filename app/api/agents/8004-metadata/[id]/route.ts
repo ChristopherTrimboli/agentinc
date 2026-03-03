@@ -28,7 +28,11 @@ export async function GET(_req: NextRequest, context: RouteContext) {
 
   const [byId, byMint] = await Promise.all([
     prisma.agent.findUnique({ where: { id }, select, cacheStrategy }),
-    prisma.agent.findUnique({ where: { tokenMint: id }, select, cacheStrategy }),
+    prisma.agent.findUnique({
+      where: { tokenMint: id },
+      select,
+      cacheStrategy,
+    }),
   ]);
 
   const agent = byId || byMint;

@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef, lazy, Suspense } from "react";
+import {
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+  lazy,
+  Suspense,
+} from "react";
 import Navigation from "../components/Navigation";
 import NetworkDetails from "../components/network/NetworkDetails";
 import NetworkControls from "../components/network/NetworkControls";
@@ -10,9 +17,7 @@ import type {
   NetworkAgent,
 } from "@/lib/network/types";
 
-const NetworkCanvas = lazy(
-  () => import("../components/network/NetworkCanvas"),
-);
+const NetworkCanvas = lazy(() => import("../components/network/NetworkCanvas"));
 
 export default function SwarmPage() {
   const [data, setData] = useState<NetworkData | null>(null);
@@ -32,9 +37,7 @@ export default function SwarmPage() {
         const res = await fetch("/api/8004/network");
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
-          throw new Error(
-            body.error || `HTTP ${res.status}`,
-          );
+          throw new Error(body.error || `HTTP ${res.status}`);
         }
         const json: NetworkData = await res.json();
         setData(json);
@@ -49,13 +52,10 @@ export default function SwarmPage() {
     })();
   }, []);
 
-  const handleSelectCollection = useCallback(
-    (c: NetworkCollection | null) => {
-      setSelectedCollection(c);
-      setSelectedAgent(null);
-    },
-    [],
-  );
+  const handleSelectCollection = useCallback((c: NetworkCollection | null) => {
+    setSelectedCollection(c);
+    setSelectedAgent(null);
+  }, []);
 
   const handleSelectAgent = useCallback((a: NetworkAgent | null) => {
     setSelectedAgent(a);
@@ -118,9 +118,7 @@ export default function SwarmPage() {
         <div className="fixed inset-0 flex items-center justify-center z-20">
           <div className="text-center">
             <div className="w-14 h-14 mx-auto mb-4 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
-            <p className="text-gray-400 text-sm">
-              Loading 8004 network...
-            </p>
+            <p className="text-gray-400 text-sm">Loading 8004 network...</p>
             <p className="text-gray-600 text-xs mt-1">
               Fetching collections &amp; agents from the indexer
             </p>
@@ -215,13 +213,20 @@ export default function SwarmPage() {
           <div className="bg-gray-900/90 backdrop-blur-lg border border-gray-700 rounded-xl px-4 py-3">
             <div className="flex items-center gap-2 mb-1">
               <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-sm font-bold text-white">
-                8004 Network
-              </span>
+              <span className="text-sm font-bold text-white">8004 Network</span>
             </div>
-            <p className="text-[10px] text-gray-500">
+            <p className="text-[10px] text-gray-500 mb-1.5">
               Solana AI Agent Registry — Mainnet
             </p>
+            <a
+              href="https://8004market.io"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[10px] text-gray-600 hover:text-gray-400 transition-colors"
+            >
+              Powered by{" "}
+              <span className="text-gray-400 font-medium">8004market.io</span>
+            </a>
           </div>
         </div>
       )}

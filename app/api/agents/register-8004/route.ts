@@ -35,10 +35,7 @@ export async function POST(req: NextRequest) {
 
   const { agentId } = body;
   if (!agentId) {
-    return NextResponse.json(
-      { error: "agentId is required" },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "agentId is required" }, { status: 400 });
   }
 
   try {

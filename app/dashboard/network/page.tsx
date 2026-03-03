@@ -43,13 +43,10 @@ export default function NetworkPage() {
     })();
   }, []);
 
-  const handleSelectCollection = useCallback(
-    (c: NetworkCollection | null) => {
-      setSelectedCollection(c);
-      setSelectedAgent(null);
-    },
-    [],
-  );
+  const handleSelectCollection = useCallback((c: NetworkCollection | null) => {
+    setSelectedCollection(c);
+    setSelectedAgent(null);
+  }, []);
 
   const handleSelectAgent = useCallback((a: NetworkAgent | null) => {
     setSelectedAgent(a);
@@ -169,13 +166,20 @@ export default function NetworkPage() {
           <div className="bg-gray-900/90 backdrop-blur-lg border border-gray-700 rounded-xl px-4 py-3">
             <div className="flex items-center gap-2 mb-1">
               <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-sm font-bold text-white">
-                8004 Network
-              </span>
+              <span className="text-sm font-bold text-white">8004 Network</span>
             </div>
-            <p className="text-[10px] text-gray-500">
+            <p className="text-[10px] text-gray-500 mb-1.5">
               Solana AI Agent Registry — Mainnet
             </p>
+            <a
+              href="https://8004market.io"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[10px] text-gray-600 hover:text-gray-400 transition-colors"
+            >
+              Powered by{" "}
+              <span className="text-gray-400 font-medium">8004market.io</span>
+            </a>
           </div>
         </div>
       )}
