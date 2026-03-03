@@ -4,6 +4,14 @@ const nextConfig: NextConfig = {
   devIndicators: false,
   poweredByHeader: false,
   reactStrictMode: true,
+  async rewrites() {
+    return [
+      {
+        source: "/agentinc.svg",
+        destination: "/agentinc.jpg",
+      },
+    ];
+  },
   experimental: {
     optimizePackageImports: [
       "lucide-react",

@@ -11,6 +11,7 @@ import {
   Globe,
   Lock,
   MessageSquare,
+  ShieldCheck,
   Sparkles,
   Star,
   TrendingUp,
@@ -27,6 +28,7 @@ import StakingPanel from "@/app/components/StakingPanel";
 import AgentChat from "@/app/components/AgentChat";
 import { PersonalityRadar } from "@/components/ui/PersonalityRadar";
 import { type PersonalityScores } from "@/lib/agentTraits";
+import Erc8004Card from "@/app/components/Erc8004Card";
 
 interface Corporation {
   id: string;
@@ -55,6 +57,11 @@ interface Agent {
   launchedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  erc8004Asset: string | null;
+  erc8004Uri: string | null;
+  erc8004RegisteredAt: string | null;
+  erc8004AtomEnabled: boolean;
+  erc8004CollectionPointer: string | null;
   createdBy: {
     id: string;
     activeWallet: { address: string } | null;
@@ -103,45 +110,44 @@ export default function AgentProfilePage({
   const [error, setError] = useState("");
   const [copiedItem, setCopiedItem] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const headers: HeadersInit = {};
-        if (identityToken) {
-          headers["privy-id-token"] = identityToken;
-        }
-
-        // Fetch agent and stats in parallel
-        const [agentResponse, statsResponse] = await Promise.all([
-          fetch(`/api/agents/${resolvedParams.id}`, { headers }),
-          fetch(`/api/agents/${resolvedParams.id}/stats`),
-        ]);
-
-        if (!agentResponse.ok) {
-          if (agentResponse.status === 404) {
-            throw new Error("Agent not found");
-          } else if (agentResponse.status === 403) {
-            throw new Error("This agent is private");
-          }
-          throw new Error("Failed to fetch agent");
-        }
-
-        const agentData = await agentResponse.json();
-        setAgent(agentData.agent);
-
-        // Stats are optional - don't fail if they're unavailable
-        if (statsResponse.ok) {
-          const statsData = await statsResponse.json();
-          setStats(statsData.stats);
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load agent");
-      } finally {
-        setIsLoading(false);
+  const fetchData = async () => {
+    try {
+      const headers: HeadersInit = {};
+      if (identityToken) {
+        headers["privy-id-token"] = identityToken;
       }
-    }
 
+      const [agentResponse, statsResponse] = await Promise.all([
+        fetch(`/api/agents/${resolvedParams.id}`, { headers }),
+        fetch(`/api/agents/${resolvedParams.id}/stats`),
+      ]);
+
+      if (!agentResponse.ok) {
+        if (agentResponse.status === 404) {
+          throw new Error("Agent not found");
+        } else if (agentResponse.status === 403) {
+          throw new Error("This agent is private");
+        }
+        throw new Error("Failed to fetch agent");
+      }
+
+      const agentData = await agentResponse.json();
+      setAgent(agentData.agent);
+
+      if (statsResponse.ok) {
+        const statsData = await statsResponse.json();
+        setStats(statsData.stats);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load agent");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resolvedParams.id, identityToken]);
 
   // Update document title when agent loads
@@ -450,6 +456,14 @@ export default function AgentProfilePage({
                       </span>
                     </div>
                   )}
+                  {agent.erc8004Asset && (
+                    <div className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-full bg-[#6FEC06]/10 border border-[#6FEC06]/30">
+                      <ShieldCheck className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#6FEC06]" />
+                      <span className="text-[10px] sm:text-xs font-semibold text-[#6FEC06]">
+                        8004
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold font-display mb-3 sm:mb-4">
                   {agent.name}
@@ -516,6 +530,19 @@ export default function AgentProfilePage({
                     </a>
                   </div>
                 </div>
+              )}
+
+              {/* 8004 Identity */}
+              {agent.isMinted && (
+                <Erc8004Card
+                  agentId={agent.id}
+                  isMinted={agent.isMinted}
+                  erc8004Asset={agent.erc8004Asset}
+                  erc8004Uri={agent.erc8004Uri}
+                  erc8004RegisteredAt={agent.erc8004RegisteredAt}
+                  erc8004AtomEnabled={agent.erc8004AtomEnabled}
+                  onRegistered={fetchData}
+                />
               )}
 
               {/* Corporation Section */}

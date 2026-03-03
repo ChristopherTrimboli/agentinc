@@ -81,7 +81,7 @@ export async function createAgentIncCollection(): Promise<CollectionSetupResult>
     symbol: "AGINC",
     description:
       "AI agents minted on Agent Inc. — autonomous corporations with on-chain identity, Bags tokens, and x402 payments.",
-    image: `${APP_URL}/agentinc.svg`,
+    image: `${APP_URL}/agentinc.jpg`,
     banner_image: `${APP_URL}/og-image.png`,
     socials: {
       website: APP_URL,
@@ -136,10 +136,12 @@ interface RegisterAgentResult {
  * The user's Privy wallet pays rent and becomes the NFT owner.
  * Flow:
  *   1. Metadata URI points to agentinc.fun/api/agents/8004-metadata/[id]
- *   2. SDK builds unsigned tx with skipSend (user wallet = payer)
+ *   2. SDK builds unsigned register tx with skipSend (user wallet = payer)
  *   3. Server partial-signs with the asset keypair (required by Metaplex Core)
  *   4. Privy signs with the user's wallet
- *   5. Send via Jito/RPC
+ *   5. Send register tx via Jito/RPC
+ *   6. If collection pointer is configured, send a second tx to attach it
+ *      (the SDK silently skips collectionPointer when skipSend=true)
  */
 export async function registerAgentOn8004(
   input: RegisterAgentInput,
@@ -157,7 +159,6 @@ export async function registerAgentOn8004(
     signer: userPubkey,
     assetPubkey: assetKeypair.publicKey,
     atomEnabled: true,
-    ...(collectionPointer ? { collectionPointer } : {}),
   });
 
   if ("signature" in prepared) {
@@ -181,10 +182,41 @@ export async function registerAgentOn8004(
     partialSignedBase64,
   );
 
-  // Send to network
+  // Send register tx to network
   const { signature } = await sendSignedTransaction(signedBase64, {
     useJito: true,
   });
+
+  // Attach collection pointer in a separate transaction
+  // (skipSend mode skips this, so we must do it explicitly)
+  if (collectionPointer) {
+    try {
+      const pointerPrepared = await sdk.setCollectionPointer(
+        assetKeypair.publicKey,
+        collectionPointer,
+        { skipSend: true, signer: userPubkey, lock: true },
+      );
+
+      if (!("transaction" in pointerPrepared)) {
+        throw new Error("Expected PreparedTransaction for setCollectionPointer");
+      }
+
+      const pointerTx = Transaction.from(
+        Buffer.from(pointerPrepared.transaction, "base64"),
+      );
+      const pointerBase64 = Buffer.from(
+        pointerTx.serialize({ requireAllSignatures: false }),
+      ).toString("base64");
+
+      const pointerSigned = await signTransaction(input.walletId, pointerBase64);
+      await sendSignedTransaction(pointerSigned, { useJito: true });
+    } catch (err) {
+      console.error(
+        "[ERC8004] Agent registered but collection pointer failed:",
+        err,
+      );
+    }
+  }
 
   return {
     asset: assetKeypair.publicKey.toBase58(),
