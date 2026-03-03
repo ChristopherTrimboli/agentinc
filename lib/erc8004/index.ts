@@ -23,7 +23,7 @@ import { signTransaction, sendSignedTransaction } from "@/lib/solana";
 const ERC8004_CLUSTER =
   (process.env.ERC8004_CLUSTER as "mainnet-beta" | "devnet") || "mainnet-beta";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://agentinc.fun";
+const APP_URL = "https://agentinc.fun";
 
 function getIpfsClient(): IPFSClient | undefined {
   const jwt = process.env.PINATA_JWT;
@@ -103,12 +103,12 @@ export async function createAgentIncCollection(): Promise<CollectionSetupResult>
 // ── Metadata ─────────────────────────────────────────────────────────────────
 
 /**
- * On-chain metadata URI for an agent. Points to our own domain so it
- * stays in sync with the DB automatically (no IPFS or blob storage needed).
- * Served by GET /api/agents/8004-metadata/[id].
+ * On-chain metadata URI for an agent. Uses the token mint (CA) as the slug
+ * so the public URL matches Bags-style routing, not internal IDs.
+ * Served by GET /api/agents/8004-metadata/[id] (supports both CA and DB ID).
  */
-export function getMetadataUri(agentId: string): string {
-  return `${APP_URL}/api/agents/8004-metadata/${agentId}`;
+export function getMetadataUri(tokenMint: string | undefined, agentId: string): string {
+  return `${APP_URL}/api/agents/8004-metadata/${tokenMint || agentId}`;
 }
 
 // ── Agent Registration (user-owned) ──────────────────────────────────────────
@@ -146,7 +146,7 @@ export async function registerAgentOn8004(
 ): Promise<RegisterAgentResult> {
   const sdk = getErc8004Sdk();
 
-  const metadataUri = getMetadataUri(input.agentId);
+  const metadataUri = getMetadataUri(input.tokenMint, input.agentId);
 
   const assetKeypair = Keypair.generate();
   const userPubkey = new PublicKey(input.walletAddress);

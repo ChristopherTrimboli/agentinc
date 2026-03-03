@@ -9,34 +9,40 @@ type RouteContext = {
  * GET /api/agents/8004-metadata/[id]
  *
  * Serves the 8004 registration file JSON for an agent.
- * This is the URI stored on-chain — pointed at agentinc.fun, not a third-party host.
+ * Supports lookup by tokenMint (CA) or database ID.
+ * This is the URI stored on-chain — always points to agentinc.fun.
  */
 export async function GET(_req: NextRequest, context: RouteContext) {
   const { id } = await context.params;
 
-  const agent = await prisma.agent.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      name: true,
-      description: true,
-      imageUrl: true,
-      tokenMint: true,
-      isMinted: true,
-      erc8004Asset: true,
-    },
-    cacheStrategy: { ttl: 300, swr: 600 },
-  });
+  const cacheStrategy = { ttl: 300, swr: 600 };
+  const select = {
+    id: true,
+    name: true,
+    description: true,
+    imageUrl: true,
+    tokenMint: true,
+    isMinted: true,
+    erc8004Asset: true,
+  };
+
+  const [byId, byMint] = await Promise.all([
+    prisma.agent.findUnique({ where: { id }, select, cacheStrategy }),
+    prisma.agent.findUnique({ where: { tokenMint: id }, select, cacheStrategy }),
+  ]);
+
+  const agent = byId || byMint;
 
   if (!agent || !agent.isMinted) {
     return NextResponse.json({ error: "Agent not found" }, { status: 404 });
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://agentinc.fun";
+  const appUrl = "https://agentinc.fun";
+  const agentSlug = agent.tokenMint || agent.id;
 
   const services: { name: string; endpoint: string }[] = [
     { name: "MCP", endpoint: `${appUrl}/api/chat` },
-    { name: "web", endpoint: `${appUrl}/agent/${agent.id}` },
+    { name: "web", endpoint: `${appUrl}/agent/${agentSlug}` },
   ];
 
   if (agent.tokenMint) {
@@ -47,7 +53,9 @@ export async function GET(_req: NextRequest, context: RouteContext) {
     type: "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
     name: agent.name,
     description: agent.description || `${agent.name} — an Agent Inc. AI agent`,
-    image: agent.imageUrl || `${appUrl}/agentinc.svg`,
+    image: agent.imageUrl
+      ? `${appUrl}/api/agents/image/${agentSlug}`
+      : `${appUrl}/agentinc.svg`,
     services,
     active: true,
     x402Support: true,
