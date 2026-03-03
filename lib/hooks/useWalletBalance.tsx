@@ -40,11 +40,13 @@ export function useWalletBalance(
   const [balance, setBalance] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const prevBalanceRef = useRef<number | null>(null);
+  const lastResetTimeRef = useRef<number>(Date.now());
 
   // Reset balance immediately when wallet address changes
   useEffect(() => {
     setBalance(null);
     prevBalanceRef.current = null;
+    lastResetTimeRef.current = Date.now();
   }, [walletAddress]);
 
   // Fetch balance via backend API (for initial load and manual refresh)
@@ -146,6 +148,11 @@ export function useWalletBalance(
 
     // Skip the initial load
     if (prev === null) return;
+
+    // Suppress toasts for 5s after wallet change / page load to avoid
+    // false positives from the API and WebSocket reporting slightly
+    // different values during initialization.
+    if (Date.now() - lastResetTimeRef.current < 5000) return;
 
     const diff = balance - prev;
     // Only notify for meaningful changes (> 0.00001 SOL to avoid rounding noise)
