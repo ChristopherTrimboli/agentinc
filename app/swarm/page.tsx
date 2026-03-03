@@ -1,221 +1,173 @@
 "use client";
 
-import {
-  useEffect,
-  useState,
-  useCallback,
-  useRef,
-  lazy,
-  Suspense,
-} from "react";
+import { useEffect, useState, useCallback, useRef, lazy, Suspense } from "react";
 import Navigation from "../components/Navigation";
-const SwarmCanvas = lazy(() => import("../components/swarm/SwarmCanvas"));
-import SwarmControls from "../components/swarm/SwarmControls";
-import AgentDetails from "../components/swarm/AgentDetails";
-import {
-  SwarmProvider,
-  useSwarmStore,
-  useSwarmActions,
-} from "@/lib/swarm/store";
-import { createMockSimulation } from "@/lib/swarm/mockData";
-import type { SwarmAgent } from "@/lib/swarm/types";
+import NetworkDetails from "../components/network/NetworkDetails";
+import NetworkControls from "../components/network/NetworkControls";
+import type {
+  NetworkData,
+  NetworkCollection,
+  NetworkAgent,
+} from "@/lib/network/types";
 
-interface DBCorporation {
-  id: string;
-  name: string;
-  description: string | null;
-  logo: string | null;
-  color: string | null;
-  size: number;
-}
+const NetworkCanvas = lazy(
+  () => import("../components/network/NetworkCanvas"),
+);
 
-interface DBAgent {
-  id: string;
-  name: string;
-  description: string | null;
-  capabilities: string[];
-  color: string | null;
-  size: number;
-  corporationId: string | null;
-}
-
-function SwarmVisualization() {
-  const store = useSwarmStore();
-  const actions = useSwarmActions();
-
-  const [selectedAgent, setSelectedAgent] = useState<SwarmAgent | null>(null);
-  const [hoveredAgent, setHoveredAgent] = useState<SwarmAgent | null>(null);
+export default function SwarmPage() {
+  const [data, setData] = useState<NetworkData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const simulationRef = useRef<{ start: () => void; stop: () => void } | null>(
-    null,
-  );
-  const physicsInitialized = useRef(false);
-  const simulationStarted = useRef(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Initialize physics FIRST, before loading data
-  const NAVBAR_HEIGHT = 72;
-  useEffect(() => {
-    if (!physicsInitialized.current) {
-      actions.initPhysics(
-        window.innerWidth,
-        window.innerHeight - NAVBAR_HEIGHT,
-      );
-      physicsInitialized.current = true;
-    }
-  }, [actions]);
+  const [selectedCollection, setSelectedCollection] =
+    useState<NetworkCollection | null>(null);
+  const [selectedAgent, setSelectedAgent] = useState<NetworkAgent | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  // Fetch corporations and agents from the API AFTER physics is ready
+  const canvasResetRef = useRef<(() => void) | null>(null);
+
   useEffect(() => {
-    const fetchData = async () => {
+    (async () => {
       try {
-        // Fetch corporations first
-        const corpResponse = await fetch("/api/swarm/corporations");
-        const corpData = await corpResponse.json();
-
-        if (corpData.corporations && corpData.corporations.length > 0) {
-          corpData.corporations.forEach((corp: DBCorporation) => {
-            actions.addCorporation({
-              id: corp.id,
-              name: corp.name,
-              description: corp.description || undefined,
-              logo: corp.logo || undefined,
-              color: corp.color || undefined,
-              size: corp.size,
-            });
-          });
+        const res = await fetch("/api/8004/network");
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(
+            body.error || `HTTP ${res.status}`,
+          );
         }
-
-        // Then fetch agents
-        const agentResponse = await fetch("/api/swarm/agents");
-        const agentData = await agentResponse.json();
-
-        if (agentData.agents && agentData.agents.length > 0) {
-          agentData.agents.forEach((agent: DBAgent) => {
-            actions.addAgent({
-              id: agent.id,
-              name: agent.name,
-              description: agent.description || undefined,
-              capabilities: agent.capabilities,
-              status: "idle",
-              size: agent.size,
-              color: agent.color || undefined,
-              corporationId: agent.corporationId || undefined,
-            });
-          });
-        }
-      } catch (error) {
-        console.error("Failed to fetch data:", error);
+        const json: NetworkData = await res.json();
+        setData(json);
+      } catch (err) {
+        console.error("[8004 Network] Fetch failed:", err);
+        setError(
+          err instanceof Error ? err.message : "Failed to load network data",
+        );
       } finally {
         setIsLoading(false);
       }
-    };
-
-    // Only fetch data once physics is initialized
-    if (
-      physicsInitialized.current &&
-      store.agents.size === 0 &&
-      store.corporations.size === 0
-    ) {
-      fetchData();
-    } else if (store.agents.size > 0 || store.corporations.size > 0) {
-      setIsLoading(false);
-    }
-  }, [actions, store.agents.size, store.corporations.size]);
-
-  // Create simulation and auto-start it
-  useEffect(() => {
-    simulationRef.current = createMockSimulation(
-      actions.addConnection,
-      actions.updateConnection,
-      actions.removeConnection,
-      () => Array.from(store.agents.keys()),
-    );
-
-    return () => {
-      simulationRef.current?.stop();
-    };
-  }, [actions, store.agents]);
-
-  // Auto-start simulation once agents are loaded
-  useEffect(() => {
-    if (!isLoading && store.agents.size > 0 && !simulationStarted.current) {
-      simulationRef.current?.start();
-      simulationStarted.current = true;
-    }
-  }, [isLoading, store.agents.size]);
-
-  // Reset positions
-  const handleReset = useCallback(() => {
-    actions.initPhysics(window.innerWidth, window.innerHeight - NAVBAR_HEIGHT);
-  }, [actions]);
-
-  // Handle agent click
-  const handleAgentClick = useCallback((agent: SwarmAgent) => {
-    setSelectedAgent(agent);
+    })();
   }, []);
 
-  // Handle agent hover
-  const handleAgentHover = useCallback((agent: SwarmAgent | null) => {
-    setHoveredAgent(agent);
+  const handleSelectCollection = useCallback(
+    (c: NetworkCollection | null) => {
+      setSelectedCollection(c);
+      setSelectedAgent(null);
+    },
+    [],
+  );
+
+  const handleSelectAgent = useCallback((a: NetworkAgent | null) => {
+    setSelectedAgent(a);
+    setSelectedCollection(null);
   }, []);
 
-  // Physics tick
-  const handleTick = useCallback(() => {
-    actions.tickPhysics();
-  }, [actions]);
+  const handleClose = useCallback(() => {
+    setSelectedCollection(null);
+    setSelectedAgent(null);
+  }, []);
 
-  const activeConnections = Array.from(store.connections.values()).filter(
-    (c) => c.status === "active",
-  ).length;
+  // Escape to deselect
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") handleClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [handleClose]);
+
+  const totalAgents = data
+    ? data.collections.reduce((s, c) => s + c.agents.length, 0)
+    : 0;
 
   return (
     <div className="h-screen w-screen bg-[#030712] text-white overflow-hidden">
-      {/* Background effects */}
-      <div className="fixed inset-0 bg-grid opacity-30 pointer-events-none" />
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-purple-500/5 rounded-full blur-[120px] pointer-events-none" />
-      <div className="fixed bottom-0 right-0 w-[600px] h-[400px] bg-cyan-500/5 rounded-full blur-[100px] pointer-events-none" />
-
-      {/* Navigation */}
-      <Navigation />
-
-      {/* Main canvas - fullscreen below navbar */}
-      <div className="fixed inset-0 top-[72px]">
-        <Suspense
-          fallback={
-            <div className="flex items-center justify-center h-full text-zinc-500">
-              Loading swarm...
-            </div>
-          }
-        >
-          <SwarmCanvas
-            agents={store.agents}
-            corporations={store.corporations}
-            connections={store.connections}
-            physics={store.physics}
-            onTick={handleTick}
-            onAgentClick={handleAgentClick}
-            onAgentHover={handleAgentHover}
-          />
-        </Suspense>
+      {/* Ambient background effects */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-emerald-500/[0.03] rounded-full blur-[150px]" />
+        <div className="absolute bottom-0 right-0 w-[600px] h-[400px] bg-violet-500/[0.03] rounded-full blur-[120px]" />
+        <div className="absolute top-1/3 left-0 w-[400px] h-[400px] bg-cyan-500/[0.02] rounded-full blur-[100px]" />
       </div>
 
-      {/* Loading state */}
+      <Navigation />
+
+      {/* Canvas */}
+      <div className="fixed inset-0 top-[72px]">
+        {data && !isLoading && (
+          <Suspense
+            fallback={
+              <div className="flex items-center justify-center h-full text-zinc-500">
+                Initializing visualization...
+              </div>
+            }
+          >
+            <NetworkCanvas
+              data={data}
+              searchQuery={searchQuery}
+              onSelectCollection={handleSelectCollection}
+              onSelectAgent={handleSelectAgent}
+              selectedCollectionId={selectedCollection?.id ?? null}
+              selectedAgentAsset={selectedAgent?.asset ?? null}
+            />
+          </Suspense>
+        )}
+      </div>
+
+      {/* Loading */}
       {isLoading && (
         <div className="fixed inset-0 flex items-center justify-center z-20">
           <div className="text-center">
-            <div className="w-12 h-12 mx-auto mb-4 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin" />
-            <p className="text-gray-400 text-sm">Loading agents...</p>
+            <div className="w-14 h-14 mx-auto mb-4 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
+            <p className="text-gray-400 text-sm">
+              Loading 8004 network...
+            </p>
+            <p className="text-gray-600 text-xs mt-1">
+              Fetching collections &amp; agents from the indexer
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Error */}
+      {error && !isLoading && (
+        <div className="fixed inset-0 flex items-center justify-center z-20">
+          <div className="text-center max-w-md px-6">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-red-500/20 flex items-center justify-center">
+              <svg
+                className="w-8 h-8 text-red-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-white mb-2">
+              Network Unavailable
+            </h3>
+            <p className="text-gray-400 text-sm mb-4">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white text-sm rounded-lg transition-colors"
+            >
+              Retry
+            </button>
           </div>
         </div>
       )}
 
       {/* Empty state */}
-      {!isLoading && store.agents.size === 0 && (
+      {data && data.collections.length === 0 && !isLoading && (
         <div className="fixed inset-0 flex items-center justify-center z-20">
           <div className="text-center max-w-md px-4">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-purple-500/20 flex items-center justify-center">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gray-800 flex items-center justify-center">
               <svg
-                className="w-8 h-8 text-purple-400"
+                className="w-8 h-8 text-gray-500"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -229,35 +181,50 @@ function SwarmVisualization() {
               </svg>
             </div>
             <h3 className="text-lg font-semibold text-white mb-2">
-              No Agents Yet
+              No Collections Found
             </h3>
-            <p className="text-gray-400 text-sm mb-4">
-              Create agents to see them interact in the swarm visualization.
+            <p className="text-gray-400 text-sm">
+              The 8004 network has no registered collections yet.
             </p>
           </div>
         </div>
       )}
 
-      {/* Agent details panel */}
-      <AgentDetails
-        agent={selectedAgent || hoveredAgent}
-        onClose={() => setSelectedAgent(null)}
+      {/* Details panel */}
+      <NetworkDetails
+        collection={selectedCollection}
+        agent={selectedAgent}
+        onClose={handleClose}
       />
 
-      {/* Controls */}
-      <SwarmControls
-        onReset={handleReset}
-        agentCount={store.agents.size}
-        connectionCount={activeConnections}
-      />
+      {/* Controls bar */}
+      {data && !error && (
+        <NetworkControls
+          stats={data.stats}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          onReset={() => canvasResetRef.current?.()}
+          totalAgentsLoaded={totalAgents}
+          totalCollectionsLoaded={data.collections.length}
+        />
+      )}
+
+      {/* Title badge (top-left) */}
+      {data && !isLoading && (
+        <div className="fixed top-[88px] left-4 z-30">
+          <div className="bg-gray-900/90 backdrop-blur-lg border border-gray-700 rounded-xl px-4 py-3">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-sm font-bold text-white">
+                8004 Network
+              </span>
+            </div>
+            <p className="text-[10px] text-gray-500">
+              Solana AI Agent Registry — Mainnet
+            </p>
+          </div>
+        </div>
+      )}
     </div>
-  );
-}
-
-export default function SwarmPage() {
-  return (
-    <SwarmProvider>
-      <SwarmVisualization />
-    </SwarmProvider>
   );
 }

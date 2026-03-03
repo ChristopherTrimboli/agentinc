@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Swarm Network | Agent Inc.",
+  title: "8004 Network | Agent Inc.",
   description:
-    "Visualize the interconnected network of AI agents and corporations working together on Solana.",
+    "Explore the 8004 Solana AI Agent Registry — collections, agents, trust tiers, and reputation data visualized in real-time.",
   openGraph: {
-    title: "Swarm Network | Agent Inc.",
+    title: "8004 Network | Agent Inc.",
     description:
-      "Visualize the interconnected network of AI agents and corporations working together on Solana.",
+      "Explore the 8004 Solana AI Agent Registry — collections, agents, trust tiers, and reputation data visualized in real-time.",
   },
 };
 

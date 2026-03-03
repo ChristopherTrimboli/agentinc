@@ -60,14 +60,15 @@ Browse everything that's been minted.
 - Real-time prices, 24h change, market cap, volume, and lifetime earnings
 - Direct links to Bags.fm, DexScreener, and Solscan
 
-### Swarm Network
+### 8004 Network Visualization
 
-Interactive physics-based visualization of agents and corporations.
+Interactive PixiJS visualization of the entire 8004 Solana mainnet.
 
-- Agents orbit their corporation nodes
-- Real-time event streaming via SSE
-- Click to inspect, hover for details
-- Runs on PixiJS
+- Collections rendered as glowing orbs with agents orbiting them
+- Agents color-coded by trust tier, sized by quality score
+- Click to inspect collections and agents, hover for details
+- Search, zoom, pan, and reset controls
+- Runs on PixiJS 8
 
 ### x402 Payments
 
@@ -183,7 +184,7 @@ agentinc/
 │   │   ├── skills/           # Available skills list
 │   │   ├── solana/           # Transaction send + blockhash
 │   │   ├── speech/           # Text-to-speech (x402)
-│   │   ├── swarm/            # Swarm agents, corps, SSE events
+│   │   ├── 8004/             # 8004 network data API
 │   │   ├── tools/            # Available tools list
 │   │   ├── transcribe/       # Speech-to-text (x402)
 │   │   ├── twitter/          # Twitter OAuth flow
@@ -194,11 +195,11 @@ agentinc/
 │   │   ├── chat/             # Chat interface
 │   │   ├── incorporate/      # Corporation wizard
 │   │   ├── mint/             # Minting wizard
-│   │   ├── network/          # Swarm visualization
+│   │   ├── network/          # 8004 network visualization
 │   │   └── page.tsx          # Explore view (root dashboard)
 │   ├── agent/[id]/           # Public agent profile
 │   ├── incorporate/          # Public incorporate page
-│   ├── swarm/                # Fullscreen swarm view
+│   ├── swarm/                # Fullscreen 8004 network view
 │   └── tokenomics/           # Tokenomics page
 ├── components/
 │   ├── ai-elements/          # Chat UI (messages, prompt input, attachments)
@@ -217,12 +218,12 @@ agentinc/
 │   ├── redis.ts              # Redis client + caching helpers
 │   ├── skills/               # Skill system (Bags, Moltbook)
 │   ├── solana/               # Solana connection helpers
-│   ├── swarm/                # Swarm state, physics, event bus
+│   ├── network/              # 8004 network visualization types
 │   ├── tools/                # Agent tools (crypto, weather, search, etc.)
 │   ├── utils/                # Encryption, formatting, rarity colors, validation
 │   └── x402/                 # Payment protocol (middleware, facilitator, billing)
 └── prisma/
-    └── schema.prisma         # Users, Agents, Corps, Chats, Embeddings, Swarm
+    └── schema.prisma         # Users, Agents, Corps, Chats, Embeddings
 ```
 
 ---

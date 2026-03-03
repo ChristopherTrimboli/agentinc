@@ -45,6 +45,7 @@ export async function GET(req: NextRequest) {
           isMinted: true,
           tokenMint: true,
           tokenSymbol: true,
+          corporationId: true,
           createdAt: true,
           updatedAt: true,
         },

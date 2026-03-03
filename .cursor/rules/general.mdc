@@ -29,11 +29,11 @@ Agent Inc. is a full-stack Web3 AI agent platform built on Solana. Users mint AI
 | Styling | Tailwind CSS 4 (no config file — uses CSS `@import`) |
 | UI Components | shadcn/ui (New York style) + Radix UI primitives |
 | Icons | Lucide React |
-| State | React hooks + Zustand-like store for swarm visualization |
+| State | React hooks |
 | Storage | Vercel Blob |
 | Caching | Upstash Redis |
 | Payments | x402 protocol (native SOL micropayments) |
-| Visualization | PixiJS 8 (swarm network graph) |
+| Visualization | PixiJS 8 (8004 network graph) |
 
 ## Path Aliases
 
@@ -73,7 +73,7 @@ lib/                    # Core business logic
   utils/                # Pure utility functions
   constants/            # Shared constants
   prices/               # Token price fetching
-  swarm/                # Swarm visualization state + physics
+  network/              # 8004 network visualization types
 prisma/                 # Schema, migrations, seed
 public/                 # Static assets
 ```

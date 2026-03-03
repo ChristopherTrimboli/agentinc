@@ -58,7 +58,7 @@ export const RARITY_COLORS: Record<Rarity, RarityColors> = {
 };
 
 // =============================================================================
-// RAW HEX COLORS (for non-Tailwind contexts like canvas, swarm, server-side)
+// RAW HEX COLORS (for non-Tailwind contexts like canvas, server-side)
 // =============================================================================
 
 export const RARITY_HEX_COLORS: Record<Rarity, string> = {

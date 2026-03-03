@@ -8,7 +8,7 @@ type RouteContext = {
 
 // GET /api/corporations/[id]/activity
 // Returns recent AgentChatMessages across all agents in the corporation
-// Used for the swarm activity feed on the corporation page
+// Used for the activity feed on the corporation page
 export async function GET(req: NextRequest, context: RouteContext) {
   const { id } = await context.params;
 

@@ -103,9 +103,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create the corporation and swarm agents in a transaction (prevents race conditions)
     const corporation = await prisma.$transaction(async (tx) => {
-      // Check if token mint already exists (within transaction to prevent race condition)
       const existingCorp = await tx.corporation.findUnique({
         where: { tokenMint },
       });
@@ -116,14 +114,12 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Create the corporation
       const corp = await tx.corporation.create({
         data: {
           name,
           description,
           logo,
           tokenMint,
-          // Remove leading $ from symbol if present (stored without $ prefix in DB)
           tokenSymbol: tokenSymbol.replace(/^\$+/, ""),
           tokenMetadata,
           launchWallet,
@@ -132,45 +128,11 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // Create SwarmAgents from the user's minted agents and link them to the corporation
-      // This populates the swarm visualization with the user's real agents
-      // Using createMany for better performance (avoids N+1 queries)
-      const { getRarityHexColor } = await import("@/lib/utils/rarity");
-
-      const swarmAgentData = userAgents.map((agent) => {
-        // Map agent data to capabilities for swarm visualization
-        // Use enabled skills and personality as capabilities
-        const capabilities = [
-          ...agent.enabledSkills.slice(0, 2),
-          ...(agent.personality ? [agent.personality] : []),
-        ].slice(0, 4);
-
-        return {
-          name: agent.name,
-          description: agent.description,
-          capabilities,
-          color: getRarityHexColor(agent.rarity),
-          size:
-            agent.rarity === "legendary"
-              ? 50
-              : agent.rarity === "epic"
-                ? 45
-                : 40,
-          corporationId: corp.id,
-        };
-      });
-
-      await tx.swarmAgent.createMany({
-        data: swarmAgentData,
-      });
-
-      // Link the user's Agent records to the new corporation
       await tx.agent.updateMany({
         where: { id: { in: agentIds }, createdById: userId },
         data: { corporationId: corp.id },
       });
 
-      // Fetch the corporation with its agents
       return tx.corporation.findUnique({
         where: { id: corp.id },
         include: { agents: true },

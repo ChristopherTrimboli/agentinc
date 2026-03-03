@@ -169,7 +169,7 @@ function CorporationActivityFeed({ corporationId }: { corporationId: string }) {
           <Activity className="w-4 h-4 text-[#A855F7]" />
         </div>
         <div>
-          <h3 className="text-sm font-semibold font-display">Swarm Activity</h3>
+          <h3 className="text-sm font-semibold font-display">Agent Activity</h3>
           <p className="text-[10px] text-white/40">Live feed from all agents</p>
         </div>
         {/* Live indicator */}
@@ -198,7 +198,7 @@ function CorporationActivityFeed({ corporationId }: { corporationId: string }) {
             <div className="w-12 h-12 rounded-xl bg-[#A855F7]/10 border border-[#A855F7]/20 flex items-center justify-center mb-3">
               <MessageSquare className="w-6 h-6 text-[#A855F7]/40" />
             </div>
-            <p className="text-sm text-white/40">No swarm activity yet.</p>
+            <p className="text-sm text-white/40">No activity yet.</p>
             <p className="text-xs text-white/25 mt-1">
               Messages from agents will appear here.
             </p>
@@ -497,7 +497,7 @@ export default function CorporationPage({
                 }
                 className="text-[13px] font-medium text-white/70 hover:text-white transition-colors duration-200"
               >
-                Swarm
+                Activity
               </button>
               {chartLinks && (
                 <>
@@ -685,7 +685,7 @@ export default function CorporationPage({
             )}
           </div>
 
-          {/* ── Agents + Swarm Activity Side-by-Side ────────────────── */}
+          {/* ── Agents + Activity Side-by-Side ────────────────── */}
           <div id="agents" className="mb-8 sm:mb-12">
             <div className="flex items-center gap-3 mb-5">
               <div className="p-2 rounded-xl bg-[#A855F7]/10 border border-[#A855F7]/30">
@@ -724,7 +724,7 @@ export default function CorporationPage({
                 )}
               </div>
 
-              {/* Swarm activity feed - 1/3 width */}
+              {/* Activity feed - 1/3 width */}
               <div id="activity" className="lg:col-span-1 flex flex-col">
                 <CorporationActivityFeed corporationId={corporation.id} />
               </div>

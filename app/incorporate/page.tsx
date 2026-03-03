@@ -17,11 +17,6 @@ import {
   Sparkles,
   ChevronRight,
   ChevronLeft,
-  Zap,
-  Brain,
-  Shield,
-  TrendingUp,
-  Star,
   Globe,
   Twitter,
   MessageCircle,
@@ -30,16 +25,13 @@ import {
 import Navigation from "../components/Navigation";
 import { getBagsFmUrl, EXTERNAL_APIS } from "@/lib/constants/urls";
 
-interface SwarmAgent {
+interface IncorporateAgent {
   id: string;
   name: string;
   description: string | null;
-  capabilities: string[];
-  color: string | null;
-  corporation: {
-    id: string;
-    name: string;
-  } | null;
+  rarity: string | null;
+  personality: string | null;
+  corporationId: string | null;
 }
 
 interface LaunchStep {
@@ -49,22 +41,6 @@ interface LaunchStep {
   error?: string;
 }
 
-const capabilityIcons: Record<string, React.ReactNode> = {
-  coding: <Zap className="w-3 h-3" />,
-  analysis: <Brain className="w-3 h-3" />,
-  security: <Shield className="w-3 h-3" />,
-  trading: <TrendingUp className="w-3 h-3" />,
-  research: <Globe className="w-3 h-3" />,
-  default: <Star className="w-3 h-3" />,
-};
-
-const getCapabilityIcon = (capability: string) => {
-  const key = capability.toLowerCase();
-  for (const [k, icon] of Object.entries(capabilityIcons)) {
-    if (key.includes(k)) return icon;
-  }
-  return capabilityIcons.default;
-};
 
 // Diverse agent avatars based on characteristics
 const agentAvatars = [
@@ -245,13 +221,20 @@ function AgentCard({
   selectionOrder,
   onToggle,
 }: {
-  agent: SwarmAgent;
+  agent: IncorporateAgent;
   isSelected: boolean;
   isDisabled: boolean;
   selectionOrder: number;
   onToggle: () => void;
 }) {
-  const agentColor = agent.color || "#a855f7";
+  const rarityColors: Record<string, string> = {
+    legendary: "#f59e0b",
+    epic: "#a855f7",
+    rare: "#3b82f6",
+    uncommon: "#10b981",
+    common: "#6b7280",
+  };
+  const agentColor = rarityColors[agent.rarity || "common"] || "#a855f7";
   const avatar = getAgentAvatar(agent.id, agent.name);
   const pattern = getAgentPattern(agent.id);
   const cardVariant = hashString(agent.id) % 4; // 4 different card styles
@@ -387,48 +370,32 @@ function AgentCard({
               )}
             </div>
             <div className="flex flex-wrap gap-1.5 mt-2">
-              {agent.capabilities && agent.capabilities.length > 0 ? (
-                <>
-                  {agent.capabilities.slice(0, 2).map((cap, i) => (
-                    <span
-                      key={i}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium border transition-colors duration-200"
-                      style={{
-                        backgroundColor: isSelected
-                          ? `${agentColor}15`
-                          : "rgba(31, 41, 55, 0.8)",
-                        borderColor: isSelected
-                          ? `${agentColor}30`
-                          : "rgba(55, 65, 81, 0.5)",
-                        color: isSelected ? agentColor : "rgb(156, 163, 175)",
-                      }}
-                    >
-                      {getCapabilityIcon(cap)}
-                      <span className="capitalize">{cap}</span>
-                    </span>
-                  ))}
-                  {agent.capabilities.length > 2 && (
-                    <span
-                      className="px-2 py-0.5 rounded-md text-[10px] font-medium border"
-                      style={{
-                        backgroundColor: "rgba(31, 41, 55, 0.5)",
-                        borderColor: "rgba(55, 65, 81, 0.3)",
-                        color: "rgb(107, 114, 128)",
-                      }}
-                    >
-                      +{agent.capabilities.length - 2}
-                    </span>
-                  )}
-                </>
-              ) : (
+              {agent.rarity && (
                 <span
-                  className="px-2 py-0.5 rounded-md text-[10px] font-medium"
+                  className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium border transition-colors duration-200 capitalize"
+                  style={{
+                    backgroundColor: isSelected
+                      ? `${agentColor}15`
+                      : "rgba(31, 41, 55, 0.8)",
+                    borderColor: isSelected
+                      ? `${agentColor}30`
+                      : "rgba(55, 65, 81, 0.5)",
+                    color: isSelected ? agentColor : "rgb(156, 163, 175)",
+                  }}
+                >
+                  {agent.rarity}
+                </span>
+              )}
+              {agent.personality && (
+                <span
+                  className="px-2 py-0.5 rounded-md text-[10px] font-medium border capitalize"
                   style={{
                     backgroundColor: "rgba(31, 41, 55, 0.5)",
+                    borderColor: "rgba(55, 65, 81, 0.3)",
                     color: "rgb(107, 114, 128)",
                   }}
                 >
-                  AI Agent
+                  {agent.personality}
                 </span>
               )}
             </div>
@@ -515,7 +482,7 @@ export default function IncorporatePage() {
   const [telegramUrl, setTelegramUrl] = useState("");
   const [initialBuyAmount, setInitialBuyAmount] = useState("0.01");
 
-  const [agents, setAgents] = useState<SwarmAgent[]>([]);
+  const [agents, setAgents] = useState<IncorporateAgent[]>([]);
   const [selectedAgentIds, setSelectedAgentIds] = useState<string[]>([]);
   const [isLoadingAgents, setIsLoadingAgents] = useState(true);
 
@@ -544,10 +511,10 @@ export default function IncorporatePage() {
   useEffect(() => {
     async function fetchAgents() {
       try {
-        const response = await fetch("/api/swarm/agents");
+        const response = await fetch("/api/agents?limit=100");
         if (!response.ok) throw new Error("Failed to fetch agents");
         const data = await response.json();
-        setAgents(data.agents);
+        setAgents(data.agents ?? []);
       } catch (err) {
         console.error("Failed to load agents:", err);
       } finally {

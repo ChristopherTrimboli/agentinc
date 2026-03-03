@@ -201,81 +201,30 @@ model StakingPool {
   @@index([createdById])
 }
 
-// Swarm visualization models
-
-// Corporation - a company/organization that agents belong to
 model Corporation {
   id          String   @id @default(cuid())
-  name        String   @db.VarChar(32) // Token metadata limit
+  name        String   @db.VarChar(32)
   description String?  @db.Text
-  logo        String?  // URL or emoji
-  color       String?  // Brand color
-  size        Int      @default(60) // Visual size in swarm
+  logo        String?
+  color       String?
+  size        Int      @default(60)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   // Token launch fields (Bags API)
-  tokenMint       String?  @unique // Solana token mint address
-  tokenSymbol     String?  @db.VarChar(10) // Token symbol (e.g., "AGNT")
-  tokenMetadata   String?  // IPFS metadata URL
-  launchWallet    String?  // Wallet that launched the token
-  launchSignature String?  // Transaction signature
-  launchedAt      DateTime? // When the token was launched
+  tokenMint       String?   @unique
+  tokenSymbol     String?   @db.VarChar(10)
+  tokenMetadata   String?
+  launchWallet    String?
+  launchSignature String?
+  launchedAt      DateTime?
 
   // Relations
-  swarmAgents SwarmAgent[]
-  agents      Agent[]
+  agents Agent[]
 
   @@index([name])
   @@index([tokenMint])
   @@index([createdAt])
-}
-
-model SwarmAgent {
-  id           String   @id @default(cuid())
-  name         String   @db.VarChar(255)
-  description  String?  @db.Text
-  capabilities String[] // Array of capability strings
-  color        String?
-  size         Int      @default(35)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  // Corporation relation
-  corporationId String?
-  corporation   Corporation? @relation(fields: [corporationId], references: [id], onDelete: SetNull)
-
-  // Relations
-  outgoingEvents SwarmEvent[] @relation("SourceAgent")
-  incomingEvents SwarmEvent[] @relation("TargetAgent")
-
-  @@index([name])
-  @@index([corporationId])
-  @@index([createdAt])
-}
-
-model SwarmEvent {
-  id            String   @id @default(cuid())
-  type          String   // agent_call, agent_response, agent_error, etc.
-  payload       Json?
-  timestamp     DateTime @default(now())
-
-  // Source agent relation
-  sourceAgentId String
-  sourceAgent   SwarmAgent @relation("SourceAgent", fields: [sourceAgentId], references: [id], onDelete: Cascade)
-
-  // Target agent relation (optional for some event types)
-  targetAgentId String?
-  targetAgent   SwarmAgent? @relation("TargetAgent", fields: [targetAgentId], references: [id], onDelete: Cascade)
-
-  @@index([sourceAgentId])
-  @@index([targetAgentId])
-  @@index([targetAgentId, timestamp])
-  @@index([timestamp])
-  @@index([type])
-  @@index([type, timestamp])
-  @@index([sourceAgentId, timestamp])
-  @@index([sourceAgentId, type])
 }
 
 // Community chat messages per agent (general + VIP in one table)
