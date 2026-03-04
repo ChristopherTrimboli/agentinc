@@ -920,22 +920,20 @@ export default function NetworkCanvas({
       const radius = getAgentRadius(a.qualityScore);
       const color = TRUST_TIER_COLORS[a.trustTier] ?? TRUST_TIER_COLORS[0];
 
-      // Verification ring (behind everything, visible for verified/partial agents)
-      const verifyRing = new Graphics();
       const vStatus = a.verification?.status;
-      if (vStatus === "verified" || vStatus === "partial") {
-        const ringColor = vStatus === "verified" ? 0x22c55e : 0xeab308;
-        verifyRing.circle(0, 0, radius + 7);
-        verifyRing.stroke({ width: 2.5, color: ringColor, alpha: 0.9 });
-        verifyRing.circle(0, 0, radius + 10);
-        verifyRing.fill({ color: ringColor, alpha: 0.08 });
-      }
-      c.addChild(verifyRing);
+      const hasVerifyRing =
+        vStatus === "verified" || vStatus === "partial";
 
-      // Border ring + glow
+      // Outer ring: verification color or trust tier glow
       const gfx = new Graphics();
-      gfx.circle(0, 0, radius + 4);
-      gfx.fill({ color, alpha: 0.15 });
+      if (hasVerifyRing) {
+        const ringColor = vStatus === "verified" ? 0x22c55e : 0xeab308;
+        gfx.circle(0, 0, radius + 3);
+        gfx.stroke({ width: 2, color: ringColor, alpha: 0.85 });
+      } else {
+        gfx.circle(0, 0, radius + 2);
+        gfx.fill({ color, alpha: 0.15 });
+      }
       gfx.circle(0, 0, radius);
       gfx.fill({ color, alpha: 0.9 });
       c.addChild(gfx);
@@ -946,8 +944,8 @@ export default function NetworkCanvas({
 
       // Specular highlight (hidden when image loads)
       const specular = new Graphics();
-      specular.circle(-radius * 0.2, -radius * 0.2, radius * 0.3);
-      specular.fill({ color: 0xffffff, alpha: 0.25 });
+      specular.circle(-radius * 0.15, -radius * 0.15, radius * 0.25);
+      specular.fill({ color: 0xffffff, alpha: 0.2 });
       c.addChild(specular);
 
       // Name label (hidden by default, shown on hover)
@@ -971,7 +969,7 @@ export default function NetworkCanvas({
       // Async: load agent profile image
       const imageUrl = resolveImageUrl(a.image);
       if (imageUrl) {
-        loadCircularImage(imageUrl, radius, imgLayer, 2).then((ok) => {
+        loadCircularImage(imageUrl, radius, imgLayer, 1).then((ok) => {
           if (ok && !c.destroyed) {
             specular.visible = false;
           }

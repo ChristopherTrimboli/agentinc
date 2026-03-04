@@ -70,6 +70,27 @@ export default function NetworkPage() {
     ? data.collections.reduce((s, c) => s + c.agents.length, 0)
     : 0;
 
+  const networkMetrics = data
+    ? (() => {
+        const agents = data.collections.flatMap((c) => c.agents);
+        const verified = agents.filter(
+          (a) => a.verification?.status === "verified",
+        ).length;
+        const partial = agents.filter(
+          (a) => a.verification?.status === "partial",
+        ).length;
+        const unverified = agents.filter(
+          (a) =>
+            !a.verification || a.verification.status === "unverified",
+        ).length;
+        const withFeedback = agents.filter(
+          (a) => a.feedbackCount > 0,
+        ).length;
+        const atomEnabled = agents.filter((a) => a.atomEnabled).length;
+        return { verified, partial, unverified, withFeedback, atomEnabled };
+      })()
+    : null;
+
   return (
     <div className="fixed inset-0 lg:left-64 bg-[#030712] text-white overflow-hidden">
       {/* Ambient effects */}
@@ -160,17 +181,106 @@ export default function NetworkPage() {
         />
       )}
 
-      {/* Title badge */}
+      {/* Title badge + network metrics */}
       {data && !isLoading && (
         <div className="absolute top-4 left-4 z-30">
-          <div className="bg-gray-900/90 backdrop-blur-lg border border-gray-700 rounded-xl px-4 py-3">
+          <div className="bg-gray-900/90 backdrop-blur-lg border border-gray-700 rounded-xl px-4 py-3 min-w-[200px]">
             <div className="flex items-center gap-2 mb-1">
               <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-sm font-bold text-white">8004 Network</span>
             </div>
-            <p className="text-[10px] text-gray-500 mb-1.5">
+            <p className="text-[10px] text-gray-500 mb-2.5">
               Solana AI Agent Registry — Mainnet
             </p>
+
+            {/* Metrics grid */}
+            {networkMetrics && (
+              <div className="space-y-1.5 mb-2.5 pt-2.5 border-t border-gray-800">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                    <span className="text-[10px] text-gray-400">Verified</span>
+                  </div>
+                  <span className="text-[10px] font-semibold text-emerald-400">
+                    {networkMetrics.verified}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-yellow-400" />
+                    <span className="text-[10px] text-gray-400">Partial</span>
+                  </div>
+                  <span className="text-[10px] font-semibold text-yellow-400">
+                    {networkMetrics.partial}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                    <span className="text-[10px] text-gray-400">Unverified</span>
+                  </div>
+                  <span className="text-[10px] font-semibold text-red-400">
+                    {networkMetrics.unverified}
+                  </span>
+                </div>
+                <div className="pt-1.5 mt-1.5 border-t border-gray-800/50 flex items-center justify-between">
+                  <span className="text-[10px] text-gray-500">Total Agents</span>
+                  <span className="text-[10px] font-semibold text-white">
+                    {totalAgents}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-gray-500">Collections</span>
+                  <span className="text-[10px] font-semibold text-white">
+                    {data.collections.length}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-gray-500">With Feedback</span>
+                  <span className="text-[10px] font-semibold text-white">
+                    {networkMetrics.withFeedback}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-gray-500">ATOM Enabled</span>
+                  <span className="text-[10px] font-semibold text-violet-400">
+                    {networkMetrics.atomEnabled}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Verification rate bar */}
+            {networkMetrics && totalAgents > 0 && (
+              <div className="mb-2.5">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-[10px] text-gray-500">Slop-o-Meter</span>
+                  <span className="text-[10px] text-gray-400">
+                    {Math.round(
+                      ((networkMetrics.verified + networkMetrics.partial) /
+                        totalAgents) *
+                        100,
+                    )}
+                    % active
+                  </span>
+                </div>
+                <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden flex">
+                  <div
+                    className="h-full bg-emerald-500 rounded-l-full"
+                    style={{
+                      width: `${(networkMetrics.verified / totalAgents) * 100}%`,
+                    }}
+                  />
+                  <div
+                    className="h-full bg-yellow-500"
+                    style={{
+                      width: `${(networkMetrics.partial / totalAgents) * 100}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
             <a
               href="https://8004market.io"
               target="_blank"

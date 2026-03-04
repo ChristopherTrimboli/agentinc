@@ -83,6 +83,9 @@ export async function POST(req: NextRequest) {
       { ex: RESULT_TTL },
     );
 
+    // Invalidate network cache so next request picks up verification data
+    pipeline.del("api:8004:network");
+
     await pipeline.exec();
 
     return NextResponse.json({

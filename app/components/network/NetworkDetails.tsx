@@ -301,7 +301,7 @@ function AgentPanel({
   const tierCss = TRUST_TIER_CSS[agent.trustTier] || TRUST_TIER_CSS[0];
 
   return (
-    <div className="fixed top-[88px] right-4 w-80 bg-gray-900/95 backdrop-blur-lg border border-gray-700 rounded-2xl p-5 shadow-2xl z-40">
+    <div className="fixed top-[88px] right-4 w-80 bg-gray-900/95 backdrop-blur-lg border border-gray-700 rounded-2xl p-5 shadow-2xl z-40 overflow-y-auto max-h-[calc(100vh-120px)]">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
           <Avatar
@@ -381,9 +381,7 @@ function AgentPanel({
       </div>
 
       {/* Slop or Not — Verification */}
-      {agent.verification && (
-        <VerificationPanel verification={agent.verification} />
-      )}
+      <VerificationPanel verification={agent.verification ?? null} />
 
       {/* Links */}
       <div className="space-y-1.5 pt-3 border-t border-gray-800">
@@ -436,7 +434,7 @@ function AgentPanel({
 function VerificationPanel({
   verification,
 }: {
-  verification: NonNullable<NetworkAgent["verification"]>;
+  verification: NetworkAgent["verification"] | null;
 }) {
   const statusConfig = {
     verified: {
@@ -458,6 +456,27 @@ function VerificationPanel({
       label: "Unverified",
     },
   };
+
+  if (!verification) {
+    return (
+      <div className="mb-4 p-3 rounded-xl border bg-gray-500/5 border-gray-700/50">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <ShieldCheck className="w-4 h-4 text-gray-500" />
+            <span className="text-xs font-semibold text-gray-400">
+              Slop or Not
+            </span>
+          </div>
+          <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-gray-500/10 text-gray-500">
+            Pending
+          </span>
+        </div>
+        <p className="text-[10px] text-gray-600 mt-1.5">
+          Verification not yet run for this agent
+        </p>
+      </div>
+    );
+  }
 
   const cfg = statusConfig[verification.status];
   const ago = timeAgo(verification.verifiedAt);
