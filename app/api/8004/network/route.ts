@@ -211,6 +211,7 @@ export async function GET(req: NextRequest) {
           isOwn,
           agents: agents.map((a) => ({
             asset: a.asset,
+            agentId: a.agent_id ?? null,
             owner: a.owner,
             name:
               a.nft_name || (isOwn ? ownAgentNames.get(a.asset) : null) || null,
@@ -272,6 +273,7 @@ export async function GET(req: NextRequest) {
       if (uncollected.length > 0) {
         const unassignedAgents = uncollected.map((a) => ({
           asset: a.asset,
+          agentId: a.agent_id ?? null,
           owner: a.owner,
           name: ownAgentNames.get(a.asset) || a.nft_name || null,
           uri: a.agent_uri ?? null,

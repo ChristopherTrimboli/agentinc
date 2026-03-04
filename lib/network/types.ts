@@ -35,6 +35,7 @@ export interface NetworkCollection {
 
 export interface NetworkAgent {
   asset: string;
+  agentId: number | string | null;
   owner: string;
   name: string | null;
   uri: string | null;
