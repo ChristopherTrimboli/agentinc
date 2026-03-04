@@ -11,7 +11,7 @@ import {
 import type { AgentVerification } from "@/lib/network/types";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 900;
+export const maxDuration = 800;
 
 // ── Cache Keys ───────────────────────────────────────────────────────────────
 
