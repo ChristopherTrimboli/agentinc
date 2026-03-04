@@ -6,8 +6,9 @@
  */
 
 import { PublicKey } from "@solana/web3.js";
+import { put } from "@vercel/blob";
 
-import { getErc8004Sdk } from "@/lib/erc8004";
+import { getErc8004Sdk, getSignedErc8004Sdk } from "@/lib/erc8004";
 import type {
   VerificationCheck,
   AgentVerification,
@@ -318,4 +319,141 @@ export async function verifyAgentBatch(
 
   await Promise.all(workers);
   return results;
+}
+
+// ── On-Chain Feedback Submission ─────────────────────────────────────────────
+
+const APP_URL = "https://agentinc.fun";
+
+interface VerificationReport {
+  type: "agentinc-verification-v1";
+  agent: string;
+  verifiedAt: string;
+  status: VerificationStatus;
+  score: number;
+  maxScore: number;
+  checks: VerificationCheck[];
+  verifier: string;
+  verifierUrl: string;
+}
+
+function buildReport(
+  asset: string,
+  verification: AgentVerification,
+): VerificationReport {
+  return {
+    type: "agentinc-verification-v1",
+    agent: asset,
+    verifiedAt: verification.verifiedAt,
+    status: verification.status,
+    score: verification.score,
+    maxScore: verification.maxScore,
+    checks: verification.checks,
+    verifier: "Agent Inc.",
+    verifierUrl: APP_URL,
+  };
+}
+
+/** Upload verification report to Vercel Blob and return the blob URL. */
+async function uploadReport(
+  asset: string,
+  report: VerificationReport,
+): Promise<string> {
+  const json = JSON.stringify(report);
+  const filename = `8004-feedback/${asset}/${Date.now()}.json`;
+
+  const { url } = await put(filename, json, {
+    access: "public",
+    contentType: "application/json",
+  });
+
+  return url;
+}
+
+/**
+ * Submit on-chain 8004 feedback for a verified agent.
+ * Uploads the health report to Vercel Blob, then calls giveFeedback()
+ * with "reachable" tag and an ATOM-compatible score.
+ */
+export async function submitVerificationFeedback(
+  agent: IndexedAgent,
+  verification: AgentVerification,
+): Promise<{ signature: string; feedbackUri: string } | null> {
+  if (!agent.atom_enabled) return null;
+  if (verification.status === "unverified") return null;
+
+  try {
+    const report = buildReport(agent.asset, verification);
+    const blobUrl = await uploadReport(agent.asset, report);
+
+    const feedbackUri = `${APP_URL}/api/8004/feedback-report/${agent.asset}?src=${encodeURIComponent(blobUrl)}`;
+
+    const atomScore = Math.round(
+      (verification.score / Math.max(verification.maxScore, 1)) * 100,
+    );
+
+    const livenessCheck = verification.checks.find(
+      (c) => c.name === "Service Liveness",
+    );
+    const primaryEndpoint =
+      livenessCheck?.serviceResults?.find((s) => s.ok && !s.skipped)
+        ?.endpoint ?? "";
+
+    const sdk = getSignedErc8004Sdk();
+    const asset = new PublicKey(agent.asset);
+
+    const result = await sdk.giveFeedback(asset, {
+      value: String(atomScore),
+      score: atomScore,
+      tag1: "reachable",
+      tag2: "cron",
+      endpoint: primaryEndpoint.slice(0, 250),
+      feedbackUri,
+    });
+
+    if ("signature" in result) {
+      return { signature: result.signature, feedbackUri };
+    }
+
+    return null;
+  } catch (err) {
+    console.error(
+      `[Verification Feedback] Failed for ${agent.asset}:`,
+      err,
+    );
+    return null;
+  }
+}
+
+/** Submit feedback for a batch of agents with concurrency limiting. */
+export async function submitFeedbackBatch(
+  agents: IndexedAgent[],
+  verifications: Map<string, AgentVerification>,
+  concurrency = 3,
+): Promise<number> {
+  let submitted = 0;
+  let index = 0;
+
+  const eligible = agents.filter((a) => {
+    const v = verifications.get(a.asset);
+    return v && v.status !== "unverified" && a.atom_enabled;
+  });
+
+  if (eligible.length === 0) return 0;
+
+  const workers = Array.from(
+    { length: Math.min(concurrency, eligible.length) },
+    async () => {
+      while (index < eligible.length) {
+        const current = index++;
+        const agent = eligible[current];
+        const verification = verifications.get(agent.asset)!;
+        const result = await submitVerificationFeedback(agent, verification);
+        if (result) submitted++;
+      }
+    },
+  );
+
+  await Promise.all(workers);
+  return submitted;
 }

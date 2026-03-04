@@ -39,6 +39,22 @@ export function getErc8004Sdk(): SolanaSDK {
   });
 }
 
+/** Get the 8004 SDK with a signer keypair for write operations (feedback, etc.). */
+export function getSignedErc8004Sdk(): SolanaSDK {
+  const key = process.env.ERC8004_SIGNER_PRIVATE_KEY;
+  if (!key) {
+    throw new Error(
+      "ERC8004_SIGNER_PRIVATE_KEY required for signed SDK operations",
+    );
+  }
+  const signer = Keypair.fromSecretKey(bs58.decode(key));
+  return new SolanaSDK({
+    cluster: ERC8004_CLUSTER,
+    rpcUrl: SOLANA_RPC_URL,
+    signer,
+  });
+}
+
 // ── Collection Management ────────────────────────────────────────────────────
 
 export const COLLECTION_POINTER = process.env.ERC8004_COLLECTION_POINTER;

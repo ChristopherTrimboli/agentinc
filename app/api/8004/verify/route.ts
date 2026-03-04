@@ -3,7 +3,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getErc8004Sdk } from "@/lib/erc8004";
 import { rateLimitByIP } from "@/lib/rateLimit";
 import { isRedisConfigured, getRedis } from "@/lib/redis";
-import { verifyAgentBatch } from "@/lib/network/verification";
+import {
+  verifyAgentBatch,
+  submitFeedbackBatch,
+} from "@/lib/network/verification";
 import type { AgentVerification } from "@/lib/network/types";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +16,9 @@ export const maxDuration = 300;
 
 const VERIFY_PREFIX = "verify:8004:";
 const SUMMARY_KEY = "verify:8004:summary";
+const FEEDBACK_LOCK = "verify:8004:feedback-lock";
 const RESULT_TTL = 1800; // 30 minutes
+const FEEDBACK_COOLDOWN = 3600; // 1 hour between feedback submissions
 
 // ── POST: Cron-triggered batch verification ──────────────────────────────────
 
@@ -88,11 +93,36 @@ export async function POST(req: NextRequest) {
 
     await pipeline.exec();
 
+    // ── Submit on-chain feedback (dedup with cooldown lock) ──
+    let feedbackSubmitted = 0;
+    if (process.env.ERC8004_SIGNER_PRIVATE_KEY) {
+      try {
+        const lockAcquired = await redis.set(FEEDBACK_LOCK, "1", {
+          ex: FEEDBACK_COOLDOWN,
+          nx: true,
+        });
+
+        if (lockAcquired) {
+          feedbackSubmitted = await submitFeedbackBatch(
+            agents,
+            results,
+            3,
+          );
+          console.log(
+            `[8004 Verify] Submitted ${feedbackSubmitted} on-chain feedback entries`,
+          );
+        }
+      } catch (err) {
+        console.error("[8004 Verify] Feedback submission failed:", err);
+      }
+    }
+
     return NextResponse.json({
       total: agents.length,
       verified: verifiedCount,
       partial: partialCount,
       unverified: agents.length - verifiedCount - partialCount,
+      feedbackSubmitted,
     });
   } catch (error) {
     console.error("[8004 Verify] Batch verification failed:", error);
