@@ -15,7 +15,9 @@ interface CorpData {
   agents: { name: string; imageUrl: string | null }[];
 }
 
-const logoData = readFile(join(process.cwd(), "public/agentinc.jpg"));
+const logoData = readFile(join(process.cwd(), "public/agentinc.jpg")).then(
+  (buf) => new Uint8Array(buf).buffer as ArrayBuffer,
+);
 
 async function fetchCorpData(
   id: string,

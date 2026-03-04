@@ -21,7 +21,9 @@ const RARITY_COLORS: Record<string, string> = {
   mythic: "#F43F5E",
 };
 
-const logoData = readFile(join(process.cwd(), "public/agentinc.jpg"));
+const logoData = readFile(join(process.cwd(), "public/agentinc.jpg")).then(
+  (buf) => new Uint8Array(buf).buffer as ArrayBuffer,
+);
 
 async function fetchProfileData(wallet: string): Promise<{
   agents: AgentData[];

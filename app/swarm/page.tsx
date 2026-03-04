@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef, lazy, Suspense } from "react";
+import {
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+  lazy,
+  Suspense,
+} from "react";
 import Navigation from "../components/Navigation";
 import NetworkDetails from "../components/network/NetworkDetails";
 import NetworkControls from "../components/network/NetworkControls";

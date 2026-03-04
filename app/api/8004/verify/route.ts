@@ -53,9 +53,7 @@ export async function POST(req: NextRequest) {
       if (uri.startsWith("{")) {
         try {
           const json = JSON.parse(uri);
-          return (
-            Array.isArray(json.services) || Array.isArray(json.endpoints)
-          );
+          return Array.isArray(json.services) || Array.isArray(json.endpoints);
         } catch {
           return false;
         }
@@ -84,7 +82,11 @@ export async function POST(req: NextRequest) {
     }
 
     if (agents.length === 0) {
-      return NextResponse.json({ verified: 0, total: 0, skipped: skippedCount });
+      return NextResponse.json({
+        verified: 0,
+        total: 0,
+        skipped: skippedCount,
+      });
     }
 
     const results = await verifyAgentBatch(agents, 10);

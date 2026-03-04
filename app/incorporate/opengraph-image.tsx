@@ -6,7 +6,9 @@ export const alt = "Incorporate — Form an AI Corporation | Agent Inc.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-const logoData = readFile(join(process.cwd(), "public/agentinc.jpg"));
+const logoData = readFile(join(process.cwd(), "public/agentinc.jpg")).then(
+  (buf) => new Uint8Array(buf).buffer as ArrayBuffer,
+);
 
 export default async function Image() {
   const logo = await logoData;

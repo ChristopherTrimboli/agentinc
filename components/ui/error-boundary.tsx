@@ -6,7 +6,9 @@ import { AlertTriangle, RefreshCw } from "lucide-react";
 interface Props {
   children: ReactNode;
   /** Custom fallback UI. Receives the error and a reset function. */
-  fallback?: ReactNode | ((props: { error: Error; reset: () => void }) => ReactNode);
+  fallback?:
+    | ReactNode
+    | ((props: { error: Error; reset: () => void }) => ReactNode);
   onError?: (error: Error, errorInfo: ErrorInfo) => void;
   /** Change this key to force-reset the boundary from a parent (e.g. on route change). */
   resetKey?: string | number;

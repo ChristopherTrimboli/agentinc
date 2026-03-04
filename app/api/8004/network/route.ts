@@ -355,7 +355,10 @@ export async function GET(req: NextRequest) {
           cacheStrategy: { ttl: 60, swr: 120 },
         });
 
-        const assetToAgent = new Map<string, (typeof collections)[number]["agents"][number]>();
+        const assetToAgent = new Map<
+          string,
+          (typeof collections)[number]["agents"][number]
+        >();
         for (const coll of collections) {
           for (const agent of coll.agents) {
             assetToAgent.set(agent.asset, agent);
