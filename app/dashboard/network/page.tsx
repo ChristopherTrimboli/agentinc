@@ -80,12 +80,9 @@ export default function NetworkPage() {
           (a) => a.verification?.status === "partial",
         ).length;
         const unverified = agents.filter(
-          (a) =>
-            !a.verification || a.verification.status === "unverified",
+          (a) => !a.verification || a.verification.status === "unverified",
         ).length;
-        const withFeedback = agents.filter(
-          (a) => a.feedbackCount > 0,
-        ).length;
+        const withFeedback = agents.filter((a) => a.feedbackCount > 0).length;
         const atomEnabled = agents.filter((a) => a.atomEnabled).length;
         return { verified, partial, unverified, withFeedback, atomEnabled };
       })()
@@ -217,14 +214,18 @@ export default function NetworkPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
                     <div className="w-1.5 h-1.5 rounded-full bg-red-400" />
-                    <span className="text-[10px] text-gray-400">Unverified</span>
+                    <span className="text-[10px] text-gray-400">
+                      Unverified
+                    </span>
                   </div>
                   <span className="text-[10px] font-semibold text-red-400">
                     {networkMetrics.unverified}
                   </span>
                 </div>
                 <div className="pt-1.5 mt-1.5 border-t border-gray-800/50 flex items-center justify-between">
-                  <span className="text-[10px] text-gray-500">Total Agents</span>
+                  <span className="text-[10px] text-gray-500">
+                    Total Agents
+                  </span>
                   <span className="text-[10px] font-semibold text-white">
                     {totalAgents}
                   </span>
@@ -236,13 +237,17 @@ export default function NetworkPage() {
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-gray-500">With Feedback</span>
+                  <span className="text-[10px] text-gray-500">
+                    With Feedback
+                  </span>
                   <span className="text-[10px] font-semibold text-white">
                     {networkMetrics.withFeedback}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-gray-500">ATOM Enabled</span>
+                  <span className="text-[10px] text-gray-500">
+                    ATOM Enabled
+                  </span>
                   <span className="text-[10px] font-semibold text-violet-400">
                     {networkMetrics.atomEnabled}
                   </span>
@@ -254,7 +259,9 @@ export default function NetworkPage() {
             {networkMetrics && totalAgents > 0 && (
               <div className="mb-2.5">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] text-gray-500">Slop-o-Meter</span>
+                  <span className="text-[10px] text-gray-500">
+                    Slop-o-Meter
+                  </span>
                   <span className="text-[10px] text-gray-400">
                     {Math.round(
                       ((networkMetrics.verified + networkMetrics.partial) /

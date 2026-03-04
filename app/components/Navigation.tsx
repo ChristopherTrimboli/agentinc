@@ -6,7 +6,13 @@ import Image from "next/image";
 import LoginButton from "./LoginButton";
 import Link from "next/link";
 
-const navLinks = [{ href: "/dashboard", label: "Launch App", highlight: true }];
+const navLinks = [
+  { href: "/dashboard", label: "Explore", highlight: false },
+  { href: "/dashboard/network", label: "Network", highlight: false },
+  { href: "/dashboard/chat", label: "Chat", highlight: false },
+  { href: "/dashboard/agents", label: "Agents", highlight: false },
+  { href: "/dashboard/mint", label: "Mint", highlight: true },
+];
 
 export default function Navigation() {
   const [isOpen, setIsOpen] = useState(false);

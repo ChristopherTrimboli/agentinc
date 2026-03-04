@@ -40,10 +40,10 @@
     "db:studio": "bun prisma studio"
   },
   "dependencies": {
-    "8004-solana": "^0.7.8",
-    "@ai-sdk/anthropic": "^3.0.50",
-    "@ai-sdk/openai": "^3.0.37",
-    "@ai-sdk/react": "^3.0.107",
+    "8004-solana": "^0.7.9",
+    "@ai-sdk/anthropic": "^3.0.54",
+    "@ai-sdk/openai": "^3.0.39",
+    "@ai-sdk/react": "^3.0.113",
     "@bagsfm/bags-sdk": "^1.3.1",
     "@metaplex-foundation/mpl-token-metadata": "^3.4.0",
     "@metaplex-foundation/umi": "^1.5.1",
@@ -71,10 +71,10 @@
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.36.3",
     "@vercel/analytics": "^1.6.1",
-    "@vercel/blob": "^2.3.0",
+    "@vercel/blob": "^2.3.1",
     "@workflow/ai": "^4.0.1-beta.54",
     "@xdevplatform/xdk": "^0.4.0",
-    "ai": "^6.0.105",
+    "ai": "^6.0.111",
     "bs58": "^6.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -95,7 +95,7 @@
     "tailwind-merge": "^3.5.0",
     "twilio": "^5.12.2",
     "use-stick-to-bottom": "^1.1.3",
-    "workflow": "^4.1.0-beta.60",
+    "workflow": "^4.1.0-beta.63",
     "zod": "^4.3.6"
   },
   "devDependencies": {

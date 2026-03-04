@@ -42,7 +42,7 @@ const ALPHA_DECAY = 0.997;
 const ALPHA_MIN = 0.005;
 
 const AGENTS_PER_RING = 14;
-const RING_GAP = 30;
+const RING_GAP = 42;
 const ORBIT_SPEED = 0.00015;
 
 // ── Force Simulation Node ────────────────────────────────────────────────────
@@ -287,8 +287,7 @@ async function loadCircularImage(
       const sprite = new Sprite(texture);
       sprite.anchor.set(0.5, 0.5);
       const d = r * 2;
-      const aspect =
-        (texture.source.width || 1) / (texture.source.height || 1);
+      const aspect = (texture.source.width || 1) / (texture.source.height || 1);
       if (aspect >= 1) {
         sprite.height = d;
         sprite.width = d * aspect;
@@ -326,8 +325,7 @@ async function loadContainedImage(
       sprite.anchor.set(0.5, 0.5);
 
       const d = r * 2;
-      const aspect =
-        (texture.source.width || 1) / (texture.source.height || 1);
+      const aspect = (texture.source.width || 1) / (texture.source.height || 1);
       if (aspect >= 1) {
         sprite.width = d;
         sprite.height = d / aspect;
@@ -554,7 +552,6 @@ export default function NetworkCanvas({
         }
       }
     }
-
   }, []);
 
   // ── Draw selection/hover highlights ────────────────────────────────────
@@ -825,7 +822,12 @@ export default function NetworkCanvas({
         : resolveImageUrl(coll.image);
       if (imageUrl) {
         const loader = isUnassigned
-          ? loadContainedImage(imageUrl, radius, imgLayer, Math.round(radius * 0.28))
+          ? loadContainedImage(
+              imageUrl,
+              radius,
+              imgLayer,
+              Math.round(radius * 0.28),
+            )
           : loadCircularImage(imageUrl, radius, imgLayer, 3);
         loader.then((ok) => {
           if (ok && !c.destroyed) {
@@ -921,8 +923,7 @@ export default function NetworkCanvas({
       const color = TRUST_TIER_COLORS[a.trustTier] ?? TRUST_TIER_COLORS[0];
 
       const vStatus = a.verification?.status;
-      const hasVerifyRing =
-        vStatus === "verified" || vStatus === "partial";
+      const hasVerifyRing = vStatus === "verified" || vStatus === "partial";
 
       // Outer ring: verification color or trust tier glow
       const gfx = new Graphics();

@@ -45,9 +45,7 @@ async function fetchMetadata(uri: string): Promise<AgentMetadata> {
     const json = await resp.json();
 
     const name =
-      typeof json?.name === "string" && json.name.length > 0
-        ? json.name
-        : null;
+      typeof json?.name === "string" && json.name.length > 0 ? json.name : null;
 
     const img = json?.image;
     const image =
@@ -112,8 +110,7 @@ export async function GET(req: NextRequest) {
       if (cached) {
         return NextResponse.json(cached, {
           headers: {
-            "Cache-Control":
-              "public, s-maxage=300, stale-while-revalidate=600",
+            "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
           },
         });
       }
@@ -352,9 +349,7 @@ export async function GET(req: NextRequest) {
             if (verification.status === "verified") totalVerified++;
 
             for (const coll of collections) {
-              const agent = coll.agents.find(
-                (a) => a.asset === allAssets[i],
-              );
+              const agent = coll.agents.find((a) => a.asset === allAssets[i]);
               if (agent) {
                 (agent as { verification?: AgentVerification }).verification =
                   verification;

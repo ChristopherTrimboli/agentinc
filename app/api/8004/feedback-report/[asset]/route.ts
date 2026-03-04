@@ -30,18 +30,12 @@ export async function GET(
     }
 
     if (!url.pathname.includes(asset)) {
-      return NextResponse.json(
-        { error: "Asset mismatch" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Asset mismatch" }, { status: 400 });
     }
 
     const response = await fetch(src, { next: { revalidate: false } });
     if (!response.ok) {
-      return NextResponse.json(
-        { error: "Report not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Report not found" }, { status: 404 });
     }
 
     const data = await response.json();

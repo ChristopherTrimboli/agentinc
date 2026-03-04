@@ -57,8 +57,7 @@ async function checkServiceLiveness(
       };
     }
 
-    const passed =
-      report.status === "live" || report.status === "partially";
+    const passed = report.status === "live" || report.status === "partially";
 
     return {
       name: "Service Liveness",
@@ -88,7 +87,8 @@ async function checkServiceLiveness(
       msg.includes("JSON") ||
       msg.includes("Unexpected token")
     ) {
-      details = "Agent URI does not serve valid JSON (non-compliant 8004 registration)";
+      details =
+        "Agent URI does not serve valid JSON (non-compliant 8004 registration)";
     } else if (msg.includes("too large")) {
       details = "Agent URI response too large";
     } else if (msg.includes("blocked")) {
@@ -174,7 +174,8 @@ async function checkMetadataValid(
       };
     }
 
-    const hasName = typeof json?.name === "string" && (json.name as string).length > 0;
+    const hasName =
+      typeof json?.name === "string" && (json.name as string).length > 0;
     const hasServices =
       Array.isArray(json?.services) || Array.isArray(json?.endpoints);
     const hasType =
@@ -334,10 +335,7 @@ export async function verifyAgentBatch(
           const result = await verifyAgent(agent);
           results.set(agent.asset, result);
         } catch (err) {
-          console.error(
-            `[Verification] Failed for ${agent.asset}:`,
-            err,
-          );
+          console.error(`[Verification] Failed for ${agent.asset}:`, err);
         }
       }
     },
@@ -369,9 +367,7 @@ function buildReport(
   asset: string,
   verification: AgentVerification,
 ): VerificationReport {
-  const failed = verification.checks.filter(
-    (c) => !c.passed && !c.skipped,
-  );
+  const failed = verification.checks.filter((c) => !c.passed && !c.skipped);
   const issues: string[] = [];
 
   for (const check of failed) {

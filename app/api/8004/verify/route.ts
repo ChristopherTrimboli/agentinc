@@ -115,10 +115,7 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error("[8004 Verify] Batch verification failed:", error);
-    return NextResponse.json(
-      { error: "Verification failed" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Verification failed" }, { status: 500 });
   }
 }
 
@@ -139,7 +136,9 @@ export async function GET(req: NextRequest) {
     if (asset) {
       const raw = await redis.get<string>(`${VERIFY_PREFIX}${asset}`);
       const verification: AgentVerification | null = raw
-        ? (typeof raw === "string" ? JSON.parse(raw) : raw)
+        ? typeof raw === "string"
+          ? JSON.parse(raw)
+          : raw
         : null;
       return NextResponse.json({ verification });
     }

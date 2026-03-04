@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  Twitter,
   Sparkles,
   Clock,
   Trophy,
@@ -9,6 +8,7 @@ import {
   Target,
   TrendingUp,
   ArrowRight,
+  Network,
 } from "lucide-react";
 import Link from "next/link";
 import Navigation from "./components/Navigation";
@@ -87,18 +87,16 @@ export default function Home() {
                 className="btn-cta-primary group w-full sm:w-auto px-8 py-4 rounded-full font-semibold text-lg text-black flex items-center justify-center gap-3"
               >
                 <span className="btn-shine-sweep" />
-                Enter App
+                Explore Agents
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Link>
-              <a
-                href="https://x.com/agentincdotfun"
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                href="/dashboard/network"
                 className="w-full sm:w-auto px-8 py-4 border border-white/20 rounded-full font-semibold text-lg hover:border-[#6FEC06]/50 hover:bg-[#6FEC06]/5 transition-all flex items-center justify-center gap-2 backdrop-blur-sm rotating-border"
               >
-                <Twitter className="w-5 h-5" />
-                Follow for Updates
-              </a>
+                <Network className="w-5 h-5" />
+                View Network
+              </Link>
             </div>
 
             {/* Stats - Animated Counters */}

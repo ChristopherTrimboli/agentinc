@@ -199,7 +199,7 @@ export default function Sidebar() {
               <LoginButton compact />
             </div>
           ) : (
-            <LoginButton fullWidth />
+            <LoginButton fullWidth variant="promo" />
           )}
         </div>
       </aside>

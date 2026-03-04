@@ -482,16 +482,12 @@ function VerificationPanel({
   const ago = timeAgo(verification.verifiedAt);
 
   return (
-    <div
-      className={`mb-4 p-3 rounded-xl border ${cfg.bg} ${cfg.border}`}
-    >
+    <div className={`mb-4 p-3 rounded-xl border ${cfg.bg} ${cfg.border}`}>
       {/* Header */}
       <div className="flex items-center justify-between mb-2.5">
         <div className="flex items-center gap-1.5">
           <ShieldCheck className={`w-4 h-4 ${cfg.text}`} />
-          <span className="text-xs font-semibold text-white">
-            Slop or Not
-          </span>
+          <span className="text-xs font-semibold text-white">Slop or Not</span>
         </div>
         <span
           className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${cfg.bg} ${cfg.text}`}
