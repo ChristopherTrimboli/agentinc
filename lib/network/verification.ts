@@ -73,12 +73,37 @@ async function checkServiceLiveness(
       latencyMs: Date.now() - start,
       serviceResults,
     };
-  } catch {
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+
+    let details: string;
+    let skipped = false;
+    if (msg.includes("Agent not found")) {
+      details = "Agent not found on-chain";
+    } else if (msg.includes("no agent URI") || msg.includes("has no agent")) {
+      details = "No agent URI configured";
+      skipped = true;
+    } else if (
+      msg.includes("Invalid JSON") ||
+      msg.includes("JSON") ||
+      msg.includes("Unexpected token")
+    ) {
+      details = "Agent URI does not serve valid JSON (non-compliant 8004 registration)";
+    } else if (msg.includes("too large")) {
+      details = "Agent URI response too large";
+    } else if (msg.includes("blocked")) {
+      details = "Agent URI blocked (private/internal host)";
+    } else if (msg.includes("timeout") || msg.includes("AbortError")) {
+      details = "Agent URI timed out";
+    } else {
+      details = `Liveness check failed: ${msg.slice(0, 120)}`;
+    }
+
     return {
       name: "Service Liveness",
       passed: false,
-      skipped: false,
-      details: "Agent not found or no URI configured",
+      skipped,
+      details,
       latencyMs: Date.now() - start,
     };
   }
@@ -120,21 +145,49 @@ async function checkMetadataValid(
       };
     }
 
-    const json = await resp.json();
-    const hasName = typeof json?.name === "string" && json.name.length > 0;
+    const contentType = resp.headers.get("content-type") ?? "";
+    const text = await resp.text();
+
+    if (
+      contentType.includes("text/html") ||
+      (!contentType.includes("json") && text.trimStart().startsWith("<"))
+    ) {
+      return {
+        name: "Metadata Valid",
+        passed: false,
+        skipped: false,
+        details: "Agent URI serves HTML, not a JSON registration file",
+        latencyMs: Date.now() - start,
+      };
+    }
+
+    let json: Record<string, unknown>;
+    try {
+      json = JSON.parse(text);
+    } catch {
+      return {
+        name: "Metadata Valid",
+        passed: false,
+        skipped: false,
+        details: "Agent URI response is not valid JSON",
+        latencyMs: Date.now() - start,
+      };
+    }
+
+    const hasName = typeof json?.name === "string" && (json.name as string).length > 0;
     const hasServices =
       Array.isArray(json?.services) || Array.isArray(json?.endpoints);
     const hasType =
-      typeof json?.type === "string" && json.type.includes("8004");
+      typeof json?.type === "string" && (json.type as string).includes("8004");
 
     const issues: string[] = [];
     if (!hasName) issues.push("missing name");
-    if (!hasServices) issues.push("missing services");
-    if (!hasType) issues.push("non-standard type field");
+    if (!hasServices) issues.push("missing services array");
+    if (!hasType) issues.push("missing 8004 type identifier");
 
     return {
       name: "Metadata Valid",
-      passed: hasName && hasServices,
+      passed: hasName && hasServices && hasType,
       skipped: false,
       details:
         issues.length === 0
@@ -147,7 +200,7 @@ async function checkMetadataValid(
       name: "Metadata Valid",
       passed: false,
       skipped: false,
-      details: "Failed to fetch or parse metadata",
+      details: "Failed to fetch metadata (timeout or network error)",
       latencyMs: Date.now() - start,
     };
   }
@@ -203,16 +256,20 @@ function checkRegistrationComplete(agent: IndexedAgent): VerificationCheck {
   const missing: string[] = [];
   if (!hasUri) missing.push("agent URI");
   if (!hasPointer) missing.push("collection pointer");
-  if (!hasAtom) missing.push("ATOM");
+
+  const extras: string[] = [];
+  if (!hasAtom) extras.push("ATOM not enabled");
+
+  const allDetails = [...missing.map((m) => `missing ${m}`), ...extras];
 
   return {
     name: "Registration Complete",
-    passed: hasUri && hasPointer && hasAtom,
+    passed: hasUri && hasPointer,
     skipped: false,
     details:
-      missing.length === 0
-        ? "Fully registered"
-        : `Missing: ${missing.join(", ")}`,
+      allDetails.length === 0
+        ? "Fully registered (ATOM enabled)"
+        : allDetails.join(", "),
   };
 }
 
