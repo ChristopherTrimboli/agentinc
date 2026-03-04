@@ -14,7 +14,7 @@ interface Erc8004CardProps {
 }
 
 const COLLECTION_PAGE =
-  "https://8004market.io/collection/solana/mainnet/bafkreihvfphhye3jom6ewfrlvy4wx7itxmkjc6bjtzrlgfnmfs7dwxc7km";
+  "https://8004market.io/collection/solana/mainnet-beta/bafkreihvfphhye3jom6ewfrlvy4wx7itxmkjc6bjtzrlgfnmfs7dwxc7km";
 
 export default function Erc8004Card({
   agentId,

@@ -11,7 +11,7 @@ import {
   Texture,
   ImageSource,
 } from "pixi.js";
-import { ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
+import { ZoomIn, ZoomOut } from "lucide-react";
 import type {
   NetworkData,
   NetworkCollection,
@@ -1031,16 +1031,6 @@ export default function NetworkCanvas({
     setZoom(next);
   }, []);
 
-  const handleResetZoom = useCallback(() => {
-    const world = worldRef.current;
-    if (!world) return;
-    world.scale.set(0.65);
-    world.x = (appRef.current?.screen.width ?? 0) * 0.175;
-    world.y = (appRef.current?.screen.height ?? 0) * 0.175;
-    setZoom(0.65);
-    alphaRef.current = 0.3;
-  }, []);
-
   // ── Pan + wheel handlers ───────────────────────────────────────────────
 
   useEffect(() => {
@@ -1121,12 +1111,6 @@ export default function NetworkCanvas({
             className="p-2 bg-gray-900/90 backdrop-blur-lg border border-gray-700 rounded-lg hover:bg-gray-800 transition-colors"
           >
             <ZoomOut className="w-5 h-5 text-gray-300" />
-          </button>
-          <button
-            onClick={handleResetZoom}
-            className="p-2 bg-gray-900/90 backdrop-blur-lg border border-gray-700 rounded-lg hover:bg-gray-800 transition-colors"
-          >
-            <Maximize2 className="w-5 h-5 text-gray-300" />
           </button>
         </div>
       )}

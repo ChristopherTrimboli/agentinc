@@ -371,7 +371,7 @@ function AgentPanel({
       {/* Links */}
       <div className="space-y-1.5 pt-3 border-t border-gray-800">
         <a
-          href={`https://8004market.io/agent/solana/mainnet/${agent.asset}`}
+          href={`https://8004market.io/agent/solana/mainnet-beta/${agent.asset}`}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-2 text-xs text-gray-400 hover:text-white transition-colors"
