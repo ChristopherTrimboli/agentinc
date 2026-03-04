@@ -121,7 +121,10 @@ export async function POST(req: NextRequest) {
         pipeline.del("api:8004:network");
         await pipeline.exec();
       } catch (err) {
-        console.warn("[8004 Verify] Redis cache write failed (non-critical):", err);
+        console.warn(
+          "[8004 Verify] Redis cache write failed (non-critical):",
+          err,
+        );
       }
     })();
 
@@ -191,7 +194,7 @@ export async function GET(req: NextRequest) {
       const verification: AgentVerification | null = row
         ? {
             status: row.status as AgentVerification["status"],
-            checks: row.checks as AgentVerification["checks"],
+            checks: row.checks as unknown as AgentVerification["checks"],
             verifiedAt: row.verifiedAt.toISOString(),
             score: row.score,
             maxScore: row.maxScore,

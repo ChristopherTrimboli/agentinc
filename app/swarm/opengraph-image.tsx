@@ -77,7 +77,14 @@ export default async function Image() {
         {nodes.map((n, i) => (
           <g key={i}>
             <circle cx={n.x} cy={n.y} r={n.r + 8} fill={`${n.color}15`} />
-            <circle cx={n.x} cy={n.y} r={n.r} fill={`${n.color}40`} stroke={n.color} strokeWidth="2" />
+            <circle
+              cx={n.x}
+              cy={n.y}
+              r={n.r}
+              fill={`${n.color}40`}
+              stroke={n.color}
+              strokeWidth="2"
+            />
           </g>
         ))}
       </svg>
@@ -106,7 +113,12 @@ export default async function Image() {
             // @ts-expect-error Satori accepts ArrayBuffer for img src
             src={logo}
             alt="Agent Inc."
-            style={{ width: 44, height: 44, borderRadius: 14, objectFit: "cover" }}
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 14,
+              objectFit: "cover",
+            }}
           />
           <div
             style={{

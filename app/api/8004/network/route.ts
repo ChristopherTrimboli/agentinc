@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getErc8004Sdk, COLLECTION_POINTER } from "@/lib/erc8004";
+import type { SolanaSDK } from "@/lib/erc8004";
 import prisma from "@/lib/prisma";
 import { rateLimitByIP } from "@/lib/rateLimit";
 import { isRedisConfigured, getRedis } from "@/lib/redis";
+import { SOLANA_RPC_URL } from "@/lib/constants/solana";
 import type { NetworkData, AgentVerification } from "@/lib/network/types";
 
 export const dynamic = "force-dynamic";
@@ -12,10 +14,45 @@ export const dynamic = "force-dynamic";
 const CACHE_KEY = "api:8004:network";
 const CACHE_TTL = 300; // 5 minutes
 
-// ── Metadata Fetcher ────────────────────────────────────────────────────────
+// ── Pagination ──────────────────────────────────────────────────────────────
 
-const METADATA_TIMEOUT = 4000;
-const METADATA_CONCURRENCY = 15;
+const PAGE_SIZE = 200;
+
+type IndexedAgent = Awaited<ReturnType<SolanaSDK["searchAgents"]>>[number];
+
+/** Paginate through all results for getCollectionAssets. */
+async function fetchAllCollectionAssets(
+  sdk: SolanaSDK,
+  col: string,
+): Promise<IndexedAgent[]> {
+  const all: IndexedAgent[] = [];
+  let offset = 0;
+  for (;;) {
+    const page = await sdk.getCollectionAssets(col, {
+      limit: PAGE_SIZE,
+      offset,
+    });
+    all.push(...page);
+    if (page.length < PAGE_SIZE) break;
+    offset += PAGE_SIZE;
+  }
+  return all;
+}
+
+/** Paginate through all results for searchAgents. */
+async function fetchAllAgents(sdk: SolanaSDK): Promise<IndexedAgent[]> {
+  const all: IndexedAgent[] = [];
+  let offset = 0;
+  for (;;) {
+    const page = await sdk.searchAgents({ limit: PAGE_SIZE, offset });
+    all.push(...page);
+    if (page.length < PAGE_SIZE) break;
+    offset += PAGE_SIZE;
+  }
+  return all;
+}
+
+// ── Metadata Fetcher ────────────────────────────────────────────────────────
 
 const PLACEHOLDER_RE = /example|placeholder|test|dummy/i;
 
@@ -23,74 +60,75 @@ function isPlaceholderUri(uri: string): boolean {
   return PLACEHOLDER_RE.test(uri) || uri.length < 10;
 }
 
-function resolveUri(uri: string): string {
-  if (uri.startsWith("ipfs://")) return `https://ipfs.io/ipfs/${uri.slice(7)}`;
-  if (uri.startsWith("ar://")) return `https://arweave.net/${uri.slice(5)}`;
-  return uri;
-}
-
 interface AgentMetadata {
   name: string | null;
   image: string | null;
 }
 
-async function fetchMetadata(uri: string): Promise<AgentMetadata> {
-  try {
-    const url = resolveUri(uri);
-    const resp = await fetch(url, {
-      signal: AbortSignal.timeout(METADATA_TIMEOUT),
-      headers: { Accept: "application/json" },
-    });
-    if (!resp.ok) return { name: null, image: null };
-    const json = await resp.json();
+// ── DAS (Digital Asset Standard) Batch Metadata ─────────────────────────────
 
-    const name =
-      typeof json?.name === "string" && json.name.length > 0 ? json.name : null;
+const DAS_BATCH_SIZE = 1000;
+const DAS_TIMEOUT = 10000;
 
-    const img = json?.image;
-    const image =
-      typeof img === "string" &&
-      img.length > 0 &&
-      !img.startsWith("data:") &&
-      !isPlaceholderUri(img)
-        ? img
-        : null;
-
-    return { name, image };
-  } catch {
-    return { name: null, image: null };
-  }
+interface DasAssetResult {
+  id: string;
+  content?: {
+    json_uri?: string;
+    metadata?: { name?: string; symbol?: string };
+    links?: { image?: string; [key: string]: unknown };
+  };
 }
 
-/** Fetch name + image for a batch of agents, deduplicating by URI. */
-async function batchFetchAgentMetadata(
-  agents: { asset: string; uri: string | null }[],
+/**
+ * Batch-fetch NFT metadata (name + image) via Helius DAS API.
+ * Much more reliable than fetching individual agent_uri JSONs since this
+ * reads actual Metaplex Core asset metadata (on-chain URI → off-chain JSON).
+ */
+async function batchFetchDasMetadata(
+  assetIds: string[],
 ): Promise<Map<string, AgentMetadata>> {
   const result = new Map<string, AgentMetadata>();
-  const pending = agents.filter((a) => a.uri && a.uri.length > 5);
-  if (pending.length === 0) return result;
+  if (assetIds.length === 0) return result;
 
-  // Deduplicate by URI — fetch each unique URI once
-  const uriToAssets = new Map<string, string[]>();
-  for (const a of pending) {
-    const uri = a.uri!;
-    const list = uriToAssets.get(uri);
-    if (list) list.push(a.asset);
-    else uriToAssets.set(uri, [a.asset]);
-  }
+  for (let i = 0; i < assetIds.length; i += DAS_BATCH_SIZE) {
+    const batch = assetIds.slice(i, i + DAS_BATCH_SIZE);
+    try {
+      const resp = await fetch(SOLANA_RPC_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: AbortSignal.timeout(DAS_TIMEOUT),
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: "das-batch",
+          method: "getAssetBatch",
+          params: { ids: batch },
+        }),
+      });
 
-  const uniqueEntries = Array.from(uriToAssets.entries());
+      if (!resp.ok) continue;
+      const json = await resp.json();
+      const assets: DasAssetResult[] = json.result ?? [];
 
-  for (let i = 0; i < uniqueEntries.length; i += METADATA_CONCURRENCY) {
-    const batch = uniqueEntries.slice(i, i + METADATA_CONCURRENCY);
-    await Promise.allSettled(
-      batch.map(async ([uri, assets]) => {
-        const meta = await fetchMetadata(uri);
-        if (meta.name || meta.image) {
-          for (const asset of assets) result.set(asset, meta);
+      for (const asset of assets) {
+        if (!asset.id || !asset.content) continue;
+
+        const name = asset.content.metadata?.name ?? null;
+        const rawImage = asset.content.links?.image;
+        const image =
+          typeof rawImage === "string" &&
+          rawImage.length > 0 &&
+          !rawImage.startsWith("data:") &&
+          !isPlaceholderUri(rawImage)
+            ? rawImage
+            : null;
+
+        if (name || image) {
+          result.set(asset.id, { name, image });
         }
-      }),
-    );
+      }
+    } catch (err) {
+      console.warn("[8004 Network] DAS batch metadata failed:", err);
+    }
   }
 
   return result;
@@ -181,9 +219,9 @@ export async function GET(req: NextRequest) {
 
     const collections = await Promise.all(
       Array.from(uniquePointers.values()).map(async (ptr) => {
-        let agents: Awaited<ReturnType<typeof sdk.getCollectionAssets>> = [];
+        let agents: IndexedAgent[] = [];
         try {
-          agents = await sdk.getCollectionAssets(ptr.col, { limit: 500 });
+          agents = await fetchAllCollectionAssets(sdk, ptr.col);
         } catch (err) {
           console.warn(
             `[8004 Network] Failed to fetch assets for ${ptr.col}:`,
@@ -228,47 +266,38 @@ export async function GET(req: NextRequest) {
       }),
     );
 
-    // Build asset set for dedup before parallel metadata + unassigned fetch
+    // Build asset set for dedup before fetching unassigned agents
     const collectionAssetSet = new Set(
       collections.flatMap((c) => c.agents.map((a) => a.asset)),
     );
 
-    // Collect agents needing metadata enrichment
-    const agentsNeedingMetadata = collections.flatMap((c) =>
-      c.agents
-        .filter((a) => (!a.image || !a.name) && a.uri)
-        .map((a) => ({ asset: a.asset, uri: a.uri })),
-    );
-
-    // Parallelize: metadata enrichment + unassigned agent search
-    const [metaResult, searchResult] = await Promise.allSettled([
-      agentsNeedingMetadata.length > 0
-        ? batchFetchAgentMetadata(agentsNeedingMetadata)
-        : Promise.resolve(new Map<string, AgentMetadata>()),
-      sdk.searchAgents({ limit: 500 }),
-    ]);
-
-    // Apply metadata to collection agents
-    if (metaResult.status === "fulfilled" && metaResult.value.size > 0) {
-      const fetchedMeta = metaResult.value;
-      for (const coll of collections) {
-        for (const agent of coll.agents) {
-          const meta = fetchedMeta.get(agent.asset);
-          if (!meta) continue;
-          if (!agent.name && meta.name) agent.name = meta.name;
-          if (!agent.image && meta.image) agent.image = meta.image;
-        }
-      }
+    // Fetch all agents to find ones not in any collection
+    let searchResult: IndexedAgent[] = [];
+    try {
+      searchResult = await fetchAllAgents(sdk);
+    } catch (err) {
+      console.error("[8004 Network] Failed to fetch unassigned agents:", err);
     }
 
-    // Build "Unassigned" collection from agents not in any collection
-    if (searchResult.status === "fulfilled") {
-      const uncollected = searchResult.value.filter(
-        (a) => !collectionAssetSet.has(a.asset),
-      );
+    const uncollected = searchResult.filter(
+      (a) => !collectionAssetSet.has(a.asset),
+    );
 
-      if (uncollected.length > 0) {
-        const unassignedAgents = uncollected.map((a) => ({
+    if (uncollected.length > 0) {
+      collections.push({
+        id: "__unassigned__",
+        address: "__unassigned__",
+        creator: "",
+        name: "Unassigned",
+        symbol: null,
+        description: "Agents not yet assigned to a collection",
+        image: "/solanaLogoMark.png",
+        bannerImage: null,
+        website: null,
+        twitter: null,
+        agentCount: uncollected.length,
+        isOwn: false,
+        agents: uncollected.map((a) => ({
           asset: a.asset,
           agentId: a.agent_id ?? null,
           owner: a.owner,
@@ -284,43 +313,56 @@ export async function GET(req: NextRequest) {
           atomEnabled: a.atom_enabled ?? false,
           createdAt: a.created_at,
           collectionPointer: a.collection_pointer || null,
-        }));
+        })),
+      });
+    }
 
-        const needingMeta = unassignedAgents
-          .filter((a) => (!a.image || !a.name) && a.uri)
-          .map((a) => ({ asset: a.asset, uri: a.uri }));
-
-        if (needingMeta.length > 0) {
-          const fetchedMeta = await batchFetchAgentMetadata(needingMeta);
-          for (const agent of unassignedAgents) {
-            const meta = fetchedMeta.get(agent.asset);
-            if (!meta) continue;
-            if (!agent.name && meta.name) agent.name = meta.name;
-            if (!agent.image && meta.image) agent.image = meta.image;
+    // ── Enrich from inline JSON agent_uri (many agents store JSON directly) ──
+    for (const coll of collections) {
+      for (const agent of coll.agents) {
+        if (agent.name && agent.image) continue;
+        const uri = agent.uri;
+        if (!uri || !uri.startsWith("{")) continue;
+        try {
+          const json = JSON.parse(uri);
+          if (
+            !agent.name &&
+            typeof json.name === "string" &&
+            json.name.length > 0
+          ) {
+            agent.name = json.name;
           }
+          if (
+            !agent.image &&
+            typeof json.image === "string" &&
+            json.image.length > 0 &&
+            !json.image.startsWith("data:") &&
+            !isPlaceholderUri(json.image)
+          ) {
+            agent.image = json.image;
+          }
+        } catch {
+          /* not valid JSON */
         }
-
-        collections.push({
-          id: "__unassigned__",
-          address: "__unassigned__",
-          creator: "",
-          name: "Unassigned",
-          symbol: null,
-          description: "Agents not yet assigned to a collection",
-          image: "/solanaLogoMark.png",
-          bannerImage: null,
-          website: null,
-          twitter: null,
-          agentCount: unassignedAgents.length,
-          isOwn: false,
-          agents: unassignedAgents,
-        });
       }
-    } else {
-      console.error(
-        "[8004 Network] Failed to fetch unassigned agents:",
-        searchResult.reason,
+    }
+
+    // ── DAS batch enrichment for agents still missing name or image ──
+    const agentsMissingData = collections.flatMap((c) =>
+      c.agents.filter((a) => !a.image || !a.name),
+    );
+
+    if (agentsMissingData.length > 0) {
+      const dasMetadata = await batchFetchDasMetadata(
+        agentsMissingData.map((a) => a.asset),
       );
+
+      for (const agent of agentsMissingData) {
+        const meta = dasMetadata.get(agent.asset);
+        if (!meta) continue;
+        if (!agent.name && meta.name) agent.name = meta.name;
+        if (!agent.image && meta.image) agent.image = meta.image;
+      }
     }
 
     const loadedAgentCount = collections.reduce(
@@ -330,9 +372,7 @@ export async function GET(req: NextRequest) {
 
     // ── Merge verification data (Redis cache → DB fallback) ──
     let totalVerified = 0;
-    const allAssets = collections.flatMap((c) =>
-      c.agents.map((a) => a.asset),
-    );
+    const allAssets = collections.flatMap((c) => c.agents.map((a) => a.asset));
 
     if (allAssets.length > 0) {
       const verificationMap = new Map<string, AgentVerification>();
@@ -367,7 +407,7 @@ export async function GET(req: NextRequest) {
           for (const row of dbRows) {
             verificationMap.set(row.asset, {
               status: row.status as AgentVerification["status"],
-              checks: row.checks as AgentVerification["checks"],
+              checks: row.checks as unknown as AgentVerification["checks"],
               verifiedAt: row.verifiedAt.toISOString(),
               score: row.score,
               maxScore: row.maxScore,

@@ -176,13 +176,15 @@ function enqueueImageLoad<T>(fn: () => Promise<T>): Promise<T> {
 }
 
 const textureCache = new Map<string, Texture>();
+const failedUrls = new Set<string>();
 
 const CORS_SAFE_HOSTS = [
   ".blob.vercel-storage.com",
   "ipfs.io",
   "arweave.net",
   "nftstorage.link",
-  "cloudflare-ipfs.com",
+  "dweb.link",
+  "w3s.link",
 ];
 
 function canLoadDirectly(url: string): boolean {
@@ -197,11 +199,25 @@ function canLoadDirectly(url: string): boolean {
   }
 }
 
+function isValidIpfsCid(cid: string): boolean {
+  if (cid.startsWith("Qm") && cid.length >= 44 && cid.length <= 50) return true;
+  if (cid.startsWith("bafy") && cid.length >= 50) return true;
+  return false;
+}
+
 function resolveImageUrl(url: string | null | undefined): string | null {
   if (!url || url.trim() === "") return null;
   if (/example|placeholder|test|dummy/i.test(url)) return null;
-  if (url.startsWith("ipfs://")) return `https://ipfs.io/ipfs/${url.slice(7)}`;
+  if (url.startsWith("ipfs://")) {
+    const cid = url.slice(7).split("/")[0];
+    if (!isValidIpfsCid(cid)) return null;
+    return `https://dweb.link/ipfs/${url.slice(7)}`;
+  }
   if (url.startsWith("ar://")) return `https://arweave.net/${url.slice(5)}`;
+  if (url.match(/\/ipfs\/([a-zA-Z0-9]+)/)) {
+    const match = url.match(/\/ipfs\/([a-zA-Z0-9]+)/);
+    if (match && !isValidIpfsCid(match[1])) return null;
+  }
   if (
     url.startsWith("http://") ||
     url.startsWith("https://") ||
@@ -213,6 +229,9 @@ function resolveImageUrl(url: string | null | undefined): string | null {
 }
 
 function loadImage(url: string, timeoutMs = 10000): Promise<HTMLImageElement> {
+  if (failedUrls.has(url))
+    return Promise.reject(new Error("previously failed"));
+
   const direct = canLoadDirectly(url);
   const src = direct ? url : `/api/image-proxy?url=${encodeURIComponent(url)}`;
 
@@ -221,6 +240,7 @@ function loadImage(url: string, timeoutMs = 10000): Promise<HTMLImageElement> {
     el.crossOrigin = "anonymous";
     const timer = setTimeout(() => {
       el.src = "";
+      failedUrls.add(url);
       reject(new Error("timeout"));
     }, timeoutMs);
     el.onload = () => {
@@ -230,6 +250,7 @@ function loadImage(url: string, timeoutMs = 10000): Promise<HTMLImageElement> {
     el.onerror = () => {
       clearTimeout(timer);
       if (direct && !canLoadDirectly(url)) {
+        failedUrls.add(url);
         reject(new Error("load"));
         return;
       }
@@ -237,6 +258,7 @@ function loadImage(url: string, timeoutMs = 10000): Promise<HTMLImageElement> {
         const proxySrc = `/api/image-proxy?url=${encodeURIComponent(url)}`;
         const timer2 = setTimeout(() => {
           el.src = "";
+          failedUrls.add(url);
           reject(new Error("timeout"));
         }, timeoutMs);
         el.onload = () => {
@@ -245,11 +267,13 @@ function loadImage(url: string, timeoutMs = 10000): Promise<HTMLImageElement> {
         };
         el.onerror = () => {
           clearTimeout(timer2);
+          failedUrls.add(url);
           reject(new Error("load"));
         };
         el.src = proxySrc;
         return;
       }
+      failedUrls.add(url);
       reject(new Error("load"));
     };
     el.src = src;

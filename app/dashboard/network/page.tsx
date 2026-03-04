@@ -66,9 +66,10 @@ export default function NetworkPage() {
     return () => window.removeEventListener("keydown", onKey);
   }, [handleClose]);
 
-  const totalAgents = data
+  const loadedAgents = data
     ? data.collections.reduce((s, c) => s + c.agents.length, 0)
     : 0;
+  const totalAgents = data ? Math.max(data.stats.totalAgents, loadedAgents) : 0;
 
   const networkMetrics = data
     ? (() => {

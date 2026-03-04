@@ -50,7 +50,12 @@ export default async function Image() {
           // @ts-expect-error Satori accepts ArrayBuffer for img src
           src={logo}
           alt="Agent Inc."
-          style={{ width: 44, height: 44, borderRadius: 14, objectFit: "cover" }}
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: 14,
+            objectFit: "cover",
+          }}
         />
         <div
           style={{

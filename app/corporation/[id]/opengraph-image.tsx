@@ -77,7 +77,12 @@ function renderFallback(logo: ArrayBuffer) {
         // @ts-expect-error Satori accepts ArrayBuffer for img src
         src={logo}
         alt="Agent Inc."
-        style={{ width: 120, height: 120, borderRadius: 28, objectFit: "cover" }}
+        style={{
+          width: 120,
+          height: 120,
+          borderRadius: 28,
+          objectFit: "cover",
+        }}
       />
       <div
         style={{
@@ -148,7 +153,12 @@ function renderCorp(
             // @ts-expect-error Satori accepts ArrayBuffer for img src
             src={logo}
             alt="Agent Inc."
-            style={{ width: 44, height: 44, borderRadius: 14, objectFit: "cover" }}
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 14,
+              objectFit: "cover",
+            }}
           />
           <div
             style={{

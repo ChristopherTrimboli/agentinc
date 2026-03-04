@@ -79,7 +79,12 @@ function renderFallback(logo: ArrayBuffer) {
         // @ts-expect-error Satori accepts ArrayBuffer for img src
         src={logo}
         alt="Agent Inc."
-        style={{ width: 120, height: 120, borderRadius: 28, objectFit: "cover" }}
+        style={{
+          width: 120,
+          height: 120,
+          borderRadius: 28,
+          objectFit: "cover",
+        }}
       />
       <div
         style={{
@@ -154,7 +159,12 @@ function renderProfile(
             // @ts-expect-error Satori accepts ArrayBuffer for img src
             src={logo}
             alt="Agent Inc."
-            style={{ width: 44, height: 44, borderRadius: 14, objectFit: "cover" }}
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 14,
+              objectFit: "cover",
+            }}
           />
           <div
             style={{
@@ -349,7 +359,10 @@ export default async function Image({
   params: Promise<{ wallet: string }>;
 }) {
   const { wallet } = await params;
-  const [result, logo] = await Promise.all([fetchProfileData(wallet), logoData]);
+  const [result, logo] = await Promise.all([
+    fetchProfileData(wallet),
+    logoData,
+  ]);
 
   if (!result) return renderFallback(logo);
   return renderProfile(wallet, result.agents, result.agentImages, logo);

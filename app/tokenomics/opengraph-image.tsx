@@ -67,7 +67,12 @@ export default async function Image() {
             // @ts-expect-error Satori accepts ArrayBuffer for img src
             src={logo}
             alt="Agent Inc."
-            style={{ width: 44, height: 44, borderRadius: 14, objectFit: "cover" }}
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 14,
+              objectFit: "cover",
+            }}
           />
           <div
             style={{
@@ -97,8 +102,7 @@ export default async function Image() {
           <span
             style={{
               display: "flex",
-              background:
-                "linear-gradient(90deg, #8B5CF6, #06B6D4, #10B981)",
+              background: "linear-gradient(90deg, #8B5CF6, #06B6D4, #10B981)",
               backgroundClip: "text",
               color: "transparent",
             }}

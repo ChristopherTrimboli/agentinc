@@ -457,7 +457,9 @@ async function getLastFeedbackStatuses(): Promise<Map<string, string>> {
     });
     return new Map(
       rows
-        .filter((r): r is typeof r & { lastStatus: string } => r.lastStatus !== null)
+        .filter(
+          (r): r is typeof r & { lastStatus: string } => r.lastStatus !== null,
+        )
         .map((r) => [r.asset, r.lastStatus]),
     );
   } catch {

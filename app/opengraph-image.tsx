@@ -5,9 +5,9 @@ export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 export const runtime = "edge";
 
-const logoData = fetch(
-  new URL("../public/agentinc.jpg", import.meta.url),
-).then((res) => res.arrayBuffer());
+const logoData = fetch(new URL("../public/agentinc.jpg", import.meta.url)).then(
+  (res) => res.arrayBuffer(),
+);
 
 export default async function Image() {
   const logo = await logoData;
@@ -52,7 +52,12 @@ export default async function Image() {
             // @ts-expect-error Satori accepts ArrayBuffer for img src
             src={logo}
             alt="Agent Inc."
-            style={{ width: 52, height: 52, borderRadius: 16, objectFit: "cover" }}
+            style={{
+              width: 52,
+              height: 52,
+              borderRadius: 16,
+              objectFit: "cover",
+            }}
           />
           <div
             style={{
