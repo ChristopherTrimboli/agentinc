@@ -16,7 +16,7 @@ export const maxDuration = 300;
 
 const VERIFY_PREFIX = "verify:8004:";
 const SUMMARY_KEY = "verify:8004:summary";
-const RESULT_TTL = 1800; // 30 minutes
+const RESULT_TTL = 7200; // 2 hours — survives multiple missed cron cycles
 
 // ── POST: Cron-triggered batch verification ──────────────────────────────────
 
