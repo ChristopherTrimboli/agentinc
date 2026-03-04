@@ -154,6 +154,29 @@ function drawGrid(g: Graphics, w: number, h: number, scale: number) {
 
 // ── Image Helpers ─────────────────────────────────────────────────────────────
 
+const MAX_CONCURRENT_LOADS = 12;
+let _activeLoads = 0;
+const _loadQueue: (() => void)[] = [];
+
+function enqueueImageLoad<T>(fn: () => Promise<T>): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const run = () => {
+      _activeLoads++;
+      fn()
+        .then(resolve, reject)
+        .finally(() => {
+          _activeLoads--;
+          const next = _loadQueue.shift();
+          if (next) next();
+        });
+    };
+    if (_activeLoads < MAX_CONCURRENT_LOADS) run();
+    else _loadQueue.push(run);
+  });
+}
+
+const textureCache = new Map<string, Texture>();
+
 const CORS_SAFE_HOSTS = [
   ".blob.vercel-storage.com",
   "ipfs.io",
@@ -233,45 +256,92 @@ function loadImage(url: string, timeoutMs = 10000): Promise<HTMLImageElement> {
   });
 }
 
+async function loadTextureForUrl(url: string): Promise<Texture> {
+  const cached = textureCache.get(url);
+  if (cached) return cached;
+  const img = await loadImage(url);
+  const source = new ImageSource({ resource: img });
+  const texture = new Texture({ source });
+  textureCache.set(url, texture);
+  return texture;
+}
+
 async function loadCircularImage(
   url: string,
   outerRadius: number,
   container: Container,
   border: number,
 ): Promise<boolean> {
-  try {
-    const r = outerRadius - border;
-    if (r <= 1) return false;
+  return enqueueImageLoad(async () => {
+    try {
+      const r = outerRadius - border;
+      if (r <= 1) return false;
 
-    const img = await loadImage(url);
-    if (container.destroyed) return false;
+      const texture = await loadTextureForUrl(url);
+      if (container.destroyed) return false;
 
-    const source = new ImageSource({ resource: img });
-    const texture = new Texture({ source });
+      const mask = new Graphics();
+      mask.circle(0, 0, r);
+      mask.fill({ color: 0xffffff });
 
-    const mask = new Graphics();
-    mask.circle(0, 0, r);
-    mask.fill({ color: 0xffffff });
+      const sprite = new Sprite(texture);
+      sprite.anchor.set(0.5, 0.5);
+      const d = r * 2;
+      const aspect =
+        (texture.source.width || 1) / (texture.source.height || 1);
+      if (aspect >= 1) {
+        sprite.height = d;
+        sprite.width = d * aspect;
+      } else {
+        sprite.width = d;
+        sprite.height = d / aspect;
+      }
+      sprite.mask = mask;
 
-    const sprite = new Sprite(texture);
-    sprite.anchor.set(0.5, 0.5);
-    const d = r * 2;
-    const aspect = (img.naturalWidth || 1) / (img.naturalHeight || 1);
-    if (aspect >= 1) {
-      sprite.height = d;
-      sprite.width = d * aspect;
-    } else {
-      sprite.width = d;
-      sprite.height = d / aspect;
+      container.addChild(mask);
+      container.addChild(sprite);
+      return true;
+    } catch {
+      return false;
     }
-    sprite.mask = mask;
+  });
+}
 
-    container.addChild(mask);
-    container.addChild(sprite);
-    return true;
-  } catch {
-    return false;
-  }
+/** Load image in "contain" mode — fits inside the circle with padding, no clipping. */
+async function loadContainedImage(
+  url: string,
+  outerRadius: number,
+  container: Container,
+  padding: number,
+): Promise<boolean> {
+  return enqueueImageLoad(async () => {
+    try {
+      const r = outerRadius - padding;
+      if (r <= 1) return false;
+
+      const texture = await loadTextureForUrl(url);
+      if (container.destroyed) return false;
+
+      const sprite = new Sprite(texture);
+      sprite.anchor.set(0.5, 0.5);
+
+      const d = r * 2;
+      const aspect =
+        (texture.source.width || 1) / (texture.source.height || 1);
+      if (aspect >= 1) {
+        sprite.width = d;
+        sprite.height = d / aspect;
+      } else {
+        sprite.height = d;
+        sprite.width = d * aspect;
+      }
+
+      container.addChild(sprite);
+      return true;
+    } catch {
+      return false;
+    }
+  });
 }
 
 // ── Props ────────────────────────────────────────────────────────────────────
@@ -312,6 +382,10 @@ export default function NetworkCanvas({
 
   const forceNodesRef = useRef<ForceNode[]>([]);
   const visAgentsRef = useRef<VisAgent[]>([]);
+  const agentsByCollRef = useRef(new Map<string, VisAgent[]>());
+  const nodeByIdRef = useRef(new Map<string, ForceNode>());
+  const agentByAssetRef = useRef(new Map<string, VisAgent>());
+  const ownNodeRef = useRef<ForceNode | null>(null);
   const alphaRef = useRef(1);
   const centerRef = useRef({ x: 0, y: 0 });
   const clickedNodeRef = useRef(false);
@@ -323,7 +397,7 @@ export default function NetworkCanvas({
   const [isLoading, setIsLoading] = useState(true);
   const [pixiReady, setPixiReady] = useState(false);
   const [zoom, setZoom] = useState(0.65);
-  const [isPanning, setIsPanning] = useState(false);
+  const isPanningRef = useRef(false);
   const lastPan = useRef({ x: 0, y: 0 });
 
   // Keep refs current
@@ -363,7 +437,8 @@ export default function NetworkCanvas({
       };
     });
 
-    const ownNode = nodes.find((n) => n.fixed);
+    const ownNode = nodes.find((n) => n.fixed) ?? null;
+    ownNodeRef.current = ownNode;
     if (ownNode) {
       ownNode.x = cx;
       ownNode.y = cy;
@@ -386,6 +461,24 @@ export default function NetworkCanvas({
 
     forceNodesRef.current = nodes;
     visAgentsRef.current = agents;
+
+    // Build lookup maps for O(1) access in the hot ticker path
+    const byId = new Map<string, ForceNode>();
+    for (const n of nodes) byId.set(n.id, n);
+    nodeByIdRef.current = byId;
+
+    const byColl = new Map<string, VisAgent[]>();
+    for (const a of agents) {
+      const list = byColl.get(a.collId);
+      if (list) list.push(a);
+      else byColl.set(a.collId, [a]);
+    }
+    agentsByCollRef.current = byColl;
+
+    const byAsset = new Map<string, VisAgent>();
+    for (const a of agents) byAsset.set(a.asset, a);
+    agentByAssetRef.current = byAsset;
+
     alphaRef.current = 1;
   }, [data]);
 
@@ -398,12 +491,14 @@ export default function NetworkCanvas({
 
     const nodes = forceNodesRef.current;
     const agents = visAgentsRef.current;
+    const byColl = agentsByCollRef.current;
+    const byId = nodeByIdRef.current;
     const time = Date.now() / 1000;
 
     // Cluster bubbles around each collection
     for (const node of nodes) {
-      const collAgents = agents.filter((a) => a.collId === node.id);
-      if (collAgents.length === 0) continue;
+      const collAgents = byColl.get(node.id);
+      if (!collAgents || collAgents.length === 0) continue;
 
       let maxD = 0;
       for (const a of collAgents) {
@@ -424,16 +519,16 @@ export default function NetworkCanvas({
 
     // Agent-to-collection lines (very subtle)
     for (const a of agents) {
-      const node = nodes.find((n) => n.id === a.collId);
+      const node = byId.get(a.collId);
       if (!node) continue;
       gfx.moveTo(node.x, node.y);
       gfx.lineTo(a.x, a.y);
       gfx.stroke({ width: 0.6, color: node.color, alpha: 0.06 });
     }
 
-    // Inter-collection network lines (from each to closest 2)
+    // Inter-collection network lines
     if (nodes.length > 1) {
-      const ownNode = nodes.find((n) => n.fixed);
+      const ownNode = ownNodeRef.current;
       for (const node of nodes) {
         if (node.fixed) continue;
         const target = ownNode || nodes[0];
@@ -459,6 +554,7 @@ export default function NetworkCanvas({
         }
       }
     }
+
   }, []);
 
   // ── Draw selection/hover highlights ────────────────────────────────────
@@ -473,7 +569,7 @@ export default function NetworkCanvas({
 
     const collId = selectedCollIdRef.current;
     if (collId) {
-      const node = forceNodesRef.current.find((n) => n.id === collId);
+      const node = nodeByIdRef.current.get(collId);
       if (node) {
         gfx.circle(node.x, node.y, node.radius + 20 + pulse * 6);
         gfx.stroke({ width: 2, color: 0xffffff, alpha: 0.3 + pulse * 0.2 });
@@ -482,7 +578,7 @@ export default function NetworkCanvas({
 
     const agentAsset = selectedAgentRef.current;
     if (agentAsset) {
-      const agent = visAgentsRef.current.find((a) => a.asset === agentAsset);
+      const agent = agentByAssetRef.current.get(agentAsset);
       if (agent) {
         gfx.circle(agent.x, agent.y, agent.radius + 10 + pulse * 4);
         gfx.stroke({ width: 2, color: 0xffffff, alpha: 0.4 + pulse * 0.3 });
@@ -587,10 +683,11 @@ export default function NetworkCanvas({
           alphaRef.current *= ALPHA_DECAY;
         }
 
-        // Position agents around their collection
+        // Position agents around their collection (O(1) lookup per node)
+        const byColl = agentsByCollRef.current;
         for (const node of nodes) {
-          const collAgents = agents.filter((a) => a.collId === node.id);
-          positionAgents(collAgents, node, t);
+          const collAgents = byColl.get(node.id);
+          if (collAgents) positionAgents(collAgents, node, t);
         }
 
         // Update PixiJS container positions
@@ -677,6 +774,7 @@ export default function NetworkCanvas({
 
       const radius = getCollectionRadius(coll.agentCount);
       const color = getCollectionColor(coll.name, coll.isOwn);
+      const isUnassigned = coll.id === "__unassigned__";
 
       const gfx = new Graphics();
       gfx.circle(0, 0, radius + 18);
@@ -726,7 +824,10 @@ export default function NetworkCanvas({
         ? "/agentinc.jpg"
         : resolveImageUrl(coll.image);
       if (imageUrl) {
-        loadCircularImage(imageUrl, radius, imgLayer, 3).then((ok) => {
+        const loader = isUnassigned
+          ? loadContainedImage(imageUrl, radius, imgLayer, Math.round(radius * 0.28))
+          : loadCircularImage(imageUrl, radius, imgLayer, 3);
+        loader.then((ok) => {
           if (ok && !c.destroyed) {
             specular.visible = false;
             if (fallbackTxt) fallbackTxt.visible = false;
@@ -767,7 +868,7 @@ export default function NetworkCanvas({
       const badgeStyle = new TextStyle({
         fontFamily: "system-ui, -apple-system, sans-serif",
         fontSize: 11,
-        fill: color,
+        fill: isUnassigned ? 0x9ca3af : color,
         align: "center",
       });
       const badgeTxt = new Text({
@@ -959,13 +1060,13 @@ export default function NetworkCanvas({
         clickedNodeRef.current = false;
         return;
       }
-      setIsPanning(true);
+      isPanningRef.current = true;
       lastPan.current = { x: e.clientX, y: e.clientY };
       el.style.cursor = "grabbing";
     };
 
     const onMove = (e: MouseEvent) => {
-      if (!isPanning) return;
+      if (!isPanningRef.current) return;
       const world = worldRef.current;
       if (!world) return;
       world.x += e.clientX - lastPan.current.x;
@@ -974,8 +1075,8 @@ export default function NetworkCanvas({
     };
 
     const onUp = () => {
-      if (isPanning) {
-        setIsPanning(false);
+      if (isPanningRef.current) {
+        isPanningRef.current = false;
         el.style.cursor = "";
       }
     };
@@ -990,7 +1091,7 @@ export default function NetworkCanvas({
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
     };
-  }, [handleZoom, isPanning]);
+  }, [handleZoom]);
 
   // ── Render ─────────────────────────────────────────────────────────────
 

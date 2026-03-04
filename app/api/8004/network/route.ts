@@ -1,11 +1,18 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getErc8004Sdk, COLLECTION_POINTER } from "@/lib/erc8004";
 import prisma from "@/lib/prisma";
+import { rateLimitByIP } from "@/lib/rateLimit";
+import { isRedisConfigured, getRedis } from "@/lib/redis";
 import type { NetworkData } from "@/lib/network/types";
 
 export const dynamic = "force-dynamic";
 
-// ── Metadata Image Fetcher ──────────────────────────────────────────────────
+// ── Cache Config ────────────────────────────────────────────────────────────
+
+const CACHE_KEY = "api:8004:network";
+const CACHE_TTL = 300; // 5 minutes
+
+// ── Metadata Fetcher ────────────────────────────────────────────────────────
 
 const METADATA_TIMEOUT = 4000;
 const METADATA_CONCURRENCY = 15;
@@ -22,45 +29,70 @@ function resolveUri(uri: string): string {
   return uri;
 }
 
-async function fetchMetadataImage(uri: string): Promise<string | null> {
+interface AgentMetadata {
+  name: string | null;
+  image: string | null;
+}
+
+async function fetchMetadata(uri: string): Promise<AgentMetadata> {
   try {
     const url = resolveUri(uri);
     const resp = await fetch(url, {
       signal: AbortSignal.timeout(METADATA_TIMEOUT),
       headers: { Accept: "application/json" },
     });
-    if (!resp.ok) return null;
+    if (!resp.ok) return { name: null, image: null };
     const json = await resp.json();
+
+    const name =
+      typeof json?.name === "string" && json.name.length > 0
+        ? json.name
+        : null;
+
     const img = json?.image;
-    if (
+    const image =
       typeof img === "string" &&
       img.length > 0 &&
       !img.startsWith("data:") &&
       !isPlaceholderUri(img)
-    )
-      return img;
-    return null;
+        ? img
+        : null;
+
+    return { name, image };
   } catch {
-    return null;
+    return { name: null, image: null };
   }
 }
 
-/** Fetch images for a batch of agents from their metadata URIs. */
-async function batchFetchAgentImages(
+/** Fetch name + image for a batch of agents, deduplicating by URI. */
+async function batchFetchAgentMetadata(
   agents: { asset: string; uri: string | null }[],
-): Promise<Map<string, string>> {
-  const result = new Map<string, string>();
+): Promise<Map<string, AgentMetadata>> {
+  const result = new Map<string, AgentMetadata>();
   const pending = agents.filter((a) => a.uri && a.uri.length > 5);
+  if (pending.length === 0) return result;
 
-  for (let i = 0; i < pending.length; i += METADATA_CONCURRENCY) {
-    const batch = pending.slice(i, i + METADATA_CONCURRENCY);
-    const settled = await Promise.allSettled(
-      batch.map(async (a) => {
-        const img = await fetchMetadataImage(a.uri!);
-        if (img) result.set(a.asset, img);
+  // Deduplicate by URI — fetch each unique URI once
+  const uriToAssets = new Map<string, string[]>();
+  for (const a of pending) {
+    const uri = a.uri!;
+    const list = uriToAssets.get(uri);
+    if (list) list.push(a.asset);
+    else uriToAssets.set(uri, [a.asset]);
+  }
+
+  const uniqueEntries = Array.from(uriToAssets.entries());
+
+  for (let i = 0; i < uniqueEntries.length; i += METADATA_CONCURRENCY) {
+    const batch = uniqueEntries.slice(i, i + METADATA_CONCURRENCY);
+    await Promise.allSettled(
+      batch.map(async ([uri, assets]) => {
+        const meta = await fetchMetadata(uri);
+        if (meta.name || meta.image) {
+          for (const asset of assets) result.set(asset, meta);
+        }
       }),
     );
-    void settled;
   }
 
   return result;
@@ -68,7 +100,28 @@ async function batchFetchAgentImages(
 
 // ── Route Handler ───────────────────────────────────────────────────────────
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const limited = await rateLimitByIP(req, "8004-network", 30);
+  if (limited) return limited;
+
+  // ── Redis cache check ──
+  if (isRedisConfigured()) {
+    try {
+      const redis = getRedis();
+      const cached = await redis.get<NetworkData>(CACHE_KEY);
+      if (cached) {
+        return NextResponse.json(cached, {
+          headers: {
+            "Cache-Control":
+              "public, s-maxage=300, stale-while-revalidate=600",
+          },
+        });
+      }
+    } catch {
+      // Fall through to fresh fetch
+    }
+  }
+
   try {
     const sdk = getErc8004Sdk();
 
@@ -86,9 +139,15 @@ export async function GET() {
       );
     }
 
-    const [statsResult, pointersResult] = await Promise.allSettled([
+    // Parallelize: stats + pointers + DB enrichment data
+    const [statsResult, pointersResult, dbResult] = await Promise.allSettled([
       sdk.getGlobalStats(),
       sdk.getCollectionPointers(),
+      prisma.agent.findMany({
+        where: { erc8004Asset: { not: null } },
+        select: { erc8004Asset: true, name: true, imageUrl: true },
+        cacheStrategy: { ttl: 300, swr: 600 },
+      }),
     ]);
 
     const stats = statsResult.status === "fulfilled" ? statsResult.value : null;
@@ -97,12 +156,8 @@ export async function GET() {
 
     let ownAgentNames = new Map<string, string>();
     let ownAgentImages = new Map<string, string>();
-    try {
-      const dbAgents = await prisma.agent.findMany({
-        where: { erc8004Asset: { not: null } },
-        select: { erc8004Asset: true, name: true, imageUrl: true },
-        cacheStrategy: { ttl: 300, swr: 600 },
-      });
+    if (dbResult.status === "fulfilled") {
+      const dbAgents = dbResult.value;
       ownAgentNames = new Map(
         dbAgents
           .filter((a) => a.erc8004Asset)
@@ -116,8 +171,8 @@ export async function GET() {
           )
           .map((a) => [a.erc8004Asset!, a.imageUrl!]),
       );
-    } catch {
-      /* DB lookup is best-effort */
+    } else {
+      console.warn("[8004 Network] DB enrichment failed:", dbResult.reason);
     }
 
     const uniquePointers = new Map<string, (typeof pointers)[number]>();
@@ -132,8 +187,11 @@ export async function GET() {
         let agents: Awaited<ReturnType<typeof sdk.getCollectionAssets>> = [];
         try {
           agents = await sdk.getCollectionAssets(ptr.col, { limit: 500 });
-        } catch {
-          /* collection assets may fail for some pointers */
+        } catch (err) {
+          console.warn(
+            `[8004 Network] Failed to fetch assets for ${ptr.col}:`,
+            err,
+          );
         }
 
         const isOwn = ptr.col === COLLECTION_POINTER;
@@ -172,22 +230,98 @@ export async function GET() {
       }),
     );
 
-    // Fetch images from metadata for agents that don't have one yet
-    const agentsNeedingImages = collections.flatMap((c) =>
+    // Build asset set for dedup before parallel metadata + unassigned fetch
+    const collectionAssetSet = new Set(
+      collections.flatMap((c) => c.agents.map((a) => a.asset)),
+    );
+
+    // Collect agents needing metadata enrichment
+    const agentsNeedingMetadata = collections.flatMap((c) =>
       c.agents
-        .filter((a) => !a.image && a.uri)
+        .filter((a) => (!a.image || !a.name) && a.uri)
         .map((a) => ({ asset: a.asset, uri: a.uri })),
     );
 
-    if (agentsNeedingImages.length > 0) {
-      const fetchedImages = await batchFetchAgentImages(agentsNeedingImages);
+    // Parallelize: metadata enrichment + unassigned agent search
+    const [metaResult, searchResult] = await Promise.allSettled([
+      agentsNeedingMetadata.length > 0
+        ? batchFetchAgentMetadata(agentsNeedingMetadata)
+        : Promise.resolve(new Map<string, AgentMetadata>()),
+      sdk.searchAgents({ limit: 500 }),
+    ]);
+
+    // Apply metadata to collection agents
+    if (metaResult.status === "fulfilled" && metaResult.value.size > 0) {
+      const fetchedMeta = metaResult.value;
       for (const coll of collections) {
         for (const agent of coll.agents) {
-          if (!agent.image) {
-            agent.image = fetchedImages.get(agent.asset) || null;
-          }
+          const meta = fetchedMeta.get(agent.asset);
+          if (!meta) continue;
+          if (!agent.name && meta.name) agent.name = meta.name;
+          if (!agent.image && meta.image) agent.image = meta.image;
         }
       }
+    }
+
+    // Build "Unassigned" collection from agents not in any collection
+    if (searchResult.status === "fulfilled") {
+      const uncollected = searchResult.value.filter(
+        (a) => !collectionAssetSet.has(a.asset),
+      );
+
+      if (uncollected.length > 0) {
+        const unassignedAgents = uncollected.map((a) => ({
+          asset: a.asset,
+          owner: a.owner,
+          name: ownAgentNames.get(a.asset) || a.nft_name || null,
+          uri: a.agent_uri ?? null,
+          image: ownAgentImages.get(a.asset) || null,
+          trustTier: a.trust_tier,
+          qualityScore: a.quality_score,
+          feedbackCount: a.feedback_count,
+          confidence: a.confidence,
+          riskScore: a.risk_score,
+          diversityRatio: a.diversity_ratio,
+          atomEnabled: a.atom_enabled ?? false,
+          createdAt: a.created_at,
+          collectionPointer: a.collection_pointer || null,
+        }));
+
+        const needingMeta = unassignedAgents
+          .filter((a) => (!a.image || !a.name) && a.uri)
+          .map((a) => ({ asset: a.asset, uri: a.uri }));
+
+        if (needingMeta.length > 0) {
+          const fetchedMeta = await batchFetchAgentMetadata(needingMeta);
+          for (const agent of unassignedAgents) {
+            const meta = fetchedMeta.get(agent.asset);
+            if (!meta) continue;
+            if (!agent.name && meta.name) agent.name = meta.name;
+            if (!agent.image && meta.image) agent.image = meta.image;
+          }
+        }
+
+        collections.push({
+          id: "__unassigned__",
+          address: "__unassigned__",
+          creator: "",
+          name: "Unassigned",
+          symbol: null,
+          description: "Agents not yet assigned to a collection",
+          image: "/solanaLogoMark.png",
+          bannerImage: null,
+          website: null,
+          twitter: null,
+          agentCount: unassignedAgents.length,
+          isOwn: false,
+          agents: unassignedAgents,
+        });
+      }
+    } else {
+      console.error(
+        "[8004 Network] Failed to fetch unassigned agents:",
+        searchResult.reason,
+      );
     }
 
     const loadedAgentCount = collections.reduce(
@@ -207,6 +341,16 @@ export async function GET() {
       },
       collections,
     };
+
+    // ── Write to Redis cache ──
+    if (isRedisConfigured()) {
+      try {
+        const redis = getRedis();
+        await redis.set(CACHE_KEY, data, { ex: CACHE_TTL });
+      } catch {
+        // Non-critical
+      }
+    }
 
     return NextResponse.json(data, {
       headers: {

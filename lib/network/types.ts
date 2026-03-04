@@ -85,8 +85,11 @@ export const COLLECTION_PALETTE = [
 
 export const AGENT_INC_COLOR = 0x10b981;
 
+const UNASSIGNED_COLOR = 0x121212;
+
 export function getCollectionColor(name: string, isOwn: boolean): number {
   if (isOwn) return AGENT_INC_COLOR;
+  if (name === "Unassigned") return UNASSIGNED_COLOR;
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
