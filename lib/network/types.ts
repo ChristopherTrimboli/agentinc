@@ -15,6 +15,7 @@ export interface NetworkStats {
   platinumAgents: number;
   goldAgents: number;
   avgQuality: number | null;
+  totalVerified: number;
 }
 
 export interface NetworkCollection {
@@ -49,6 +50,37 @@ export interface NetworkAgent {
   atomEnabled: boolean;
   createdAt: string;
   collectionPointer: string | null;
+  verification?: AgentVerification;
+}
+
+// ── Verification Types (Slop or Not) ─────────────────────────────────────────
+
+export interface ServiceCheckResult {
+  type: string;
+  endpoint: string;
+  ok: boolean;
+  latencyMs?: number;
+  reason?: string;
+  skipped?: boolean;
+}
+
+export interface VerificationCheck {
+  name: string;
+  passed: boolean;
+  skipped: boolean;
+  details: string;
+  latencyMs?: number;
+  serviceResults?: ServiceCheckResult[];
+}
+
+export type VerificationStatus = "verified" | "partial" | "unverified";
+
+export interface AgentVerification {
+  status: VerificationStatus;
+  checks: VerificationCheck[];
+  verifiedAt: string;
+  score: number;
+  maxScore: number;
 }
 
 // ── Trust Tier Visual Constants ──────────────────────────────────────────────

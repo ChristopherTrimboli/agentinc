@@ -44,13 +44,15 @@ export async function GET(_req: NextRequest, context: RouteContext) {
   const appUrl = "https://agentinc.fun";
   const agentSlug = agent.tokenMint || agent.id;
 
-  const services: { name: string; endpoint: string }[] = [
-    { name: "MCP", endpoint: `${appUrl}/api/chat` },
+  const services: Record<string, unknown>[] = [
     { name: "web", endpoint: `${appUrl}/agent/${agentSlug}` },
   ];
 
   if (agent.tokenMint) {
-    services.push({ name: "solana-token", endpoint: agent.tokenMint });
+    services.push({
+      name: "wallet",
+      endpoint: `solana:mainnet-beta:${agent.tokenMint}`,
+    });
   }
 
   const registrationFile = {
@@ -63,6 +65,7 @@ export async function GET(_req: NextRequest, context: RouteContext) {
     services,
     active: true,
     x402Support: true,
+    supportedTrust: ["reputation"],
     registrations: agent.erc8004Asset
       ? [
           {

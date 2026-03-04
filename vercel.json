@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/8004/verify",
+      "schedule": "*/15 * * * *"
+    }
+  ]
+}

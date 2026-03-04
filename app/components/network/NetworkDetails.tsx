@@ -11,6 +11,9 @@ import {
   Activity,
   AlertTriangle,
   Gauge,
+  CheckCircle2,
+  XCircle,
+  Minus,
 } from "lucide-react";
 import type { NetworkCollection, NetworkAgent } from "@/lib/network/types";
 import {
@@ -32,6 +35,15 @@ function truncate(s: string, n = 8): string {
 
 function copyText(text: string) {
   navigator.clipboard.writeText(text);
+}
+
+function safeHostname(url: string): string {
+  if (!url) return "—";
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return url.length > 24 ? url.slice(0, 24) + "..." : url;
+  }
 }
 
 const CORS_SAFE_HOSTS = [
@@ -368,6 +380,11 @@ function AgentPanel({
         </span>
       </div>
 
+      {/* Slop or Not — Verification */}
+      {agent.verification && (
+        <VerificationPanel verification={agent.verification} />
+      )}
+
       {/* Links */}
       <div className="space-y-1.5 pt-3 border-t border-gray-800">
         <a
@@ -412,6 +429,142 @@ function AgentPanel({
       </div>
     </div>
   );
+}
+
+// ── Verification Panel ────────────────────────────────────────────────────────
+
+function VerificationPanel({
+  verification,
+}: {
+  verification: NonNullable<NetworkAgent["verification"]>;
+}) {
+  const statusConfig = {
+    verified: {
+      bg: "bg-emerald-500/10",
+      border: "border-emerald-500/30",
+      text: "text-emerald-400",
+      label: "Verified",
+    },
+    partial: {
+      bg: "bg-yellow-500/10",
+      border: "border-yellow-500/30",
+      text: "text-yellow-400",
+      label: "Partially Verified",
+    },
+    unverified: {
+      bg: "bg-gray-500/10",
+      border: "border-gray-500/30",
+      text: "text-gray-400",
+      label: "Unverified",
+    },
+  };
+
+  const cfg = statusConfig[verification.status];
+  const ago = timeAgo(verification.verifiedAt);
+
+  return (
+    <div
+      className={`mb-4 p-3 rounded-xl border ${cfg.bg} ${cfg.border}`}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between mb-2.5">
+        <div className="flex items-center gap-1.5">
+          <ShieldCheck className={`w-4 h-4 ${cfg.text}`} />
+          <span className="text-xs font-semibold text-white">
+            Slop or Not
+          </span>
+        </div>
+        <span
+          className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${cfg.bg} ${cfg.text}`}
+        >
+          {cfg.label}
+        </span>
+      </div>
+
+      {/* Check list */}
+      <div className="space-y-1.5">
+        {verification.checks.map((check) => {
+          const hasServiceBreakdown =
+            check.name === "Service Liveness" &&
+            check.serviceResults &&
+            check.serviceResults.length > 0;
+
+          return (
+            <div key={check.name}>
+              <div className="flex items-center gap-2">
+                {check.skipped ? (
+                  <Minus className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+                ) : check.passed ? (
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                ) : (
+                  <XCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                )}
+                <span className="text-xs text-gray-300 flex-1 min-w-0 truncate">
+                  {check.name}
+                </span>
+                {check.latencyMs != null && (
+                  <span className="text-[10px] text-gray-600 shrink-0">
+                    {check.latencyMs}ms
+                  </span>
+                )}
+              </div>
+
+              {/* Per-service breakdown for liveness */}
+              {hasServiceBreakdown && (
+                <div className="ml-5 mt-1 space-y-0.5">
+                  {check.serviceResults!.map((svc, i) => (
+                    <div
+                      key={`${svc.endpoint}-${i}`}
+                      className="flex items-center gap-1.5"
+                    >
+                      <div
+                        className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                          svc.skipped
+                            ? "bg-gray-600"
+                            : svc.ok
+                              ? "bg-emerald-400"
+                              : "bg-red-400"
+                        }`}
+                      />
+                      <span className="text-[10px] text-gray-500 uppercase shrink-0">
+                        {svc.type}
+                      </span>
+                      <span className="text-[10px] text-gray-600 truncate flex-1 min-w-0">
+                        {safeHostname(svc.endpoint)}
+                      </span>
+                      {svc.latencyMs != null && (
+                        <span className="text-[10px] text-gray-600 shrink-0">
+                          {svc.latencyMs}ms
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Footer */}
+      <div className="flex items-center justify-between mt-2.5 pt-2 border-t border-gray-800/50">
+        <span className="text-[10px] text-gray-500">
+          {verification.score}/{verification.maxScore} passed
+        </span>
+        <span className="text-[10px] text-gray-600">{ago}</span>
+      </div>
+    </div>
+  );
+}
+
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
 }
 
 function Stat({

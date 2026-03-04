@@ -920,6 +920,18 @@ export default function NetworkCanvas({
       const radius = getAgentRadius(a.qualityScore);
       const color = TRUST_TIER_COLORS[a.trustTier] ?? TRUST_TIER_COLORS[0];
 
+      // Verification ring (behind everything, visible for verified/partial agents)
+      const verifyRing = new Graphics();
+      const vStatus = a.verification?.status;
+      if (vStatus === "verified" || vStatus === "partial") {
+        const ringColor = vStatus === "verified" ? 0x22c55e : 0xeab308;
+        verifyRing.circle(0, 0, radius + 7);
+        verifyRing.stroke({ width: 2.5, color: ringColor, alpha: 0.9 });
+        verifyRing.circle(0, 0, radius + 10);
+        verifyRing.fill({ color: ringColor, alpha: 0.08 });
+      }
+      c.addChild(verifyRing);
+
       // Border ring + glow
       const gfx = new Graphics();
       gfx.circle(0, 0, radius + 4);

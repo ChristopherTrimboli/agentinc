@@ -3,7 +3,7 @@ import { getErc8004Sdk, COLLECTION_POINTER } from "@/lib/erc8004";
 import prisma from "@/lib/prisma";
 import { rateLimitByIP } from "@/lib/rateLimit";
 import { isRedisConfigured, getRedis } from "@/lib/redis";
-import type { NetworkData } from "@/lib/network/types";
+import type { NetworkData, AgentVerification } from "@/lib/network/types";
 
 export const dynamic = "force-dynamic";
 
@@ -331,6 +331,43 @@ export async function GET(req: NextRequest) {
       0,
     );
 
+    // ── Merge verification data from Redis ──
+    let totalVerified = 0;
+    if (isRedisConfigured()) {
+      try {
+        const redis = getRedis();
+        const allAssets = collections.flatMap((c) =>
+          c.agents.map((a) => a.asset),
+        );
+
+        if (allAssets.length > 0) {
+          const keys = allAssets.map((a) => `verify:8004:${a}`);
+          const values = await redis.mget<(string | null)[]>(...keys);
+
+          for (let i = 0; i < allAssets.length; i++) {
+            const raw = values[i];
+            if (!raw) continue;
+            const verification: AgentVerification =
+              typeof raw === "string" ? JSON.parse(raw) : raw;
+            if (verification.status === "verified") totalVerified++;
+
+            for (const coll of collections) {
+              const agent = coll.agents.find(
+                (a) => a.asset === allAssets[i],
+              );
+              if (agent) {
+                (agent as { verification?: AgentVerification }).verification =
+                  verification;
+                break;
+              }
+            }
+          }
+        }
+      } catch {
+        // Non-critical — verification data is optional
+      }
+    }
+
     const data: NetworkData = {
       stats: {
         totalAgents: stats ? stats.total_agents : loadedAgentCount,
@@ -340,6 +377,7 @@ export async function GET(req: NextRequest) {
         platinumAgents: stats ? stats.platinum_agents : 0,
         goldAgents: stats ? stats.gold_agents : 0,
         avgQuality: stats ? stats.avg_quality : null,
+        totalVerified,
       },
       collections,
     };

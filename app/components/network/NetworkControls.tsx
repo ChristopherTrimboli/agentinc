@@ -6,6 +6,7 @@ import {
   ShieldCheck,
   Users,
   MessageSquare,
+  CheckCircle2,
 } from "lucide-react";
 import type { NetworkStats } from "@/lib/network/types";
 import { TRUST_TIER_NAMES, TRUST_TIER_CSS } from "@/lib/network/types";
@@ -57,6 +58,13 @@ export default function NetworkControls({
             icon={<MessageSquare className="w-3.5 h-3.5" />}
             value={stats.totalFeedbacks}
             label="Feedbacks"
+          />
+        )}
+        {stats && stats.totalVerified > 0 && (
+          <StatPill
+            icon={<CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
+            value={stats.totalVerified}
+            label="Verified"
           />
         )}
       </div>
