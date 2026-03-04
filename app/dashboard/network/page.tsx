@@ -69,7 +69,9 @@ export default function NetworkPage() {
   const loadedAgents = data
     ? data.collections.reduce((s, c) => s + c.agents.length, 0)
     : 0;
-  const totalAgents = data ? Math.max(data.stats?.totalAgents ?? 0, loadedAgents) : 0;
+  const totalAgents = data
+    ? Math.max(data.stats?.totalAgents ?? 0, loadedAgents)
+    : 0;
 
   const networkMetrics = data
     ? (() => {

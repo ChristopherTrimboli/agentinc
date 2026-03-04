@@ -1,37 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getErc8004Sdk, COLLECTION_POINTER } from "@/lib/erc8004";
+import { COLLECTION_POINTER } from "@/lib/erc8004";
 import type { SolanaSDK } from "@/lib/erc8004";
+import {
+  getCachedGlobalStats,
+  getCachedCollectionPointers,
+  getCachedIsIndexerAvailable,
+  getCachedSearchAgents,
+  getCachedCollectionAssets,
+} from "@/lib/erc8004/cached";
 import prisma from "@/lib/prisma";
 import { rateLimitByIP } from "@/lib/rateLimit";
-import { isRedisConfigured, getRedis } from "@/lib/redis";
 import { SOLANA_RPC_URL } from "@/lib/constants/solana";
 import type { NetworkData, AgentVerification } from "@/lib/network/types";
 
 export const dynamic = "force-dynamic";
 
-// ── Cache Config ────────────────────────────────────────────────────────────
-
-const CACHE_KEY = "api:8004:network";
-const CACHE_TTL = 300; // 5 minutes
-
-// ── Pagination ──────────────────────────────────────────────────────────────
+// ── Pagination (using cached SDK calls) ──────────────────────────────────────
 
 const PAGE_SIZE = 200;
 
 type IndexedAgent = Awaited<ReturnType<SolanaSDK["searchAgents"]>>[number];
 
-/** Paginate through all results for getCollectionAssets. */
-async function fetchAllCollectionAssets(
-  sdk: SolanaSDK,
-  col: string,
-): Promise<IndexedAgent[]> {
+async function fetchAllCollectionAssets(col: string): Promise<IndexedAgent[]> {
   const all: IndexedAgent[] = [];
   let offset = 0;
   for (;;) {
-    const page = await sdk.getCollectionAssets(col, {
-      limit: PAGE_SIZE,
-      offset,
-    });
+    const page = await getCachedCollectionAssets(col, PAGE_SIZE, offset);
     all.push(...page);
     if (page.length < PAGE_SIZE) break;
     offset += PAGE_SIZE;
@@ -39,12 +33,11 @@ async function fetchAllCollectionAssets(
   return all;
 }
 
-/** Paginate through all results for searchAgents. */
-async function fetchAllAgents(sdk: SolanaSDK): Promise<IndexedAgent[]> {
+async function fetchAllAgents(): Promise<IndexedAgent[]> {
   const all: IndexedAgent[] = [];
   let offset = 0;
   for (;;) {
-    const page = await sdk.searchAgents({ limit: PAGE_SIZE, offset });
+    const page = await getCachedSearchAgents(PAGE_SIZE, offset);
     all.push(...page);
     if (page.length < PAGE_SIZE) break;
     offset += PAGE_SIZE;
@@ -140,29 +133,10 @@ export async function GET(req: NextRequest) {
   const limited = await rateLimitByIP(req, "8004-network", 30);
   if (limited) return limited;
 
-  // ── Redis cache check ──
-  if (isRedisConfigured()) {
-    try {
-      const redis = getRedis();
-      const cached = await redis.get<NetworkData>(CACHE_KEY);
-      if (cached) {
-        return NextResponse.json(cached, {
-          headers: {
-            "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
-          },
-        });
-      }
-    } catch {
-      // Fall through to fresh fetch
-    }
-  }
-
   try {
-    const sdk = getErc8004Sdk();
-
     let indexerUp = false;
     try {
-      indexerUp = await sdk.isIndexerAvailable();
+      indexerUp = await getCachedIsIndexerAvailable();
     } catch {
       /* ignore */
     }
@@ -174,10 +148,10 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Parallelize: stats + pointers + DB enrichment data
+    // Parallelize: stats + pointers + DB enrichment data (all cached 5min)
     const [statsResult, pointersResult, dbResult] = await Promise.allSettled([
-      sdk.getGlobalStats(),
-      sdk.getCollectionPointers(),
+      getCachedGlobalStats(),
+      getCachedCollectionPointers(),
       prisma.agent.findMany({
         where: { erc8004Asset: { not: null } },
         select: { erc8004Asset: true, name: true, imageUrl: true },
@@ -221,7 +195,7 @@ export async function GET(req: NextRequest) {
       Array.from(uniquePointers.values()).map(async (ptr) => {
         let agents: IndexedAgent[] = [];
         try {
-          agents = await fetchAllCollectionAssets(sdk, ptr.col);
+          agents = await fetchAllCollectionAssets(ptr.col);
         } catch (err) {
           console.warn(
             `[8004 Network] Failed to fetch assets for ${ptr.col}:`,
@@ -274,7 +248,7 @@ export async function GET(req: NextRequest) {
     // Fetch all agents to find ones not in any collection
     let searchResult: IndexedAgent[] = [];
     try {
-      searchResult = await fetchAllAgents(sdk);
+      searchResult = await fetchAllAgents();
     } catch (err) {
       console.error("[8004 Network] Failed to fetch unassigned agents:", err);
     }
@@ -370,65 +344,41 @@ export async function GET(req: NextRequest) {
       0,
     );
 
-    // ── Merge verification data (Redis cache → DB fallback) ──
+    // ── Merge verification data from DB (source of truth) ──
     let totalVerified = 0;
     const allAssets = collections.flatMap((c) => c.agents.map((a) => a.asset));
 
     if (allAssets.length > 0) {
-      const verificationMap = new Map<string, AgentVerification>();
+      try {
+        const dbRows = await prisma.networkVerification.findMany({
+          where: { asset: { in: allAssets } },
+          cacheStrategy: { ttl: 60, swr: 120 },
+        });
 
-      // Try Redis cache first
-      if (isRedisConfigured()) {
-        try {
-          const redis = getRedis();
-          const keys = allAssets.map((a) => `verify:8004:${a}`);
-          const values = await redis.mget<(string | null)[]>(...keys);
-
-          for (let i = 0; i < allAssets.length; i++) {
-            const raw = values[i];
-            if (!raw) continue;
-            const verification: AgentVerification =
-              typeof raw === "string" ? JSON.parse(raw) : raw;
-            verificationMap.set(allAssets[i], verification);
-          }
-        } catch {
-          /* fall through to DB */
-        }
-      }
-
-      // DB fallback for any assets not found in Redis
-      const missingAssets = allAssets.filter((a) => !verificationMap.has(a));
-      if (missingAssets.length > 0) {
-        try {
-          const dbRows = await prisma.networkVerification.findMany({
-            where: { asset: { in: missingAssets } },
-            cacheStrategy: { ttl: 60, swr: 120 },
-          });
-          for (const row of dbRows) {
-            verificationMap.set(row.asset, {
-              status: row.status as AgentVerification["status"],
-              checks: row.checks as unknown as AgentVerification["checks"],
-              verifiedAt: row.verifiedAt.toISOString(),
-              score: row.score,
-              maxScore: row.maxScore,
-            });
-          }
-        } catch {
-          /* non-critical */
-        }
-      }
-
-      // Apply to agents
-      for (const [asset, verification] of verificationMap) {
-        if (verification.status === "verified") totalVerified++;
+        const assetToAgent = new Map<string, (typeof collections)[number]["agents"][number]>();
         for (const coll of collections) {
-          const agent = coll.agents.find((a) => a.asset === asset);
+          for (const agent of coll.agents) {
+            assetToAgent.set(agent.asset, agent);
+          }
+        }
+
+        for (const row of dbRows) {
+          const verification: AgentVerification = {
+            status: row.status as AgentVerification["status"],
+            checks: row.checks as unknown as AgentVerification["checks"],
+            verifiedAt: row.verifiedAt.toISOString(),
+            score: row.score,
+            maxScore: row.maxScore,
+          };
+          if (verification.status === "verified") totalVerified++;
+          const agent = assetToAgent.get(row.asset);
           if (agent) {
             (agent as { verification?: AgentVerification }).verification =
               verification;
-            break;
           }
         }
+      } catch (err) {
+        console.warn("[8004 Network] DB verification merge failed:", err);
       }
     }
 
@@ -446,19 +396,9 @@ export async function GET(req: NextRequest) {
       collections,
     };
 
-    // ── Write to Redis cache ──
-    if (isRedisConfigured()) {
-      try {
-        const redis = getRedis();
-        await redis.set(CACHE_KEY, data, { ex: CACHE_TTL });
-      } catch {
-        // Non-critical
-      }
-    }
-
     return NextResponse.json(data, {
       headers: {
-        "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+        "Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
       },
     });
   } catch (error) {

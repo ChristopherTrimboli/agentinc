@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { getErc8004Sdk } from "@/lib/erc8004";
+import {
+  getCachedIsIndexerAvailable,
+  getCachedSearchAgents,
+} from "@/lib/erc8004/cached";
 import prisma from "@/lib/prisma";
 import { rateLimitByIP } from "@/lib/rateLimit";
-import { isRedisConfigured, getRedis } from "@/lib/redis";
 import {
   verifyAgentBatch,
   submitFeedbackBatch,
@@ -11,13 +13,8 @@ import {
 import type { AgentVerification } from "@/lib/network/types";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 800;
+export const maxDuration = 900;
 
-// ── Cache Keys ───────────────────────────────────────────────────────────────
-
-const VERIFY_PREFIX = "verify:8004:";
-const SUMMARY_KEY = "verify:8004:summary";
-const RESULT_TTL = 7200;
 const DB_UPSERT_CHUNK = 50;
 
 // ── POST: Cron-triggered batch verification ──────────────────────────────────
@@ -31,11 +28,9 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const sdk = getErc8004Sdk();
-
     let indexerUp = false;
     try {
-      indexerUp = await sdk.isIndexerAvailable();
+      indexerUp = await getCachedIsIndexerAvailable();
     } catch {
       /* ignore */
     }
@@ -47,10 +42,49 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const agents = await sdk.searchAgents({ limit: 500 });
+    const allAgents = await getCachedSearchAgents(500, 0);
+
+    // Skip agents missing required fields — no point verifying bare registrations
+    const agents = allAgents.filter((a) => {
+      const uri = a.agent_uri;
+      if (!uri || uri.length < 10) return false;
+
+      // Inline JSON — require services or endpoints array to count as real
+      if (uri.startsWith("{")) {
+        try {
+          const json = JSON.parse(uri);
+          return (
+            Array.isArray(json.services) || Array.isArray(json.endpoints)
+          );
+        } catch {
+          return false;
+        }
+      }
+
+      // Must be a fetchable URL
+      if (
+        !uri.startsWith("http") &&
+        !uri.startsWith("ipfs://") &&
+        !uri.startsWith("ar://")
+      ) {
+        return false;
+      }
+
+      // Skip known non-metadata URLs (READMEs, GitHub raw, etc.)
+      if (/readme|\.md$|\.txt$/i.test(uri)) return false;
+
+      return true;
+    });
+
+    const skippedCount = allAgents.length - agents.length;
+    if (skippedCount > 0) {
+      console.log(
+        `[8004 Verify] Skipped ${skippedCount}/${allAgents.length} agents missing valid agent_uri`,
+      );
+    }
 
     if (agents.length === 0) {
-      return NextResponse.json({ verified: 0, total: 0 });
+      return NextResponse.json({ verified: 0, total: 0, skipped: skippedCount });
     }
 
     const results = await verifyAgentBatch(agents, 10);
@@ -63,14 +97,16 @@ export async function POST(req: NextRequest) {
     }
 
     const summaryPayload = {
-      total: agents.length,
+      total: allAgents.length,
+      checked: agents.length,
+      skipped: skippedCount,
       verified: verifiedCount,
       partial: partialCount,
       unverified: agents.length - verifiedCount - partialCount,
       checkedAt: new Date().toISOString(),
     };
 
-    // ── Persist + cache + feedback in parallel ──
+    // ── Persist to DB + submit feedback in parallel ──
     const entries = Array.from(results.entries());
 
     const dbPersist = (async () => {
@@ -101,33 +137,6 @@ export async function POST(req: NextRequest) {
       }
     })();
 
-    const redisCache = (async () => {
-      if (!isRedisConfigured()) return;
-      try {
-        const redis = getRedis();
-        const pipeline = redis.pipeline();
-
-        for (const [asset, verification] of entries) {
-          pipeline.set(
-            `${VERIFY_PREFIX}${asset}`,
-            JSON.stringify(verification),
-            { ex: RESULT_TTL },
-          );
-        }
-
-        pipeline.set(SUMMARY_KEY, JSON.stringify(summaryPayload), {
-          ex: RESULT_TTL,
-        });
-        pipeline.del("api:8004:network");
-        await pipeline.exec();
-      } catch (err) {
-        console.warn(
-          "[8004 Verify] Redis cache write failed (non-critical):",
-          err,
-        );
-      }
-    })();
-
     const feedbackSubmit = (async () => {
       if (!process.env.ERC8004_SIGNER_PRIVATE_KEY) return 0;
       try {
@@ -144,9 +153,8 @@ export async function POST(req: NextRequest) {
       }
     })();
 
-    const [, , feedbackSubmitted] = await Promise.all([
+    const [, feedbackSubmitted] = await Promise.all([
       dbPersist,
-      redisCache,
       feedbackSubmit,
     ]);
 
@@ -160,7 +168,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// ── GET: Read verification results (Redis → DB fallback) ─────────────────────
+// ── GET: Read verification results from DB ───────────────────────────────────
 
 export async function GET(req: NextRequest) {
   const limited = await rateLimitByIP(req, "8004-verify", 60);
@@ -170,22 +178,6 @@ export async function GET(req: NextRequest) {
     const asset = req.nextUrl.searchParams.get("asset");
 
     if (asset) {
-      // Try Redis cache first
-      if (isRedisConfigured()) {
-        try {
-          const redis = getRedis();
-          const raw = await redis.get<string>(`${VERIFY_PREFIX}${asset}`);
-          if (raw) {
-            const verification: AgentVerification =
-              typeof raw === "string" ? JSON.parse(raw) : raw;
-            return NextResponse.json({ verification });
-          }
-        } catch {
-          /* fall through to DB */
-        }
-      }
-
-      // DB fallback
       const row = await prisma.networkVerification.findUnique({
         where: { asset },
         cacheStrategy: { ttl: 60, swr: 120 },
@@ -202,17 +194,6 @@ export async function GET(req: NextRequest) {
         : null;
 
       return NextResponse.json({ verification });
-    }
-
-    // Summary — try Redis first
-    if (isRedisConfigured()) {
-      try {
-        const redis = getRedis();
-        const summary = await redis.get(SUMMARY_KEY);
-        if (summary) return NextResponse.json({ summary });
-      } catch {
-        /* fall through to DB */
-      }
     }
 
     // Compute summary from DB
