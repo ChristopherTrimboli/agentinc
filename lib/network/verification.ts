@@ -9,7 +9,7 @@ import { PublicKey } from "@solana/web3.js";
 import { put } from "@vercel/blob";
 
 import { getErc8004Sdk, getSignedErc8004Sdk } from "@/lib/erc8004";
-import { isRedisConfigured, getRedis } from "@/lib/redis";
+import prisma from "@/lib/prisma";
 import type {
   VerificationCheck,
   AgentVerification,
@@ -320,7 +320,7 @@ export async function verifyAgent(
 /** Verify a batch of agents with concurrency limiting. */
 export async function verifyAgentBatch(
   agents: IndexedAgent[],
-  concurrency = 5,
+  concurrency = 10,
 ): Promise<Map<string, AgentVerification>> {
   const results = new Map<string, AgentVerification>();
   let index = 0;
@@ -422,30 +422,27 @@ async function uploadReport(
   return url;
 }
 
-// ── Feedback Dedup ───────────────────────────────────────────────────────────
-
-const SKIP_KEY = "verify:8004:skip-assets";
-const LAST_FEEDBACK_KEY = "verify:8004:last-feedback";
-const SKIP_TTL = 86400; // 24 hours
-const LAST_FEEDBACK_TTL = 86400; // 24 hours
+// ── Feedback Dedup (DB-backed) ───────────────────────────────────────────────
 
 async function getSkippedAssets(): Promise<Set<string>> {
-  if (!isRedisConfigured()) return new Set();
   try {
-    const redis = getRedis();
-    const members = await redis.smembers(SKIP_KEY);
-    return new Set(members);
+    const rows = await prisma.networkFeedbackState.findMany({
+      where: { skipped: true },
+      select: { asset: true },
+    });
+    return new Set(rows.map((r) => r.asset));
   } catch {
     return new Set();
   }
 }
 
 async function markAssetSkipped(asset: string): Promise<void> {
-  if (!isRedisConfigured()) return;
   try {
-    const redis = getRedis();
-    await redis.sadd(SKIP_KEY, asset);
-    await redis.expire(SKIP_KEY, SKIP_TTL);
+    await prisma.networkFeedbackState.upsert({
+      where: { asset },
+      create: { asset, skipped: true },
+      update: { skipped: true },
+    });
   } catch {
     /* non-critical */
   }
@@ -453,11 +450,16 @@ async function markAssetSkipped(asset: string): Promise<void> {
 
 /** Get the last feedback status we submitted per agent. */
 async function getLastFeedbackStatuses(): Promise<Map<string, string>> {
-  if (!isRedisConfigured()) return new Map();
   try {
-    const redis = getRedis();
-    const data = await redis.hgetall<Record<string, string>>(LAST_FEEDBACK_KEY);
-    return new Map(Object.entries(data ?? {}));
+    const rows = await prisma.networkFeedbackState.findMany({
+      where: { lastStatus: { not: null } },
+      select: { asset: true, lastStatus: true },
+    });
+    return new Map(
+      rows
+        .filter((r): r is typeof r & { lastStatus: string } => r.lastStatus !== null)
+        .map((r) => [r.asset, r.lastStatus]),
+    );
   } catch {
     return new Map();
   }
@@ -468,11 +470,12 @@ async function setLastFeedbackStatus(
   asset: string,
   status: string,
 ): Promise<void> {
-  if (!isRedisConfigured()) return;
   try {
-    const redis = getRedis();
-    await redis.hset(LAST_FEEDBACK_KEY, { [asset]: status });
-    await redis.expire(LAST_FEEDBACK_KEY, LAST_FEEDBACK_TTL);
+    await prisma.networkFeedbackState.upsert({
+      where: { asset },
+      create: { asset, lastStatus: status },
+      update: { lastStatus: status },
+    });
   } catch {
     /* non-critical */
   }
@@ -556,7 +559,7 @@ export async function submitVerificationFeedback(
 export async function submitFeedbackBatch(
   agents: IndexedAgent[],
   verifications: Map<string, AgentVerification>,
-  concurrency = 3,
+  concurrency = 5,
 ): Promise<number> {
   let submitted = 0;
   let index = 0;

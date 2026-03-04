@@ -328,16 +328,19 @@ export async function GET(req: NextRequest) {
       0,
     );
 
-    // ── Merge verification data from Redis ──
+    // ── Merge verification data (Redis cache → DB fallback) ──
     let totalVerified = 0;
-    if (isRedisConfigured()) {
-      try {
-        const redis = getRedis();
-        const allAssets = collections.flatMap((c) =>
-          c.agents.map((a) => a.asset),
-        );
+    const allAssets = collections.flatMap((c) =>
+      c.agents.map((a) => a.asset),
+    );
 
-        if (allAssets.length > 0) {
+    if (allAssets.length > 0) {
+      const verificationMap = new Map<string, AgentVerification>();
+
+      // Try Redis cache first
+      if (isRedisConfigured()) {
+        try {
+          const redis = getRedis();
           const keys = allAssets.map((a) => `verify:8004:${a}`);
           const values = await redis.mget<(string | null)[]>(...keys);
 
@@ -346,20 +349,46 @@ export async function GET(req: NextRequest) {
             if (!raw) continue;
             const verification: AgentVerification =
               typeof raw === "string" ? JSON.parse(raw) : raw;
-            if (verification.status === "verified") totalVerified++;
+            verificationMap.set(allAssets[i], verification);
+          }
+        } catch {
+          /* fall through to DB */
+        }
+      }
 
-            for (const coll of collections) {
-              const agent = coll.agents.find((a) => a.asset === allAssets[i]);
-              if (agent) {
-                (agent as { verification?: AgentVerification }).verification =
-                  verification;
-                break;
-              }
-            }
+      // DB fallback for any assets not found in Redis
+      const missingAssets = allAssets.filter((a) => !verificationMap.has(a));
+      if (missingAssets.length > 0) {
+        try {
+          const dbRows = await prisma.networkVerification.findMany({
+            where: { asset: { in: missingAssets } },
+            cacheStrategy: { ttl: 60, swr: 120 },
+          });
+          for (const row of dbRows) {
+            verificationMap.set(row.asset, {
+              status: row.status as AgentVerification["status"],
+              checks: row.checks as AgentVerification["checks"],
+              verifiedAt: row.verifiedAt.toISOString(),
+              score: row.score,
+              maxScore: row.maxScore,
+            });
+          }
+        } catch {
+          /* non-critical */
+        }
+      }
+
+      // Apply to agents
+      for (const [asset, verification] of verificationMap) {
+        if (verification.status === "verified") totalVerified++;
+        for (const coll of collections) {
+          const agent = coll.agents.find((a) => a.asset === asset);
+          if (agent) {
+            (agent as { verification?: AgentVerification }).verification =
+              verification;
+            break;
           }
         }
-      } catch {
-        // Non-critical — verification data is optional
       }
     }
 

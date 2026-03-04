@@ -375,6 +375,40 @@ model WalletTransaction {
   @@index([userId, createdAt])
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// 8004 NETWORK VERIFICATION — Durable verification results (Slop or Not)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Per-agent verification result from the batch cron job
+model NetworkVerification {
+  id         String   @id @default(cuid())
+  asset      String   @unique // 8004 asset pubkey
+  status     String   // "verified" | "partial" | "unverified"
+  score      Int
+  maxScore   Int
+  checks     Json     // VerificationCheck[]
+  verifiedAt DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([verifiedAt])
+}
+
+// Feedback dedup state — tracks last submitted status and invalid-asset skip list
+model NetworkFeedbackState {
+  id         String  @id @default(cuid())
+  asset      String  @unique // 8004 asset pubkey
+  lastStatus String? // last feedback status we submitted on-chain
+  skipped    Boolean @default(false) // true = invalid asset, skip future feedback
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([skipped])
+}
+
 // Individual iteration log entry for an AgentTask
 model TaskLog {
   id        String @id @default(cuid())
