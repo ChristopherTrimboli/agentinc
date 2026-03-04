@@ -3,6 +3,8 @@
 import { useEffect, useState, useCallback, lazy, Suspense } from "react";
 import NetworkDetails from "../../components/network/NetworkDetails";
 import NetworkControls from "../../components/network/NetworkControls";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
+import { usePublicFetch } from "@/lib/hooks/useFetch";
 import type {
   NetworkData,
   NetworkCollection,
@@ -14,34 +16,17 @@ const NetworkCanvas = lazy(
 );
 
 export default function NetworkPage() {
-  const [data, setData] = useState<NetworkData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    data,
+    error: fetchError,
+    isLoading,
+  } = usePublicFetch<NetworkData>("/api/8004/network");
+  const error = fetchError?.message ?? null;
 
   const [selectedCollection, setSelectedCollection] =
     useState<NetworkCollection | null>(null);
   const [selectedAgent, setSelectedAgent] = useState<NetworkAgent | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch("/api/8004/network");
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          throw new Error(body.error || `HTTP ${res.status}`);
-        }
-        setData(await res.json());
-      } catch (err) {
-        console.error("[8004 Network] Fetch failed:", err);
-        setError(
-          err instanceof Error ? err.message : "Failed to load network data",
-        );
-      } finally {
-        setIsLoading(false);
-      }
-    })();
-  }, []);
 
   const handleSelectCollection = useCallback((c: NetworkCollection | null) => {
     setSelectedCollection(c);
@@ -101,22 +86,24 @@ export default function NetworkPage() {
 
       {/* Canvas */}
       {data && !isLoading && (
-        <Suspense
-          fallback={
-            <div className="flex items-center justify-center h-full text-zinc-500">
-              Initializing visualization...
-            </div>
-          }
-        >
-          <NetworkCanvas
-            data={data}
-            searchQuery={searchQuery}
-            onSelectCollection={handleSelectCollection}
-            onSelectAgent={handleSelectAgent}
-            selectedCollectionId={selectedCollection?.id ?? null}
-            selectedAgentAsset={selectedAgent?.asset ?? null}
-          />
-        </Suspense>
+        <ErrorBoundary>
+          <Suspense
+            fallback={
+              <div className="flex items-center justify-center h-full text-zinc-500">
+                Initializing visualization...
+              </div>
+            }
+          >
+            <NetworkCanvas
+              data={data}
+              searchQuery={searchQuery}
+              onSelectCollection={handleSelectCollection}
+              onSelectAgent={handleSelectAgent}
+              selectedCollectionId={selectedCollection?.id ?? null}
+              selectedAgentAsset={selectedAgent?.asset ?? null}
+            />
+          </Suspense>
+        </ErrorBoundary>
       )}
 
       {/* Loading */}

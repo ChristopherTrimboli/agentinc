@@ -1,11 +1,15 @@
 "use client";
 
 import React, { Component, ErrorInfo, ReactNode } from "react";
+import { AlertTriangle, RefreshCw } from "lucide-react";
 
 interface Props {
   children: ReactNode;
-  fallback?: ReactNode;
+  /** Custom fallback UI. Receives the error and a reset function. */
+  fallback?: ReactNode | ((props: { error: Error; reset: () => void }) => ReactNode);
   onError?: (error: Error, errorInfo: ErrorInfo) => void;
+  /** Change this key to force-reset the boundary from a parent (e.g. on route change). */
+  resetKey?: string | number;
 }
 
 interface State {
@@ -14,8 +18,8 @@ interface State {
 }
 
 /**
- * Error Boundary component to catch JavaScript errors in child components.
- * Use this to wrap complex components that might fail (canvas, charts, etc.)
+ * Error Boundary that catches render-time JS errors in child components.
+ * Wrap risky subtrees (canvas, charts, third-party widgets, heavy pages).
  */
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
@@ -27,45 +31,46 @@ export class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
+  componentDidUpdate(prevProps: Props) {
+    if (this.state.hasError && prevProps.resetKey !== this.props.resetKey) {
+      this.reset();
+    }
+  }
+
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error("ErrorBoundary caught an error:", error, errorInfo);
+    console.error("[ErrorBoundary] caught:", error, errorInfo);
     this.props.onError?.(error, errorInfo);
   }
 
+  reset = () => {
+    this.setState({ hasError: false, error: null });
+  };
+
   render() {
     if (this.state.hasError) {
-      if (this.props.fallback) {
-        return this.props.fallback;
+      const { fallback } = this.props;
+
+      if (typeof fallback === "function") {
+        return fallback({ error: this.state.error!, reset: this.reset });
+      }
+      if (fallback) {
+        return fallback;
       }
 
       return (
-        <div className="flex min-h-[200px] flex-col items-center justify-center rounded-lg border border-red-200 bg-red-50 p-6 text-center dark:border-red-900 dark:bg-red-950">
-          <div className="mb-2 text-red-600 dark:text-red-400">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-10 w-10"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-              />
-            </svg>
-          </div>
-          <h3 className="mb-1 text-lg font-semibold text-red-700 dark:text-red-300">
+        <div className="flex min-h-[200px] flex-col items-center justify-center rounded-xl border border-red-500/20 bg-red-500/5 p-6 text-center backdrop-blur-sm">
+          <AlertTriangle className="mb-3 h-8 w-8 text-red-400" />
+          <h3 className="mb-1 text-base font-semibold text-white">
             Something went wrong
           </h3>
-          <p className="mb-4 text-sm text-red-600 dark:text-red-400">
+          <p className="mb-4 max-w-sm text-sm text-white/50">
             {this.state.error?.message || "An unexpected error occurred"}
           </p>
           <button
-            onClick={() => this.setState({ hasError: false, error: null })}
-            className="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700"
+            onClick={this.reset}
+            className="inline-flex items-center gap-2 rounded-lg bg-white/10 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-white/20"
           >
+            <RefreshCw className="h-3.5 w-3.5" />
             Try again
           </button>
         </div>
@@ -77,17 +82,23 @@ export class ErrorBoundary extends Component<Props, State> {
 }
 
 /**
- * Hook-friendly wrapper for error boundary
+ * HOC wrapper for class-based ErrorBoundary.
+ *
+ * ```tsx
+ * const SafeChart = withErrorBoundary(AgentArenaChart);
+ * ```
  */
 export function withErrorBoundary<P extends object>(
   WrappedComponent: React.ComponentType<P>,
-  fallback?: ReactNode,
+  fallback?: Props["fallback"],
 ) {
-  return function WithErrorBoundary(props: P) {
+  function WithErrorBoundary(props: P) {
     return (
       <ErrorBoundary fallback={fallback}>
         <WrappedComponent {...props} />
       </ErrorBoundary>
     );
-  };
+  }
+  WithErrorBoundary.displayName = `withErrorBoundary(${WrappedComponent.displayName || WrappedComponent.name || "Component"})`;
+  return WithErrorBoundary;
 }

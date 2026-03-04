@@ -22,6 +22,7 @@ import CorporateNetwork from "./components/CorporateNetwork";
 import AgentCapabilities from "./components/AgentCapabilities";
 import HowItWorks from "./components/HowItWorks";
 import Footer from "./components/Footer";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 
 // Cute "Soon" badge component
 function SoonBadge({ className = "" }: { className?: string }) {
@@ -55,7 +56,9 @@ export default function Home() {
         <section className="relative min-h-screen flex items-center justify-center pb-8 px-4 sm:px-6">
           {/* Animated Hero Visual */}
           <div className="absolute inset-0 z-0">
-            <HeroAnimation />
+            <ErrorBoundary fallback={null}>
+              <HeroAnimation />
+            </ErrorBoundary>
           </div>
 
           <div className="max-w-5xl mx-auto text-center relative z-10">
@@ -244,7 +247,9 @@ export default function Home() {
 
               {/* Right - Chart */}
               <div className="mt-8 lg:mt-0">
-                <AgentArenaChart />
+                <ErrorBoundary>
+                  <AgentArenaChart />
+                </ErrorBoundary>
               </div>
             </div>
 

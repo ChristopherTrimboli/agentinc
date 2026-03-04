@@ -1,4 +1,6 @@
 import { ImageResponse } from "next/og";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import prisma from "@/lib/prisma";
 
 export const alt = "User Profile | Agent Inc.";
@@ -19,9 +21,7 @@ const RARITY_COLORS: Record<string, string> = {
   mythic: "#F43F5E",
 };
 
-const logoData = fetch(
-  new URL("../../../public/agentinc.jpg", import.meta.url),
-).then((res) => res.arrayBuffer());
+const logoData = readFile(join(process.cwd(), "public/agentinc.jpg"));
 
 async function fetchProfileData(wallet: string): Promise<{
   agents: AgentData[];

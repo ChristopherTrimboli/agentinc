@@ -46,7 +46,8 @@ export async function GET(
         "X-Verified-By": "Agent Inc.",
       },
     });
-  } catch {
+  } catch (error) {
+    console.error("[FeedbackReport] Failed to fetch report:", error);
     return NextResponse.json(
       { error: "Failed to fetch report" },
       { status: 500 },

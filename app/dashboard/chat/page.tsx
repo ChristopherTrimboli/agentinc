@@ -130,6 +130,7 @@ import {
 } from "./types";
 
 import { RARITY_SELECTOR_STYLES } from "@/lib/utils/rarity";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 
 const rarityColors = RARITY_SELECTOR_STYLES as Record<
   string,
@@ -2958,14 +2959,16 @@ function ChatPageContent() {
 
 export default function ChatPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="h-full flex items-center justify-center bg-[#000020]">
-          <Loader size={32} className="text-[#6FEC06]" />
-        </div>
-      }
-    >
-      <ChatPageContent />
-    </Suspense>
+    <ErrorBoundary>
+      <Suspense
+        fallback={
+          <div className="h-full flex items-center justify-center bg-[#000020]">
+            <Loader size={32} className="text-[#6FEC06]" />
+          </div>
+        }
+      >
+        <ChatPageContent />
+      </Suspense>
+    </ErrorBoundary>
   );
 }

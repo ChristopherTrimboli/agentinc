@@ -1,4 +1,6 @@
 import { ImageResponse } from "next/og";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import prisma from "@/lib/prisma";
 
 export const alt = "Corporation | Agent Inc.";
@@ -13,9 +15,7 @@ interface CorpData {
   agents: { name: string; imageUrl: string | null }[];
 }
 
-const logoData = fetch(
-  new URL("../../../public/agentinc.jpg", import.meta.url),
-).then((res) => res.arrayBuffer());
+const logoData = readFile(join(process.cwd(), "public/agentinc.jpg"));
 
 async function fetchCorpData(
   id: string,

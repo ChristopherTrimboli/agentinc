@@ -1,13 +1,12 @@
 import { ImageResponse } from "next/og";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 
 export const alt = "$AGENT Tokenomics | Agent Inc.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
-export const runtime = "edge";
 
-const logoData = fetch(
-  new URL("../../public/agentinc.jpg", import.meta.url),
-).then((res) => res.arrayBuffer());
+const logoData = readFile(join(process.cwd(), "public/agentinc.jpg"));
 
 export default async function Image() {
   const logo = await logoData;
