@@ -30,7 +30,7 @@ async function fetchProfileData(wallet: string): Promise<{
   try {
     const agents = await prisma.agent.findMany({
       where: {
-        owner: {
+        createdBy: {
           wallets: { some: { address: wallet } },
         },
         isPublic: true,

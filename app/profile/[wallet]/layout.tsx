@@ -13,7 +13,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
     const agentCount = await prisma.agent.count({
       where: {
-        owner: {
+        createdBy: {
           wallets: {
             some: { address: wallet },
           },
