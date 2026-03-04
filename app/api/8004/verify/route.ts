@@ -16,9 +16,7 @@ export const maxDuration = 300;
 
 const VERIFY_PREFIX = "verify:8004:";
 const SUMMARY_KEY = "verify:8004:summary";
-const FEEDBACK_LOCK = "verify:8004:feedback-lock";
 const RESULT_TTL = 1800; // 30 minutes
-const FEEDBACK_COOLDOWN = 3600; // 1 hour between feedback submissions
 
 // ── POST: Cron-triggered batch verification ──────────────────────────────────
 
@@ -93,21 +91,12 @@ export async function POST(req: NextRequest) {
 
     await pipeline.exec();
 
-    // ── Submit on-chain feedback (dedup with cooldown lock) ──
+    // ── Submit on-chain feedback (only for status changes) ──
     let feedbackSubmitted = 0;
     if (process.env.ERC8004_SIGNER_PRIVATE_KEY) {
       try {
-        const lockAcquired = await redis.set(FEEDBACK_LOCK, "1", {
-          ex: FEEDBACK_COOLDOWN,
-          nx: true,
-        });
-
-        if (lockAcquired) {
-          feedbackSubmitted = await submitFeedbackBatch(
-            agents,
-            results,
-            3,
-          );
+        feedbackSubmitted = await submitFeedbackBatch(agents, results, 3);
+        if (feedbackSubmitted > 0) {
           console.log(
             `[8004 Verify] Submitted ${feedbackSubmitted} on-chain feedback entries`,
           );

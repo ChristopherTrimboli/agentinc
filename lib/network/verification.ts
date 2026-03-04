@@ -9,6 +9,7 @@ import { PublicKey } from "@solana/web3.js";
 import { put } from "@vercel/blob";
 
 import { getErc8004Sdk, getSignedErc8004Sdk } from "@/lib/erc8004";
+import { isRedisConfigured, getRedis } from "@/lib/redis";
 import type {
   VerificationCheck,
   AgentVerification,
@@ -21,8 +22,6 @@ import type { IndexedAgent } from "8004-solana";
 
 const LIVENESS_TIMEOUT_MS = 8000;
 const METADATA_TIMEOUT_MS = 5000;
-const QUALITY_THRESHOLD = 20;
-const RISK_THRESHOLD = 80;
 
 // ── Individual Checks ────────────────────────────────────────────────────────
 
@@ -195,35 +194,6 @@ async function checkIndexerIntegrity(
   }
 }
 
-function checkReputationHealth(agent: IndexedAgent): VerificationCheck {
-  if (agent.feedback_count === 0) {
-    return {
-      name: "Reputation Health",
-      passed: true,
-      skipped: true,
-      details: "No feedbacks yet",
-    };
-  }
-
-  const issues: string[] = [];
-  if (agent.quality_score < QUALITY_THRESHOLD) {
-    issues.push(`quality ${Math.round(agent.quality_score)}%`);
-  }
-  if (agent.risk_score >= RISK_THRESHOLD) {
-    issues.push(`risk ${Math.round(agent.risk_score)}%`);
-  }
-
-  return {
-    name: "Reputation Health",
-    passed: issues.length === 0,
-    skipped: false,
-    details:
-      issues.length === 0
-        ? `Quality ${Math.round(agent.quality_score)}%, ${agent.feedback_count} feedbacks`
-        : `Issues: ${issues.join(", ")}`,
-  };
-}
-
 function checkRegistrationComplete(agent: IndexedAgent): VerificationCheck {
   const hasUri = !!agent.agent_uri && agent.agent_uri.length > 5;
   const hasPointer =
@@ -260,10 +230,9 @@ export async function verifyAgent(
     checkIndexerIntegrity(asset, agent.feedback_count),
   ]);
 
-  const reputation = checkReputationHealth(agent);
   const registration = checkRegistrationComplete(agent);
 
-  const checks = [liveness, metadata, integrity, reputation, registration];
+  const checks = [liveness, metadata, integrity, registration];
 
   const applicable = checks.filter((c) => !c.skipped);
   const passed = applicable.filter((c) => c.passed);
@@ -332,6 +301,8 @@ interface VerificationReport {
   status: VerificationStatus;
   score: number;
   maxScore: number;
+  summary: string;
+  issues: string[];
   checks: VerificationCheck[];
   verifier: string;
   verifierUrl: string;
@@ -341,6 +312,32 @@ function buildReport(
   asset: string,
   verification: AgentVerification,
 ): VerificationReport {
+  const failed = verification.checks.filter(
+    (c) => !c.passed && !c.skipped,
+  );
+  const issues: string[] = [];
+
+  for (const check of failed) {
+    if (check.serviceResults?.length) {
+      for (const svc of check.serviceResults) {
+        if (!svc.ok && !svc.skipped) {
+          issues.push(
+            `${svc.type} endpoint ${svc.endpoint} unreachable${svc.reason ? `: ${svc.reason}` : ""}`,
+          );
+        }
+      }
+    } else {
+      issues.push(`${check.name}: ${check.details}`);
+    }
+  }
+
+  const statusLabel =
+    verification.status === "verified"
+      ? "All checks passed"
+      : verification.status === "partial"
+        ? `${verification.score}/${verification.maxScore} checks passed`
+        : "Agent failed verification";
+
   return {
     type: "agentinc-verification-v1",
     agent: asset,
@@ -348,6 +345,8 @@ function buildReport(
     status: verification.status,
     score: verification.score,
     maxScore: verification.maxScore,
+    summary: `${statusLabel}. ${issues.length > 0 ? `Issues: ${issues.length}` : "No issues found."}`,
+    issues,
     checks: verification.checks,
     verifier: "Agent Inc.",
     verifierUrl: APP_URL,
@@ -370,24 +369,71 @@ async function uploadReport(
   return url;
 }
 
+// ── Feedback Dedup ───────────────────────────────────────────────────────────
+
+const SKIP_KEY = "verify:8004:skip-assets";
+const LAST_FEEDBACK_KEY = "verify:8004:last-feedback";
+const SKIP_TTL = 86400; // 24 hours
+const LAST_FEEDBACK_TTL = 86400; // 24 hours
+
+async function getSkippedAssets(): Promise<Set<string>> {
+  if (!isRedisConfigured()) return new Set();
+  try {
+    const redis = getRedis();
+    const members = await redis.smembers(SKIP_KEY);
+    return new Set(members);
+  } catch {
+    return new Set();
+  }
+}
+
+async function markAssetSkipped(asset: string): Promise<void> {
+  if (!isRedisConfigured()) return;
+  try {
+    const redis = getRedis();
+    await redis.sadd(SKIP_KEY, asset);
+    await redis.expire(SKIP_KEY, SKIP_TTL);
+  } catch {
+    /* non-critical */
+  }
+}
+
+/** Get the last feedback status we submitted per agent. */
+async function getLastFeedbackStatuses(): Promise<Map<string, string>> {
+  if (!isRedisConfigured()) return new Map();
+  try {
+    const redis = getRedis();
+    const data = await redis.hgetall<Record<string, string>>(LAST_FEEDBACK_KEY);
+    return new Map(Object.entries(data ?? {}));
+  } catch {
+    return new Map();
+  }
+}
+
+/** Record the status we just submitted feedback for. */
+async function setLastFeedbackStatus(
+  asset: string,
+  status: string,
+): Promise<void> {
+  if (!isRedisConfigured()) return;
+  try {
+    const redis = getRedis();
+    await redis.hset(LAST_FEEDBACK_KEY, { [asset]: status });
+    await redis.expire(LAST_FEEDBACK_KEY, LAST_FEEDBACK_TTL);
+  } catch {
+    /* non-critical */
+  }
+}
+
 /**
- * Submit on-chain 8004 feedback for a verified agent.
- * Uploads the health report to Vercel Blob, then calls giveFeedback()
- * with "reachable" tag and an ATOM-compatible score.
+ * Submit on-chain 8004 feedback for an agent.
+ * Sends the transaction first; only uploads the Blob report on success.
  */
 export async function submitVerificationFeedback(
   agent: IndexedAgent,
   verification: AgentVerification,
 ): Promise<{ signature: string; feedbackUri: string } | null> {
-  if (!agent.atom_enabled) return null;
-  if (verification.status === "unverified") return null;
-
   try {
-    const report = buildReport(agent.asset, verification);
-    const blobUrl = await uploadReport(agent.asset, report);
-
-    const feedbackUri = `${APP_URL}/api/8004/feedback-report/${agent.asset}?src=${encodeURIComponent(blobUrl)}`;
-
     const atomScore = Math.round(
       (verification.score / Math.max(verification.maxScore, 1)) * 100,
     );
@@ -395,37 +441,65 @@ export async function submitVerificationFeedback(
     const livenessCheck = verification.checks.find(
       (c) => c.name === "Service Liveness",
     );
+    const serviceResults = livenessCheck?.serviceResults ?? [];
     const primaryEndpoint =
-      livenessCheck?.serviceResults?.find((s) => s.ok && !s.skipped)
-        ?.endpoint ?? "";
+      serviceResults.find((s) => s.ok && !s.skipped)?.endpoint ??
+      serviceResults.find((s) => !s.skipped)?.endpoint ??
+      "";
+
+    const tag2 =
+      verification.status === "verified"
+        ? "pass"
+        : verification.status === "partial"
+          ? "degraded"
+          : "fail";
 
     const sdk = getSignedErc8004Sdk();
-    const asset = new PublicKey(agent.asset);
+    const assetPk = new PublicKey(agent.asset);
 
-    const result = await sdk.giveFeedback(asset, {
+    const report = buildReport(agent.asset, verification);
+    const feedbackUri = await uploadReport(agent.asset, report);
+
+    const result = await sdk.giveFeedback(assetPk, {
       value: String(atomScore),
       score: atomScore,
       tag1: "reachable",
-      tag2: "cron",
+      tag2,
       endpoint: primaryEndpoint.slice(0, 250),
       feedbackUri,
     });
 
-    if ("signature" in result) {
+    if ("signature" in result && "success" in result) {
+      if (!result.success) {
+        const errMsg = (result as { error?: string }).error ?? "";
+        if (
+          errMsg.includes("InvalidAsset") ||
+          errMsg.includes("0x2eeb") ||
+          errMsg.includes("Simulation failed")
+        ) {
+          await markAssetSkipped(agent.asset);
+        }
+        return null;
+      }
+      await setLastFeedbackStatus(agent.asset, verification.status);
       return { signature: result.signature, feedbackUri };
     }
 
     return null;
   } catch (err) {
-    console.error(
-      `[Verification Feedback] Failed for ${agent.asset}:`,
-      err,
-    );
+    const msg = err instanceof Error ? err.message : String(err);
+    if (
+      msg.includes("InvalidAsset") ||
+      msg.includes("0x2eeb") ||
+      msg.includes("Simulation failed")
+    ) {
+      await markAssetSkipped(agent.asset);
+    }
     return null;
   }
 }
 
-/** Submit feedback for a batch of agents with concurrency limiting. */
+/** Submit feedback for agents whose status changed since last submission. */
 export async function submitFeedbackBatch(
   agents: IndexedAgent[],
   verifications: Map<string, AgentVerification>,
@@ -434,12 +508,29 @@ export async function submitFeedbackBatch(
   let submitted = 0;
   let index = 0;
 
+  const [skipped, lastStatuses] = await Promise.all([
+    getSkippedAssets(),
+    getLastFeedbackStatuses(),
+  ]);
+
   const eligible = agents.filter((a) => {
+    if (skipped.has(a.asset)) return false;
     const v = verifications.get(a.asset);
-    return v && v.status !== "unverified" && a.atom_enabled;
+    if (!v) return false;
+    const prev = lastStatuses.get(a.asset);
+    return prev !== v.status;
   });
 
-  if (eligible.length === 0) return 0;
+  if (eligible.length === 0) {
+    console.log(
+      "[Verification Feedback] No status changes detected, skipping feedback",
+    );
+    return 0;
+  }
+
+  console.log(
+    `[Verification Feedback] ${eligible.length} agents with status changes (${skipped.size} invalid skipped)`,
+  );
 
   const workers = Array.from(
     { length: Math.min(concurrency, eligible.length) },
