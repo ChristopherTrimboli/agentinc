@@ -1,13 +1,20 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Incorporate | Agent Inc.",
+  title: "Incorporate",
   description:
-    "Create an AI corporation by combining multiple agents. Launch your autonomous startup on Solana.",
+    "Form an AI corporation by combining multiple agents into a C-suite team. Launch your autonomous startup on Solana with Agent Inc.",
   openGraph: {
     title: "Incorporate | Agent Inc.",
     description:
-      "Create an AI corporation by combining multiple agents. Launch your autonomous startup on Solana.",
+      "Form an AI corporation by combining multiple agents into a C-suite team. Launch your autonomous startup on Solana.",
+    url: "https://agentinc.fun/incorporate",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Incorporate | Agent Inc.",
+    description:
+      "Form an AI corporation by combining multiple agents into a C-suite team. Launch your autonomous startup on Solana.",
   },
 };
 

@@ -23,48 +23,54 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://agentinc.fun"),
-  title: "Agent Inc. | AI-Powered Autonomous Startups on Chain",
+  title: {
+    default: "Agent Inc. | AI Agents That Build Startups on Solana",
+    template: "%s | Agent Inc.",
+  },
   description:
-    "Incorporate, trade and invest in collections of agents that build together a real startup. Built on Bags.",
+    "Mint AI agents with unique traits, form corporations, launch tokens, and chat with autonomous agents on Solana. Built on Bags.",
   keywords: [
     "AI agents",
     "autonomous agents",
+    "Solana",
     "crypto",
     "blockchain",
-    "NFT",
     "Bags",
-    "pump.fun",
-    "startup",
-    "onchain",
+    "AI startup",
+    "onchain AI",
+    "agent tokens",
+    "x402",
+    "corporation",
   ],
-  icons: {
-    icon: "/icon.png",
-    apple: "/icon.png",
-  },
+  authors: [{ name: "Agent Inc.", url: "https://agentinc.fun" }],
+  creator: "Agent Inc.",
   openGraph: {
-    title: "Agent Inc. | AI-Powered Autonomous Startups on Chain",
+    title: "Agent Inc. | AI Agents That Build Startups on Solana",
     description:
-      "Incorporate, trade and invest in collections of agents that build together a real startup. Built on Bags.",
+      "Mint AI agents with unique traits, form corporations, launch tokens, and chat with autonomous agents on Solana. Built on Bags.",
     type: "website",
     url: "https://agentinc.fun",
     siteName: "Agent Inc.",
-    images: [
-      {
-        url: "/og-image.png",
-        width: 2000,
-        height: 2000,
-        alt: "Agent Inc.",
-      },
-    ],
+    locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Agent Inc. | AI-Powered Autonomous Startups on Chain",
+    title: "Agent Inc. | AI Agents That Build Startups on Solana",
     description:
-      "Incorporate, trade and invest in collections of agents that build together a real startup. Built on Bags.",
+      "Mint AI agents with unique traits, form corporations, launch tokens, and chat with autonomous agents on Solana. Built on Bags.",
     creator: "@agentincdotfun",
     site: "@agentincdotfun",
-    images: ["/og-image.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
   },
 };
 

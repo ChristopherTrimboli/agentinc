@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     title: "8004 Network | Agent Inc.",
     description:
       "Explore the ERC-8004 Solana AI Agent Registry — agents, trust tiers, and reputation data visualized in real-time.",
-    url: "https://agentinc.fun/swarm",
+    url: "https://agentinc.fun/dashboard/network",
   },
   twitter: {
     card: "summary_large_image",
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function SwarmLayout({
+export default function NetworkLayout({
   children,
 }: {
   children: React.ReactNode;

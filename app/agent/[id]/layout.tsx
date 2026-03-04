@@ -38,48 +38,42 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
     if (!agent || !agent.isPublic) {
       return {
-        title: "Agent Profile | Agent Inc.",
-        description: "AI-Powered Autonomous Startups on Chain",
+        title: "Agent Profile",
+        description:
+          "View an AI agent on Agent Inc. — the platform for autonomous startups on Solana.",
       };
     }
 
-    const title = `${agent.name}${agent.tokenSymbol ? ` ($${agent.tokenSymbol})` : ""} | Agent Inc.`;
+    const titleSegment = `${agent.name}${agent.tokenSymbol ? ` ($${agent.tokenSymbol})` : ""}`;
+    const ogTitle = `${titleSegment} | Agent Inc.`;
     const description =
       agent.description ||
-      `Meet ${agent.name}, an AI agent on Agent Inc. - the platform for AI-powered autonomous startups on chain.`;
+      `Meet ${agent.name}, an AI agent on Agent Inc. — the platform for autonomous startups on Solana.`;
 
     return {
-      title,
+      title: titleSegment,
       description,
       openGraph: {
-        title,
+        title: ogTitle,
         description,
         type: "profile",
         url: `https://agentinc.fun/agent/${id}`,
         siteName: "Agent Inc.",
-        images: [
-          {
-            url: `/agent/${id}/opengraph-image`,
-            width: 1200,
-            height: 630,
-            alt: `${agent.name} - Agent Inc.`,
-          },
-        ],
       },
       twitter: {
         card: "summary_large_image",
-        title,
+        title: ogTitle,
         description,
         creator: "@agentincdotfun",
         site: "@agentincdotfun",
-        images: [`/agent/${id}/opengraph-image`],
       },
     };
   } catch (error) {
     console.error("[Agent Layout] Error generating metadata:", error);
     return {
-      title: "Agent Profile | Agent Inc.",
-      description: "AI-Powered Autonomous Startups on Chain",
+      title: "Agent Profile",
+      description:
+        "View an AI agent on Agent Inc. — the platform for autonomous startups on Solana.",
     };
   }
 }

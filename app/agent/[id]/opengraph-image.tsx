@@ -1,24 +1,23 @@
 import { ImageResponse } from "next/og";
 import prisma from "@/lib/prisma";
 
-// Image metadata
 export const alt = "Agent Profile | Agent Inc.";
-export const size = {
-  width: 1200,
-  height: 630,
-};
+export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-// Generate the OG image
+const logoData = fetch(
+  new URL("../../../public/agentinc.jpg", import.meta.url),
+).then((res) => res.arrayBuffer());
+
 export default async function Image({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const logo = await logoData;
 
   try {
-    // Fetch agent data (try both ID and tokenMint)
     const [agentById, agentByMint] = await Promise.all([
       prisma.agent.findUnique({
         where: { id },
@@ -264,8 +263,15 @@ export default async function Image({
               marginTop: 40,
               display: "flex",
               alignItems: "center",
+              gap: 12,
             }}
           >
+            <img
+              // @ts-expect-error Satori accepts ArrayBuffer for img src
+              src={logo}
+              alt="Agent Inc."
+              style={{ width: 32, height: 32, borderRadius: 8, objectFit: "cover" }}
+            />
             <div
               style={{
                 fontSize: 24,
@@ -280,7 +286,7 @@ export default async function Image({
             </div>
             <div
               style={{
-                marginLeft: 20,
+                marginLeft: 8,
                 fontSize: 20,
                 color: "rgba(255, 255, 255, 0.4)",
                 display: "flex",
