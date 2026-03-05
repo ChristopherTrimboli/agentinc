@@ -255,23 +255,20 @@ function checkRegistrationComplete(agent: IndexedAgent): VerificationCheck {
     !!agent.collection_pointer && agent.collection_pointer.length > 0;
   const hasAtom = agent.atom_enabled ?? false;
 
-  const missing: string[] = [];
-  if (!hasUri) missing.push("agent URI");
-  if (!hasPointer) missing.push("collection pointer");
-
   const extras: string[] = [];
+  if (!hasPointer) extras.push("no collection");
   if (!hasAtom) extras.push("ATOM not enabled");
-
-  const allDetails = [...missing.map((m) => `missing ${m}`), ...extras];
 
   return {
     name: "Registration Complete",
-    passed: hasUri && hasPointer,
+    passed: hasUri,
     skipped: false,
     details:
-      allDetails.length === 0
+      hasUri && extras.length === 0
         ? "Fully registered (ATOM enabled)"
-        : allDetails.join(", "),
+        : hasUri
+          ? `Registered (${extras.join(", ")})`
+          : "Missing agent URI",
   };
 }
 
