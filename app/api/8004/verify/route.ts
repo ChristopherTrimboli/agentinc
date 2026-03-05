@@ -17,9 +17,9 @@ import type { IndexedAgent } from "8004-solana";
 export const dynamic = "force-dynamic";
 export const maxDuration = 800;
 
-const DB_UPSERT_CHUNK = 80;
+const DB_UPSERT_CHUNK = 25;
 const INDEXER_PAGE_SIZE = 250;
-const STALE_THRESHOLD_MS = 0; // TODO: restore to 2 * 60 * 60 * 1000 after fresh run
+const STALE_THRESHOLD_MS = 2 * 60 * 60 * 1000; // 2 hours
 
 async function fetchAllIndexedAgents(): Promise<IndexedAgent[]> {
   const all: IndexedAgent[] = [];
@@ -75,30 +75,28 @@ function persistResultsBatch(
   entries: [string, AgentVerification][],
 ): Promise<void> {
   if (entries.length === 0) return Promise.resolve();
-  return prisma
-    .$transaction(
-      entries.map(([asset, v]) =>
-        prisma.networkVerification.upsert({
-          where: { asset },
-          create: {
-            asset,
-            status: v.status,
-            score: v.score,
-            maxScore: v.maxScore,
-            checks: v.checks as object[],
-            verifiedAt: new Date(v.verifiedAt),
-          },
-          update: {
-            status: v.status,
-            score: v.score,
-            maxScore: v.maxScore,
-            checks: v.checks as object[],
-            verifiedAt: new Date(v.verifiedAt),
-          },
-        }),
-      ),
-    )
-    .then(() => {});
+  return Promise.allSettled(
+    entries.map(([asset, v]) =>
+      prisma.networkVerification.upsert({
+        where: { asset },
+        create: {
+          asset,
+          status: v.status,
+          score: v.score,
+          maxScore: v.maxScore,
+          checks: v.checks as object[],
+          verifiedAt: new Date(v.verifiedAt),
+        },
+        update: {
+          status: v.status,
+          score: v.score,
+          maxScore: v.maxScore,
+          checks: v.checks as object[],
+          verifiedAt: new Date(v.verifiedAt),
+        },
+      }),
+    ),
+  ).then(() => {});
 }
 
 // ── POST: Cron-triggered batch verification ──────────────────────────────────
@@ -179,34 +177,7 @@ export async function POST(req: NextRequest) {
 
     const dbPersist = (async () => {
       for (let i = 0; i < entries.length; i += DB_UPSERT_CHUNK) {
-        const chunk = entries.slice(i, i + DB_UPSERT_CHUNK);
-        try {
-          await persistResultsBatch(chunk);
-        } catch (err) {
-          console.warn("[8004 Verify] Batch upsert failed, falling back:", err);
-          await Promise.allSettled(
-            chunk.map(([asset, verification]) =>
-              prisma.networkVerification.upsert({
-                where: { asset },
-                create: {
-                  asset,
-                  status: verification.status,
-                  score: verification.score,
-                  maxScore: verification.maxScore,
-                  checks: verification.checks as object[],
-                  verifiedAt: new Date(verification.verifiedAt),
-                },
-                update: {
-                  status: verification.status,
-                  score: verification.score,
-                  maxScore: verification.maxScore,
-                  checks: verification.checks as object[],
-                  verifiedAt: new Date(verification.verifiedAt),
-                },
-              }),
-            ),
-          );
-        }
+        await persistResultsBatch(entries.slice(i, i + DB_UPSERT_CHUNK));
       }
     })();
 

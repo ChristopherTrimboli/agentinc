@@ -11,7 +11,8 @@ import {
   Texture,
   ImageSource,
 } from "pixi.js";
-import { ZoomIn, ZoomOut } from "lucide-react";
+import { Plus, Minus, RotateCcw } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import type {
   NetworkData,
   NetworkCollection,
@@ -1128,27 +1129,74 @@ export default function NetworkCanvas({
       />
 
       {/* Zoom controls */}
-      {!isLoading && !error && (
-        <div className="absolute bottom-4 right-4 flex flex-col gap-2 z-10">
-          <button
-            onClick={() => handleZoom(ZOOM_STEP)}
-            className="p-2 bg-gray-900/90 backdrop-blur-lg border border-gray-700 rounded-lg hover:bg-gray-800 transition-colors"
+      <AnimatePresence>
+        {!isLoading && !error && (
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="absolute bottom-20 right-4 z-10"
           >
-            <ZoomIn className="w-5 h-5 text-gray-300" />
-          </button>
-          <div className="px-2 py-1 bg-gray-900/90 backdrop-blur-lg border border-gray-700 rounded-lg text-center">
-            <span className="text-xs text-gray-400">
-              {Math.round(zoom * 100)}%
-            </span>
-          </div>
-          <button
-            onClick={() => handleZoom(-ZOOM_STEP)}
-            className="p-2 bg-gray-900/90 backdrop-blur-lg border border-gray-700 rounded-lg hover:bg-gray-800 transition-colors"
-          >
-            <ZoomOut className="w-5 h-5 text-gray-300" />
-          </button>
-        </div>
-      )}
+            <div className="flex flex-col items-stretch bg-[#0a1120]/90 backdrop-blur-xl border border-white/[0.07] rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] overflow-hidden w-11">
+              <motion.button
+                whileHover={{ backgroundColor: "rgba(255,255,255,0.08)" }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => handleZoom(ZOOM_STEP)}
+                className="flex items-center justify-center h-11 text-gray-400 hover:text-white transition-colors duration-150"
+                aria-label="Zoom in"
+              >
+                <Plus className="w-4 h-4" strokeWidth={2} />
+              </motion.button>
+
+              <div className="h-px bg-white/[0.06]" />
+
+              <div className="flex items-center justify-center h-9 select-none">
+                <span className="text-[11px] font-medium text-gray-500 tabular-nums tracking-tight">
+                  {Math.round(zoom * 100)}%
+                </span>
+              </div>
+
+              <div className="h-px bg-white/[0.06]" />
+
+              <motion.button
+                whileHover={{ backgroundColor: "rgba(255,255,255,0.08)" }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => handleZoom(-ZOOM_STEP)}
+                className="flex items-center justify-center h-11 text-gray-400 hover:text-white transition-colors duration-150"
+                aria-label="Zoom out"
+              >
+                <Minus className="w-4 h-4" strokeWidth={2} />
+              </motion.button>
+
+              <div className="h-px bg-white/[0.06]" />
+
+              <motion.button
+                whileHover={{ backgroundColor: "rgba(255,255,255,0.08)" }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => {
+                  const world = worldRef.current;
+                  const app = appRef.current;
+                  if (!world || !app) return;
+                  world.scale.set(0.65);
+                  world.x = app.screen.width * 0.175;
+                  world.y = app.screen.height * 0.175;
+                  setZoom(0.65);
+                  centerRef.current = {
+                    x: app.screen.width / 2 / 0.65,
+                    y: app.screen.height / 2 / 0.65,
+                  };
+                  alphaRef.current = Math.max(alphaRef.current, 0.3);
+                }}
+                className="flex items-center justify-center h-11 text-gray-400 hover:text-white transition-colors duration-150"
+                aria-label="Reset zoom"
+              >
+                <RotateCcw className="w-3.5 h-3.5" strokeWidth={2} />
+              </motion.button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {error && (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-900/60 rounded-2xl">

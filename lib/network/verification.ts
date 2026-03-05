@@ -326,19 +326,38 @@ function verifyInlineJsonAgent(agent: IndexedAgent): AgentVerification | null {
   if (!hasType) issues.push("missing 8004 type identifier");
 
   const checks: VerificationCheck[] = [
-    { name: "Service Liveness", passed: false, skipped: true, details: "Inline JSON — no HTTP services" },
+    {
+      name: "Service Liveness",
+      passed: false,
+      skipped: true,
+      details: "Inline JSON — no HTTP services",
+    },
     {
       name: "Metadata Valid",
       passed: hasName && hasServices && hasType,
       skipped: false,
-      details: issues.length === 0 ? "Valid 8004 registration file" : issues.join(", "),
+      details:
+        issues.length === 0
+          ? "Valid 8004 registration file"
+          : issues.join(", "),
     },
-    { name: "Indexer Integrity", passed: true, skipped: true, details: "No feedbacks to verify" },
+    {
+      name: "Indexer Integrity",
+      passed: true,
+      skipped: true,
+      details: "No feedbacks to verify",
+    },
     checkRegistrationComplete(agent),
   ];
 
   const { status, score, maxScore } = resolveStatus(checks);
-  return { status, checks, verifiedAt: new Date().toISOString(), score, maxScore };
+  return {
+    status,
+    checks,
+    verifiedAt: new Date().toISOString(),
+    score,
+    maxScore,
+  };
 }
 
 // ── Main Verification Runner ─────────────────────────────────────────────────
@@ -364,7 +383,13 @@ export async function verifyAgent(
   const checks = [liveness, metadata, integrity, registration];
   const { status, score, maxScore } = resolveStatus(checks);
 
-  return { status, checks, verifiedAt: new Date().toISOString(), score, maxScore };
+  return {
+    status,
+    checks,
+    verifiedAt: new Date().toISOString(),
+    score,
+    maxScore,
+  };
 }
 
 // ── Batch Runner ─────────────────────────────────────────────────────────────

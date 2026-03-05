@@ -8,6 +8,7 @@ import {
   lazy,
   Suspense,
 } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import Navigation from "../components/Navigation";
 import NetworkDetails from "../components/network/NetworkDetails";
 import NetworkControls from "../components/network/NetworkControls";
@@ -194,28 +195,41 @@ export default function SwarmPage() {
       )}
 
       {/* Title badge (top-left) */}
-      {data && !isLoading && (
-        <div className="fixed top-[88px] left-4 z-30">
-          <div className="bg-gray-900/90 backdrop-blur-lg border border-gray-700 rounded-xl px-4 py-3">
-            <div className="flex items-center gap-2 mb-1">
-              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-sm font-bold text-white">8004 Network</span>
+      <AnimatePresence>
+        {data && !isLoading && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.35, ease: "easeOut", delay: 0.1 }}
+            className="fixed top-[88px] left-4 z-30"
+          >
+            <div className="bg-[#0a1120]/90 backdrop-blur-2xl border border-white/[0.07] rounded-2xl px-4 py-3.5 shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="relative flex items-center justify-center">
+                  <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                  <div className="absolute w-2 h-2 rounded-full bg-emerald-400 animate-ping opacity-75" />
+                </div>
+                <span className="text-sm font-bold text-white tracking-tight">
+                  8004 Network
+                </span>
+              </div>
+              <p className="text-[10px] text-gray-600 mb-1.5">
+                Solana AI Agent Registry — Mainnet
+              </p>
+              <a
+                href="https://8004market.io"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[10px] text-gray-700 hover:text-gray-400 transition-colors duration-200"
+              >
+                Powered by{" "}
+                <span className="text-gray-500 font-medium">8004market.io</span>
+              </a>
             </div>
-            <p className="text-[10px] text-gray-500 mb-1.5">
-              Solana AI Agent Registry — Mainnet
-            </p>
-            <a
-              href="https://8004market.io"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[10px] text-gray-600 hover:text-gray-400 transition-colors"
-            >
-              Powered by{" "}
-              <span className="text-gray-400 font-medium">8004market.io</span>
-            </a>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

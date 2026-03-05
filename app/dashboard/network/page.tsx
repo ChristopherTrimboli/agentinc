@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, lazy, Suspense } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import NetworkDetails from "../../components/network/NetworkDetails";
 import NetworkControls from "../../components/network/NetworkControls";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
@@ -14,6 +15,30 @@ import type {
 const NetworkCanvas = lazy(
   () => import("../../components/network/NetworkCanvas"),
 );
+
+function MetricRow({
+  dotColor,
+  label,
+  value,
+  valueColor,
+}: {
+  dotColor?: string;
+  label: string;
+  value: number;
+  valueColor: string;
+}) {
+  return (
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-1.5">
+        {dotColor && <div className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />}
+        <span className="text-[10px] text-gray-500">{label}</span>
+      </div>
+      <span className={`text-[10px] font-semibold tabular-nums ${valueColor}`}>
+        {value.toLocaleString()}
+      </span>
+    </div>
+  );
+}
 
 export default function NetworkPage() {
   const {
@@ -169,127 +194,133 @@ export default function NetworkPage() {
       )}
 
       {/* Title badge + network metrics */}
-      {data && !isLoading && (
-        <div className="absolute top-4 left-4 z-30">
-          <div className="bg-gray-900/90 backdrop-blur-lg border border-gray-700 rounded-xl px-4 py-3 min-w-[200px]">
-            <div className="flex items-center gap-2 mb-1">
-              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-sm font-bold text-white">8004 Network</span>
-            </div>
-            <p className="text-[10px] text-gray-500 mb-2.5">
-              Solana AI Agent Registry — Mainnet
-            </p>
+      <AnimatePresence>
+        {data && !isLoading && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.35, ease: "easeOut", delay: 0.1 }}
+            className="absolute top-4 left-4 z-30"
+          >
+            <div className="bg-[#0a1120]/90 backdrop-blur-2xl border border-white/[0.07] rounded-2xl px-4 py-3.5 min-w-[210px] shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="relative flex items-center justify-center">
+                  <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                  <div className="absolute w-2 h-2 rounded-full bg-emerald-400 animate-ping opacity-75" />
+                </div>
+                <span className="text-sm font-bold text-white tracking-tight">
+                  8004 Network
+                </span>
+              </div>
+              <p className="text-[10px] text-gray-600 mb-3">
+                Solana AI Agent Registry — Mainnet
+              </p>
 
-            {/* Metrics grid */}
-            {networkMetrics && (
-              <div className="space-y-1.5 mb-2.5 pt-2.5 border-t border-gray-800">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                    <span className="text-[10px] text-gray-400">Verified</span>
+              {/* Metrics grid */}
+              {networkMetrics && (
+                <div className="space-y-1.5 mb-3 pt-3 border-t border-white/[0.06]">
+                  <MetricRow
+                    dotColor="bg-emerald-400"
+                    label="Verified"
+                    value={networkMetrics.verified}
+                    valueColor="text-emerald-400"
+                  />
+                  <MetricRow
+                    dotColor="bg-yellow-400"
+                    label="Partial"
+                    value={networkMetrics.partial}
+                    valueColor="text-yellow-400"
+                  />
+                  <MetricRow
+                    dotColor="bg-red-400"
+                    label="Unverified"
+                    value={networkMetrics.unverified}
+                    valueColor="text-red-400"
+                  />
+                  <div className="pt-2 mt-2 border-t border-white/[0.04] space-y-1.5">
+                    <MetricRow
+                      label="Total Agents"
+                      value={totalAgents}
+                      valueColor="text-white"
+                    />
+                    <MetricRow
+                      label="Collections"
+                      value={data.collections.length}
+                      valueColor="text-white"
+                    />
+                    <MetricRow
+                      label="With Feedback"
+                      value={networkMetrics.withFeedback}
+                      valueColor="text-white"
+                    />
+                    <MetricRow
+                      label="ATOM Enabled"
+                      value={networkMetrics.atomEnabled}
+                      valueColor="text-violet-400"
+                    />
                   </div>
-                  <span className="text-[10px] font-semibold text-emerald-400">
-                    {networkMetrics.verified}
-                  </span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-1.5 h-1.5 rounded-full bg-yellow-400" />
-                    <span className="text-[10px] text-gray-400">Partial</span>
-                  </div>
-                  <span className="text-[10px] font-semibold text-yellow-400">
-                    {networkMetrics.partial}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-1.5 h-1.5 rounded-full bg-red-400" />
-                    <span className="text-[10px] text-gray-400">
-                      Unverified
+              )}
+
+              {/* Verification rate bar */}
+              {networkMetrics && totalAgents > 0 && (
+                <div className="mb-3">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] text-gray-600">
+                      Slop-o-Meter
+                    </span>
+                    <span className="text-[10px] text-gray-500 tabular-nums">
+                      {Math.round(
+                        ((networkMetrics.verified + networkMetrics.partial) /
+                          totalAgents) *
+                          100,
+                      )}
+                      % active
                     </span>
                   </div>
-                  <span className="text-[10px] font-semibold text-red-400">
-                    {networkMetrics.unverified}
-                  </span>
+                  <div className="h-1.5 bg-white/[0.04] rounded-full overflow-hidden flex">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{
+                        width: `${(networkMetrics.verified / totalAgents) * 100}%`,
+                      }}
+                      transition={{
+                        duration: 0.8,
+                        ease: "easeOut",
+                        delay: 0.3,
+                      }}
+                      className="h-full bg-emerald-500 rounded-l-full"
+                    />
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{
+                        width: `${(networkMetrics.partial / totalAgents) * 100}%`,
+                      }}
+                      transition={{
+                        duration: 0.8,
+                        ease: "easeOut",
+                        delay: 0.5,
+                      }}
+                      className="h-full bg-yellow-500"
+                    />
+                  </div>
                 </div>
-                <div className="pt-1.5 mt-1.5 border-t border-gray-800/50 flex items-center justify-between">
-                  <span className="text-[10px] text-gray-500">
-                    Total Agents
-                  </span>
-                  <span className="text-[10px] font-semibold text-white">
-                    {totalAgents}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-gray-500">Collections</span>
-                  <span className="text-[10px] font-semibold text-white">
-                    {data.collections.length}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-gray-500">
-                    With Feedback
-                  </span>
-                  <span className="text-[10px] font-semibold text-white">
-                    {networkMetrics.withFeedback}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-gray-500">
-                    ATOM Enabled
-                  </span>
-                  <span className="text-[10px] font-semibold text-violet-400">
-                    {networkMetrics.atomEnabled}
-                  </span>
-                </div>
-              </div>
-            )}
+              )}
 
-            {/* Verification rate bar */}
-            {networkMetrics && totalAgents > 0 && (
-              <div className="mb-2.5">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] text-gray-500">
-                    Slop-o-Meter
-                  </span>
-                  <span className="text-[10px] text-gray-400">
-                    {Math.round(
-                      ((networkMetrics.verified + networkMetrics.partial) /
-                        totalAgents) *
-                        100,
-                    )}
-                    % active
-                  </span>
-                </div>
-                <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden flex">
-                  <div
-                    className="h-full bg-emerald-500 rounded-l-full"
-                    style={{
-                      width: `${(networkMetrics.verified / totalAgents) * 100}%`,
-                    }}
-                  />
-                  <div
-                    className="h-full bg-yellow-500"
-                    style={{
-                      width: `${(networkMetrics.partial / totalAgents) * 100}%`,
-                    }}
-                  />
-                </div>
-              </div>
-            )}
-
-            <a
-              href="https://8004market.io"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[10px] text-gray-600 hover:text-gray-400 transition-colors"
-            >
-              Powered by{" "}
-              <span className="text-gray-400 font-medium">8004market.io</span>
-            </a>
-          </div>
-        </div>
-      )}
+              <a
+                href="https://8004market.io"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[10px] text-gray-700 hover:text-gray-400 transition-colors duration-200"
+              >
+                Powered by{" "}
+                <span className="text-gray-500 font-medium">8004market.io</span>
+              </a>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

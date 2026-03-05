@@ -15,12 +15,29 @@ import {
   XCircle,
   Minus,
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import type { NetworkCollection, NetworkAgent } from "@/lib/network/types";
 import {
   TRUST_TIER_NAMES,
   TRUST_TIER_CSS,
   getCollectionCssColor,
 } from "@/lib/network/types";
+
+const panelVariants = {
+  hidden: { opacity: 0, x: 40, scale: 0.98 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    scale: 1,
+    transition: { type: "spring", stiffness: 400, damping: 30 },
+  },
+  exit: {
+    opacity: 0,
+    x: 40,
+    scale: 0.98,
+    transition: { duration: 0.15, ease: "easeIn" },
+  },
+};
 
 interface Props {
   collection: NetworkCollection | null;
@@ -140,7 +157,13 @@ function CollectionPanel({
   }
 
   return (
-    <div className="fixed top-[88px] right-4 w-80 bg-gray-900/95 backdrop-blur-lg border border-gray-700 rounded-2xl p-5 shadow-2xl z-40 overflow-y-auto max-h-[calc(100vh-120px)]">
+    <motion.div
+      variants={panelVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+      className="fixed top-[88px] right-4 w-80 bg-[#0a1120]/90 backdrop-blur-2xl border border-white/[0.07] rounded-2xl p-5 shadow-[0_16px_48px_rgba(0,0,0,0.5)] z-40 overflow-y-auto max-h-[calc(100vh-120px)]"
+    >
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
           <Avatar
@@ -155,12 +178,14 @@ function CollectionPanel({
             )}
           </div>
         </div>
-        <button
+        <motion.button
+          whileHover={{ scale: 1.1, backgroundColor: "rgba(255,255,255,0.06)" }}
+          whileTap={{ scale: 0.9 }}
           onClick={onClose}
-          className="p-1 hover:bg-gray-800 rounded-lg transition-colors"
+          className="p-1.5 rounded-lg transition-colors"
         >
-          <X className="w-5 h-5 text-gray-400" />
-        </button>
+          <X className="w-4 h-4 text-gray-500" />
+        </motion.button>
       </div>
 
       {coll.description && (
@@ -285,7 +310,7 @@ function CollectionPanel({
           </div>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }
 
@@ -301,7 +326,13 @@ function AgentPanel({
   const tierCss = TRUST_TIER_CSS[agent.trustTier] || TRUST_TIER_CSS[0];
 
   return (
-    <div className="fixed top-[88px] right-4 w-80 bg-gray-900/95 backdrop-blur-lg border border-gray-700 rounded-2xl p-5 shadow-2xl z-40 overflow-y-auto max-h-[calc(100vh-120px)]">
+    <motion.div
+      variants={panelVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+      className="fixed top-[88px] right-4 w-80 bg-[#0a1120]/90 backdrop-blur-2xl border border-white/[0.07] rounded-2xl p-5 shadow-[0_16px_48px_rgba(0,0,0,0.5)] z-40 overflow-y-auto max-h-[calc(100vh-120px)]"
+    >
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
           <Avatar
@@ -332,12 +363,14 @@ function AgentPanel({
             </span>
           </div>
         </div>
-        <button
+        <motion.button
+          whileHover={{ scale: 1.1, backgroundColor: "rgba(255,255,255,0.06)" }}
+          whileTap={{ scale: 0.9 }}
           onClick={onClose}
-          className="p-1 hover:bg-gray-800 rounded-lg transition-colors"
+          className="p-1.5 rounded-lg transition-colors"
         >
-          <X className="w-5 h-5 text-gray-400" />
-        </button>
+          <X className="w-4 h-4 text-gray-500" />
+        </motion.button>
       </div>
 
       {/* Stats grid */}
@@ -425,7 +458,7 @@ function AgentPanel({
           Registered {new Date(agent.createdAt).toLocaleDateString()}
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -609,8 +642,21 @@ function Stat({
 // ── Main Export ───────────────────────────────────────────────────────────────
 
 export default function NetworkDetails({ collection, agent, onClose }: Props) {
-  if (agent) return <AgentPanel agent={agent} onClose={onClose} />;
-  if (collection)
-    return <CollectionPanel coll={collection} onClose={onClose} />;
-  return null;
+  return (
+    <AnimatePresence mode="wait">
+      {agent ? (
+        <AgentPanel
+          key={`agent-${agent.asset}`}
+          agent={agent}
+          onClose={onClose}
+        />
+      ) : collection ? (
+        <CollectionPanel
+          key={`coll-${collection.id}`}
+          coll={collection}
+          onClose={onClose}
+        />
+      ) : null}
+    </AnimatePresence>
+  );
 }
