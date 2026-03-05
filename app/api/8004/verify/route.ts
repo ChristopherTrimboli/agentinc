@@ -19,7 +19,7 @@ export const maxDuration = 800;
 
 const DB_UPSERT_CHUNK = 80;
 const INDEXER_PAGE_SIZE = 250;
-const STALE_THRESHOLD_MS = 2 * 60 * 60 * 1000; // 2 hours
+const STALE_THRESHOLD_MS = 0; // TODO: restore to 2 * 60 * 60 * 1000 after fresh run
 
 async function fetchAllIndexedAgents(): Promise<IndexedAgent[]> {
   const all: IndexedAgent[] = [];
