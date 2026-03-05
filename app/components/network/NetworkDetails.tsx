@@ -29,13 +29,13 @@ const panelVariants = {
     opacity: 1,
     x: 0,
     scale: 1,
-    transition: { type: "spring", stiffness: 400, damping: 30 },
+    transition: { type: "spring" as const, stiffness: 400, damping: 30 },
   },
   exit: {
     opacity: 0,
     x: 40,
     scale: 0.98,
-    transition: { duration: 0.15, ease: "easeIn" },
+    transition: { duration: 0.15, ease: "easeIn" as const },
   },
 };
 

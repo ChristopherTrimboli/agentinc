@@ -884,7 +884,7 @@ export default function NetworkCanvas({
         dropShadow: { color: 0x000000, alpha: 0.8, blur: 4, distance: 0 },
       });
       const nameTxt = new Text({
-        text: coll.name,
+        text: isUnassigned ? `${coll.agentCount} agents` : coll.name,
         style: nameStyle,
         resolution: TEXT_RES,
       });
@@ -892,20 +892,22 @@ export default function NetworkCanvas({
       nameTxt.y = radius + 24;
       lblContainer.addChild(nameTxt);
 
-      const badgeStyle = new TextStyle({
-        fontFamily: "system-ui, -apple-system, sans-serif",
-        fontSize: 11,
-        fill: isUnassigned ? 0x9ca3af : color,
-        align: "center",
-      });
-      const badgeTxt = new Text({
-        text: `${coll.agentCount} agent${coll.agentCount !== 1 ? "s" : ""}`,
-        style: badgeStyle,
-        resolution: TEXT_RES,
-      });
-      badgeTxt.anchor.set(0.5, 0.5);
-      badgeTxt.y = radius + 42;
-      lblContainer.addChild(badgeTxt);
+      if (!isUnassigned) {
+        const badgeStyle = new TextStyle({
+          fontFamily: "system-ui, -apple-system, sans-serif",
+          fontSize: 11,
+          fill: color,
+          align: "center",
+        });
+        const badgeTxt = new Text({
+          text: `${coll.agentCount} agent${coll.agentCount !== 1 ? "s" : ""}`,
+          style: badgeStyle,
+          resolution: TEXT_RES,
+        });
+        badgeTxt.anchor.set(0.5, 0.5);
+        badgeTxt.y = radius + 42;
+        lblContainer.addChild(badgeTxt);
+      }
 
       lblParent.addChild(lblContainer);
       existingLabels.set(coll.id, lblContainer);
