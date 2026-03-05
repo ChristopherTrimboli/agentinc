@@ -7,6 +7,7 @@
 
 import { PublicKey } from "@solana/web3.js";
 import { put } from "@vercel/blob";
+import type { SolanaSDK } from "8004-solana";
 
 import { getErc8004Sdk, getSignedErc8004Sdk } from "@/lib/erc8004";
 import prisma from "@/lib/prisma";
@@ -20,17 +21,17 @@ import type { IndexedAgent } from "8004-solana";
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const LIVENESS_TIMEOUT_MS = 8000;
-const METADATA_TIMEOUT_MS = 5000;
+const LIVENESS_TIMEOUT_MS = 4000;
+const METADATA_TIMEOUT_MS = 3000;
 
 // ── Individual Checks ────────────────────────────────────────────────────────
 
 async function checkServiceLiveness(
+  sdk: SolanaSDK,
   asset: PublicKey,
 ): Promise<VerificationCheck> {
   const start = Date.now();
   try {
-    const sdk = getErc8004Sdk();
     const report = await sdk.isItAlive(asset, {
       timeoutMs: LIVENESS_TIMEOUT_MS,
       treatAuthAsAlive: true,
@@ -208,6 +209,7 @@ async function checkMetadataValid(
 }
 
 async function checkIndexerIntegrity(
+  sdk: SolanaSDK,
   asset: PublicKey,
   feedbackCount: number,
 ): Promise<VerificationCheck> {
@@ -222,7 +224,6 @@ async function checkIndexerIntegrity(
 
   const start = Date.now();
   try {
-    const sdk = getErc8004Sdk();
     const result = await sdk.verifyIntegrity(asset);
 
     return {
@@ -274,24 +275,13 @@ function checkRegistrationComplete(agent: IndexedAgent): VerificationCheck {
   };
 }
 
-// ── Main Verification Runner ─────────────────────────────────────────────────
+// ── Status Resolver ──────────────────────────────────────────────────────────
 
-/** Run all verification checks for a single agent. */
-export async function verifyAgent(
-  agent: IndexedAgent,
-): Promise<AgentVerification> {
-  const asset = new PublicKey(agent.asset);
-
-  const [liveness, metadata, integrity] = await Promise.all([
-    checkServiceLiveness(asset),
-    checkMetadataValid(agent.agent_uri),
-    checkIndexerIntegrity(asset, agent.feedback_count),
-  ]);
-
-  const registration = checkRegistrationComplete(agent);
-
-  const checks = [liveness, metadata, integrity, registration];
-
+function resolveStatus(checks: VerificationCheck[]): {
+  status: VerificationStatus;
+  score: number;
+  maxScore: number;
+} {
   const applicable = checks.filter((c) => !c.skipped);
   const passed = applicable.filter((c) => c.passed);
 
@@ -306,13 +296,78 @@ export async function verifyAgent(
     status = "unverified";
   }
 
-  return {
-    status,
-    checks,
-    verifiedAt: new Date().toISOString(),
-    score: passed.length,
-    maxScore: applicable.length,
-  };
+  return { status, score: passed.length, maxScore: applicable.length };
+}
+
+// ── Inline JSON Fast-Path ─────────────────────────────────────────────────────
+
+/**
+ * For agents whose agent_uri is inline JSON, validate locally without HTTP.
+ * Skips liveness + integrity (no endpoints to ping) and just checks the JSON.
+ */
+function verifyInlineJsonAgent(agent: IndexedAgent): AgentVerification | null {
+  const uri = agent.agent_uri;
+  if (!uri || !uri.startsWith("{")) return null;
+
+  let json: Record<string, unknown>;
+  try {
+    json = JSON.parse(uri);
+  } catch {
+    return null;
+  }
+
+  const hasName =
+    typeof json?.name === "string" && (json.name as string).length > 0;
+  const hasServices =
+    Array.isArray(json?.services) || Array.isArray(json?.endpoints);
+  const hasType =
+    typeof json?.type === "string" && (json.type as string).includes("8004");
+
+  const issues: string[] = [];
+  if (!hasName) issues.push("missing name");
+  if (!hasServices) issues.push("missing services array");
+  if (!hasType) issues.push("missing 8004 type identifier");
+
+  const checks: VerificationCheck[] = [
+    { name: "Service Liveness", passed: false, skipped: true, details: "Inline JSON — no HTTP services" },
+    {
+      name: "Metadata Valid",
+      passed: hasName && hasServices && hasType,
+      skipped: false,
+      details: issues.length === 0 ? "Valid 8004 registration file" : issues.join(", "),
+    },
+    { name: "Indexer Integrity", passed: true, skipped: true, details: "No feedbacks to verify" },
+    checkRegistrationComplete(agent),
+  ];
+
+  const { status, score, maxScore } = resolveStatus(checks);
+  return { status, checks, verifiedAt: new Date().toISOString(), score, maxScore };
+}
+
+// ── Main Verification Runner ─────────────────────────────────────────────────
+
+/** Run all verification checks for a single agent. */
+export async function verifyAgent(
+  agent: IndexedAgent,
+  sdk?: SolanaSDK,
+): Promise<AgentVerification> {
+  const inlineResult = verifyInlineJsonAgent(agent);
+  if (inlineResult) return inlineResult;
+
+  const resolvedSdk = sdk ?? getErc8004Sdk();
+  const asset = new PublicKey(agent.asset);
+
+  const [liveness, metadata, integrity] = await Promise.all([
+    checkServiceLiveness(resolvedSdk, asset),
+    checkMetadataValid(agent.agent_uri),
+    checkIndexerIntegrity(resolvedSdk, asset, agent.feedback_count),
+  ]);
+
+  const registration = checkRegistrationComplete(agent);
+  const checks = [liveness, metadata, integrity, registration];
+  const { status, score, maxScore } = resolveStatus(checks);
+
+  return { status, checks, verifiedAt: new Date().toISOString(), score, maxScore };
 }
 
 // ── Batch Runner ─────────────────────────────────────────────────────────────
@@ -320,9 +375,10 @@ export async function verifyAgent(
 /** Verify a batch of agents with concurrency limiting. */
 export async function verifyAgentBatch(
   agents: IndexedAgent[],
-  concurrency = 10,
+  concurrency = 25,
 ): Promise<Map<string, AgentVerification>> {
   const results = new Map<string, AgentVerification>();
+  const sdk = getErc8004Sdk();
   let index = 0;
 
   const workers = Array.from(
@@ -332,7 +388,7 @@ export async function verifyAgentBatch(
         const current = index++;
         const agent = agents[current];
         try {
-          const result = await verifyAgent(agent);
+          const result = await verifyAgent(agent, sdk);
           results.set(agent.asset, result);
         } catch (err) {
           console.error(`[Verification] Failed for ${agent.asset}:`, err);

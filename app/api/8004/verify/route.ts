@@ -11,11 +11,94 @@ import {
   submitFeedbackBatch,
 } from "@/lib/network/verification";
 import type { AgentVerification } from "@/lib/network/types";
+import type { IndexedAgent } from "8004-solana";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 800;
 
-const DB_UPSERT_CHUNK = 50;
+const DB_UPSERT_CHUNK = 80;
+const INDEXER_PAGE_SIZE = 250;
+const STALE_THRESHOLD_MS = 2 * 60 * 60 * 1000; // 2 hours
+
+async function fetchAllIndexedAgents(): Promise<IndexedAgent[]> {
+  const all: IndexedAgent[] = [];
+  let offset = 0;
+  for (;;) {
+    const page = await getCachedSearchAgents(INDEXER_PAGE_SIZE, offset);
+    all.push(...page);
+    if (page.length < INDEXER_PAGE_SIZE) break;
+    offset += INDEXER_PAGE_SIZE;
+  }
+  return all;
+}
+
+function isVerifiableAgent(a: IndexedAgent): boolean {
+  const uri = a.agent_uri;
+  if (!uri || uri.length < 10) return false;
+
+  if (uri.startsWith("{")) {
+    try {
+      const json = JSON.parse(uri);
+      return Array.isArray(json.services) || Array.isArray(json.endpoints);
+    } catch {
+      return false;
+    }
+  }
+
+  if (
+    !uri.startsWith("http") &&
+    !uri.startsWith("ipfs://") &&
+    !uri.startsWith("ar://")
+  ) {
+    return false;
+  }
+
+  if (/readme|\.md$|\.txt$/i.test(uri)) return false;
+  return true;
+}
+
+async function getRecentlyVerifiedAssets(): Promise<Set<string>> {
+  try {
+    const cutoff = new Date(Date.now() - STALE_THRESHOLD_MS);
+    const rows = await prisma.networkVerification.findMany({
+      where: { verifiedAt: { gte: cutoff } },
+      select: { asset: true },
+    });
+    return new Set(rows.map((r) => r.asset));
+  } catch {
+    return new Set();
+  }
+}
+
+function persistResultsBatch(
+  entries: [string, AgentVerification][],
+): Promise<void> {
+  if (entries.length === 0) return Promise.resolve();
+  return prisma
+    .$transaction(
+      entries.map(([asset, v]) =>
+        prisma.networkVerification.upsert({
+          where: { asset },
+          create: {
+            asset,
+            status: v.status,
+            score: v.score,
+            maxScore: v.maxScore,
+            checks: v.checks as object[],
+            verifiedAt: new Date(v.verifiedAt),
+          },
+          update: {
+            status: v.status,
+            score: v.score,
+            maxScore: v.maxScore,
+            checks: v.checks as object[],
+            verifiedAt: new Date(v.verifiedAt),
+          },
+        }),
+      ),
+    )
+    .then(() => {});
+}
 
 // ── POST: Cron-triggered batch verification ──────────────────────────────────
 
@@ -42,66 +125,48 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const allAgents = await getCachedSearchAgents(500, 0);
+    const [allAgents, recentlyVerified] = await Promise.all([
+      fetchAllIndexedAgents(),
+      getRecentlyVerifiedAssets(),
+    ]);
 
-    // Skip agents missing required fields — no point verifying bare registrations
-    const agents = allAgents.filter((a) => {
-      const uri = a.agent_uri;
-      if (!uri || uri.length < 10) return false;
+    const verifiable = allAgents.filter(isVerifiableAgent);
+    const agents = verifiable.filter((a) => !recentlyVerified.has(a.asset));
+    const freshCount = verifiable.length - agents.length;
 
-      // Inline JSON — require services or endpoints array to count as real
-      if (uri.startsWith("{")) {
-        try {
-          const json = JSON.parse(uri);
-          return Array.isArray(json.services) || Array.isArray(json.endpoints);
-        } catch {
-          return false;
-        }
-      }
-
-      // Must be a fetchable URL
-      if (
-        !uri.startsWith("http") &&
-        !uri.startsWith("ipfs://") &&
-        !uri.startsWith("ar://")
-      ) {
-        return false;
-      }
-
-      // Skip known non-metadata URLs (READMEs, GitHub raw, etc.)
-      if (/readme|\.md$|\.txt$/i.test(uri)) return false;
-
-      return true;
-    });
-
-    const skippedCount = allAgents.length - agents.length;
-    if (skippedCount > 0) {
+    const skippedCount = allAgents.length - verifiable.length;
+    if (skippedCount > 0 || freshCount > 0) {
       console.log(
-        `[8004 Verify] Skipped ${skippedCount}/${allAgents.length} agents missing valid agent_uri`,
+        `[8004 Verify] ${allAgents.length} total, ${agents.length} to check (${skippedCount} no URI, ${freshCount} still fresh)`,
       );
     }
 
     if (agents.length === 0) {
       return NextResponse.json({
-        verified: 0,
-        total: 0,
+        total: allAgents.length,
+        checked: 0,
         skipped: skippedCount,
+        fresh: freshCount,
+        verified: 0,
+        partial: 0,
+        unverified: 0,
       });
     }
 
-    const results = await verifyAgentBatch(agents, 10);
+    const results = await verifyAgentBatch(agents);
 
     let verifiedCount = 0;
     let partialCount = 0;
-    for (const [, verification] of results) {
-      if (verification.status === "verified") verifiedCount++;
-      if (verification.status === "partial") partialCount++;
+    for (const [, v] of results) {
+      if (v.status === "verified") verifiedCount++;
+      if (v.status === "partial") partialCount++;
     }
 
     const summaryPayload = {
       total: allAgents.length,
       checked: agents.length,
       skipped: skippedCount,
+      fresh: freshCount,
       verified: verifiedCount,
       partial: partialCount,
       unverified: agents.length - verifiedCount - partialCount,
@@ -114,35 +179,40 @@ export async function POST(req: NextRequest) {
     const dbPersist = (async () => {
       for (let i = 0; i < entries.length; i += DB_UPSERT_CHUNK) {
         const chunk = entries.slice(i, i + DB_UPSERT_CHUNK);
-        await Promise.allSettled(
-          chunk.map(([asset, verification]) =>
-            prisma.networkVerification.upsert({
-              where: { asset },
-              create: {
-                asset,
-                status: verification.status,
-                score: verification.score,
-                maxScore: verification.maxScore,
-                checks: verification.checks as object[],
-                verifiedAt: new Date(verification.verifiedAt),
-              },
-              update: {
-                status: verification.status,
-                score: verification.score,
-                maxScore: verification.maxScore,
-                checks: verification.checks as object[],
-                verifiedAt: new Date(verification.verifiedAt),
-              },
-            }),
-          ),
-        );
+        try {
+          await persistResultsBatch(chunk);
+        } catch (err) {
+          console.warn("[8004 Verify] Batch upsert failed, falling back:", err);
+          await Promise.allSettled(
+            chunk.map(([asset, verification]) =>
+              prisma.networkVerification.upsert({
+                where: { asset },
+                create: {
+                  asset,
+                  status: verification.status,
+                  score: verification.score,
+                  maxScore: verification.maxScore,
+                  checks: verification.checks as object[],
+                  verifiedAt: new Date(verification.verifiedAt),
+                },
+                update: {
+                  status: verification.status,
+                  score: verification.score,
+                  maxScore: verification.maxScore,
+                  checks: verification.checks as object[],
+                  verifiedAt: new Date(verification.verifiedAt),
+                },
+              }),
+            ),
+          );
+        }
       }
     })();
 
     const feedbackSubmit = (async () => {
       if (!process.env.ERC8004_SIGNER_PRIVATE_KEY) return 0;
       try {
-        const count = await submitFeedbackBatch(agents, results, 5);
+        const count = await submitFeedbackBatch(agents, results, 10);
         if (count > 0) {
           console.log(
             `[8004 Verify] Submitted ${count} on-chain feedback entries`,
