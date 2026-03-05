@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 
 import {
   getCachedIsIndexerAvailable,
@@ -229,6 +230,13 @@ export async function POST(req: NextRequest) {
       dbPersist,
       feedbackSubmit,
     ]);
+
+    try {
+      revalidatePath("/api/8004/network");
+      revalidatePath("/dashboard/network");
+    } catch {
+      /* non-critical */
+    }
 
     return NextResponse.json({
       ...summaryPayload,
