@@ -37,19 +37,8 @@ export default function NetworkControls({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut", delay: 0.15 }}
-      className="fixed bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-[#0a1120]/90 backdrop-blur-2xl border border-white/[0.07] rounded-2xl px-4 py-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.4)] z-30"
+      className="fixed bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-[#0a1120]/90 backdrop-blur-2xl border border-white/[0.07] rounded-2xl px-4 py-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.4)] z-30 max-w-[calc(100vw-2rem)]"
     >
-      {/* Live badge */}
-      <div className="flex items-center gap-2 pr-3 border-r border-white/[0.06]">
-        <div className="relative flex items-center justify-center">
-          <div className="w-2 h-2 rounded-full bg-emerald-400" />
-          <div className="absolute w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-        </div>
-        <span className="text-xs text-emerald-400 font-semibold tracking-wide">
-          8004
-        </span>
-      </div>
-
       {/* Stats */}
       <div className="flex items-center gap-4 pr-3 border-r border-white/[0.06]">
         <StatPill
@@ -57,30 +46,36 @@ export default function NetworkControls({
           value={stats?.totalAgents ?? totalAgentsLoaded}
           label="Agents"
         />
-        <StatPill
-          icon={<ShieldCheck className="w-3.5 h-3.5" />}
-          value={stats?.totalCollections ?? totalCollectionsLoaded}
-          label="Collections"
-        />
-        {stats && (
+        <span className="hidden sm:contents">
           <StatPill
-            icon={<MessageSquare className="w-3.5 h-3.5" />}
-            value={stats.totalFeedbacks}
-            label="Feedbacks"
+            icon={<ShieldCheck className="w-3.5 h-3.5" />}
+            value={stats?.totalCollections ?? totalCollectionsLoaded}
+            label="Collections"
           />
+        </span>
+        {stats && (
+          <span className="hidden sm:contents">
+            <StatPill
+              icon={<MessageSquare className="w-3.5 h-3.5" />}
+              value={stats.totalFeedbacks}
+              label="Feedbacks"
+            />
+          </span>
         )}
         {stats && stats.totalVerified > 0 && (
-          <StatPill
-            icon={<CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
-            value={stats.totalVerified}
-            label="Verified"
-          />
+          <span className="hidden sm:contents">
+            <StatPill
+              icon={<CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
+              value={stats.totalVerified}
+              label="Verified"
+            />
+          </span>
         )}
       </div>
 
       {/* Tier highlights */}
       {stats && (stats.platinumAgents > 0 || stats.goldAgents > 0) && (
-        <div className="flex items-center gap-2 pr-3 border-r border-white/[0.06]">
+        <div className="hidden sm:flex items-center gap-2 pr-3 border-r border-white/[0.06]">
           {stats.platinumAgents > 0 && (
             <span
               className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${platCss.bg} ${platCss.text}`}
@@ -106,7 +101,7 @@ export default function NetworkControls({
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Search..."
-          className="w-36 pl-8 pr-3 py-1.5 text-xs bg-white/[0.04] border border-white/[0.06] rounded-xl text-gray-300 placeholder-gray-600 focus:outline-none focus:border-white/[0.15] focus:bg-white/[0.06] transition-all duration-200"
+          className="w-24 sm:w-36 pl-8 pr-3 py-1.5 text-xs bg-white/[0.04] border border-white/[0.06] rounded-xl text-gray-300 placeholder-gray-600 focus:outline-none focus:border-white/[0.15] focus:bg-white/[0.06] transition-all duration-200"
         />
       </div>
 

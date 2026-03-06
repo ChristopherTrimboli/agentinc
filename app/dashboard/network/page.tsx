@@ -201,25 +201,25 @@ export default function NetworkPage() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.35, ease: "easeOut", delay: 0.1 }}
-            className="absolute top-4 left-4 z-30"
+            className="absolute top-4 right-4 lg:right-auto lg:left-4 z-30"
           >
-            <div className="bg-[#0a1120]/90 backdrop-blur-2xl border border-white/[0.07] rounded-2xl px-4 py-3.5 min-w-[210px] shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
+            <div className="bg-[#0a1120]/90 backdrop-blur-2xl border border-white/[0.07] rounded-2xl px-4 py-3.5 min-w-0 sm:min-w-[210px] shadow-[0_8px_32px_rgba(0,0,0,0.4)]">
               <div className="flex items-center gap-2 mb-1">
                 <div className="relative flex items-center justify-center">
                   <div className="w-2 h-2 rounded-full bg-emerald-400" />
                   <div className="absolute w-2 h-2 rounded-full bg-emerald-400 animate-ping opacity-75" />
                 </div>
                 <span className="text-sm font-bold text-white tracking-tight">
-                  8004 Network
+                  8004-solana
                 </span>
               </div>
-              <p className="text-[10px] text-gray-600 mb-3">
+              <p className="hidden sm:block text-[10px] text-gray-600 mb-3">
                 Solana AI Agent Registry — Mainnet
               </p>
 
               {/* Metrics grid */}
               {networkMetrics && (
-                <div className="space-y-1.5 mb-3 pt-3 border-t border-white/[0.06]">
+                <div className="hidden sm:block space-y-1.5 mb-3 pt-3 border-t border-white/[0.06]">
                   <MetricRow
                     dotColor="bg-emerald-400"
                     label="Verified"
@@ -265,7 +265,7 @@ export default function NetworkPage() {
 
               {/* Verification rate bar */}
               {networkMetrics && totalAgents > 0 && (
-                <div className="mb-3">
+                <div className="hidden sm:block mb-3">
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-[10px] text-gray-600">
                       Slop-o-Meter
@@ -312,7 +312,7 @@ export default function NetworkPage() {
                 href="https://8004market.io"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[10px] text-gray-700 hover:text-gray-400 transition-colors duration-200"
+                className="hidden sm:block text-[10px] text-gray-700 hover:text-gray-400 transition-colors duration-200"
               >
                 Powered by{" "}
                 <span className="text-gray-500 font-medium">8004market.io</span>

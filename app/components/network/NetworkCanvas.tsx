@@ -422,6 +422,7 @@ export default function NetworkCanvas({
   const [zoom, setZoom] = useState(0.65);
   const isPanningRef = useRef(false);
   const lastPan = useRef({ x: 0, y: 0 });
+  const lastPinchDist = useRef(0);
 
   // Keep refs current
   useEffect(() => {
@@ -1109,15 +1110,82 @@ export default function NetworkCanvas({
       }
     };
 
+    // ── Touch handlers (mobile pan + pinch-zoom) ──────────────────────────
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 1) {
+        if (clickedNodeRef.current) {
+          clickedNodeRef.current = false;
+          return;
+        }
+        isPanningRef.current = true;
+        lastPinchDist.current = 0;
+        lastPan.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      } else if (e.touches.length === 2) {
+        isPanningRef.current = false;
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        lastPinchDist.current = Math.hypot(dx, dy);
+      }
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      e.preventDefault();
+      const world = worldRef.current;
+      if (!world) return;
+
+      if (e.touches.length === 1 && isPanningRef.current) {
+        world.x += e.touches[0].clientX - lastPan.current.x;
+        world.y += e.touches[0].clientY - lastPan.current.y;
+        lastPan.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      } else if (e.touches.length === 2 && lastPinchDist.current > 0) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const dist = Math.hypot(dx, dy);
+        const scale = dist / lastPinchDist.current;
+        const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        const r = el.getBoundingClientRect();
+        const old = world.scale.x;
+        const next = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, old * scale));
+        const px = midX - r.left;
+        const py = midY - r.top;
+        const wx = (px - world.x) / old;
+        const wy = (py - world.y) / old;
+        world.scale.set(next);
+        world.x = px - wx * next;
+        world.y = py - wy * next;
+        setZoom(next);
+        lastPinchDist.current = dist;
+      }
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length === 0) {
+        isPanningRef.current = false;
+        lastPinchDist.current = 0;
+      } else if (e.touches.length === 1) {
+        lastPinchDist.current = 0;
+        isPanningRef.current = true;
+        lastPan.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      }
+    };
+
     el.addEventListener("wheel", onWheel, { passive: false });
     el.addEventListener("mousedown", onDown);
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    el.addEventListener("touchend", onTouchEnd, { passive: true });
     return () => {
       el.removeEventListener("wheel", onWheel);
       el.removeEventListener("mousedown", onDown);
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
+      el.removeEventListener("touchend", onTouchEnd);
     };
   }, [handleZoom]);
 

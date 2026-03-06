@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -55,6 +55,14 @@ export default function Sidebar() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [networkModalOpen, setNetworkModalOpen] = useState(false);
+
+  useEffect(() => {
+    const handler = (e: Event) =>
+      setNetworkModalOpen((e as CustomEvent<boolean>).detail);
+    window.addEventListener("network-modal-change", handler);
+    return () => window.removeEventListener("network-modal-change", handler);
+  }, []);
 
   const isActive = (href: string, exact?: boolean) => {
     if (exact || href === "/dashboard") {
@@ -68,7 +76,7 @@ export default function Sidebar() {
       {/* Mobile hamburger button */}
       <button
         onClick={() => setIsMobileOpen(true)}
-        className="fixed top-4 left-4 z-50 lg:hidden w-10 h-10 flex items-center justify-center rounded-xl bg-[#000028]/90 border border-white/10 backdrop-blur-sm hover:bg-[#120557]/50 transition-colors"
+        className={`fixed top-4 left-4 z-50 lg:hidden w-10 h-10 flex items-center justify-center rounded-xl bg-[#000028]/90 border border-white/10 backdrop-blur-sm hover:bg-[#120557]/50 transition-colors ${networkModalOpen ? "hidden" : ""}`}
         aria-label="Open menu"
       >
         <Menu className="w-5 h-5" />

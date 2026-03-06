@@ -207,7 +207,7 @@ export default function DashboardLayout({
 
       <main className="flex-1 relative h-full lg:ml-0 min-w-0 flex flex-col">
         <div className="lg:hidden h-16 shrink-0" />
-        <div className="relative z-10 flex-1 min-h-0 overflow-y-auto">
+        <div className="relative flex-1 min-h-0 overflow-y-auto">
           {children}
         </div>
       </main>

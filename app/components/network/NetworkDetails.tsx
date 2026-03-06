@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import {
   X,
@@ -162,7 +162,7 @@ function CollectionPanel({
       initial="hidden"
       animate="visible"
       exit="exit"
-      className="fixed top-[88px] right-4 w-80 bg-[#0a1120]/90 backdrop-blur-2xl border border-white/[0.07] rounded-2xl p-5 shadow-[0_16px_48px_rgba(0,0,0,0.5)] z-40 overflow-y-auto max-h-[calc(100vh-120px)]"
+      className="fixed top-0 sm:top-[88px] left-0 right-0 sm:left-auto sm:right-4 sm:w-80 bg-[#0a1120]/95 sm:bg-[#0a1120]/90 backdrop-blur-2xl border-b sm:border border-white/[0.07] rounded-none sm:rounded-2xl p-5 shadow-[0_16px_48px_rgba(0,0,0,0.5)] z-[60] overflow-y-auto max-h-[60dvh] sm:max-h-[calc(100vh-120px)]"
     >
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
@@ -331,7 +331,7 @@ function AgentPanel({
       initial="hidden"
       animate="visible"
       exit="exit"
-      className="fixed top-[88px] right-4 w-80 bg-[#0a1120]/90 backdrop-blur-2xl border border-white/[0.07] rounded-2xl p-5 shadow-[0_16px_48px_rgba(0,0,0,0.5)] z-40 overflow-y-auto max-h-[calc(100vh-120px)]"
+      className="fixed top-0 sm:top-[88px] left-0 right-0 sm:left-auto sm:right-4 sm:w-80 bg-[#0a1120]/95 sm:bg-[#0a1120]/90 backdrop-blur-2xl border-b sm:border border-white/[0.07] rounded-none sm:rounded-2xl p-5 shadow-[0_16px_48px_rgba(0,0,0,0.5)] z-[60] overflow-y-auto max-h-[60dvh] sm:max-h-[calc(100vh-120px)]"
     >
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
@@ -642,6 +642,18 @@ function Stat({
 // ── Main Export ───────────────────────────────────────────────────────────────
 
 export default function NetworkDetails({ collection, agent, onClose }: Props) {
+  useEffect(() => {
+    const isOpen = !!(collection || agent);
+    window.dispatchEvent(
+      new CustomEvent<boolean>("network-modal-change", { detail: isOpen }),
+    );
+    return () => {
+      window.dispatchEvent(
+        new CustomEvent<boolean>("network-modal-change", { detail: false }),
+      );
+    };
+  }, [collection, agent]);
+
   return (
     <AnimatePresence mode="wait">
       {agent ? (
