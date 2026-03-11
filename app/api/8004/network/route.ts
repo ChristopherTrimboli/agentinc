@@ -5,8 +5,8 @@ import {
   getCachedGlobalStats,
   getCachedCollectionPointers,
   getCachedIsIndexerAvailable,
-  getCachedSearchAgents,
-  getCachedCollectionAssets,
+  getCachedSearchAgentsPage,
+  getCachedCollectionAssetsPage,
 } from "@/lib/erc8004/cached";
 import prisma from "@/lib/prisma";
 import { rateLimitByIP } from "@/lib/rateLimit";
@@ -25,7 +25,7 @@ async function fetchAllCollectionAssets(col: string): Promise<IndexedAgent[]> {
   const all: IndexedAgent[] = [];
   let offset = 0;
   for (;;) {
-    const page = await getCachedCollectionAssets(col, PAGE_SIZE, offset);
+    const page = await getCachedCollectionAssetsPage(col, PAGE_SIZE, offset);
     all.push(...page);
     if (page.length < PAGE_SIZE) break;
     offset += PAGE_SIZE;
@@ -37,7 +37,7 @@ async function fetchAllAgents(): Promise<IndexedAgent[]> {
   const all: IndexedAgent[] = [];
   let offset = 0;
   for (;;) {
-    const page = await getCachedSearchAgents(PAGE_SIZE, offset);
+    const page = await getCachedSearchAgentsPage(PAGE_SIZE, offset);
     all.push(...page);
     if (page.length < PAGE_SIZE) break;
     offset += PAGE_SIZE;

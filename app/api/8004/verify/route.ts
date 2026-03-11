@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 
 import {
   getCachedIsIndexerAvailable,
-  getCachedSearchAgents,
+  getCachedSearchAgentsPage,
 } from "@/lib/erc8004/cached";
 import prisma from "@/lib/prisma";
 import { rateLimitByIP } from "@/lib/rateLimit";
@@ -25,7 +25,7 @@ async function fetchAllIndexedAgents(): Promise<IndexedAgent[]> {
   const all: IndexedAgent[] = [];
   let offset = 0;
   for (;;) {
-    const page = await getCachedSearchAgents(INDEXER_PAGE_SIZE, offset);
+    const page = await getCachedSearchAgentsPage(INDEXER_PAGE_SIZE, offset);
     all.push(...page);
     if (page.length < INDEXER_PAGE_SIZE) break;
     offset += INDEXER_PAGE_SIZE;

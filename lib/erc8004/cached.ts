@@ -45,8 +45,21 @@ export const getCachedSearchAgents = unstable_cache(
     return sdk.searchAgents({ limit, offset });
   },
   ["8004-search-agents"],
-  { revalidate: REVALIDATE },
+  { revalidate: REVALIDATE, tags: [] },
 );
+
+// unstable_cache doesn't automatically key by args — wrap per-call so
+// each unique (limit, offset) combination gets its own cache entry.
+export function getCachedSearchAgentsPage(limit: number, offset: number) {
+  return unstable_cache(
+    async () => {
+      const sdk = getErc8004Sdk();
+      return sdk.searchAgents({ limit, offset });
+    },
+    [`8004-search-agents-${limit}-${offset}`],
+    { revalidate: REVALIDATE },
+  )();
+}
 
 export const getCachedCollectionAssets = unstable_cache(
   async (col: string, limit: number, offset: number) => {
@@ -54,5 +67,20 @@ export const getCachedCollectionAssets = unstable_cache(
     return sdk.getCollectionAssets(col, { limit, offset });
   },
   ["8004-collection-assets"],
-  { revalidate: REVALIDATE },
+  { revalidate: REVALIDATE, tags: [] },
 );
+
+export function getCachedCollectionAssetsPage(
+  col: string,
+  limit: number,
+  offset: number,
+) {
+  return unstable_cache(
+    async () => {
+      const sdk = getErc8004Sdk();
+      return sdk.getCollectionAssets(col, { limit, offset });
+    },
+    [`8004-collection-assets-${col}-${limit}-${offset}`],
+    { revalidate: REVALIDATE },
+  )();
+}
