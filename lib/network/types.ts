@@ -147,6 +147,7 @@ export function getCollectionRadius(agentCount: number): number {
 const AGENT_MIN_R = 8;
 const AGENT_MAX_R = 18;
 
-export function getAgentRadius(_qualityScore: number): number {
-  return 14;
+export function getAgentRadius(qualityScore: number): number {
+  const t = Math.max(0, Math.min(100, qualityScore)) / 100;
+  return AGENT_MIN_R + t * (AGENT_MAX_R - AGENT_MIN_R);
 }

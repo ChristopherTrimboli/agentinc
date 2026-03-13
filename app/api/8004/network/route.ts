@@ -12,6 +12,7 @@ import prisma from "@/lib/prisma";
 import { rateLimitByIP } from "@/lib/rateLimit";
 import { SOLANA_RPC_URL } from "@/lib/constants/solana";
 import type { NetworkData, AgentVerification } from "@/lib/network/types";
+import { isPlaceholderUri } from "@/lib/network/images";
 
 export const dynamic = "force-dynamic";
 
@@ -43,14 +44,6 @@ async function fetchAllAgents(): Promise<IndexedAgent[]> {
     offset += PAGE_SIZE;
   }
   return all;
-}
-
-// ── Metadata Fetcher ────────────────────────────────────────────────────────
-
-const PLACEHOLDER_RE = /example|placeholder|test|dummy/i;
-
-function isPlaceholderUri(uri: string): boolean {
-  return PLACEHOLDER_RE.test(uri) || uri.length < 10;
 }
 
 interface AgentMetadata {

@@ -24,6 +24,7 @@ import {
   getCollectionRadius,
   getAgentRadius,
 } from "@/lib/network/types";
+import { resolveImageUrl, canLoadDirectly } from "@/lib/network/images";
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -178,56 +179,6 @@ function enqueueImageLoad<T>(fn: () => Promise<T>): Promise<T> {
 
 const textureCache = new Map<string, Texture>();
 const failedUrls = new Set<string>();
-
-const CORS_SAFE_HOSTS = [
-  ".blob.vercel-storage.com",
-  "ipfs.io",
-  "arweave.net",
-  "nftstorage.link",
-  "dweb.link",
-  "w3s.link",
-];
-
-function canLoadDirectly(url: string): boolean {
-  if (url.startsWith("/") || url.startsWith("data:")) return true;
-  try {
-    const u = new URL(url);
-    if (u.origin === globalThis.location?.origin) return true;
-    const h = u.hostname;
-    return CORS_SAFE_HOSTS.some((s) => h === s || h.endsWith(s));
-  } catch {
-    return false;
-  }
-}
-
-function isValidIpfsCid(cid: string): boolean {
-  if (cid.startsWith("Qm") && cid.length >= 44 && cid.length <= 50) return true;
-  if (cid.startsWith("bafy") && cid.length >= 50) return true;
-  return false;
-}
-
-function resolveImageUrl(url: string | null | undefined): string | null {
-  if (!url || url.trim() === "") return null;
-  if (/example|placeholder|test|dummy/i.test(url)) return null;
-  if (url.startsWith("ipfs://")) {
-    const cid = url.slice(7).split("/")[0];
-    if (!isValidIpfsCid(cid)) return null;
-    return `https://dweb.link/ipfs/${url.slice(7)}`;
-  }
-  if (url.startsWith("ar://")) return `https://arweave.net/${url.slice(5)}`;
-  if (url.match(/\/ipfs\/([a-zA-Z0-9]+)/)) {
-    const match = url.match(/\/ipfs\/([a-zA-Z0-9]+)/);
-    if (match && !isValidIpfsCid(match[1])) return null;
-  }
-  if (
-    url.startsWith("http://") ||
-    url.startsWith("https://") ||
-    url.startsWith("data:") ||
-    url.startsWith("/")
-  )
-    return url;
-  return null;
-}
 
 function loadImage(url: string, timeoutMs = 10000): Promise<HTMLImageElement> {
   if (failedUrls.has(url))
@@ -760,7 +711,6 @@ export default function NetworkCanvas({
       destroyed = true;
       cleanup.then((fn) => fn?.());
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [drawConnections, drawHighlights]);
 
   // ── Create / update collection containers ──────────────────────────────

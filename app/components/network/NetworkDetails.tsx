@@ -22,6 +22,7 @@ import {
   TRUST_TIER_CSS,
   getCollectionCssColor,
 } from "@/lib/network/types";
+import { resolveImageSrc } from "@/lib/network/images";
 
 const panelVariants = {
   hidden: { opacity: 0, x: 40, scale: 0.98 },
@@ -61,35 +62,6 @@ function safeHostname(url: string): string {
   } catch {
     return url.length > 24 ? url.slice(0, 24) + "..." : url;
   }
-}
-
-const CORS_SAFE_HOSTS = [
-  ".blob.vercel-storage.com",
-  "ipfs.io",
-  "arweave.net",
-  "nftstorage.link",
-  "cloudflare-ipfs.com",
-];
-
-function resolveImageSrc(url: string | null | undefined): string | null {
-  if (!url || url.trim() === "") return null;
-  if (/example|placeholder|test|dummy/i.test(url)) return null;
-  if (url.startsWith("ipfs://")) return `https://ipfs.io/ipfs/${url.slice(7)}`;
-  if (url.startsWith("ar://")) return `https://arweave.net/${url.slice(5)}`;
-  if (url.startsWith("data:") || url.startsWith("/")) return url;
-  if (url.startsWith("http://") || url.startsWith("https://")) {
-    try {
-      const u = new URL(url);
-      if (typeof window !== "undefined" && u.origin === window.location.origin)
-        return url;
-      const h = u.hostname;
-      if (CORS_SAFE_HOSTS.some((s) => h === s || h.endsWith(s))) return url;
-    } catch {
-      /* fall through */
-    }
-    return `/api/image-proxy?url=${encodeURIComponent(url)}`;
-  }
-  return null;
 }
 
 function Avatar({

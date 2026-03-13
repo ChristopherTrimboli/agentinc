@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { ShieldCheck, ExternalLink, Copy, Check, Loader2 } from "lucide-react";
 
 interface Erc8004CardProps {
@@ -8,26 +8,98 @@ interface Erc8004CardProps {
   isMinted: boolean;
   erc8004Asset: string | null;
   erc8004Uri: string | null;
+  erc8004CollectionPointer: string | null;
   erc8004RegisteredAt: string | null;
   erc8004AtomEnabled: boolean;
+  /** Recently minted — poll for background registration completion */
+  isRecentlyMinted?: boolean;
   onRegistered?: () => void;
 }
 
-const COLLECTION_PAGE =
-  "https://8004market.io/collection/solana/mainnet-beta/bafkreihvfphhye3jom6ewfrlvy4wx7itxmkjc6bjtzrlgfnmfs7dwxc7km";
+function get8004MarketUrl(
+  asset: string | null,
+  collectionPointer: string | null,
+): string {
+  if (asset) {
+    return `https://8004market.io/agent/solana/mainnet-beta/${asset}`;
+  }
+  if (collectionPointer) {
+    const cid = collectionPointer.replace(/^c\d+:/, "");
+    return `https://8004market.io/collection/solana/mainnet-beta/${cid}`;
+  }
+  return "https://8004market.io";
+}
+
+const POLL_INTERVAL_MS = 3000;
+const POLL_MAX_ATTEMPTS = 20;
 
 export default function Erc8004Card({
   agentId,
   isMinted,
   erc8004Asset,
   erc8004Uri,
+  erc8004CollectionPointer,
   erc8004RegisteredAt,
   erc8004AtomEnabled,
+  isRecentlyMinted = false,
   onRegistered,
 }: Erc8004CardProps) {
   const [copiedItem, setCopiedItem] = useState<string | null>(null);
   const [isRegistering, setIsRegistering] = useState(false);
   const [registerError, setRegisterError] = useState<string | null>(null);
+  const [isPolling, setIsPolling] = useState(false);
+  const pollCountRef = useRef(0);
+  const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const isRegistered = !!erc8004Asset;
+
+  const pollForRegistration = useCallback(async () => {
+    if (pollCountRef.current >= POLL_MAX_ATTEMPTS) {
+      setIsPolling(false);
+      return;
+    }
+
+    pollCountRef.current++;
+    try {
+      const res = await fetch(`/api/agents/${agentId}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.agent?.erc8004Asset) {
+        setIsPolling(false);
+        onRegistered?.();
+        return;
+      }
+    } catch {
+      /* continue polling */
+    }
+
+    pollTimerRef.current = setTimeout(pollForRegistration, POLL_INTERVAL_MS);
+  }, [agentId, onRegistered]);
+
+  useEffect(() => {
+    if (isRecentlyMinted && !isRegistered && !isPolling && !isRegistering) {
+      setIsPolling(true);
+      pollCountRef.current = 0;
+      pollTimerRef.current = setTimeout(pollForRegistration, POLL_INTERVAL_MS);
+    }
+
+    return () => {
+      if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
+    };
+  }, [
+    isRecentlyMinted,
+    isRegistered,
+    isPolling,
+    isRegistering,
+    pollForRegistration,
+  ]);
+
+  useEffect(() => {
+    if (isRegistered && pollTimerRef.current) {
+      clearTimeout(pollTimerRef.current);
+      setIsPolling(false);
+    }
+  }, [isRegistered]);
 
   const copyToClipboard = async (text: string, itemId: string) => {
     await navigator.clipboard.writeText(text);
@@ -46,6 +118,10 @@ export default function Erc8004Card({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
+        if (res.status === 409) {
+          onRegistered?.();
+          return;
+        }
         throw new Error(data.error || "Registration failed");
       }
       onRegistered?.();
@@ -60,7 +136,7 @@ export default function Erc8004Card({
 
   if (!isMinted && !erc8004Asset) return null;
 
-  const isRegistered = !!erc8004Asset;
+  const marketUrl = get8004MarketUrl(erc8004Asset, erc8004CollectionPointer);
 
   return (
     <div className="p-4 sm:p-6 rounded-xl sm:rounded-2xl bg-[#0a0520] border border-white/10">
@@ -118,7 +194,7 @@ export default function Erc8004Card({
           {/* Links */}
           <div className="flex flex-wrap gap-2 sm:gap-3 pt-1">
             <a
-              href={COLLECTION_PAGE}
+              href={marketUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#6FEC06]/10 border border-[#6FEC06]/30 rounded-xl text-[#6FEC06] text-sm font-semibold hover:bg-[#6FEC06]/20 transition-all"
@@ -148,6 +224,19 @@ export default function Erc8004Card({
               </a>
             )}
           </div>
+        </div>
+      ) : isPolling ? (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Loader2 className="w-4 h-4 animate-spin text-[#6FEC06]/60" />
+            <p className="text-xs sm:text-sm text-white/50">
+              Registering on 8004 network...
+            </p>
+          </div>
+          <p className="text-[10px] text-white/30">
+            Your agent is being registered on-chain. This usually takes 15-30
+            seconds.
+          </p>
         </div>
       ) : (
         <div className="space-y-3">

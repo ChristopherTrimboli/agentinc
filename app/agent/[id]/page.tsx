@@ -539,6 +539,7 @@ export default function AgentProfilePage({
                   isMinted={agent.isMinted}
                   erc8004Asset={agent.erc8004Asset}
                   erc8004Uri={agent.erc8004Uri}
+                  erc8004CollectionPointer={agent.erc8004CollectionPointer}
                   erc8004RegisteredAt={agent.erc8004RegisteredAt}
                   erc8004AtomEnabled={agent.erc8004AtomEnabled}
                   onRegistered={fetchData}

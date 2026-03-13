@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  useEffect,
-  useState,
-  useCallback,
-  useRef,
-  lazy,
-  Suspense,
-} from "react";
+import { useEffect, useState, useCallback, lazy, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Navigation from "../components/Navigation";
 import NetworkDetails from "../components/network/NetworkDetails";
@@ -34,8 +27,6 @@ export default function SwarmPage() {
     useState<NetworkCollection | null>(null);
   const [selectedAgent, setSelectedAgent] = useState<NetworkAgent | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-
-  const canvasResetRef = useRef<(() => void) | null>(null);
 
   const handleSelectCollection = useCallback((c: NetworkCollection | null) => {
     setSelectedCollection(c);
@@ -188,7 +179,7 @@ export default function SwarmPage() {
           stats={data.stats}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          onReset={() => canvasResetRef.current?.()}
+          onReset={() => window.location.reload()}
           totalAgentsLoaded={totalAgents}
           totalCollectionsLoaded={data.collections.length}
         />
