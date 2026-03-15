@@ -38,6 +38,13 @@ model User {
   wallets             UserWallet[]       @relation("UserWallets")
   walletTransactions  WalletTransaction[]
 
+  // Marketplace relations
+  marketplaceListings  MarketplaceListing[]
+  postedTasks          MarketplaceTask[]   @relation("TasksPoster")
+  assignedTasks        MarketplaceTask[]   @relation("TasksWorker")
+  marketplaceBids      MarketplaceBid[]
+  marketplaceReviews   MarketplaceReview[]
+
   @@index([twitterUserId])
   @@index([twitterUsername])
   @@index([activeWalletId])
@@ -88,6 +95,9 @@ model Chat {
 
   // Tasks originated from this chat
   tasks AgentTask[]
+
+  // Marketplace task linked to this chat
+  marketplaceTask MarketplaceTask?
 
   @@index([userId])
   @@index([agentId])
@@ -168,6 +178,16 @@ model Agent {
   agentChatMessages AgentChatMessage[] @relation("AgentChatMessages")
   stakingPool       StakingPool?       @relation("AgentStakingPool")
 
+  // Marketplace relations
+  marketplaceListing   MarketplaceListing?
+  agentPostedTasks     MarketplaceTask[]   @relation("TasksPosterAgent")
+  agentAssignedTasks   MarketplaceTask[]   @relation("TasksWorkerAgent")
+  agentBids            MarketplaceBid[]
+
+  // Marketplace spending controls
+  marketplaceBudgetSol    Float?   // Max SOL per autonomous hire (null = disabled)
+  marketplaceAutoApprove  Boolean  @default(false)
+
   @@index([createdById])
   @@index([tokenMint])
   @@index([isMinted])
@@ -221,6 +241,9 @@ model Corporation {
 
   // Relations
   agents Agent[]
+
+  // Marketplace relations
+  marketplaceListing MarketplaceListing?
 
   @@index([name])
   @@index([tokenMint])
@@ -424,4 +447,179 @@ model TaskLog {
 
   @@index([taskId])
   @@index([taskId, createdAt])
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MARKETPLACE — The Hiring Protocol
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Supply side: a human, agent, or corporation available for hire
+model MarketplaceListing {
+  id          String   @id @default(cuid())
+  type        String   // "agent" | "human" | "corporation"
+  title       String   @db.VarChar(200)
+  description String   @db.Text
+  category    String   // development, design, research, trading, social_media, irl_task, writing, data, other
+  skills      String[] // Tags: ["solana", "rust", "photography", "delivery"]
+
+  // Pricing
+  priceType   String   // "hourly" | "fixed" | "per_use" | "bidding"
+  priceSol    Float?   // SOL amount (null if bidding-only)
+  priceToken  String?  // Optional: agent token mint for token payments
+
+  // Location (for IRL tasks)
+  location    String?
+  isRemote    Boolean  @default(true)
+
+  // Availability
+  isAvailable    Boolean  @default(true)
+  availableHours String?  // JSON schedule
+
+  // Owner relations (exactly one should be set)
+  userId        String?
+  user          User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agentId       String?      @unique
+  agent         Agent?       @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  corporationId String?      @unique
+  corporation   Corporation? @relation(fields: [corporationId], references: [id], onDelete: Cascade)
+
+  // Aggregate stats (updated on task completion)
+  completedTasks Int    @default(0)
+  averageRating  Float  @default(0)
+  totalRatings   Int    @default(0)
+  responseTime   Int?   // Average seconds to respond
+
+  // Metadata
+  featuredImage String?
+  portfolio     String[] // URLs to past work
+
+  tasks     MarketplaceTask[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type])
+  @@index([category])
+  @@index([isAvailable])
+  @@index([type, category, isAvailable])
+  @@index([userId])
+  @@index([averageRating])
+  @@index([completedTasks])
+  @@index([createdAt])
+}
+
+// Demand side: a posted task/bounty
+model MarketplaceTask {
+  id     String @id @default(cuid())
+  status String @default("open") // open, assigned, in_progress, review, completed, disputed, cancelled
+
+  // Task details
+  title        String   @db.VarChar(200)
+  description  String   @db.Text
+  category     String
+  requirements String[]
+
+  // Budget
+  budgetSol    Float
+  budgetToken  String?  // Optional token mint for token payments
+
+  // Escrow
+  escrowAmount       Float?  // SOL locked in treasury
+  escrowTxSignature  String? // Transfer-in tx
+  settleTxSignature  String? // Release tx
+  escrowStatus       String  @default("none") // none, held, released, refunded
+
+  // Milestones (JSON: [{title, amountSol, status}])
+  milestones Json?
+
+  // Poster (who created the task)
+  posterId      String
+  poster        User   @relation("TasksPoster", fields: [posterId], references: [id], onDelete: Cascade)
+  posterAgentId String?
+  posterAgent   Agent? @relation("TasksPosterAgent", fields: [posterAgentId], references: [id], onDelete: SetNull)
+
+  // Worker (who is assigned)
+  workerId      String?
+  worker        User?  @relation("TasksWorker", fields: [workerId], references: [id], onDelete: SetNull)
+  workerAgentId String?
+  workerAgent   Agent? @relation("TasksWorkerAgent", fields: [workerAgentId], references: [id], onDelete: SetNull)
+
+  // Listing (if hired from a listing)
+  listingId String?
+  listing   MarketplaceListing? @relation(fields: [listingId], references: [id], onDelete: SetNull)
+
+  // Delivery
+  deliverables String? @db.Text
+
+  // Location
+  location String?
+  isRemote Boolean @default(true)
+
+  // Timing
+  deadline    DateTime?
+  completedAt DateTime?
+
+  // Communication
+  chatId String? @unique
+  chat   Chat?   @relation(fields: [chatId], references: [id], onDelete: SetNull)
+
+  bids    MarketplaceBid[]
+  reviews MarketplaceReview[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([category])
+  @@index([posterId])
+  @@index([workerId])
+  @@index([listingId])
+  @@index([status, category])
+  @@index([posterId, status])
+  @@index([workerId, status])
+  @@index([createdAt])
+}
+
+// A bid/proposal on a task
+model MarketplaceBid {
+  id     String @id @default(cuid())
+  status String @default("pending") // pending, accepted, rejected, withdrawn
+
+  amountSol     Float
+  message       String? @db.Text
+  estimatedTime String? // "2 hours", "3 days"
+
+  // Bidder (user or agent)
+  bidderId      String?
+  bidder        User?  @relation(fields: [bidderId], references: [id], onDelete: Cascade)
+  bidderAgentId String?
+  bidderAgent   Agent? @relation(fields: [bidderAgentId], references: [id], onDelete: SetNull)
+
+  taskId String
+  task   MarketplaceTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([taskId])
+  @@index([bidderId])
+  @@index([taskId, status])
+}
+
+// Post-completion review
+model MarketplaceReview {
+  id     String @id @default(cuid())
+  rating Int    // 1-5
+  comment String? @db.Text
+
+  reviewerId String
+  reviewer   User @relation(fields: [reviewerId], references: [id], onDelete: Cascade)
+
+  taskId String
+  task   MarketplaceTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([taskId, reviewerId])
+  @@index([taskId])
+  @@index([reviewerId])
 }

@@ -32,15 +32,18 @@ export { skillRegistry, registerSkill, getSkillTools } from "./registry";
 // Import and register all skills
 import { moltbookSkill } from "./moltbook";
 import { bagsSkill } from "./bags";
+import { marketplaceSkill } from "./marketplace";
 import { registerSkill } from "./registry";
 
 // Auto-register built-in skills
 registerSkill(moltbookSkill);
 registerSkill(bagsSkill);
+registerSkill(marketplaceSkill);
 
 // Export individual skills for direct use
 export { moltbookSkill, MOLTBOOK_SYSTEM_PROMPT } from "./moltbook";
 export { bagsSkill, BAGS_SYSTEM_PROMPT } from "./bags";
+export { marketplaceSkill, MARKETPLACE_SYSTEM_PROMPT } from "./marketplace";
 
 /**
  * Get configuration for skills from environment variables
@@ -53,12 +56,13 @@ export function getSkillConfigsFromEnv(): Record<string, { apiKey?: string }> {
     bags: {
       apiKey: process.env.BAGS_JWT_TOKEN, // Optional - users configure via UI
     },
+    marketplace: {},
   };
 }
 
 /**
  * List of all available skill IDs
  */
-export const AVAILABLE_SKILLS = ["moltbook", "bags"] as const;
+export const AVAILABLE_SKILLS = ["moltbook", "bags", "marketplace"] as const;
 
 export type AvailableSkill = (typeof AVAILABLE_SKILLS)[number];

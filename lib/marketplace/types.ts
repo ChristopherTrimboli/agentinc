@@ -1,0 +1,186 @@
+/**
+ * Marketplace Types — The Hiring Protocol
+ *
+ * Shared types, enums, and constants for the marketplace feature.
+ */
+
+// ── Categories ──────────────────────────────────────────────────────────
+
+export const MARKETPLACE_CATEGORIES = [
+  "development",
+  "design",
+  "research",
+  "trading",
+  "social_media",
+  "irl_task",
+  "writing",
+  "data",
+  "other",
+] as const;
+
+export type MarketplaceCategory = (typeof MARKETPLACE_CATEGORIES)[number];
+
+export const CATEGORY_LABELS: Record<MarketplaceCategory, string> = {
+  development: "Development",
+  design: "Design",
+  research: "Research",
+  trading: "Trading",
+  social_media: "Social Media",
+  irl_task: "IRL Task",
+  writing: "Writing",
+  data: "Data",
+  other: "Other",
+};
+
+export const CATEGORY_ICONS: Record<MarketplaceCategory, string> = {
+  development: "Code",
+  design: "Palette",
+  research: "Search",
+  trading: "TrendingUp",
+  social_media: "Share2",
+  irl_task: "MapPin",
+  writing: "PenTool",
+  data: "Database",
+  other: "MoreHorizontal",
+};
+
+// ── Listing Types ───────────────────────────────────────────────────────
+
+export const LISTING_TYPES = ["agent", "human", "corporation"] as const;
+export type ListingType = (typeof LISTING_TYPES)[number];
+
+export const PRICE_TYPES = ["hourly", "fixed", "per_use", "bidding"] as const;
+export type PriceType = (typeof PRICE_TYPES)[number];
+
+// ── Task Status ─────────────────────────────────────────────────────────
+
+export const TASK_STATUSES = [
+  "open",
+  "assigned",
+  "in_progress",
+  "review",
+  "completed",
+  "disputed",
+  "cancelled",
+] as const;
+
+export type TaskStatus = (typeof TASK_STATUSES)[number];
+
+export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
+  open: "Open",
+  assigned: "Assigned",
+  in_progress: "In Progress",
+  review: "In Review",
+  completed: "Completed",
+  disputed: "Disputed",
+  cancelled: "Cancelled",
+};
+
+// ── Escrow Status ───────────────────────────────────────────────────────
+
+export const ESCROW_STATUSES = [
+  "none",
+  "held",
+  "released",
+  "refunded",
+] as const;
+export type EscrowStatus = (typeof ESCROW_STATUSES)[number];
+
+// ── Bid Status ──────────────────────────────────────────────────────────
+
+export const BID_STATUSES = [
+  "pending",
+  "accepted",
+  "rejected",
+  "withdrawn",
+] as const;
+export type BidStatus = (typeof BID_STATUSES)[number];
+
+// ── Milestone ───────────────────────────────────────────────────────────
+
+export interface Milestone {
+  title: string;
+  amountSol: number;
+  status: "pending" | "completed" | "released";
+}
+
+// ── API Types ───────────────────────────────────────────────────────────
+
+export interface CreateListingInput {
+  type: ListingType;
+  title: string;
+  description: string;
+  category: MarketplaceCategory;
+  skills: string[];
+  priceType: PriceType;
+  priceSol?: number;
+  priceToken?: string;
+  location?: string;
+  isRemote?: boolean;
+  availableHours?: string;
+  agentId?: string;
+  corporationId?: string;
+  featuredImage?: string;
+  portfolio?: string[];
+}
+
+export interface CreateTaskInput {
+  title: string;
+  description: string;
+  category: MarketplaceCategory;
+  requirements: string[];
+  budgetSol: number;
+  budgetToken?: string;
+  milestones?: Milestone[];
+  listingId?: string;
+  location?: string;
+  isRemote?: boolean;
+  deadline?: string;
+}
+
+export interface CreateBidInput {
+  amountSol: number;
+  message?: string;
+  estimatedTime?: string;
+}
+
+export interface CreateReviewInput {
+  rating: number;
+  comment?: string;
+}
+
+// ── Listing Query Params ────────────────────────────────────────────────
+
+export interface ListingQueryParams {
+  type?: ListingType;
+  category?: MarketplaceCategory;
+  skills?: string[];
+  minPrice?: number;
+  maxPrice?: number;
+  location?: string;
+  isRemote?: boolean;
+  sort?: "rating" | "price_asc" | "price_desc" | "newest" | "most_completed";
+  page?: number;
+  pageSize?: number;
+  search?: string;
+}
+
+export interface TaskQueryParams {
+  status?: TaskStatus;
+  category?: MarketplaceCategory;
+  minBudget?: number;
+  maxBudget?: number;
+  isRemote?: boolean;
+  sort?: "newest" | "budget_desc" | "budget_asc" | "deadline";
+  page?: number;
+  pageSize?: number;
+  search?: string;
+}
+
+// ── Escrow Types ────────────────────────────────────────────────────────
+
+export interface EscrowResult {
+  success: boolean;
+  txSignature?: string;
+  error?: string;
+}
