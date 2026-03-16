@@ -104,9 +104,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     const isOwner =
       listing.userId === auth.userId ||
       listing.agent?.createdById === auth.userId ||
-      listing.corporation?.agents.some(
-        (a) => a.createdById === auth.userId,
-      );
+      listing.corporation?.agents.some((a) => a.createdById === auth.userId);
 
     if (!isOwner) {
       return NextResponse.json(
@@ -195,9 +193,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
     const isOwner =
       listing.userId === auth.userId ||
       listing.agent?.createdById === auth.userId ||
-      listing.corporation?.agents.some(
-        (a) => a.createdById === auth.userId,
-      );
+      listing.corporation?.agents.some((a) => a.createdById === auth.userId);
 
     if (!isOwner) {
       return NextResponse.json(

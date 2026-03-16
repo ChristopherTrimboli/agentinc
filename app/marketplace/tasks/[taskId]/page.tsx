@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { usePrivy } from "@privy-io/react-auth";
 import { useAuth } from "@/lib/auth/AuthProvider";
+import { motion } from "framer-motion";
 import {
   ArrowLeft,
   MapPin,
@@ -16,9 +17,13 @@ import {
   Star,
   Loader2,
   AlertTriangle,
+  MessageSquare,
+  Shield,
+  Zap,
+  X,
 } from "lucide-react";
 import Link from "next/link";
-import { timeAgo } from "@/lib/utils";
+import { cn, timeAgo } from "@/lib/utils";
 import StatusTimeline from "@/components/marketplace/StatusTimeline";
 import EscrowBadge from "@/components/marketplace/EscrowBadge";
 import BidCard from "@/components/marketplace/BidCard";
@@ -27,6 +32,14 @@ import {
   type MarketplaceCategory,
   type Milestone,
 } from "@/lib/marketplace/types";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -88,24 +101,22 @@ export default function TaskDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Bid form
   const [bidAmount, setBidAmount] = useState("");
   const [bidMessage, setBidMessage] = useState("");
   const [bidTime, setBidTime] = useState("");
   const [submittingBid, setSubmittingBid] = useState(false);
 
-  // Deliverables form
   const [deliverables, setDeliverables] = useState("");
   const [submittingDeliverables, setSubmittingDeliverables] = useState(false);
 
-  // Review form
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewHover, setReviewHover] = useState(0);
   const [reviewComment, setReviewComment] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
 
-  // Action states
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [disputeOpen, setDisputeOpen] = useState(false);
+  const [disputeReason, setDisputeReason] = useState("");
 
   const currentUserId = user?.id ?? null;
   const isPoster = currentUserId === task?.posterId;
@@ -137,7 +148,6 @@ export default function TaskDetailPage() {
     e.preventDefault();
     if (!authenticated) return login();
     setSubmittingBid(true);
-
     try {
       const res = await authFetch(`/api/marketplace/tasks/${taskId}/bid`, {
         method: "POST",
@@ -165,10 +175,10 @@ export default function TaskDetailPage() {
   async function handleAcceptBid(bidId: string) {
     setActionLoading(bidId);
     try {
-      const res = await authFetch(
-        `/api/marketplace/tasks/${taskId}/assign`,
-        { method: "POST", body: JSON.stringify({ bidId }) },
-      );
+      const res = await authFetch(`/api/marketplace/tasks/${taskId}/assign`, {
+        method: "POST",
+        body: JSON.stringify({ bidId }),
+      });
       if (!res.ok) throw new Error("Failed to accept bid");
       await fetchTask();
     } catch {
@@ -182,13 +192,10 @@ export default function TaskDetailPage() {
     e.preventDefault();
     setSubmittingDeliverables(true);
     try {
-      const res = await authFetch(
-        `/api/marketplace/tasks/${taskId}/submit`,
-        {
-          method: "POST",
-          body: JSON.stringify({ deliverables }),
-        },
-      );
+      const res = await authFetch(`/api/marketplace/tasks/${taskId}/submit`, {
+        method: "POST",
+        body: JSON.stringify({ deliverables }),
+      });
       if (!res.ok) throw new Error("Failed to submit deliverables");
       await fetchTask();
     } catch {
@@ -214,16 +221,16 @@ export default function TaskDetailPage() {
   }
 
   async function handleDispute() {
-    const reason = prompt("Please describe the reason for your dispute:");
-    if (!reason?.trim()) return;
-
+    if (!disputeReason.trim()) return;
     setActionLoading("dispute");
     try {
       const res = await authFetch(`/api/marketplace/tasks/${taskId}/dispute`, {
         method: "POST",
-        body: JSON.stringify({ reason: reason.trim() }),
+        body: JSON.stringify({ reason: disputeReason.trim() }),
       });
       if (!res.ok) throw new Error("Failed to dispute");
+      setDisputeOpen(false);
+      setDisputeReason("");
       await fetchTask();
     } catch {
       setError("Failed to dispute task");
@@ -259,24 +266,33 @@ export default function TaskDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#000028]">
-        <Loader2 className="size-8 animate-spin text-[#6FEC06]" />
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="size-8 animate-spin text-coral" />
+          <p className="text-sm text-white/30">Loading task...</p>
+        </div>
       </div>
     );
   }
 
   if (error && !task) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-[#000028] text-white">
-        <AlertTriangle className="size-12 text-red-400" />
-        <p className="text-lg">{error}</p>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="flex min-h-[60vh] flex-col items-center justify-center gap-4 text-white"
+      >
+        <div className="flex size-20 items-center justify-center rounded-2xl border border-red-500/20 bg-red-500/5">
+          <AlertTriangle className="size-8 text-red-400" />
+        </div>
+        <p className="text-lg font-medium text-white/40">{error}</p>
         <Link
           href="/marketplace"
-          className="text-sm text-[#6FEC06] hover:underline"
+          className="text-sm text-coral hover:underline"
         >
           Back to Marketplace
         </Link>
-      </div>
+      </motion.div>
     );
   }
 
@@ -290,47 +306,68 @@ export default function TaskDetailPage() {
   );
 
   return (
-    <div className="min-h-screen bg-[#000028] pb-20">
-      <div className="mx-auto max-w-4xl px-4 pt-8">
+    <div className="pb-20">
+      <div className="mx-auto max-w-4xl">
         {/* Back button */}
-        <Link
-          href="/marketplace"
-          className="mb-6 inline-flex items-center gap-2 text-sm text-white/50 transition-colors hover:text-white"
+        <motion.div
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
         >
-          <ArrowLeft className="size-4" />
-          Back to Marketplace
-        </Link>
+          <Link
+            href="/marketplace"
+            className="mb-6 inline-flex items-center gap-2 text-sm text-white/40 transition-colors hover:text-white"
+          >
+            <ArrowLeft className="size-4" />
+            Back to Marketplace
+          </Link>
+        </motion.div>
 
         {/* Error banner */}
         {error && (
-          <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
-            {error}
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-4 flex items-center justify-between rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-400"
+          >
+            <span>{error}</span>
             <button
               onClick={() => setError("")}
-              className="ml-2 underline hover:no-underline"
+              className="ml-2 rounded-lg p-1 hover:bg-red-500/10"
             >
-              dismiss
+              <X className="size-3.5" />
             </button>
-          </div>
+          </motion.div>
         )}
 
         {/* Title + Status */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-white">{task.title}</h1>
-          <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-white/50">
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="mb-6"
+        >
+          <h1 className="text-3xl font-bold text-white font-display">
+            {task.title}
+          </h1>
+          <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-white/40">
             <span>
               Posted by{" "}
-              <span className="text-white/70">
+              <span className="text-white/60">
                 {task.poster.email ?? "Anonymous"}
               </span>
             </span>
-            <span>·</span>
+            <span className="text-white/15">·</span>
             <span>{timeAgo(task.createdAt)}</span>
           </div>
-        </div>
+        </motion.div>
 
         {/* Status Timeline */}
-        <div className="mb-6 rounded-2xl border border-white/10 bg-[#0a0520]/80 p-6">
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="mb-6 rounded-2xl border border-white/10 bg-surface/80 p-6"
+        >
           <StatusTimeline currentStatus={task.status} />
           <div className="mt-4 flex items-center gap-3">
             <EscrowBadge
@@ -338,109 +375,139 @@ export default function TaskDetailPage() {
               amount={task.escrowAmount ?? undefined}
             />
           </div>
-        </div>
+        </motion.div>
 
         <div className="grid gap-6 lg:grid-cols-3">
           {/* ── Main Content ───────────────────────────────────────── */}
           <div className="space-y-6 lg:col-span-2">
             {/* Description */}
-            <section className="rounded-2xl border border-white/10 bg-[#0a0520]/80 p-6">
-              <h2 className="mb-3 text-lg font-semibold text-white">
+            <motion.section
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="rounded-2xl border border-white/10 bg-surface/80 p-6"
+            >
+              <h2 className="mb-3 text-lg font-semibold text-white font-display">
                 Description
               </h2>
-              <p className="whitespace-pre-wrap text-sm leading-relaxed text-white/70">
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-white/60">
                 {task.description}
               </p>
-            </section>
+            </motion.section>
 
             {/* Requirements */}
             {task.requirements.length > 0 && (
-              <section className="rounded-2xl border border-white/10 bg-[#0a0520]/80 p-6">
-                <h2 className="mb-3 text-lg font-semibold text-white">
+              <motion.section
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.25 }}
+                className="rounded-2xl border border-white/10 bg-surface/80 p-6"
+              >
+                <h2 className="mb-3 text-lg font-semibold text-white font-display">
                   Requirements
                 </h2>
                 <ul className="space-y-2">
                   {task.requirements.map((req, i) => (
                     <li
                       key={i}
-                      className="flex items-start gap-2 text-sm text-white/70"
+                      className="flex items-start gap-2.5 text-sm text-white/60"
                     >
-                      <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-[#6FEC06]" />
+                      <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-coral" />
                       {req}
                     </li>
                   ))}
                 </ul>
-              </section>
+              </motion.section>
             )}
 
             {/* Milestones */}
             {milestones.length > 0 && (
-              <section className="rounded-2xl border border-white/10 bg-[#0a0520]/80 p-6">
-                <h2 className="mb-3 text-lg font-semibold text-white">
+              <motion.section
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="rounded-2xl border border-white/10 bg-surface/80 p-6"
+              >
+                <h2 className="mb-3 text-lg font-semibold text-white font-display">
                   Milestones
                 </h2>
 
-                {/* Progress bar */}
                 <div className="mb-4">
-                  <div className="mb-1 flex justify-between text-xs text-white/50">
+                  <div className="mb-1.5 flex justify-between text-xs text-white/40">
                     <span>
                       {completedMilestones.length} of {milestones.length}{" "}
                       completed
                     </span>
-                    <span>
+                    <span className="font-medium text-white/60">
                       {Math.round(
                         (completedMilestones.length / milestones.length) * 100,
                       )}
                       %
                     </span>
                   </div>
-                  <div className="h-2 overflow-hidden rounded-full bg-white/10">
-                    <div
-                      className="h-full rounded-full bg-[#6FEC06] transition-all"
-                      style={{
+                  <div className="h-2 overflow-hidden rounded-full bg-white/5">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{
                         width: `${(completedMilestones.length / milestones.length) * 100}%`,
                       }}
+                      transition={{ duration: 0.8, ease: "easeOut" }}
+                      className="h-full rounded-full bg-coral shadow-[0_0_8px_rgba(111,236,6,0.3)]"
                     />
                   </div>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {milestones.map((m, i) => {
                     const isComplete =
                       m.status === "completed" || m.status === "released";
                     return (
                       <div
                         key={i}
-                        className="flex items-center justify-between rounded-xl border border-white/5 bg-white/5 px-4 py-3"
+                        className={cn(
+                          "flex items-center justify-between rounded-xl border px-4 py-3",
+                          isComplete
+                            ? "border-coral/20 bg-coral/5"
+                            : "border-white/5 bg-white/[0.02]",
+                        )}
                       >
                         <div className="flex items-center gap-3">
                           <div
-                            className={`flex size-6 items-center justify-center rounded-full text-xs font-bold ${
+                            className={cn(
+                              "flex size-6 items-center justify-center rounded-full text-xs font-bold",
                               isComplete
-                                ? "bg-[#6FEC06] text-black"
-                                : "border border-white/20 text-white/40"
-                            }`}
+                                ? "bg-coral text-black"
+                                : "border border-white/15 text-white/30",
+                            )}
                           >
-                            {isComplete ? "✓" : i + 1}
+                            {isComplete ? (
+                              <CheckCircle2 className="size-3.5" />
+                            ) : (
+                              i + 1
+                            )}
                           </div>
                           <span
-                            className={`text-sm ${isComplete ? "text-white/90" : "text-white/60"}`}
+                            className={cn(
+                              "text-sm",
+                              isComplete ? "text-white/80" : "text-white/50",
+                            )}
                           >
                             {m.title}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold text-[#6FEC06]">
+                          <span className="text-sm font-bold text-coral">
                             {m.amountSol} SOL
                           </span>
                           <span
-                            className={`rounded-full px-2 py-0.5 text-xs ${
+                            className={cn(
+                              "rounded-md px-2 py-0.5 text-[10px] font-semibold capitalize",
                               m.status === "released"
-                                ? "bg-green-500/15 text-green-400"
+                                ? "bg-emerald-500/10 text-emerald-400"
                                 : m.status === "completed"
-                                  ? "bg-blue-500/15 text-blue-400"
-                                  : "bg-white/5 text-white/40"
-                            }`}
+                                  ? "bg-blue-500/10 text-blue-400"
+                                  : "bg-white/5 text-white/30",
+                            )}
                           >
                             {m.status}
                           </span>
@@ -449,18 +516,23 @@ export default function TaskDetailPage() {
                     );
                   })}
                 </div>
-              </section>
+              </motion.section>
             )}
 
-            {/* Worker Section (assigned / in_progress / review) */}
+            {/* Worker Section */}
             {task.workerId && (
-              <section className="rounded-2xl border border-white/10 bg-[#0a0520]/80 p-6">
-                <h2 className="mb-3 text-lg font-semibold text-white">
+              <motion.section
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.35 }}
+                className="rounded-2xl border border-white/10 bg-surface/80 p-6"
+              >
+                <h2 className="mb-3 text-lg font-semibold text-white font-display">
                   Worker
                 </h2>
                 <div className="flex items-center gap-3">
-                  <div className="flex size-10 items-center justify-center rounded-full border border-white/20 bg-white/5">
-                    <User className="size-5 text-white/60" />
+                  <div className="flex size-10 items-center justify-center rounded-xl border border-white/15 bg-white/5">
+                    <User className="size-5 text-white/50" />
                   </div>
                   <div>
                     <p className="text-sm font-medium text-white">
@@ -468,7 +540,7 @@ export default function TaskDetailPage() {
                         task.worker?.email ??
                         "Anonymous"}
                     </p>
-                    <p className="text-xs text-white/40">Assigned worker</p>
+                    <p className="text-xs text-white/30">Assigned worker</p>
                   </div>
                 </div>
 
@@ -484,32 +556,32 @@ export default function TaskDetailPage() {
                         value={deliverables}
                         onChange={(e) => setDeliverables(e.target.value)}
                         placeholder="Describe your deliverables, attach links..."
-                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/30 focus:border-[#6FEC06]/50 focus:outline-none focus:ring-1 focus:ring-[#6FEC06]/30"
+                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/25 focus:border-coral/30 focus:outline-none focus:ring-1 focus:ring-coral/20"
                         rows={4}
                         required
                       />
-                      <button
+                      <Button
                         type="submit"
                         disabled={submittingDeliverables}
-                        className="inline-flex items-center gap-2 rounded-xl bg-[#6FEC06] px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-[#6FEC06]/90 disabled:opacity-50"
+                        className="bg-coral text-black hover:bg-coral/90 font-semibold"
                       >
                         {submittingDeliverables ? (
-                          <Loader2 className="size-4 animate-spin" />
+                          <Loader2 className="mr-2 size-4 animate-spin" />
                         ) : (
-                          <FileText className="size-4" />
+                          <FileText className="mr-2 size-4" />
                         )}
                         Submit Deliverables
-                      </button>
+                      </Button>
                     </form>
                   )}
 
-                {/* Display deliverables for review */}
+                {/* Display deliverables */}
                 {task.deliverables && (
-                  <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-4">
-                    <h3 className="mb-2 text-sm font-medium text-white/80">
+                  <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.02] p-4">
+                    <h3 className="mb-2 text-sm font-semibold text-white/70">
                       Deliverables
                     </h3>
-                    <p className="whitespace-pre-wrap text-sm text-white/60">
+                    <p className="whitespace-pre-wrap text-sm text-white/50">
                       {task.deliverables}
                     </p>
                   </div>
@@ -518,40 +590,47 @@ export default function TaskDetailPage() {
                 {/* Poster actions during review */}
                 {isPoster && task.status === "review" && (
                   <div className="mt-4 flex gap-3">
-                    <button
+                    <Button
                       onClick={handleApprove}
                       disabled={actionLoading === "approve"}
-                      className="inline-flex items-center gap-2 rounded-xl bg-[#6FEC06] px-5 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-[#6FEC06]/90 disabled:opacity-50"
+                      className="bg-coral text-black hover:bg-coral/90 font-semibold shadow-lg shadow-coral/10"
                     >
                       {actionLoading === "approve" ? (
-                        <Loader2 className="size-4 animate-spin" />
+                        <Loader2 className="mr-2 size-4 animate-spin" />
                       ) : (
-                        <CheckCircle2 className="size-4" />
+                        <CheckCircle2 className="mr-2 size-4" />
                       )}
                       Approve & Release Escrow
-                    </button>
-                    <button
-                      onClick={handleDispute}
+                    </Button>
+                    <Button
+                      onClick={() => setDisputeOpen(true)}
                       disabled={actionLoading === "dispute"}
-                      className="inline-flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-5 py-2.5 text-sm font-semibold text-red-400 transition-colors hover:bg-red-500/20 disabled:opacity-50"
+                      variant="destructive"
+                      className="border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20"
                     >
-                      {actionLoading === "dispute" ? (
-                        <Loader2 className="size-4 animate-spin" />
-                      ) : (
-                        <AlertTriangle className="size-4" />
-                      )}
+                      <AlertTriangle className="mr-2 size-4" />
                       Dispute
-                    </button>
+                    </Button>
                   </div>
                 )}
-              </section>
+              </motion.section>
             )}
 
             {/* Bids Section */}
             {(task.status === "open" || task.status === "assigned") && (
-              <section className="rounded-2xl border border-white/10 bg-[#0a0520]/80 p-6">
-                <h2 className="mb-4 text-lg font-semibold text-white">
-                  Bids ({task.bids.length})
+              <motion.section
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                id="bids"
+                className="rounded-2xl border border-white/10 bg-surface/80 p-6"
+              >
+                <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-white font-display">
+                  <MessageSquare className="size-5 text-white/40" />
+                  Bids
+                  <span className="text-sm font-normal text-white/30">
+                    ({task.bids.length})
+                  </span>
                 </h2>
 
                 {task.bids.length > 0 ? (
@@ -570,23 +649,27 @@ export default function TaskDetailPage() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-white/40">
-                    No bids yet. Be the first to bid!
-                  </p>
+                  <div className="rounded-xl border border-white/5 bg-white/[0.02] py-8 text-center">
+                    <MessageSquare className="mx-auto size-8 text-white/10" />
+                    <p className="mt-2 text-sm text-white/30">
+                      No bids yet. Be the first!
+                    </p>
+                  </div>
                 )}
 
                 {/* Place Bid Form */}
-                {task.status === "open" && !isPoster && (
+                {task.status === "open" && !isPoster && authenticated && (
                   <form
                     onSubmit={handlePlaceBid}
                     className="mt-6 space-y-4 border-t border-white/10 pt-6"
                   >
-                    <h3 className="text-sm font-semibold text-white">
+                    <h3 className="flex items-center gap-2 text-sm font-semibold text-white">
+                      <Zap className="size-4 text-coral" />
                       Place a Bid
                     </h3>
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div>
-                        <label className="mb-1.5 block text-xs text-white/50">
+                        <label className="mb-1.5 block text-xs font-medium text-white/40">
                           Amount (SOL)
                         </label>
                         <div className="relative">
@@ -598,15 +681,15 @@ export default function TaskDetailPage() {
                             onChange={(e) => setBidAmount(e.target.value)}
                             placeholder="0.00"
                             required
-                            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-white/30 focus:border-[#6FEC06]/50 focus:outline-none focus:ring-1 focus:ring-[#6FEC06]/30"
+                            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-white/20 focus:border-coral/30 focus:outline-none focus:ring-1 focus:ring-coral/20"
                           />
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-[#6FEC06]">
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-coral/60">
                             SOL
                           </span>
                         </div>
                       </div>
                       <div>
-                        <label className="mb-1.5 block text-xs text-white/50">
+                        <label className="mb-1.5 block text-xs font-medium text-white/40">
                           Estimated Time
                         </label>
                         <input
@@ -614,12 +697,12 @@ export default function TaskDetailPage() {
                           value={bidTime}
                           onChange={(e) => setBidTime(e.target.value)}
                           placeholder="e.g. 3 days"
-                          className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-white/30 focus:border-[#6FEC06]/50 focus:outline-none focus:ring-1 focus:ring-[#6FEC06]/30"
+                          className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-white/20 focus:border-coral/30 focus:outline-none focus:ring-1 focus:ring-coral/20"
                         />
                       </div>
                     </div>
                     <div>
-                      <label className="mb-1.5 block text-xs text-white/50">
+                      <label className="mb-1.5 block text-xs font-medium text-white/40">
                         Message
                       </label>
                       <textarea
@@ -627,41 +710,46 @@ export default function TaskDetailPage() {
                         onChange={(e) => setBidMessage(e.target.value)}
                         placeholder="Why are you the best fit for this task?"
                         rows={3}
-                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/30 focus:border-[#6FEC06]/50 focus:outline-none focus:ring-1 focus:ring-[#6FEC06]/30"
+                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/20 focus:border-coral/30 focus:outline-none focus:ring-1 focus:ring-coral/20"
                       />
                     </div>
-                    <button
+                    <Button
                       type="submit"
                       disabled={submittingBid || !bidAmount}
-                      className="inline-flex items-center gap-2 rounded-xl bg-[#6FEC06] px-6 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-[#6FEC06]/90 disabled:opacity-50"
+                      className="bg-coral text-black hover:bg-coral/90 font-semibold shadow-lg shadow-coral/10"
                     >
                       {submittingBid ? (
-                        <Loader2 className="size-4 animate-spin" />
+                        <Loader2 className="mr-2 size-4 animate-spin" />
                       ) : (
-                        <Send className="size-4" />
+                        <Send className="mr-2 size-4" />
                       )}
                       Place Bid
-                    </button>
+                    </Button>
                   </form>
                 )}
 
                 {task.status === "open" && !authenticated && (
                   <div className="mt-6 border-t border-white/10 pt-6 text-center">
-                    <button
+                    <Button
                       onClick={login}
-                      className="rounded-xl bg-[#6FEC06] px-6 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-[#6FEC06]/90"
+                      className="bg-coral text-black hover:bg-coral/90 font-semibold"
                     >
                       Sign in to Place a Bid
-                    </button>
+                    </Button>
                   </div>
                 )}
-              </section>
+              </motion.section>
             )}
 
             {/* Reviews Section */}
             {task.status === "completed" && (
-              <section className="rounded-2xl border border-white/10 bg-[#0a0520]/80 p-6">
-                <h2 className="mb-4 text-lg font-semibold text-white">
+              <motion.section
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="rounded-2xl border border-white/10 bg-surface/80 p-6"
+              >
+                <h2 className="mb-4 text-lg font-semibold text-white font-display">
                   Reviews
                 </h2>
 
@@ -670,36 +758,37 @@ export default function TaskDetailPage() {
                     {task.reviews.map((review) => (
                       <div
                         key={review.id}
-                        className="rounded-xl border border-white/5 bg-white/5 p-4"
+                        className="rounded-xl border border-white/5 bg-white/[0.02] p-4"
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <div className="flex size-8 items-center justify-center rounded-full border border-white/20 bg-white/5">
-                              <User className="size-4 text-white/60" />
+                            <div className="flex size-8 items-center justify-center rounded-lg border border-white/15 bg-white/5">
+                              <User className="size-4 text-white/50" />
                             </div>
-                            <span className="text-sm text-white/70">
+                            <span className="text-sm text-white/60">
                               {review.reviewer.email ?? "Anonymous"}
                             </span>
                           </div>
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-0.5">
                             {Array.from({ length: 5 }).map((_, i) => (
                               <Star
                                 key={i}
-                                className={`size-4 ${
+                                className={cn(
+                                  "size-3.5",
                                   i < review.rating
-                                    ? "fill-yellow-500 text-yellow-500"
-                                    : "text-white/20"
-                                }`}
+                                    ? "fill-amber-400 text-amber-400"
+                                    : "text-white/10",
+                                )}
                               />
                             ))}
                           </div>
                         </div>
                         {review.comment && (
-                          <p className="mt-2 text-sm text-white/60">
+                          <p className="mt-2 text-sm text-white/50">
                             {review.comment}
                           </p>
                         )}
-                        <p className="mt-2 text-xs text-white/30">
+                        <p className="mt-2 text-[10px] text-white/25">
                           {timeAgo(review.createdAt)}
                         </p>
                       </div>
@@ -717,7 +806,7 @@ export default function TaskDetailPage() {
                       Leave a Review
                     </h3>
                     <div>
-                      <label className="mb-2 block text-xs text-white/50">
+                      <label className="mb-2 block text-xs font-medium text-white/40">
                         Rating
                       </label>
                       <div className="flex gap-1">
@@ -728,21 +817,22 @@ export default function TaskDetailPage() {
                             onClick={() => setReviewRating(i + 1)}
                             onMouseEnter={() => setReviewHover(i + 1)}
                             onMouseLeave={() => setReviewHover(0)}
-                            className="transition-transform hover:scale-110"
+                            className="transition-transform hover:scale-125"
                           >
                             <Star
-                              className={`size-7 ${
+                              className={cn(
+                                "size-7",
                                 i < (reviewHover || reviewRating)
-                                  ? "fill-yellow-500 text-yellow-500"
-                                  : "text-white/20"
-                              }`}
+                                  ? "fill-amber-400 text-amber-400"
+                                  : "text-white/15",
+                              )}
                             />
                           </button>
                         ))}
                       </div>
                     </div>
                     <div>
-                      <label className="mb-1.5 block text-xs text-white/50">
+                      <label className="mb-1.5 block text-xs font-medium text-white/40">
                         Comment (optional)
                       </label>
                       <textarea
@@ -750,87 +840,94 @@ export default function TaskDetailPage() {
                         onChange={(e) => setReviewComment(e.target.value)}
                         placeholder="How was your experience?"
                         rows={3}
-                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/30 focus:border-[#6FEC06]/50 focus:outline-none focus:ring-1 focus:ring-[#6FEC06]/30"
+                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/20 focus:border-coral/30 focus:outline-none focus:ring-1 focus:ring-coral/20"
                       />
                     </div>
-                    <button
+                    <Button
                       type="submit"
                       disabled={submittingReview || reviewRating === 0}
-                      className="inline-flex items-center gap-2 rounded-xl bg-[#6FEC06] px-6 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-[#6FEC06]/90 disabled:opacity-50"
+                      className="bg-coral text-black hover:bg-coral/90 font-semibold"
                     >
                       {submittingReview ? (
-                        <Loader2 className="size-4 animate-spin" />
+                        <Loader2 className="mr-2 size-4 animate-spin" />
                       ) : (
-                        <Star className="size-4" />
+                        <Star className="mr-2 size-4" />
                       )}
                       Submit Review
-                    </button>
+                    </Button>
                   </form>
                 )}
 
                 {task.reviews.length === 0 && !authenticated && (
-                  <p className="text-sm text-white/40">No reviews yet.</p>
+                  <div className="rounded-xl border border-white/5 bg-white/[0.02] py-8 text-center">
+                    <Star className="mx-auto size-8 text-white/10" />
+                    <p className="mt-2 text-sm text-white/30">
+                      No reviews yet.
+                    </p>
+                  </div>
                 )}
-              </section>
+              </motion.section>
             )}
           </div>
 
           {/* ── Sidebar ────────────────────────────────────────────── */}
-          <div className="space-y-6">
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+            className="space-y-4"
+          >
             {/* Budget Card */}
-            <div className="rounded-2xl border border-white/10 bg-[#0a0520]/80 p-6 text-center">
-              <p className="text-xs uppercase tracking-wider text-white/40">
+            <div className="rounded-2xl border border-coral/20 bg-coral/5 p-6 text-center">
+              <p className="text-xs font-semibold uppercase tracking-wider text-coral/50">
                 Budget
               </p>
-              <p className="mt-1 text-4xl font-bold text-[#6FEC06]">
+              <p className="mt-1 text-4xl font-bold text-coral">
                 {task.budgetSol}
               </p>
-              <p className="text-lg font-medium text-[#6FEC06]/70">SOL</p>
+              <p className="text-sm font-medium text-coral/40">SOL</p>
             </div>
 
             {/* Task Details Card */}
-            <div className="rounded-2xl border border-white/10 bg-[#0a0520]/80 p-6">
+            <div className="rounded-2xl border border-white/10 bg-surface/80 p-5">
               <h3 className="mb-4 text-sm font-semibold text-white">Details</h3>
               <div className="space-y-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-white/50">Category</span>
-                  <span className="rounded-full bg-white/5 px-2.5 py-0.5 text-xs text-white/70">
+                <DetailRow label="Category">
+                  <span className="rounded-md bg-white/5 px-2 py-0.5 text-xs font-medium text-white/60">
                     {categoryLabel}
                   </span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-white/50">Remote</span>
-                  <span className="flex items-center gap-1 text-white/70">
-                    {task.isRemote ? (
-                      <>
-                        <MapPin className="size-3 text-blue-400" />
-                        Remote
-                      </>
-                    ) : (
-                      task.location || "On-site"
-                    )}
-                  </span>
-                </div>
+                </DetailRow>
+                <DetailRow label="Remote">
+                  {task.isRemote ? (
+                    <span className="flex items-center gap-1 text-blue-400">
+                      <MapPin className="size-3" />
+                      Remote
+                    </span>
+                  ) : (
+                    <span className="text-white/60">
+                      {task.location || "On-site"}
+                    </span>
+                  )}
+                </DetailRow>
                 {task.deadline && (
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-white/50">Deadline</span>
-                    <span className="flex items-center gap-1 text-white/70">
+                  <DetailRow label="Deadline">
+                    <span className="flex items-center gap-1 text-white/60">
                       <Calendar className="size-3" />
                       {new Date(task.deadline).toLocaleDateString()}
                     </span>
-                  </div>
+                  </DetailRow>
                 )}
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-white/50">Bids</span>
-                  <span className="text-white/70">{task.bids.length}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-white/50">Posted</span>
-                  <span className="flex items-center gap-1 text-white/70">
+                <DetailRow label="Bids">
+                  <span className="font-medium text-white/60">
+                    {task.bids.length}
+                  </span>
+                </DetailRow>
+                <DetailRow label="Posted">
+                  <span className="flex items-center gap-1 text-white/60">
                     <Clock className="size-3" />
                     {timeAgo(task.createdAt)}
                   </span>
-                </div>
+                </DetailRow>
               </div>
             </div>
 
@@ -838,13 +935,15 @@ export default function TaskDetailPage() {
             {task.listing && (
               <Link
                 href={`/marketplace/${task.listing.id}`}
-                className="block rounded-2xl border border-[#6FEC06]/20 bg-[#6FEC06]/5 p-4 transition-colors hover:border-[#6FEC06]/40"
+                className="block rounded-2xl border border-coral/20 bg-coral/5 p-4 transition-all hover:border-coral/30"
               >
-                <p className="text-xs text-[#6FEC06]/60">Hiring from</p>
-                <p className="mt-0.5 text-sm font-semibold text-[#6FEC06]">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-coral/40">
+                  Hiring from
+                </p>
+                <p className="mt-0.5 text-sm font-semibold text-coral">
                   {task.listing.title}
                 </p>
-                <p className="mt-0.5 text-xs capitalize text-white/40">
+                <p className="mt-0.5 text-xs capitalize text-white/30">
                   {task.listing.type}
                 </p>
               </Link>
@@ -854,14 +953,79 @@ export default function TaskDetailPage() {
             {task.status === "open" && !isPoster && authenticated && (
               <a
                 href="#bids"
-                className="block rounded-xl bg-[#6FEC06] px-4 py-3 text-center text-sm font-semibold text-black transition-colors hover:bg-[#6FEC06]/90"
+                className="btn-cta-primary block rounded-xl px-4 py-3 text-center text-sm font-bold"
               >
+                <Shield className="mr-2 inline size-4" />
                 Place a Bid
               </a>
             )}
-          </div>
+          </motion.div>
         </div>
       </div>
+
+      {/* ── Dispute Dialog ────────────────────────────────────────── */}
+      <Dialog open={disputeOpen} onOpenChange={setDisputeOpen}>
+        <DialogContent className="bg-surface border-white/10">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-white">
+              <AlertTriangle className="size-5 text-red-400" />
+              Dispute Task
+            </DialogTitle>
+            <DialogDescription className="text-white/50">
+              Describe the reason for your dispute. This will be reviewed by the
+              platform.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <textarea
+              value={disputeReason}
+              onChange={(e) => setDisputeReason(e.target.value)}
+              placeholder="Describe the issue in detail..."
+              rows={4}
+              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/20 focus:border-red-500/30 focus:outline-none focus:ring-1 focus:ring-red-500/20"
+            />
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="ghost"
+                onClick={() => setDisputeOpen(false)}
+                className="text-white/50 hover:text-white"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleDispute}
+                disabled={!disputeReason.trim() || actionLoading === "dispute"}
+                variant="destructive"
+                className="bg-red-500 hover:bg-red-600"
+              >
+                {actionLoading === "dispute" ? (
+                  <Loader2 className="mr-2 size-4 animate-spin" />
+                ) : (
+                  <AlertTriangle className="mr-2 size-4" />
+                )}
+                Submit Dispute
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// ── Helper ────────────────────────────────────────────────────────────
+
+function DetailRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between text-sm">
+      <span className="text-white/35">{label}</span>
+      {children}
     </div>
   );
 }

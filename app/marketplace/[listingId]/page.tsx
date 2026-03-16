@@ -3,6 +3,7 @@
 import { useState, useEffect, use } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { motion } from "framer-motion";
 import {
   ArrowLeft,
   Star,
@@ -16,56 +17,34 @@ import {
   Coins,
   Loader2,
   AlertTriangle,
+  Sparkles,
+  Globe,
+  Shield,
+  Zap,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-
-const RARITY_COLORS: Record<
-  string,
-  { border: string; bg: string; text: string }
-> = {
-  common: {
-    border: "border-gray-500",
-    bg: "bg-gray-500/15",
-    text: "text-gray-400",
-  },
-  uncommon: {
-    border: "border-green-500",
-    bg: "bg-green-500/15",
-    text: "text-green-400",
-  },
-  rare: {
-    border: "border-blue-500",
-    bg: "bg-blue-500/15",
-    text: "text-blue-400",
-  },
-  epic: {
-    border: "border-purple-500",
-    bg: "bg-purple-500/15",
-    text: "text-purple-400",
-  },
-  legendary: {
-    border: "border-yellow-500",
-    bg: "bg-yellow-500/15",
-    text: "text-yellow-400",
-  },
-};
+import {
+  getRarityBadgeStyle,
+  getRarityDetailStyle,
+  type Rarity,
+} from "@/lib/utils/rarity";
 
 const TYPE_CONFIG = {
   agent: {
     label: "AI Agent",
     icon: Bot,
-    color: "bg-cyan-500/15 text-cyan-400 border-cyan-500/30",
+    color: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
   },
   human: {
     label: "Human",
     icon: Users,
-    color: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+    color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
   },
   corporation: {
     label: "Corporation",
     icon: Building2,
-    color: "bg-violet-500/15 text-violet-400 border-violet-500/30",
+    color: "bg-violet-500/10 text-violet-400 border-violet-500/20",
   },
 } as const;
 
@@ -166,8 +145,9 @@ export default function ListingDetailPage({
     listing.agent?.imageUrl ??
     listing.corporation?.logo ??
     null;
-  const rarity = listing.agent?.rarity?.toLowerCase() ?? null;
-  const rarityStyle = rarity ? RARITY_COLORS[rarity] : null;
+  const rarity = (listing.agent?.rarity?.toLowerCase() ?? "common") as Rarity;
+  const rarityBadge = getRarityBadgeStyle(rarity);
+  const rarityDetail = getRarityDetailStyle(rarity);
   const tokenSymbol =
     listing.agent?.tokenSymbol ?? listing.corporation?.tokenSymbol ?? null;
 
@@ -176,124 +156,170 @@ export default function ListingDetailPage({
   return (
     <div className="space-y-8 pb-28">
       {/* ── Back ──────────────────────────────────────── */}
-      <Link
-        href="/marketplace"
-        className="inline-flex items-center gap-1.5 text-sm text-white/50 transition-colors hover:text-white"
+      <motion.div
+        initial={{ opacity: 0, x: -10 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.3 }}
       >
-        <ArrowLeft className="size-4" />
-        Back to Marketplace
-      </Link>
+        <Link
+          href="/marketplace"
+          className="inline-flex items-center gap-1.5 text-sm text-white/40 transition-colors hover:text-white"
+        >
+          <ArrowLeft className="size-4" />
+          Back to Marketplace
+        </Link>
+      </motion.div>
 
       {/* ── Header ────────────────────────────────────── */}
-      <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
-        {/* Avatar */}
-        <div className="relative shrink-0">
-          {avatarSrc ? (
-            <Image
-              src={avatarSrc}
-              alt={listing.title}
-              width={96}
-              height={96}
-              className={cn(
-                "size-24 rounded-2xl object-cover border-2",
-                rarityStyle?.border ?? "border-white/20",
-              )}
-            />
-          ) : (
-            <div className="flex size-24 items-center justify-center rounded-2xl border-2 border-white/20 bg-white/5">
-              <TypeIcon className="size-10 text-white/40" />
-            </div>
-          )}
-          {listing.isAvailable && (
-            <span className="absolute -right-1 -top-1 flex size-4">
-              <span className="absolute inline-flex size-full animate-ping rounded-full bg-[#6FEC06] opacity-75" />
-              <span className="relative inline-flex size-4 rounded-full bg-[#6FEC06]" />
-            </span>
-          )}
-        </div>
-
-        {/* Title & badges */}
-        <div className="min-w-0 flex-1 space-y-3">
-          <h1 className="text-2xl font-bold text-white sm:text-3xl">
-            {listing.title}
-          </h1>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <span
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium",
-                typeColor,
-              )}
-            >
-              <TypeIcon className="size-3.5" />
-              {typeLabel}
-            </span>
-
-            {rarityStyle && (
-              <span
-                className={cn(
-                  "rounded-full border px-3 py-1 text-xs font-medium capitalize",
-                  rarityStyle.border,
-                  rarityStyle.bg,
-                  rarityStyle.text,
-                )}
-              >
-                {rarity}
-              </span>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
+        className={cn(
+          "relative overflow-hidden rounded-3xl border p-6 sm:p-8",
+          rarity !== "common"
+            ? `${rarityDetail.border}/30 ${rarityDetail.glow}`
+            : "border-white/10",
+          "bg-surface/80",
+        )}
+      >
+        {/* Rarity gradient background */}
+        {rarity !== "common" && (
+          <div
+            className={cn(
+              "pointer-events-none absolute inset-0 bg-gradient-to-br opacity-30",
+              rarityDetail.gradient,
             )}
+          />
+        )}
 
-            <span
-              className={cn(
-                "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium",
-                listing.isAvailable
-                  ? "bg-green-500/15 text-green-400"
-                  : "bg-red-500/15 text-red-400",
-              )}
-            >
-              <span
+        <div className="relative flex flex-col gap-6 sm:flex-row sm:items-start">
+          {/* Avatar */}
+          <div className="relative shrink-0">
+            {avatarSrc ? (
+              <Image
+                src={avatarSrc}
+                alt={listing.title}
+                width={112}
+                height={112}
                 className={cn(
-                  "size-2 rounded-full",
-                  listing.isAvailable ? "bg-green-400" : "bg-red-400",
+                  "size-28 rounded-2xl object-cover ring-3",
+                  rarity !== "common"
+                    ? `${rarityDetail.border}/50`
+                    : "ring-white/20",
                 )}
               />
-              {listing.isAvailable ? "Available" : "Unavailable"}
-            </span>
-
-            {listing.isRemote && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-3 py-1 text-xs text-blue-400">
-                <MapPin className="size-3" />
-                Remote
-              </span>
+            ) : (
+              <div className="flex size-28 items-center justify-center rounded-2xl border-2 border-white/20 bg-white/5">
+                <TypeIcon className="size-12 text-white/30" />
+              </div>
             )}
-
-            {listing.location && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-white/5 px-3 py-1 text-xs text-white/60">
-                <MapPin className="size-3" />
-                {listing.location}
+            {listing.isAvailable && (
+              <span className="absolute -right-1.5 -top-1.5 flex size-5">
+                <span className="absolute inline-flex size-full animate-ping rounded-full bg-coral opacity-60" />
+                <span className="relative inline-flex size-5 items-center justify-center rounded-full bg-coral">
+                  <Zap className="size-2.5 text-black" />
+                </span>
               </span>
             )}
           </div>
 
-          {/* Skills */}
-          {listing.skills.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {listing.skills.map((skill) => (
-                <span
-                  key={skill}
-                  className="rounded-full bg-white/5 px-3 py-1 text-xs text-white/70"
-                >
-                  {skill}
-                </span>
-              ))}
+          {/* Title & badges */}
+          <div className="min-w-0 flex-1 space-y-4">
+            <div>
+              <h1 className="text-3xl font-bold text-white font-display sm:text-4xl">
+                {listing.title}
+              </h1>
+              {listing.agent?.name && listing.agent.name !== listing.title && (
+                <p className="mt-1 text-sm text-white/40">
+                  by {listing.agent.name}
+                </p>
+              )}
             </div>
-          )}
+
+            <div className="flex flex-wrap items-center gap-2">
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold",
+                  typeColor,
+                )}
+              >
+                <TypeIcon className="size-3.5" />
+                {typeLabel}
+              </span>
+
+              {rarity !== "common" && (
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold capitalize",
+                    rarityBadge.border,
+                    rarityBadge.bg,
+                    rarityBadge.text,
+                  )}
+                >
+                  <Sparkles className="size-3" />
+                  {rarity}
+                </span>
+              )}
+
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium",
+                  listing.isAvailable
+                    ? "bg-emerald-500/10 text-emerald-400"
+                    : "bg-red-500/10 text-red-400",
+                )}
+              >
+                <span
+                  className={cn(
+                    "size-2 rounded-full",
+                    listing.isAvailable ? "bg-emerald-400" : "bg-red-400",
+                  )}
+                />
+                {listing.isAvailable ? "Available" : "Unavailable"}
+              </span>
+
+              {listing.isRemote && (
+                <span className="inline-flex items-center gap-1 rounded-lg bg-blue-500/10 px-3 py-1.5 text-xs font-medium text-blue-400">
+                  <Globe className="size-3" />
+                  Remote
+                </span>
+              )}
+
+              {listing.location && (
+                <span className="inline-flex items-center gap-1 rounded-lg bg-white/5 px-3 py-1.5 text-xs text-white/50">
+                  <MapPin className="size-3" />
+                  {listing.location}
+                </span>
+              )}
+            </div>
+
+            {/* Skills */}
+            {listing.skills.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {listing.skills.map((skill) => (
+                  <span
+                    key={skill}
+                    className="rounded-lg bg-white/5 px-3 py-1 text-xs font-medium text-white/60"
+                  >
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* ── Stats Row ─────────────────────────────────── */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5">
+      <motion.div
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.2 }}
+        className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5"
+      >
         <StatCard
-          icon={<Coins className="size-5 text-[#6FEC06]" />}
+          icon={<Coins className="size-5 text-coral" />}
           label="Price"
           value={
             listing.priceSol !== null ? `${listing.priceSol} SOL` : "Bidding"
@@ -304,19 +330,19 @@ export default function ListingDetailPage({
           accent
         />
         <StatCard
-          icon={<Star className="size-5 fill-yellow-500 text-yellow-500" />}
+          icon={<Star className="size-5 fill-amber-400 text-amber-400" />}
           label="Rating"
           value={listing.averageRating.toFixed(1)}
           sublabel={`${listing.totalRatings} reviews`}
         />
         <StatCard
-          icon={<Briefcase className="size-5 text-white/50" />}
+          icon={<Briefcase className="size-5 text-white/40" />}
           label="Completed"
           value={String(listing.completedTasks)}
           sublabel="tasks"
         />
         <StatCard
-          icon={<Clock className="size-5 text-white/50" />}
+          icon={<Clock className="size-5 text-white/40" />}
           label="Hours"
           value={listing.availableHours ?? "Flexible"}
         />
@@ -327,32 +353,44 @@ export default function ListingDetailPage({
             value={`$${tokenSymbol}`}
           />
         )}
-      </div>
+      </motion.div>
 
       {/* ── Description ───────────────────────────────── */}
-      <section>
-        <h2 className="mb-3 text-lg font-semibold text-white">About</h2>
-        <div className="rounded-2xl border border-white/10 bg-[#0a0520]/60 p-5">
-          <p className="whitespace-pre-line text-sm leading-relaxed text-white/70">
+      <motion.section
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.25 }}
+      >
+        <h2 className="mb-3 text-lg font-semibold text-white font-display">
+          About
+        </h2>
+        <div className="rounded-2xl border border-white/10 bg-surface/60 p-6">
+          <p className="whitespace-pre-line text-sm leading-relaxed text-white/60">
             {listing.description}
           </p>
           {listing.agent?.personality && (
-            <div className="mt-4 border-t border-white/5 pt-4">
-              <p className="text-xs font-medium text-white/40 uppercase tracking-wider mb-2">
+            <div className="mt-5 border-t border-white/5 pt-5">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/30">
                 Personality
               </p>
-              <p className="text-sm text-white/60">
+              <p className="text-sm text-white/50 italic">
                 {listing.agent.personality}
               </p>
             </div>
           )}
         </div>
-      </section>
+      </motion.section>
 
       {/* ── Portfolio ─────────────────────────────────── */}
       {listing.portfolio.length > 0 && (
-        <section>
-          <h2 className="mb-3 text-lg font-semibold text-white">Portfolio</h2>
+        <motion.section
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.3 }}
+        >
+          <h2 className="mb-3 text-lg font-semibold text-white font-display">
+            Portfolio
+          </h2>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {listing.portfolio.map((url, i) => (
               <a
@@ -360,23 +398,27 @@ export default function ListingDetailPage({
                 href={url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group flex items-center gap-3 rounded-xl border border-white/10 bg-[#0a0520]/60 px-4 py-3 transition-all hover:border-white/20"
+                className="group flex items-center gap-3 rounded-xl border border-white/10 bg-surface/60 px-4 py-3 transition-all hover:border-coral/20 hover:bg-surface/80"
               >
-                <ExternalLink className="size-4 shrink-0 text-white/30 group-hover:text-[#6FEC06]" />
-                <span className="truncate text-sm text-white/60 group-hover:text-white">
+                <ExternalLink className="size-4 shrink-0 text-white/20 group-hover:text-coral transition-colors" />
+                <span className="truncate text-sm text-white/50 group-hover:text-white transition-colors">
                   {url.replace(/^https?:\/\//, "")}
                 </span>
               </a>
             ))}
           </div>
-        </section>
+        </motion.section>
       )}
 
       {/* ── Reviews ───────────────────────────────────── */}
-      <section>
-        <h2 className="mb-3 text-lg font-semibold text-white">
+      <motion.section
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.35 }}
+      >
+        <h2 className="mb-3 text-lg font-semibold text-white font-display">
           Reviews{" "}
-          <span className="text-sm font-normal text-white/40">
+          <span className="text-sm font-normal text-white/30">
             ({allReviews.length})
           </span>
         </h2>
@@ -386,7 +428,7 @@ export default function ListingDetailPage({
             {allReviews.map((review, i) => (
               <div
                 key={i}
-                className="rounded-xl border border-white/10 bg-[#0a0520]/60 p-4"
+                className="rounded-xl border border-white/10 bg-surface/60 p-4"
               >
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-0.5">
@@ -396,51 +438,54 @@ export default function ListingDetailPage({
                         className={cn(
                           "size-3.5",
                           s < review.rating
-                            ? "fill-yellow-500 text-yellow-500"
+                            ? "fill-amber-400 text-amber-400"
                             : "text-white/10",
                         )}
                       />
                     ))}
                   </div>
-                  <span className="text-xs text-white/30">
+                  <span className="text-xs text-white/25">
                     {new Date(review.createdAt).toLocaleDateString()}
                   </span>
                 </div>
                 {review.comment && (
-                  <p className="mt-2 text-sm text-white/60">{review.comment}</p>
+                  <p className="mt-2 text-sm text-white/50">{review.comment}</p>
                 )}
               </div>
             ))}
           </div>
         ) : (
-          <div className="rounded-xl border border-white/5 bg-[#0a0520]/40 py-10 text-center">
-            <p className="text-sm text-white/30">No reviews yet</p>
+          <div className="rounded-xl border border-white/5 bg-surface/40 py-12 text-center">
+            <Star className="mx-auto size-8 text-white/10" />
+            <p className="mt-2 text-sm text-white/25">No reviews yet</p>
           </div>
         )}
-      </section>
+      </motion.section>
 
       {/* ── Fixed Hire CTA ────────────────────────────── */}
-      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-[#000028]/95 backdrop-blur-lg">
+      <div className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-abyss/90 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-          <div>
-            <p className="text-sm text-white/50">
+          <div className="flex items-center gap-3">
+            <Shield className="size-5 text-coral/60" />
+            <div>
               {listing.priceSol !== null ? (
-                <>
-                  <span className="text-lg font-bold text-[#6FEC06]">
+                <p className="text-sm text-white/40">
+                  <span className="text-xl font-bold text-coral">
                     {listing.priceSol} SOL
                   </span>{" "}
                   / {listing.priceType}
-                </>
+                </p>
               ) : (
-                <span className="text-lg font-bold text-white">
-                  Open to bids
-                </span>
+                <p className="text-xl font-bold text-white">Open to bids</p>
               )}
-            </p>
+              <p className="text-[10px] text-white/25">
+                Secured by on-chain escrow
+              </p>
+            </div>
           </div>
           <Link
             href={`/marketplace/tasks/create?listingId=${listing.id}`}
-            className="rounded-xl bg-[#6FEC06] px-6 py-3 text-sm font-bold text-black transition-all hover:brightness-110 active:scale-[0.97]"
+            className="btn-cta-primary rounded-xl px-8 py-3 text-sm font-bold"
           >
             {listing.priceType === "bidding"
               ? "Post a Task"
@@ -468,20 +513,22 @@ function StatCard({
   accent?: boolean;
 }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-[#0a0520]/60 p-4">
+    <div className="rounded-xl border border-white/10 bg-surface/60 p-4 transition-all hover:border-white/15">
       <div className="flex items-center gap-2">
         {icon}
-        <span className="text-xs text-white/40">{label}</span>
+        <span className="text-xs font-medium text-white/35">{label}</span>
       </div>
       <p
         className={cn(
           "mt-2 text-lg font-bold",
-          accent ? "text-[#6FEC06]" : "text-white",
+          accent ? "text-coral" : "text-white",
         )}
       >
         {value}
       </p>
-      {sublabel && <p className="text-xs text-white/30">{sublabel}</p>}
+      {sublabel && (
+        <p className="text-[10px] text-white/25 capitalize">{sublabel}</p>
+      )}
     </div>
   );
 }
@@ -490,24 +537,35 @@ function StatCard({
 
 function LoadingSkeleton() {
   return (
-    <div className="animate-pulse space-y-8">
-      <div className="h-4 w-32 rounded bg-white/5" />
-      <div className="flex gap-6">
-        <div className="size-24 rounded-2xl bg-white/5" />
-        <div className="flex-1 space-y-3">
-          <div className="h-8 w-64 rounded bg-white/5" />
-          <div className="flex gap-2">
-            <div className="h-6 w-20 rounded-full bg-white/5" />
-            <div className="h-6 w-16 rounded-full bg-white/5" />
+    <div className="space-y-8">
+      <div className="h-4 w-32 rounded bg-white/5 skeleton-shimmer" />
+      <div className="rounded-3xl border border-white/5 bg-surface/60 p-8 skeleton-shimmer">
+        <div className="flex gap-6">
+          <div className="size-28 rounded-2xl bg-white/5" />
+          <div className="flex-1 space-y-3">
+            <div className="h-10 w-72 rounded-lg bg-white/5" />
+            <div className="flex gap-2">
+              <div className="h-7 w-24 rounded-lg bg-white/5" />
+              <div className="h-7 w-20 rounded-lg bg-white/5" />
+              <div className="h-7 w-20 rounded-lg bg-white/5" />
+            </div>
+            <div className="flex gap-2">
+              <div className="h-6 w-16 rounded-lg bg-white/5" />
+              <div className="h-6 w-20 rounded-lg bg-white/5" />
+              <div className="h-6 w-14 rounded-lg bg-white/5" />
+            </div>
           </div>
         </div>
       </div>
       <div className="grid grid-cols-4 gap-3">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-24 rounded-xl bg-white/5" />
+          <div
+            key={i}
+            className="h-24 rounded-xl bg-surface/60 border border-white/5 skeleton-shimmer"
+          />
         ))}
       </div>
-      <div className="h-40 rounded-2xl bg-white/5" />
+      <div className="h-40 rounded-2xl bg-surface/60 border border-white/5 skeleton-shimmer" />
     </div>
   );
 }
@@ -516,17 +574,21 @@ function LoadingSkeleton() {
 
 function ErrorState({ message }: { message: string }) {
   return (
-    <div className="flex flex-col items-center justify-center py-24 text-center">
-      <div className="flex size-20 items-center justify-center rounded-full bg-red-500/10">
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="flex flex-col items-center justify-center py-24 text-center"
+    >
+      <div className="flex size-20 items-center justify-center rounded-2xl border border-red-500/20 bg-red-500/5">
         <AlertTriangle className="size-8 text-red-400" />
       </div>
-      <p className="mt-4 text-lg font-medium text-white/50">{message}</p>
+      <p className="mt-4 text-lg font-medium text-white/40">{message}</p>
       <Link
         href="/marketplace"
-        className="mt-4 text-sm text-[#6FEC06] hover:underline"
+        className="mt-4 text-sm text-coral hover:underline"
       >
         Back to Marketplace
       </Link>
-    </div>
+    </motion.div>
   );
 }

@@ -42,10 +42,7 @@ export async function GET(req: NextRequest) {
       where.posterId = posterId;
     }
     if (workerId) {
-      where.OR = [
-        { workerId },
-        { workerAgent: { createdById: workerId } },
-      ];
+      where.OR = [{ workerId }, { workerAgent: { createdById: workerId } }];
     }
     if (status) {
       where.status = status;

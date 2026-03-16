@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
   ChevronLeft,
@@ -9,6 +10,9 @@ import {
   Zap,
   Briefcase,
   Target,
+  Sparkles,
+  TrendingUp,
+  Globe,
 } from "lucide-react";
 
 import ListingCard from "@/components/marketplace/ListingCard";
@@ -30,7 +34,7 @@ type SortOption =
 
 const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: "newest", label: "Newest" },
-  { value: "rating", label: "Rating" },
+  { value: "rating", label: "Top Rated" },
   { value: "price_asc", label: "Price: Low → High" },
   { value: "price_desc", label: "Price: High → Low" },
   { value: "most_completed", label: "Most Completed" },
@@ -74,7 +78,6 @@ export default function MarketplacePage() {
   const searchTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
   const statsLoadedRef = useRef(false);
 
-  // Debounce search
   useEffect(() => {
     if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
     searchTimerRef.current = setTimeout(() => {
@@ -86,7 +89,6 @@ export default function MarketplacePage() {
     };
   }, [search]);
 
-  // Reset page when filters change
   useEffect(() => {
     setPage(1);
   }, [category, typeFilter, sort, isRemote, tab]);
@@ -141,7 +143,6 @@ export default function MarketplacePage() {
     fetchData();
   }, [fetchData]);
 
-  // Load completed task count once
   useEffect(() => {
     if (statsLoadedRef.current) return;
     statsLoadedRef.current = true;
@@ -165,112 +166,133 @@ export default function MarketplacePage() {
   );
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       {/* ── Hero ────────────────────────────────────────── */}
-      <section className="text-center">
-        <h1 className="bg-gradient-to-b from-white to-white/60 bg-clip-text text-4xl font-bold tracking-tight text-transparent sm:text-5xl">
+      <motion.section
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="text-center"
+      >
+        <div className="inline-flex items-center gap-2 rounded-full border border-coral/20 bg-coral/5 px-4 py-1.5 mb-6">
+          <Sparkles className="size-3.5 text-coral" />
+          <span className="text-xs font-medium text-coral">
+            Powered by x402 Protocol
+          </span>
+        </div>
+
+        <h1 className="gradient-text-shimmer text-5xl font-bold tracking-tight font-display sm:text-6xl lg:text-7xl">
           The Hiring Protocol
         </h1>
-        <p className="mx-auto mt-3 max-w-xl text-lg text-white/50">
-          Hire humans and AI agents for any task. Powered by x402 SOL payments.
+        <p className="mx-auto mt-4 max-w-xl text-lg text-white/50">
+          Hire humans and AI agents for any task.
+          <br />
+          Pay with SOL. Secured by escrow.
         </p>
 
-        <div className="mt-6 inline-flex items-center gap-6 rounded-2xl border border-white/10 bg-[#0a0520]/60 px-6 py-3">
-          <div className="text-center">
-            <p className="text-xl font-bold text-white">
-              {stats.totalListings.toLocaleString()}
-            </p>
-            <p className="text-xs text-white/40">Listings</p>
-          </div>
-          <div className="h-8 w-px bg-white/10" />
-          <div className="text-center">
-            <p className="text-xl font-bold text-white">
-              {stats.totalCompleted.toLocaleString()}
-            </p>
-            <p className="text-xs text-white/40">Completed</p>
-          </div>
-          <div className="h-8 w-px bg-white/10" />
-          <div className="flex items-center gap-1.5">
-            <Zap className="size-4 text-[#6FEC06]" />
-            <span className="text-sm font-medium text-[#6FEC06]">
-              Powered by SOL
-            </span>
+        <div className="mt-8 inline-flex items-center gap-8 rounded-2xl border border-white/10 bg-surface/60 px-8 py-4 backdrop-blur-sm">
+          <HeroStat
+            icon={<TrendingUp className="size-4 text-coral" />}
+            value={stats.totalListings}
+            label="Listings"
+          />
+          <div className="h-10 w-px bg-white/10" />
+          <HeroStat
+            icon={<Briefcase className="size-4 text-coral" />}
+            value={stats.totalCompleted}
+            label="Completed"
+          />
+          <div className="h-10 w-px bg-white/10" />
+          <div className="flex items-center gap-2">
+            <Zap className="size-4 text-coral" />
+            <div className="text-left">
+              <p className="text-sm font-bold text-coral">SOL</p>
+              <p className="text-[10px] text-white/30">Payments</p>
+            </div>
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* ── Tabs ────────────────────────────────────────── */}
-      <div className="flex justify-center gap-1 rounded-xl border border-white/10 bg-[#0a0520]/40 p-1 sm:inline-flex">
-        <button
-          onClick={() => setTab("hire")}
-          className={`flex items-center gap-2 rounded-lg px-6 py-2.5 text-sm font-medium transition-all ${
-            tab === "hire"
-              ? "bg-[#6FEC06]/15 text-[#6FEC06]"
-              : "text-white/50 hover:text-white/80"
-          }`}
-        >
-          <Briefcase className="size-4" />
-          Hire
-        </button>
-        <button
-          onClick={() => setTab("bounties")}
-          className={`flex items-center gap-2 rounded-lg px-6 py-2.5 text-sm font-medium transition-all ${
-            tab === "bounties"
-              ? "bg-[#6FEC06]/15 text-[#6FEC06]"
-              : "text-white/50 hover:text-white/80"
-          }`}
-        >
-          <Target className="size-4" />
-          Bounties
-        </button>
-      </div>
-
-      {/* ── Filters ─────────────────────────────────────── */}
-      <div className="space-y-4">
-        {/* Category pills */}
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => setCategory("all")}
-            className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
-              category === "all"
-                ? "bg-[#6FEC06] text-black"
-                : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
-            }`}
-          >
-            All
-          </button>
-          {MARKETPLACE_CATEGORIES.map((cat) => (
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.1 }}
+        className="flex justify-center"
+      >
+        <div className="inline-flex gap-1 rounded-xl border border-white/10 bg-surface/60 p-1 backdrop-blur-sm">
+          {[
+            { id: "hire" as ActiveTab, label: "Hire", icon: Briefcase },
+            { id: "bounties" as ActiveTab, label: "Bounties", icon: Target },
+          ].map((t) => (
             <button
-              key={cat}
-              onClick={() => setCategory(cat)}
-              className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
-                category === cat
-                  ? "bg-[#6FEC06] text-black"
-                  : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`relative flex items-center gap-2 rounded-lg px-6 py-2.5 text-sm font-medium transition-all ${
+                tab === t.id
+                  ? "text-coral"
+                  : "text-white/40 hover:text-white/70"
               }`}
             >
-              {CATEGORY_LABELS[cat]}
+              {tab === t.id && (
+                <motion.div
+                  layoutId="marketplace-tab"
+                  className="absolute inset-0 rounded-lg bg-coral/10 border border-coral/20"
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
+                />
+              )}
+              <span className="relative flex items-center gap-2">
+                <t.icon className="size-4" />
+                {t.label}
+              </span>
             </button>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* ── Filters ─────────────────────────────────────── */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.15 }}
+        className="space-y-4"
+      >
+        {/* Category pills */}
+        <div className="flex flex-wrap gap-2">
+          <CategoryPill
+            active={category === "all"}
+            onClick={() => setCategory("all")}
+          >
+            All
+          </CategoryPill>
+          {MARKETPLACE_CATEGORIES.map((cat) => (
+            <CategoryPill
+              key={cat}
+              active={category === cat}
+              onClick={() => setCategory(cat)}
+            >
+              {CATEGORY_LABELS[cat]}
+            </CategoryPill>
           ))}
         </div>
 
         {/* Search + Type + Sort + Remote */}
         <div className="flex flex-wrap items-center gap-3">
-          {/* Search */}
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-white/30" />
+          <div className="relative min-w-[200px] flex-1">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-white/30" />
             <input
               type="text"
-              placeholder="Search listings…"
+              placeholder={
+                tab === "hire" ? "Search listings…" : "Search bounties…"
+              }
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-xl border border-white/10 bg-[#0a0520]/60 py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-white/30 outline-none transition-colors focus:border-[#6FEC06]/40"
+              className="w-full rounded-xl border border-white/10 bg-surface/60 py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-white/25 outline-none backdrop-blur-sm transition-all focus:border-coral/30 focus:ring-1 focus:ring-coral/20"
             />
           </div>
 
-          {/* Type toggle (listings tab only) */}
           {tab === "hire" && (
-            <div className="flex rounded-xl border border-white/10 bg-[#0a0520]/40 p-0.5">
+            <div className="flex rounded-xl border border-white/10 bg-surface/60 p-0.5 backdrop-blur-sm">
               {TYPE_FILTERS.map((tf) => (
                 <button
                   key={tf.value}
@@ -278,7 +300,7 @@ export default function MarketplacePage() {
                   className={`rounded-lg px-3 py-2 text-xs font-medium transition-all ${
                     typeFilter === tf.value
                       ? "bg-white/10 text-white"
-                      : "text-white/40 hover:text-white/70"
+                      : "text-white/35 hover:text-white/60"
                   }`}
                 >
                   {tf.label}
@@ -287,13 +309,12 @@ export default function MarketplacePage() {
             </div>
           )}
 
-          {/* Sort */}
           <div className="relative">
             <SlidersHorizontal className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-white/30" />
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value as SortOption)}
-              className="appearance-none rounded-xl border border-white/10 bg-[#0a0520]/60 py-2.5 pl-9 pr-8 text-xs text-white/70 outline-none transition-colors focus:border-[#6FEC06]/40"
+              className="appearance-none rounded-xl border border-white/10 bg-surface/60 py-2.5 pl-9 pr-8 text-xs text-white/60 outline-none backdrop-blur-sm transition-all focus:border-coral/30 [&>option]:bg-surface"
             >
               {SORT_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
@@ -303,99 +324,144 @@ export default function MarketplacePage() {
             </select>
           </div>
 
-          {/* Remote toggle */}
-          <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-white/10 bg-[#0a0520]/60 px-3 py-2.5">
+          <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-white/10 bg-surface/60 px-3 py-2.5 backdrop-blur-sm transition-all hover:border-white/20">
             <input
               type="checkbox"
               checked={isRemote}
               onChange={(e) => setIsRemote(e.target.checked)}
-              className="size-3.5 accent-[#6FEC06]"
+              className="size-3.5 accent-coral rounded"
             />
-            <span className="text-xs text-white/60">Remote only</span>
+            <Globe className="size-3 text-white/40" />
+            <span className="text-xs text-white/50">Remote</span>
           </label>
         </div>
-      </div>
+      </motion.div>
 
       {/* ── Grid ────────────────────────────────────────── */}
-      {loading ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <SkeletonCard key={i} />
-          ))}
-        </div>
-      ) : tab === "hire" ? (
-        listings.length > 0 ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {listings.map((listing) => (
-              <ListingCard
-                key={listing.id as string}
-                id={listing.id as string}
-                type={listing.type as "agent" | "human" | "corporation"}
-                title={listing.title as string}
-                description={listing.description as string}
-                category={listing.category as string}
-                skills={(listing.skills as string[]) ?? []}
-                priceType={listing.priceType as string}
-                priceSol={(listing.priceSol as number) ?? null}
-                isAvailable={(listing.isAvailable as boolean) ?? true}
-                averageRating={(listing.averageRating as number) ?? 0}
-                totalRatings={(listing.totalRatings as number) ?? 0}
-                completedTasks={(listing.completedTasks as number) ?? 0}
-                featuredImage={listing.featuredImage as string | null}
-                agent={listing.agent as ListingCardAgent | null}
-                corporation={
-                  listing.corporation as ListingCardCorporation | null
+      <AnimatePresence mode="wait">
+        {loading ? (
+          <motion.div
+            key="skeleton"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+          >
+            {Array.from({ length: 8 }).map((_, i) => (
+              <SkeletonCard key={i} index={i} />
+            ))}
+          </motion.div>
+        ) : tab === "hire" ? (
+          listings.length > 0 ? (
+            <motion.div
+              key="listings"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+            >
+              {listings.map((listing, i) => (
+                <ListingCard
+                  key={listing.id as string}
+                  index={i}
+                  id={listing.id as string}
+                  type={listing.type as "agent" | "human" | "corporation"}
+                  title={listing.title as string}
+                  description={listing.description as string}
+                  category={listing.category as string}
+                  skills={(listing.skills as string[]) ?? []}
+                  priceType={listing.priceType as string}
+                  priceSol={(listing.priceSol as number) ?? null}
+                  isAvailable={(listing.isAvailable as boolean) ?? true}
+                  averageRating={(listing.averageRating as number) ?? 0}
+                  totalRatings={(listing.totalRatings as number) ?? 0}
+                  completedTasks={(listing.completedTasks as number) ?? 0}
+                  featuredImage={listing.featuredImage as string | null}
+                  agent={
+                    listing.agent as {
+                      id: string;
+                      name: string;
+                      imageUrl: string | null;
+                      rarity: string | null;
+                      tokenSymbol: string | null;
+                    } | null
+                  }
+                  corporation={
+                    listing.corporation as {
+                      id: string;
+                      name: string;
+                      logo: string | null;
+                      tokenSymbol: string | null;
+                    } | null
+                  }
+                />
+              ))}
+            </motion.div>
+          ) : (
+            <EmptyState message="No listings found. Try adjusting your filters." />
+          )
+        ) : tasks.length > 0 ? (
+          <motion.div
+            key="tasks"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+          >
+            {tasks.map((task, i) => (
+              <TaskCard
+                key={task.id as string}
+                index={i}
+                id={task.id as string}
+                title={task.title as string}
+                description={task.description as string}
+                category={task.category as string}
+                status={task.status as string}
+                budgetSol={task.budgetSol as number}
+                isRemote={(task.isRemote as boolean) ?? true}
+                deadline={task.deadline as string | null}
+                bidCount={
+                  ((task._count as Record<string, number>)?.bids as number) ?? 0
                 }
+                createdAt={task.createdAt as string}
               />
             ))}
-          </div>
+          </motion.div>
         ) : (
-          <EmptyState message="No listings found. Try adjusting your filters." />
-        )
-      ) : tasks.length > 0 ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {tasks.map((task) => (
-            <TaskCard
-              key={task.id as string}
-              id={task.id as string}
-              title={task.title as string}
-              description={task.description as string}
-              category={task.category as string}
-              status={task.status as string}
-              budgetSol={task.budgetSol as number}
-              isRemote={(task.isRemote as boolean) ?? true}
-              deadline={task.deadline as string | null}
-              bidCount={
-                ((task._count as Record<string, number>)?.bids as number) ?? 0
-              }
-              createdAt={task.createdAt as string}
-            />
-          ))}
-        </div>
-      ) : (
-        <EmptyState message="No open bounties right now. Check back soon!" />
-      )}
+          <EmptyState message="No open bounties right now. Check back soon!" />
+        )}
+      </AnimatePresence>
 
       {/* ── Pagination ──────────────────────────────────── */}
       {pagination.totalPages > 1 && (
-        <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
-          <p className="text-sm text-white/40">
-            Showing {rangeStart}–{rangeEnd} of{" "}
-            {pagination.total.toLocaleString()}{" "}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="flex flex-col items-center gap-4 sm:flex-row sm:justify-between"
+        >
+          <p className="text-sm text-white/30">
+            Showing{" "}
+            <span className="text-white/50">
+              {rangeStart}–{rangeEnd}
+            </span>{" "}
+            of{" "}
+            <span className="text-white/50">
+              {pagination.total.toLocaleString()}
+            </span>{" "}
             {tab === "hire" ? "listings" : "bounties"}
           </p>
           <div className="flex items-center gap-1">
             <button
               disabled={page <= 1}
               onClick={() => setPage((p) => p - 1)}
-              className="rounded-lg border border-white/10 p-2 text-white/50 transition-colors hover:border-white/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+              className="rounded-lg border border-white/10 p-2 text-white/50 transition-all hover:border-white/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
             >
               <ChevronLeft className="size-4" />
             </button>
 
             {generatePageNumbers(page, pagination.totalPages).map((p, i) =>
               p === "..." ? (
-                <span key={`dots-${i}`} className="px-1 text-white/30">
+                <span key={`dots-${i}`} className="px-2 text-white/20">
                   …
                 </span>
               ) : (
@@ -404,8 +470,8 @@ export default function MarketplacePage() {
                   onClick={() => setPage(p as number)}
                   className={`size-9 rounded-lg text-sm font-medium transition-all ${
                     page === p
-                      ? "bg-[#6FEC06] text-black"
-                      : "border border-white/10 text-white/50 hover:border-white/20 hover:text-white"
+                      ? "bg-coral text-black shadow-lg shadow-coral/20"
+                      : "border border-white/10 text-white/40 hover:border-white/20 hover:text-white"
                   }`}
                 >
                   {p}
@@ -416,35 +482,117 @@ export default function MarketplacePage() {
             <button
               disabled={page >= pagination.totalPages}
               onClick={() => setPage((p) => p + 1)}
-              className="rounded-lg border border-white/10 p-2 text-white/50 transition-colors hover:border-white/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+              className="rounded-lg border border-white/10 p-2 text-white/50 transition-all hover:border-white/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
             >
               <ChevronRight className="size-4" />
             </button>
           </div>
-        </div>
+        </motion.div>
       )}
     </div>
   );
 }
 
-// ── Helper Types ──────────────────────────────────────────────────────
+// ── Sub-components ────────────────────────────────────────────────────
 
-type ListingCardAgent = {
-  id: string;
-  name: string;
-  imageUrl: string | null;
-  rarity: string | null;
-  tokenSymbol: string | null;
-};
+function HeroStat({
+  icon,
+  value,
+  label,
+}: {
+  icon: React.ReactNode;
+  value: number;
+  label: string;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      {icon}
+      <div className="text-left">
+        <p className="text-xl font-bold text-white tabular-nums">
+          {value.toLocaleString()}
+        </p>
+        <p className="text-[10px] uppercase tracking-wider text-white/30">
+          {label}
+        </p>
+      </div>
+    </div>
+  );
+}
 
-type ListingCardCorporation = {
-  id: string;
-  name: string;
-  logo: string | null;
-  tokenSymbol: string | null;
-};
+function CategoryPill({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
+        active
+          ? "bg-coral text-black shadow-sm shadow-coral/20"
+          : "bg-white/5 text-white/50 hover:bg-white/10 hover:text-white/70"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
 
-// ── Helper: Page Numbers ──────────────────────────────────────────────
+function SkeletonCard({ index }: { index: number }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ delay: index * 0.05 }}
+      className="skeleton-shimmer rounded-2xl border border-white/5 bg-surface/60 p-4"
+    >
+      <div className="flex items-start gap-3">
+        <div className="size-12 rounded-xl bg-white/5" />
+        <div className="flex-1 space-y-2">
+          <div className="flex gap-1.5">
+            <div className="h-4 w-14 rounded-md bg-white/5" />
+            <div className="h-4 w-12 rounded-md bg-white/5" />
+          </div>
+          <div className="h-4 w-3/4 rounded bg-white/5" />
+        </div>
+      </div>
+      <div className="mt-3 space-y-2">
+        <div className="h-3 w-full rounded bg-white/5" />
+        <div className="h-3 w-2/3 rounded bg-white/5" />
+      </div>
+      <div className="mt-3 flex gap-1.5">
+        <div className="h-5 w-14 rounded-md bg-white/5" />
+        <div className="h-5 w-12 rounded-md bg-white/5" />
+        <div className="h-5 w-16 rounded-md bg-white/5" />
+      </div>
+      <div className="mt-3 flex justify-between border-t border-white/5 pt-3">
+        <div className="h-4 w-16 rounded bg-white/5" />
+        <div className="h-3 w-20 rounded bg-white/5" />
+      </div>
+    </motion.div>
+  );
+}
+
+function EmptyState({ message }: { message: string }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="flex flex-col items-center justify-center py-20 text-center"
+    >
+      <div className="flex size-20 items-center justify-center rounded-2xl border border-white/10 bg-surface/60">
+        <Search className="size-8 text-white/15" />
+      </div>
+      <p className="mt-4 text-lg font-medium text-white/30">{message}</p>
+    </motion.div>
+  );
+}
+
+// ── Helper ────────────────────────────────────────────────────────────
 
 function generatePageNumbers(
   current: number,
@@ -462,47 +610,4 @@ function generatePageNumbers(
   if (current < total - 2) pages.push("...");
   pages.push(total);
   return pages;
-}
-
-// ── Skeleton Card ─────────────────────────────────────────────────────
-
-function SkeletonCard() {
-  return (
-    <div className="animate-pulse rounded-2xl border border-white/5 bg-[#0a0520]/60 p-4">
-      <div className="flex items-start gap-3">
-        <div className="size-12 rounded-full bg-white/5" />
-        <div className="flex-1 space-y-2">
-          <div className="h-4 w-16 rounded bg-white/5" />
-          <div className="h-4 w-3/4 rounded bg-white/5" />
-        </div>
-      </div>
-      <div className="mt-3 space-y-2">
-        <div className="h-3 w-full rounded bg-white/5" />
-        <div className="h-3 w-2/3 rounded bg-white/5" />
-      </div>
-      <div className="mt-3 flex gap-1.5">
-        <div className="h-5 w-14 rounded-full bg-white/5" />
-        <div className="h-5 w-12 rounded-full bg-white/5" />
-        <div className="h-5 w-16 rounded-full bg-white/5" />
-      </div>
-      <div className="mt-3 flex justify-between border-t border-white/5 pt-3">
-        <div className="h-3 w-12 rounded bg-white/5" />
-        <div className="h-3 w-10 rounded bg-white/5" />
-        <div className="h-3 w-8 rounded bg-white/5" />
-      </div>
-    </div>
-  );
-}
-
-// ── Empty State ───────────────────────────────────────────────────────
-
-function EmptyState({ message }: { message: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="flex size-20 items-center justify-center rounded-full bg-white/5">
-        <Search className="size-8 text-white/20" />
-      </div>
-      <p className="mt-4 text-lg font-medium text-white/40">{message}</p>
-    </div>
-  );
 }
