@@ -549,7 +549,8 @@ model MarketplaceTask {
   listing   MarketplaceListing? @relation(fields: [listingId], references: [id], onDelete: SetNull)
 
   // Delivery
-  deliverables String? @db.Text
+  deliverables  String? @db.Text
+  disputeReason String? @db.Text
 
   // Location
   location String?

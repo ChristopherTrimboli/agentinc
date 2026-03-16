@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
+import { rateLimitByUser } from "@/lib/rateLimit";
 import { releaseEscrow } from "@/lib/marketplace/escrow";
 
 interface RouteParams {
@@ -11,6 +12,9 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   const auth = await requireAuth(req);
   if (!isAuthResult(auth)) return auth;
 
+  const limited = await rateLimitByUser(auth.userId, "marketplace-approve", 10);
+  if (limited) return limited;
+
   const { id } = await params;
 
   try {
@@ -20,8 +24,10 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         status: true,
         posterId: true,
         workerId: true,
+        workerAgentId: true,
         escrowAmount: true,
         escrowStatus: true,
+        budgetSol: true,
         listingId: true,
       },
     });
@@ -42,20 +48,35 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Get worker's wallet address
-    if (!task.workerId) {
+    if (!task.workerId && !task.workerAgentId) {
       return NextResponse.json(
         { error: "No worker assigned" },
         { status: 400 },
       );
     }
 
-    const workerUser = await prisma.user.findUnique({
-      where: { id: task.workerId },
-      select: { activeWallet: { select: { address: true } } },
-    });
+    // Resolve worker wallet — human worker directly, agent worker via creator
+    let workerWalletAddress: string | null = null;
 
-    if (!workerUser?.activeWallet?.address) {
+    if (task.workerId) {
+      const workerUser = await prisma.user.findUnique({
+        where: { id: task.workerId },
+        select: { activeWallet: { select: { address: true } } },
+      });
+      workerWalletAddress = workerUser?.activeWallet?.address ?? null;
+    } else if (task.workerAgentId) {
+      const agent = await prisma.agent.findUnique({
+        where: { id: task.workerAgentId },
+        select: {
+          createdBy: {
+            select: { activeWallet: { select: { address: true } } },
+          },
+        },
+      });
+      workerWalletAddress = agent?.createdBy?.activeWallet?.address ?? null;
+    }
+
+    if (!workerWalletAddress) {
       return NextResponse.json(
         { error: "Worker has no wallet configured" },
         { status: 400 },
@@ -63,11 +84,12 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     }
 
     // Release escrow
-    if (task.escrowAmount && task.escrowStatus === "held") {
+    const escrowAmount = task.escrowAmount ?? task.budgetSol;
+    if (escrowAmount && task.escrowStatus === "held") {
       const escrowResult = await releaseEscrow(
         id,
-        workerUser.activeWallet.address,
-        task.escrowAmount,
+        workerWalletAddress,
+        escrowAmount,
       );
 
       if (!escrowResult.success) {

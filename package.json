@@ -85,7 +85,7 @@
     "framer-motion": "^12.36.0",
     "lucide-react": "^0.563.0",
     "mcp-handler": "^1.0.7",
-    "nanoid": "^5.1.6",
+    "nanoid": "^5.1.7",
     "next": "16.1.4",
     "pdf-parse": "^2.4.5",
     "pixi.js": "^8.17.0",

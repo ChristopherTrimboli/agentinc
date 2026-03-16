@@ -19,6 +19,7 @@ import {
   Lock,
 } from "lucide-react";
 
+import { usePrivy } from "@privy-io/react-auth";
 import { useAuth } from "@/lib/auth/AuthProvider";
 import { cn } from "@/lib/utils";
 import ListingCard from "@/components/marketplace/ListingCard";
@@ -92,6 +93,8 @@ type TabId = (typeof TABS)[number]["id"];
 
 export default function MarketplaceDashboardPage() {
   const { authFetch } = useAuth();
+  const { user } = usePrivy();
+  const userId = user?.id ?? null;
   const [activeTab, setActiveTab] = useState<TabId>("listings");
   const [listings, setListings] = useState<Listing[]>([]);
   const [postedTasks, setPostedTasks] = useState<Task[]>([]);
@@ -100,10 +103,13 @@ export default function MarketplaceDashboardPage() {
   const [error, setError] = useState<string | null>(null);
 
   const fetchListings = useCallback(async () => {
+    if (!userId) return;
     setLoading(true);
     setError(null);
     try {
-      const res = await authFetch("/api/marketplace/listings");
+      const res = await authFetch(
+        `/api/marketplace/listings?ownerId=${encodeURIComponent(userId)}`,
+      );
       if (!res.ok) throw new Error("Failed to fetch listings");
       const data = await res.json();
       setListings(data.listings ?? []);
@@ -113,13 +119,16 @@ export default function MarketplaceDashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [authFetch]);
+  }, [authFetch, userId]);
 
   const fetchPostedTasks = useCallback(async () => {
+    if (!userId) return;
     setLoading(true);
     setError(null);
     try {
-      const res = await authFetch("/api/marketplace/tasks");
+      const res = await authFetch(
+        `/api/marketplace/tasks?posterId=${encodeURIComponent(userId)}`,
+      );
       if (!res.ok) throw new Error("Failed to fetch tasks");
       const data = await res.json();
       setPostedTasks(data.tasks ?? []);
@@ -129,13 +138,16 @@ export default function MarketplaceDashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [authFetch]);
+  }, [authFetch, userId]);
 
   const fetchAssignedTasks = useCallback(async () => {
+    if (!userId) return;
     setLoading(true);
     setError(null);
     try {
-      const res = await authFetch("/api/marketplace/tasks?status=assigned");
+      const res = await authFetch(
+        `/api/marketplace/tasks?workerId=${encodeURIComponent(userId)}`,
+      );
       if (!res.ok) throw new Error("Failed to fetch assigned tasks");
       const data = await res.json();
       setAssignedTasks(data.tasks ?? []);
@@ -145,7 +157,7 @@ export default function MarketplaceDashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [authFetch]);
+  }, [authFetch, userId]);
 
   useEffect(() => {
     if (activeTab === "listings") fetchListings();

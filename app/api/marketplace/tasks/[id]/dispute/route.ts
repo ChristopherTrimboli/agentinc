@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
+import { rateLimitByUser } from "@/lib/rateLimit";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -9,6 +10,9 @@ interface RouteParams {
 export async function POST(req: NextRequest, { params }: RouteParams) {
   const auth = await requireAuth(req);
   if (!isAuthResult(auth)) return auth;
+
+  const limited = await rateLimitByUser(auth.userId, "marketplace-dispute", 5);
+  if (limited) return limited;
 
   const { id } = await params;
 
@@ -44,7 +48,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
 
     await prisma.marketplaceTask.update({
       where: { id },
-      data: { status: "disputed" },
+      data: { status: "disputed", disputeReason: body.reason },
     });
 
     return NextResponse.json({ success: true });

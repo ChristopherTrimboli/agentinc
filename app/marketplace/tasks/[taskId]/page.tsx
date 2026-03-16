@@ -18,6 +18,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
+import { timeAgo } from "@/lib/utils";
 import StatusTimeline from "@/components/marketplace/StatusTimeline";
 import EscrowBadge from "@/components/marketplace/EscrowBadge";
 import BidCard from "@/components/marketplace/BidCard";
@@ -74,21 +75,6 @@ interface TaskData {
   reviews: TaskReview[];
   createdAt: string;
   updatedAt: string;
-}
-
-// ── Helpers ──────────────────────────────────────────────────────────────
-
-function timeAgo(dateStr: string): string {
-  const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
-  if (seconds < 60) return "just now";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d ago`;
-  const months = Math.floor(days / 30);
-  return `${months}mo ago`;
 }
 
 export default function TaskDetailPage() {
@@ -153,7 +139,7 @@ export default function TaskDetailPage() {
     setSubmittingBid(true);
 
     try {
-      const res = await authFetch(`/api/marketplace/tasks/${taskId}/bids`, {
+      const res = await authFetch(`/api/marketplace/tasks/${taskId}/bid`, {
         method: "POST",
         body: JSON.stringify({
           amountSol: parseFloat(bidAmount),
@@ -180,8 +166,8 @@ export default function TaskDetailPage() {
     setActionLoading(bidId);
     try {
       const res = await authFetch(
-        `/api/marketplace/tasks/${taskId}/bids/${bidId}/accept`,
-        { method: "POST" },
+        `/api/marketplace/tasks/${taskId}/assign`,
+        { method: "POST", body: JSON.stringify({ bidId }) },
       );
       if (!res.ok) throw new Error("Failed to accept bid");
       await fetchTask();
@@ -197,7 +183,7 @@ export default function TaskDetailPage() {
     setSubmittingDeliverables(true);
     try {
       const res = await authFetch(
-        `/api/marketplace/tasks/${taskId}/deliverables`,
+        `/api/marketplace/tasks/${taskId}/submit`,
         {
           method: "POST",
           body: JSON.stringify({ deliverables }),
@@ -228,10 +214,14 @@ export default function TaskDetailPage() {
   }
 
   async function handleDispute() {
+    const reason = prompt("Please describe the reason for your dispute:");
+    if (!reason?.trim()) return;
+
     setActionLoading("dispute");
     try {
       const res = await authFetch(`/api/marketplace/tasks/${taskId}/dispute`, {
         method: "POST",
+        body: JSON.stringify({ reason: reason.trim() }),
       });
       if (!res.ok) throw new Error("Failed to dispute");
       await fetchTask();
@@ -247,7 +237,7 @@ export default function TaskDetailPage() {
     if (!authenticated) return login();
     setSubmittingReview(true);
     try {
-      const res = await authFetch(`/api/marketplace/tasks/${taskId}/reviews`, {
+      const res = await authFetch(`/api/marketplace/tasks/${taskId}/review`, {
         method: "POST",
         body: JSON.stringify({
           rating: reviewRating,

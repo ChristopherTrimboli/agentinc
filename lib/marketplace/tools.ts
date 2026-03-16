@@ -275,6 +275,10 @@ export async function hireListing(params: {
   try {
     const { listingId, taskTitle, taskDescription, budgetSol, userId } = params;
 
+    if (budgetSol <= 0) {
+      return fail("Budget must be greater than 0");
+    }
+
     const listing = await prisma.marketplaceListing.findUnique({
       where: { id: listingId },
       select: {
@@ -371,6 +375,10 @@ export async function postBounty(params: {
       userId,
     } = params;
 
+    if (budgetSol <= 0) {
+      return fail("Budget must be greater than 0");
+    }
+
     if (!MARKETPLACE_CATEGORIES.includes(category as MarketplaceCategory)) {
       return fail(
         `Invalid category. Must be one of: ${MARKETPLACE_CATEGORIES.join(", ")}`,
@@ -457,6 +465,15 @@ export async function submitBid(params: {
 
     if (userId && task.posterId === userId) {
       return fail("Cannot bid on your own task");
+    }
+
+    if (userId) {
+      const existingBid = await prisma.marketplaceBid.findFirst({
+        where: { taskId, bidderId: userId, status: "pending" },
+      });
+      if (existingBid) {
+        return fail("You already have a pending bid on this task");
+      }
     }
 
     const bid = await prisma.marketplaceBid.create({

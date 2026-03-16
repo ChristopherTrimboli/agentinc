@@ -72,6 +72,7 @@ export default function MarketplacePage() {
 
   const [stats, setStats] = useState({ totalListings: 0, totalCompleted: 0 });
   const searchTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
+  const statsLoadedRef = useRef(false);
 
   // Debounce search
   useEffect(() => {
@@ -139,6 +140,23 @@ export default function MarketplacePage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // Load completed task count once
+  useEffect(() => {
+    if (statsLoadedRef.current) return;
+    statsLoadedRef.current = true;
+    fetch("/api/marketplace/tasks?status=completed&pageSize=1")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.pagination?.total !== undefined) {
+          setStats((prev) => ({
+            ...prev,
+            totalCompleted: d.pagination.total,
+          }));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const rangeStart = (pagination.page - 1) * pagination.pageSize + 1;
   const rangeEnd = Math.min(

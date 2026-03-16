@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
+import { rateLimitByUser } from "@/lib/rateLimit";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -10,12 +11,21 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   const auth = await requireAuth(req);
   if (!isAuthResult(auth)) return auth;
 
+  const limited = await rateLimitByUser(auth.userId, "marketplace-review", 10);
+  if (limited) return limited;
+
   const { id } = await params;
 
   try {
     const task = await prisma.marketplaceTask.findUnique({
       where: { id },
-      select: { status: true, listingId: true },
+      select: {
+        status: true,
+        listingId: true,
+        posterId: true,
+        workerId: true,
+        workerAgent: { select: { createdById: true } },
+      },
     });
 
     if (!task) {
@@ -25,6 +35,18 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json(
         { error: "Can only review completed tasks" },
         { status: 400 },
+      );
+    }
+
+    const isParticipant =
+      task.posterId === auth.userId ||
+      task.workerId === auth.userId ||
+      task.workerAgent?.createdById === auth.userId;
+
+    if (!isParticipant) {
+      return NextResponse.json(
+        { error: "Only the poster or worker can leave a review" },
+        { status: 403 },
       );
     }
 

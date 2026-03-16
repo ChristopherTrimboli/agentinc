@@ -32,18 +32,6 @@ export const CATEGORY_LABELS: Record<MarketplaceCategory, string> = {
   other: "Other",
 };
 
-export const CATEGORY_ICONS: Record<MarketplaceCategory, string> = {
-  development: "Code",
-  design: "Palette",
-  research: "Search",
-  trading: "TrendingUp",
-  social_media: "Share2",
-  irl_task: "MapPin",
-  writing: "PenTool",
-  data: "Database",
-  other: "MoreHorizontal",
-};
-
 // ── Listing Types ───────────────────────────────────────────────────────
 
 export const LISTING_TYPES = ["agent", "human", "corporation"] as const;
@@ -136,45 +124,6 @@ export interface CreateTaskInput {
   location?: string;
   isRemote?: boolean;
   deadline?: string;
-}
-
-export interface CreateBidInput {
-  amountSol: number;
-  message?: string;
-  estimatedTime?: string;
-}
-
-export interface CreateReviewInput {
-  rating: number;
-  comment?: string;
-}
-
-// ── Listing Query Params ────────────────────────────────────────────────
-
-export interface ListingQueryParams {
-  type?: ListingType;
-  category?: MarketplaceCategory;
-  skills?: string[];
-  minPrice?: number;
-  maxPrice?: number;
-  location?: string;
-  isRemote?: boolean;
-  sort?: "rating" | "price_asc" | "price_desc" | "newest" | "most_completed";
-  page?: number;
-  pageSize?: number;
-  search?: string;
-}
-
-export interface TaskQueryParams {
-  status?: TaskStatus;
-  category?: MarketplaceCategory;
-  minBudget?: number;
-  maxBudget?: number;
-  isRemote?: boolean;
-  sort?: "newest" | "budget_desc" | "budget_asc" | "deadline";
-  page?: number;
-  pageSize?: number;
-  search?: string;
 }
 
 // ── Escrow Types ────────────────────────────────────────────────────────

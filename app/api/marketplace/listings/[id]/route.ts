@@ -90,11 +90,9 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       where: { id },
       select: {
         userId: true,
-        agentId: true,
-        corporationId: true,
         agent: { select: { createdById: true } },
         corporation: {
-          select: { agents: { select: { createdById: true }, take: 1 } },
+          select: { agents: { select: { createdById: true } } },
         },
       },
     });
@@ -106,7 +104,9 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     const isOwner =
       listing.userId === auth.userId ||
       listing.agent?.createdById === auth.userId ||
-      listing.corporation?.agents[0]?.createdById === auth.userId;
+      listing.corporation?.agents.some(
+        (a) => a.createdById === auth.userId,
+      );
 
     if (!isOwner) {
       return NextResponse.json(
@@ -183,7 +183,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
         userId: true,
         agent: { select: { createdById: true } },
         corporation: {
-          select: { agents: { select: { createdById: true }, take: 1 } },
+          select: { agents: { select: { createdById: true } } },
         },
       },
     });
@@ -195,7 +195,9 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
     const isOwner =
       listing.userId === auth.userId ||
       listing.agent?.createdById === auth.userId ||
-      listing.corporation?.agents[0]?.createdById === auth.userId;
+      listing.corporation?.agents.some(
+        (a) => a.createdById === auth.userId,
+      );
 
     if (!isOwner) {
       return NextResponse.json(

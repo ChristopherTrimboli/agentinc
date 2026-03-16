@@ -33,9 +33,20 @@ export async function GET(req: NextRequest) {
     const isRemote = searchParams.get("isRemote");
     const sort = searchParams.get("sort") || "newest";
     const search = searchParams.get("search");
+    const posterId = searchParams.get("posterId");
+    const workerId = searchParams.get("workerId");
 
     const where: Prisma.MarketplaceTaskWhereInput = {};
 
+    if (posterId) {
+      where.posterId = posterId;
+    }
+    if (workerId) {
+      where.OR = [
+        { workerId },
+        { workerAgent: { createdById: workerId } },
+      ];
+    }
     if (status) {
       where.status = status;
     }

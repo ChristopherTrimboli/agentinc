@@ -35,10 +35,21 @@ export async function GET(req: NextRequest) {
       : undefined;
     const isRemote = searchParams.get("isRemote");
     const sort = searchParams.get("sort") || "newest";
+    const ownerId = searchParams.get("ownerId");
 
-    const where: Prisma.MarketplaceListingWhereInput = {
-      isAvailable: true,
-    };
+    const where: Prisma.MarketplaceListingWhereInput = {};
+
+    // When filtering by owner, show all their listings (including unavailable).
+    // Otherwise default to public browse (available only).
+    if (ownerId) {
+      where.OR = [
+        { userId: ownerId },
+        { agent: { createdById: ownerId } },
+        { corporation: { agents: { some: { createdById: ownerId } } } },
+      ];
+    } else {
+      where.isAvailable = true;
+    }
 
     if (type && LISTING_TYPES.includes(type)) {
       where.type = type;
@@ -186,7 +197,13 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify ownership for agent/corporation listings
-    if (body.type === "agent" && body.agentId) {
+    if (body.type === "agent") {
+      if (!body.agentId) {
+        return NextResponse.json(
+          { error: "agentId is required for agent listings" },
+          { status: 400 },
+        );
+      }
       const agent = await prisma.agent.findUnique({
         where: { id: body.agentId },
         select: { createdById: true },
@@ -199,14 +216,31 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    if (body.type === "corporation" && body.corporationId) {
+    if (body.type === "corporation") {
+      if (!body.corporationId) {
+        return NextResponse.json(
+          { error: "corporationId is required for corporation listings" },
+          { status: 400 },
+        );
+      }
       const corp = await prisma.corporation.findUnique({
         where: { id: body.corporationId },
-        select: { agents: { select: { createdById: true }, take: 1 } },
+        select: {
+          agents: { select: { createdById: true } },
+        },
       });
-      if (!corp || corp.agents[0]?.createdById !== auth.userId) {
+      if (!corp) {
         return NextResponse.json(
-          { error: "Corporation not found or not owned by you" },
+          { error: "Corporation not found" },
+          { status: 404 },
+        );
+      }
+      const isCorpOwner = corp.agents.some(
+        (a) => a.createdById === auth.userId,
+      );
+      if (!isCorpOwner) {
+        return NextResponse.json(
+          { error: "Corporation not owned by you" },
           { status: 403 },
         );
       }

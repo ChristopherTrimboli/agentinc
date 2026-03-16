@@ -15,6 +15,7 @@ import {
   ExternalLink,
   Coins,
   Loader2,
+  AlertTriangle,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -438,7 +439,7 @@ export default function ListingDetailPage({
             </p>
           </div>
           <Link
-            href={`/marketplace/tasks/create${listing.priceSol !== null ? `?listingId=${listing.id}` : `?listingId=${listing.id}`}`}
+            href={`/marketplace/tasks/create?listingId=${listing.id}`}
             className="rounded-xl bg-[#6FEC06] px-6 py-3 text-sm font-bold text-black transition-all hover:brightness-110 active:scale-[0.97]"
           >
             {listing.priceType === "bidding"
@@ -517,7 +518,7 @@ function ErrorState({ message }: { message: string }) {
   return (
     <div className="flex flex-col items-center justify-center py-24 text-center">
       <div className="flex size-20 items-center justify-center rounded-full bg-red-500/10">
-        <Loader2 className="size-8 text-red-400" />
+        <AlertTriangle className="size-8 text-red-400" />
       </div>
       <p className="mt-4 text-lg font-medium text-white/50">{message}</p>
       <Link

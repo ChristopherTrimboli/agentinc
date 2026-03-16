@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { Clock, MapPin, MessageSquare } from "lucide-react";
 
-import { cn } from "@/lib/utils";
+import { cn, timeAgo } from "@/lib/utils";
 import {
   CATEGORY_LABELS,
+  TASK_STATUS_LABELS,
   type MarketplaceCategory,
 } from "@/lib/marketplace/types";
 
@@ -17,16 +18,6 @@ const STATUS_STYLES: Record<string, string> = {
   completed: "bg-green-500/15 text-green-400 border-green-500/30",
   disputed: "bg-red-500/15 text-red-400 border-red-500/30",
   cancelled: "bg-gray-500/15 text-gray-400 border-gray-500/30",
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  open: "Open",
-  assigned: "Assigned",
-  in_progress: "In Progress",
-  review: "In Review",
-  completed: "Completed",
-  disputed: "Disputed",
-  cancelled: "Cancelled",
 };
 
 interface TaskCardProps {
@@ -42,19 +33,6 @@ interface TaskCardProps {
   createdAt: string;
 }
 
-function timeAgo(dateStr: string): string {
-  const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
-  if (seconds < 60) return "just now";
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d ago`;
-  const months = Math.floor(days / 30);
-  return `${months}mo ago`;
-}
-
 export default function TaskCard({
   id,
   title,
@@ -68,7 +46,7 @@ export default function TaskCard({
   createdAt,
 }: TaskCardProps) {
   const statusStyle = STATUS_STYLES[status] ?? STATUS_STYLES.open;
-  const statusLabel = STATUS_LABELS[status] ?? status;
+  const statusLabel = TASK_STATUS_LABELS[status as keyof typeof TASK_STATUS_LABELS] ?? status;
   const categoryLabel =
     CATEGORY_LABELS[category as MarketplaceCategory] ?? category;
 
