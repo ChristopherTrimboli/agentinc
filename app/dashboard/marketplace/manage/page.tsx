@@ -93,7 +93,7 @@ interface Task {
   tokenSymbol?: string | null;
   posterId: string;
   assigneeId: string | null;
-  poster?: { id: string; email: string | null } | null;
+  poster?: { id: string } | null;
   listing?: { id: string; title: string; type: string } | null;
   _count?: { bids: number };
 }

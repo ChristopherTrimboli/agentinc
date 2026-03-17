@@ -113,7 +113,6 @@ interface TaskResponse {
   _count: { bids: number };
   poster?: {
     id: string;
-    email: string | null;
     activeWallet?: { address: string } | null;
   } | null;
 }
@@ -597,7 +596,6 @@ export default function MarketplacePage() {
                   tokenSymbol={task.tokenSymbol}
                   featuredImage={task.featuredImage}
                   posterWallet={task.poster?.activeWallet?.address}
-                  posterName={task.poster?.email}
                 />
               ))}
             </motion.div>

@@ -114,7 +114,6 @@ export async function GET(req: NextRequest) {
           poster: {
             select: {
               id: true,
-              email: true,
               activeWallet: { select: { address: true } },
             },
           },
