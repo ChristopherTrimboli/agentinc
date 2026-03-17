@@ -106,6 +106,7 @@ interface TaskData {
   tokenSymbol?: string | null;
   tokenMetadata?: string | null;
   tokenLaunchSignature?: string | null;
+  tokenFeesClaimed?: number | string | null;
   bids: TaskBid[];
   reviews: TaskReview[];
   createdAt: string;
@@ -139,6 +140,7 @@ export default function TaskDetailPage() {
   const [disputeOpen, setDisputeOpen] = useState(false);
   const [disputeReason, setDisputeReason] = useState("");
   const [copiedMint, setCopiedMint] = useState(false);
+  const [liveEarnings, setLiveEarnings] = useState<number | null>(null);
 
   const currentUserId = user?.id ?? null;
   const isPoster = currentUserId === task?.posterId;
@@ -162,6 +164,32 @@ export default function TaskDetailPage() {
   useEffect(() => {
     fetchTask();
   }, [fetchTask]);
+
+  useEffect(() => {
+    if (!task?.tokenMint) return;
+    let cancelled = false;
+
+    async function fetchEarnings() {
+      try {
+        const res = await fetch(`/api/explore/prices?mints=${task!.tokenMint}`);
+        if (!res.ok || cancelled) return;
+        const data = await res.json();
+        const priceData = data.prices?.[task!.tokenMint!];
+        if (priceData?.earnings !== undefined && !cancelled) {
+          setLiveEarnings(priceData.earnings);
+        }
+      } catch {
+        // Non-critical
+      }
+    }
+
+    fetchEarnings();
+    const interval = setInterval(fetchEarnings, 30_000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [task?.tokenMint]);
 
   // ── Actions ──────────────────────────────────────────────────────────
 
@@ -947,16 +975,54 @@ export default function TaskDetailPage() {
             transition={{ delay: 0.25 }}
             className="space-y-4"
           >
-            {/* Budget Card */}
-            <div className="rounded-2xl border border-coral/20 bg-coral/5 p-6 text-center">
-              <p className="text-xs font-semibold uppercase tracking-wider text-coral/50">
-                Budget
-              </p>
-              <p className="mt-1 text-4xl font-bold text-coral">
-                {task.budgetSol}
-              </p>
-              <p className="text-sm font-medium text-coral/40">SOL</p>
-            </div>
+            {/* Bounty Card */}
+            {(() => {
+              const creatorFees =
+                liveEarnings ?? Number(task.tokenFeesClaimed ?? 0);
+              const budget = Number(task.budgetSol ?? 0);
+              const totalBounty = budget + creatorFees;
+              const hasToken = !!task.tokenMint;
+
+              return (
+                <div className="rounded-2xl border border-coral/20 bg-coral/5 p-6">
+                  <div className="text-center">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-coral/50">
+                      {hasToken ? "Total Bounty" : "Budget"}
+                    </p>
+                    <p className="mt-1 text-4xl font-bold text-coral">
+                      {totalBounty > 0
+                        ? totalBounty < 0.01
+                          ? totalBounty.toFixed(6)
+                          : totalBounty.toFixed(2)
+                        : "0"}
+                    </p>
+                    <p className="text-sm font-medium text-coral/40">SOL</p>
+                  </div>
+
+                  {hasToken && (
+                    <div className="mt-4 space-y-2 border-t border-coral/10 pt-4">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-white/35">SOL Budget</span>
+                        <span className="font-medium text-white/60">
+                          {budget > 0 ? `${budget} SOL` : "—"}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-white/35">Creator Fees</span>
+                        <span className="font-medium text-[#6FEC06]">
+                          {creatorFees > 0
+                            ? `${creatorFees < 0.01 ? creatorFees.toFixed(6) : creatorFees.toFixed(4)} SOL`
+                            : "0 SOL"}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-white/25 pt-1">
+                        Creator fees accumulate from token trading on Bags.fm
+                      </p>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Task Token Card */}
             {task.tokenMint && (
@@ -993,6 +1059,24 @@ export default function TaskDetailPage() {
                     )}
                   </button>
                 </div>
+
+                {/* Creator fees stat */}
+                {(() => {
+                  const fees =
+                    liveEarnings ?? Number(task.tokenFeesClaimed ?? 0);
+                  return (
+                    <div className="mb-3 rounded-lg border border-[#6FEC06]/10 bg-[#6FEC06]/5 px-3 py-2.5 text-center">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-[#6FEC06]/40">
+                        Creator Fees Earned
+                      </p>
+                      <p className="mt-0.5 text-lg font-bold text-[#6FEC06]">
+                        {fees > 0
+                          ? `${fees < 0.01 ? fees.toFixed(6) : fees.toFixed(4)} SOL`
+                          : "0 SOL"}
+                      </p>
+                    </div>
+                  );
+                })()}
 
                 <div className="space-y-2">
                   <a
