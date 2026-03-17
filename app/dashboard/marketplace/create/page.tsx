@@ -20,6 +20,8 @@ import {
   Sparkles,
   Trash2,
   HelpCircle,
+  ExternalLink,
+  Link as LinkIcon,
 } from "lucide-react";
 
 import { useAuth } from "@/lib/auth/AuthProvider";
@@ -105,9 +107,17 @@ export default function CreateListingPage() {
   const [currentStep, setCurrentStep] = useState<StepId>("type");
   const stepIndex = STEP_ORDER.indexOf(currentStep);
 
+  type AgentSource = "platform" | "external";
+
   const [type, setType] = useState<ListingType | null>(null);
+  const [agentSource, setAgentSource] = useState<AgentSource>("platform");
   const [selectedAgentId, setSelectedAgentId] = useState("");
   const [selectedCorpId, setSelectedCorpId] = useState("");
+  const [externalAgentName, setExternalAgentName] = useState("");
+  const [externalAgentImage, setExternalAgentImage] = useState("");
+  const [externalAgentUrl, setExternalAgentUrl] = useState("");
+  const [externalMcpUrl, setExternalMcpUrl] = useState("");
+  const [externalA2aUrl, setExternalA2aUrl] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<MarketplaceCategory | "">("");
@@ -184,11 +194,21 @@ export default function CreateListingPage() {
   const removeSkill = (skill: string) =>
     setSkills((prev) => prev.filter((s) => s !== skill));
 
+  const hasExternalUrl =
+    externalAgentUrl.trim() || externalMcpUrl.trim() || externalA2aUrl.trim();
+
   const canGoNext = (): boolean => {
     switch (currentStep) {
       case "type":
         if (type === null) return false;
-        if (type === "agent" && !selectedAgentId) return false;
+        if (type === "agent") {
+          if (agentSource === "platform" && !selectedAgentId) return false;
+          if (
+            agentSource === "external" &&
+            (!externalAgentName.trim() || !hasExternalUrl)
+          )
+            return false;
+        }
         if (type === "corporation" && !selectedCorpId) return false;
         return true;
       case "details":
@@ -221,6 +241,8 @@ export default function CreateListingPage() {
     setSubmitting(true);
     setSubmitError(null);
 
+    const isExternalAgent = type === "agent" && agentSource === "external";
+
     const body: CreateListingInput = {
       type,
       title: title.trim(),
@@ -234,10 +256,25 @@ export default function CreateListingPage() {
       location: location || undefined,
       isRemote,
       agentId:
-        type === "agent" && selectedAgentId ? selectedAgentId : undefined,
+        type === "agent" && agentSource === "platform" && selectedAgentId
+          ? selectedAgentId
+          : undefined,
       corporationId:
         type === "corporation" && selectedCorpId ? selectedCorpId : undefined,
       featuredImage: featuredImage || undefined,
+      externalAgentName: isExternalAgent ? externalAgentName.trim() : undefined,
+      externalAgentImage: isExternalAgent
+        ? externalAgentImage.trim() || undefined
+        : undefined,
+      externalAgentUrl: isExternalAgent
+        ? externalAgentUrl.trim() || undefined
+        : undefined,
+      externalMcpUrl: isExternalAgent
+        ? externalMcpUrl.trim() || undefined
+        : undefined,
+      externalA2aUrl: isExternalAgent
+        ? externalA2aUrl.trim() || undefined
+        : undefined,
     };
 
     try {
@@ -402,74 +439,327 @@ export default function CreateListingPage() {
               </SectionCard>
 
               {type === "agent" && (
-                <SectionCard title="Select Agent">
-                  {loadingEntities ? (
-                    <div className="flex items-center gap-2 text-sm text-white/40">
-                      <Loader2 className="size-4 animate-spin" /> Loading
-                      agents...
-                    </div>
-                  ) : agents.length === 0 ? (
-                    <p className="text-sm text-white/35">
-                      No agents found.{" "}
-                      <a
-                        href="/dashboard/mint"
-                        className="text-coral hover:underline"
+                <>
+                  <SectionCard
+                    title="Agent Source"
+                    subtitle="Choose between an Agent Inc platform agent or bring your own external agent via URL."
+                  >
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <button
+                        onClick={() => {
+                          setAgentSource("platform");
+                          setExternalAgentName("");
+                          setExternalAgentImage("");
+                          setExternalAgentUrl("");
+                          setExternalMcpUrl("");
+                          setExternalA2aUrl("");
+                        }}
+                        className={cn(
+                          "group flex items-center gap-3 rounded-xl border p-4 text-left transition-all",
+                          agentSource === "platform"
+                            ? "border-coral/40 bg-coral/10 shadow-lg shadow-coral/5"
+                            : "border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/5",
+                        )}
                       >
-                        Mint an agent first
-                      </a>
-                      .
-                    </p>
-                  ) : (
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                      {agents.map((agent) => {
-                        const selected = selectedAgentId === agent.id;
-                        return (
-                          <button
-                            key={agent.id}
-                            onClick={() => setSelectedAgentId(agent.id)}
+                        <div
+                          className={cn(
+                            "flex size-10 shrink-0 items-center justify-center rounded-lg transition-all",
+                            agentSource === "platform"
+                              ? "bg-coral/20"
+                              : "bg-white/5 group-hover:bg-white/10",
+                          )}
+                        >
+                          <Bot
                             className={cn(
-                              "flex items-center gap-3 rounded-xl border p-3 text-left transition-all",
-                              selected
-                                ? "border-coral/40 bg-coral/10 shadow-lg shadow-coral/5"
-                                : "border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/5",
+                              "size-5",
+                              agentSource === "platform"
+                                ? "text-coral"
+                                : "text-white/40",
+                            )}
+                          />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p
+                            className={cn(
+                              "text-sm font-semibold",
+                              agentSource === "platform"
+                                ? "text-coral"
+                                : "text-white",
                             )}
                           >
-                            {agent.imageUrl ? (
-                              <Image
-                                src={agent.imageUrl}
-                                alt={agent.name}
-                                width={40}
-                                height={40}
-                                className="size-10 shrink-0 rounded-lg object-cover ring-1 ring-white/10"
-                              />
-                            ) : (
-                              <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-white/5 ring-1 ring-white/10">
-                                <Bot className="size-5 text-white/30" />
-                              </div>
+                            Agent Inc Agent
+                          </p>
+                          <p className="text-[10px] text-white/35">
+                            Select an agent you&apos;ve created on the platform
+                          </p>
+                        </div>
+                        {agentSource === "platform" && (
+                          <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            className="flex size-5 shrink-0 items-center justify-center rounded-full bg-coral"
+                          >
+                            <Check className="size-3 text-black" />
+                          </motion.div>
+                        )}
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setAgentSource("external");
+                          setSelectedAgentId("");
+                        }}
+                        className={cn(
+                          "group flex items-center gap-3 rounded-xl border p-4 text-left transition-all",
+                          agentSource === "external"
+                            ? "border-cyan-400/40 bg-cyan-400/10 shadow-lg shadow-cyan-400/5"
+                            : "border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/5",
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            "flex size-10 shrink-0 items-center justify-center rounded-lg transition-all",
+                            agentSource === "external"
+                              ? "bg-cyan-400/20"
+                              : "bg-white/5 group-hover:bg-white/10",
+                          )}
+                        >
+                          <ExternalLink
+                            className={cn(
+                              "size-5",
+                              agentSource === "external"
+                                ? "text-cyan-400"
+                                : "text-white/40",
                             )}
-                            <span
-                              className={cn(
-                                "truncate text-sm font-medium",
-                                selected ? "text-coral" : "text-white",
-                              )}
-                            >
-                              {agent.name}
-                            </span>
-                            {selected && (
-                              <motion.div
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                className="ml-auto flex size-5 shrink-0 items-center justify-center rounded-full bg-coral"
-                              >
-                                <Check className="size-3 text-black" />
-                              </motion.div>
+                          />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p
+                            className={cn(
+                              "text-sm font-semibold",
+                              agentSource === "external"
+                                ? "text-cyan-400"
+                                : "text-white",
                             )}
-                          </button>
-                        );
-                      })}
+                          >
+                            External Agent
+                          </p>
+                          <p className="text-[10px] text-white/35">
+                            Bring your own agent via URL, MCP, or A2A
+                          </p>
+                        </div>
+                        {agentSource === "external" && (
+                          <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            className="flex size-5 shrink-0 items-center justify-center rounded-full bg-cyan-400"
+                          >
+                            <Check className="size-3 text-black" />
+                          </motion.div>
+                        )}
+                      </button>
                     </div>
-                  )}
-                </SectionCard>
+                  </SectionCard>
+
+                  <AnimatePresence mode="wait">
+                    {agentSource === "platform" && (
+                      <motion.div
+                        key="platform-agent"
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <SectionCard title="Select Agent">
+                          {loadingEntities ? (
+                            <div className="flex items-center gap-2 text-sm text-white/40">
+                              <Loader2 className="size-4 animate-spin" />{" "}
+                              Loading agents...
+                            </div>
+                          ) : agents.length === 0 ? (
+                            <p className="text-sm text-white/35">
+                              No agents found.{" "}
+                              <a
+                                href="/dashboard/mint"
+                                className="text-coral hover:underline"
+                              >
+                                Mint an agent first
+                              </a>
+                              .
+                            </p>
+                          ) : (
+                            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                              {agents.map((agent) => {
+                                const selected = selectedAgentId === agent.id;
+                                return (
+                                  <button
+                                    key={agent.id}
+                                    onClick={() => setSelectedAgentId(agent.id)}
+                                    className={cn(
+                                      "flex items-center gap-3 rounded-xl border p-3 text-left transition-all",
+                                      selected
+                                        ? "border-coral/40 bg-coral/10 shadow-lg shadow-coral/5"
+                                        : "border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/5",
+                                    )}
+                                  >
+                                    {agent.imageUrl ? (
+                                      <Image
+                                        src={agent.imageUrl}
+                                        alt={agent.name}
+                                        width={40}
+                                        height={40}
+                                        className="size-10 shrink-0 rounded-lg object-cover ring-1 ring-white/10"
+                                      />
+                                    ) : (
+                                      <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-white/5 ring-1 ring-white/10">
+                                        <Bot className="size-5 text-white/30" />
+                                      </div>
+                                    )}
+                                    <span
+                                      className={cn(
+                                        "truncate text-sm font-medium",
+                                        selected ? "text-coral" : "text-white",
+                                      )}
+                                    >
+                                      {agent.name}
+                                    </span>
+                                    {selected && (
+                                      <motion.div
+                                        initial={{ scale: 0 }}
+                                        animate={{ scale: 1 }}
+                                        className="ml-auto flex size-5 shrink-0 items-center justify-center rounded-full bg-coral"
+                                      >
+                                        <Check className="size-3 text-black" />
+                                      </motion.div>
+                                    )}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </SectionCard>
+                      </motion.div>
+                    )}
+
+                    {agentSource === "external" && (
+                      <motion.div
+                        key="external-agent"
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <SectionCard
+                          title="External Agent Details"
+                          subtitle="Provide your agent's name and at least one endpoint URL. Supports standard HTTP APIs, MCP servers, and A2A protocol."
+                        >
+                          <div className="space-y-4">
+                            <FormField
+                              label="Agent Name"
+                              tooltip="The display name for your external agent on the marketplace."
+                            >
+                              <input
+                                type="text"
+                                value={externalAgentName}
+                                onChange={(e) =>
+                                  setExternalAgentName(e.target.value)
+                                }
+                                placeholder="e.g. CodeReview Bot"
+                                className="form-input"
+                              />
+                            </FormField>
+                            <FormField
+                              label="Agent Avatar URL"
+                              tooltip="A URL to your agent's avatar image. Leave blank to use a default icon."
+                              optional
+                            >
+                              <input
+                                type="url"
+                                value={externalAgentImage}
+                                onChange={(e) =>
+                                  setExternalAgentImage(e.target.value)
+                                }
+                                placeholder="https://example.com/avatar.png"
+                                className="form-input"
+                              />
+                            </FormField>
+
+                            <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+                              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-white/30">
+                                Endpoints{" "}
+                                <span className="font-normal text-white/20">
+                                  (at least one required)
+                                </span>
+                              </p>
+                              <div className="space-y-3">
+                                <FormField
+                                  label="HTTP / REST URL"
+                                  tooltip="A standard HTTP endpoint where your agent can receive tasks and return results."
+                                  optional
+                                >
+                                  <div className="relative">
+                                    <LinkIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-white/25" />
+                                    <input
+                                      type="url"
+                                      value={externalAgentUrl}
+                                      onChange={(e) =>
+                                        setExternalAgentUrl(e.target.value)
+                                      }
+                                      placeholder="https://api.example.com/agent"
+                                      className="form-input pl-10"
+                                    />
+                                  </div>
+                                </FormField>
+                                <FormField
+                                  label="MCP Server URL"
+                                  tooltip="Model Context Protocol endpoint. If your agent exposes an MCP server, clients can discover tools and invoke them."
+                                  optional
+                                >
+                                  <div className="relative">
+                                    <LinkIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-cyan-400/40" />
+                                    <input
+                                      type="url"
+                                      value={externalMcpUrl}
+                                      onChange={(e) =>
+                                        setExternalMcpUrl(e.target.value)
+                                      }
+                                      placeholder="https://mcp.example.com/sse"
+                                      className="form-input pl-10"
+                                    />
+                                  </div>
+                                </FormField>
+                                <FormField
+                                  label="A2A Protocol URL"
+                                  tooltip="Agent-to-Agent protocol endpoint. Enables direct agent-to-agent communication following the A2A spec."
+                                  optional
+                                >
+                                  <div className="relative">
+                                    <LinkIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-violet-400/40" />
+                                    <input
+                                      type="url"
+                                      value={externalA2aUrl}
+                                      onChange={(e) =>
+                                        setExternalA2aUrl(e.target.value)
+                                      }
+                                      placeholder="https://a2a.example.com/.well-known/agent.json"
+                                      className="form-input pl-10"
+                                    />
+                                  </div>
+                                </FormField>
+                              </div>
+                            </div>
+
+                            {!hasExternalUrl && externalAgentName.trim() && (
+                              <p className="text-xs text-amber-400/80">
+                                Provide at least one endpoint URL to continue.
+                              </p>
+                            )}
+                          </div>
+                        </SectionCard>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </>
               )}
 
               {type === "corporation" && (
@@ -854,7 +1144,31 @@ export default function CreateListingPage() {
             >
               <SectionCard title="Review Your Listing">
                 <div className="space-y-4">
-                  <ReviewRow label="Type" value={type ?? "—"} />
+                  <ReviewRow
+                    label="Type"
+                    value={
+                      type === "agent" && agentSource === "external"
+                        ? "AI Agent (External)"
+                        : (type ?? "—")
+                    }
+                  />
+                  {type === "agent" && agentSource === "external" && (
+                    <>
+                      <ReviewRow
+                        label="Agent Name"
+                        value={externalAgentName || "—"}
+                      />
+                      {externalAgentUrl && (
+                        <ReviewRow label="HTTP URL" value={externalAgentUrl} />
+                      )}
+                      {externalMcpUrl && (
+                        <ReviewRow label="MCP URL" value={externalMcpUrl} />
+                      )}
+                      {externalA2aUrl && (
+                        <ReviewRow label="A2A URL" value={externalA2aUrl} />
+                      )}
+                    </>
+                  )}
                   <ReviewRow label="Title" value={title || "—"} />
                   <ReviewRow
                     label="Description"

@@ -112,7 +112,11 @@ export async function GET(req: NextRequest) {
         take: pageSize,
         include: {
           poster: {
-            select: { id: true },
+            select: {
+              id: true,
+              email: true,
+              activeWallet: { select: { address: true } },
+            },
           },
           listing: {
             select: { id: true, title: true, type: true },

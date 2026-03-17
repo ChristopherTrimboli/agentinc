@@ -50,7 +50,11 @@ interface TaskBid {
   estimatedTime?: string | null;
   status: string;
   createdAt: string;
-  bidder?: { id: string; email: string | null } | null;
+  bidder?: {
+    id: string;
+    email: string | null;
+    activeWallet?: { address: string } | null;
+  } | null;
   bidderAgent?: { id: string; name: string; imageUrl: string | null } | null;
 }
 
@@ -59,7 +63,11 @@ interface TaskReview {
   rating: number;
   comment?: string | null;
   createdAt: string;
-  reviewer: { id: string; email: string | null };
+  reviewer: {
+    id: string;
+    email: string | null;
+    activeWallet?: { address: string } | null;
+  };
 }
 
 interface TaskData {
@@ -74,9 +82,17 @@ interface TaskData {
   escrowStatus: string;
   milestones?: Milestone[] | null;
   posterId: string;
-  poster: { id: string; email: string | null };
+  poster: {
+    id: string;
+    email: string | null;
+    activeWallet?: { address: string } | null;
+  };
   workerId?: string | null;
-  worker?: { id: string; email: string | null } | null;
+  worker?: {
+    id: string;
+    email: string | null;
+    activeWallet?: { address: string } | null;
+  } | null;
   workerAgent?: { id: string; name: string; imageUrl: string | null } | null;
   listing?: { id: string; title: string; type: string } | null;
   deliverables?: string | null;
@@ -355,9 +371,19 @@ export default function TaskDetailPage() {
           <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-white/40">
             <span>
               Posted by{" "}
-              <span className="text-white/60">
-                {task.poster.email ?? "Anonymous"}
-              </span>
+              {task.poster.activeWallet?.address ? (
+                <Link
+                  href={`/profile/${task.poster.activeWallet.address}`}
+                  className="text-white/60 hover:text-[#6FEC06] transition-colors"
+                >
+                  {task.poster.email ??
+                    `${task.poster.activeWallet.address.slice(0, 4)}...${task.poster.activeWallet.address.slice(-4)}`}
+                </Link>
+              ) : (
+                <span className="text-white/60">
+                  {task.poster.email ?? "Anonymous"}
+                </span>
+              )}
             </span>
             <span className="text-white/15">·</span>
             <span>{timeAgo(task.createdAt)}</span>
@@ -538,11 +564,22 @@ export default function TaskDetailPage() {
                     <User className="size-5 text-white/50" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-white">
-                      {task.workerAgent?.name ??
-                        task.worker?.email ??
-                        "Anonymous"}
-                    </p>
+                    {task.worker?.activeWallet?.address ? (
+                      <Link
+                        href={`/profile/${task.worker.activeWallet.address}`}
+                        className="text-sm font-medium text-white hover:text-[#6FEC06] transition-colors"
+                      >
+                        {task.workerAgent?.name ??
+                          task.worker?.email ??
+                          `${task.worker.activeWallet.address.slice(0, 4)}...${task.worker.activeWallet.address.slice(-4)}`}
+                      </Link>
+                    ) : (
+                      <p className="text-sm font-medium text-white">
+                        {task.workerAgent?.name ??
+                          task.worker?.email ??
+                          "Anonymous"}
+                      </p>
+                    )}
                     <p className="text-xs text-white/30">Assigned worker</p>
                   </div>
                 </div>
@@ -768,9 +805,19 @@ export default function TaskDetailPage() {
                             <div className="flex size-8 items-center justify-center rounded-lg border border-white/15 bg-white/5">
                               <User className="size-4 text-white/50" />
                             </div>
-                            <span className="text-sm text-white/60">
-                              {review.reviewer.email ?? "Anonymous"}
-                            </span>
+                            {review.reviewer.activeWallet?.address ? (
+                              <Link
+                                href={`/profile/${review.reviewer.activeWallet.address}`}
+                                className="text-sm text-white/60 hover:text-[#6FEC06] transition-colors"
+                              >
+                                {review.reviewer.email ??
+                                  `${review.reviewer.activeWallet.address.slice(0, 4)}...${review.reviewer.activeWallet.address.slice(-4)}`}
+                              </Link>
+                            ) : (
+                              <span className="text-sm text-white/60">
+                                {review.reviewer.email ?? "Anonymous"}
+                              </span>
+                            )}
                           </div>
                           <div className="flex items-center gap-0.5">
                             {Array.from({ length: 5 }).map((_, i) => (

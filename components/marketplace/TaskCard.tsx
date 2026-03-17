@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import {
   Clock,
@@ -8,6 +9,7 @@ import {
   Flame,
   Coins,
   TrendingUp,
+  User,
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -62,6 +64,8 @@ interface TaskCardProps {
   createdAt: string;
   index?: number;
   tokenSymbol?: string | null;
+  posterWallet?: string | null;
+  posterName?: string | null;
 }
 
 export default function TaskCard({
@@ -77,6 +81,8 @@ export default function TaskCard({
   createdAt,
   index = 0,
   tokenSymbol,
+  posterWallet,
+  posterName,
 }: TaskCardProps) {
   const statusConfig = STATUS_STYLES[status] ?? STATUS_STYLES.open;
   const statusLabel =
@@ -87,8 +93,9 @@ export default function TaskCard({
   const URGENT_THRESHOLD_MS = 3 * 24 * 60 * 60 * 1000;
   const deadlineDate = deadline ? new Date(deadline) : null;
   const isValidDeadline = deadlineDate && !isNaN(deadlineDate.getTime());
+  const [now] = useState(Date.now);
   const isUrgent = isValidDeadline
-    ? deadlineDate.getTime() - Date.now() < URGENT_THRESHOLD_MS
+    ? deadlineDate.getTime() - now < URGENT_THRESHOLD_MS
     : false;
 
   const hasToken = !!tokenSymbol;
@@ -188,6 +195,24 @@ export default function TaskCard({
             </span>
           )}
         </div>
+
+        {/* Poster */}
+        {posterWallet && (
+          <div className="mt-2.5 flex items-center gap-1.5 text-[10px] text-white/30">
+            <User className="size-2.5" />
+            <Link
+              href={`/profile/${posterWallet}`}
+              onClick={(e) => e.stopPropagation()}
+              className="font-mono hover:text-[#6FEC06] transition-colors"
+            >
+              {posterName
+                ? posterName.length > 16
+                  ? `${posterName.slice(0, 16)}…`
+                  : posterName
+                : `${posterWallet.slice(0, 4)}...${posterWallet.slice(-4)}`}
+            </Link>
+          </div>
+        )}
 
         {/* Footer */}
         <div className="mt-3 flex items-center justify-between border-t border-white/5 pt-3 text-xs text-white/40">

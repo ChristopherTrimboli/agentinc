@@ -78,6 +78,7 @@ interface ListingResponse {
     imageUrl: string | null;
     rarity: string | null;
     tokenSymbol: string | null;
+    createdBy?: { activeWallet: { address: string } | null } | null;
   } | null;
   corporation: {
     id: string;
@@ -85,6 +86,15 @@ interface ListingResponse {
     logo: string | null;
     tokenSymbol: string | null;
   } | null;
+  user?: {
+    id: string;
+    activeWallet?: { address: string } | null;
+  } | null;
+  externalAgentName?: string | null;
+  externalAgentImage?: string | null;
+  externalAgentUrl?: string | null;
+  externalMcpUrl?: string | null;
+  externalA2aUrl?: string | null;
 }
 
 interface TaskResponse {
@@ -100,6 +110,11 @@ interface TaskResponse {
   tokenMint: string | null;
   tokenSymbol: string | null;
   _count: { bids: number };
+  poster?: {
+    id: string;
+    email: string | null;
+    activeWallet?: { address: string } | null;
+  } | null;
 }
 
 export default function MarketplacePage() {
@@ -228,9 +243,8 @@ export default function MarketplacePage() {
       .catch(() => {});
   }, []);
 
-  const rangeStart = pagination.total > 0
-    ? (pagination.page - 1) * pagination.pageSize + 1
-    : 0;
+  const rangeStart =
+    pagination.total > 0 ? (pagination.page - 1) * pagination.pageSize + 1 : 0;
   const rangeEnd = Math.min(
     pagination.page * pagination.pageSize,
     pagination.total,
@@ -263,8 +277,8 @@ export default function MarketplacePage() {
               Task Tokens
             </h1>
             <p className="mx-auto mt-3 max-w-2xl text-base leading-relaxed text-white/50 sm:text-lg">
-              Mint a task token, get work done, fees get paid out on
-              completion. The more hype, the bigger the reward.
+              Mint a task token, get work done, fees get paid out on completion.
+              The more hype, the bigger the reward.
             </p>
             <p className="mt-2 flex items-center justify-center gap-1.5 text-xs text-white/30">
               <Sparkles className="size-3 text-coral/60" />
@@ -346,7 +360,10 @@ export default function MarketplacePage() {
                 step: 4,
               },
             ].map((s, i, arr) => (
-              <div key={s.step} className="flex items-center gap-2 flex-1 min-w-0">
+              <div
+                key={s.step}
+                className="flex items-center gap-2 flex-1 min-w-0"
+              >
                 <div className="flex items-center gap-2 min-w-0">
                   <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-white/5">
                     {s.icon}
@@ -542,6 +559,12 @@ export default function MarketplacePage() {
                     featuredImage={listing.featuredImage}
                     agent={listing.agent}
                     corporation={listing.corporation}
+                    externalAgentName={listing.externalAgentName}
+                    externalAgentImage={listing.externalAgentImage}
+                    externalAgentUrl={listing.externalAgentUrl}
+                    externalMcpUrl={listing.externalMcpUrl}
+                    externalA2aUrl={listing.externalA2aUrl}
+                    creatorWallet={listing.user?.activeWallet?.address}
                   />
                 ))}
               </motion.div>
@@ -571,6 +594,8 @@ export default function MarketplacePage() {
                   bidCount={task._count?.bids ?? 0}
                   createdAt={task.createdAt}
                   tokenSymbol={task.tokenSymbol}
+                  posterWallet={task.poster?.activeWallet?.address}
+                  posterName={task.poster?.email}
                 />
               ))}
             </motion.div>

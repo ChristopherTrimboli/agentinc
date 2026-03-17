@@ -2,7 +2,16 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Star, Bot, Building2, Users, Briefcase, Sparkles } from "lucide-react";
+import {
+  Star,
+  Bot,
+  Building2,
+  Users,
+  Briefcase,
+  Sparkles,
+  User,
+  ExternalLink,
+} from "lucide-react";
 import { motion } from "framer-motion";
 
 import { cn } from "@/lib/utils";
@@ -32,6 +41,7 @@ interface ListingCardProps {
     imageUrl: string | null;
     rarity: string | null;
     tokenSymbol: string | null;
+    createdBy?: { activeWallet: { address: string } | null } | null;
   } | null;
   corporation?: {
     id: string;
@@ -39,6 +49,12 @@ interface ListingCardProps {
     logo: string | null;
     tokenSymbol: string | null;
   } | null;
+  externalAgentName?: string | null;
+  externalAgentImage?: string | null;
+  externalAgentUrl?: string | null;
+  externalMcpUrl?: string | null;
+  externalA2aUrl?: string | null;
+  creatorWallet?: string | null;
   index?: number;
 }
 
@@ -79,6 +95,7 @@ const RARITY_RING: Record<string, string> = {
 function getAvatarSrc(props: ListingCardProps): string | null {
   if (props.featuredImage) return props.featuredImage;
   if (props.agent?.imageUrl) return props.agent.imageUrl;
+  if (props.externalAgentImage) return props.externalAgentImage;
   if (props.corporation?.logo) return props.corporation.logo;
   return null;
 }
@@ -96,8 +113,18 @@ export default function ListingCard(props: ListingCardProps) {
     totalRatings,
     completedTasks,
     agent,
+    creatorWallet,
     index = 0,
   } = props;
+
+  const { externalAgentUrl, externalMcpUrl, externalA2aUrl } = props;
+  const isExternalAgent =
+    type === "agent" &&
+    !agent &&
+    !!(externalAgentUrl || externalMcpUrl || externalA2aUrl);
+
+  const walletAddress =
+    creatorWallet ?? agent?.createdBy?.activeWallet?.address ?? null;
 
   const avatarSrc = getAvatarSrc(props);
   const {
@@ -177,6 +204,12 @@ export default function ListingCard(props: ListingCardProps) {
                 <TypeIcon className="size-2.5" />
                 {typeLabel}
               </span>
+              {isExternalAgent && (
+                <span className="inline-flex items-center gap-1 rounded-md border border-cyan-500/20 bg-cyan-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-cyan-400">
+                  <ExternalLink className="size-2.5" />
+                  External
+                </span>
+              )}
               {rarity !== "common" && (
                 <span
                   className={cn(
@@ -223,6 +256,20 @@ export default function ListingCard(props: ListingCardProps) {
                 +{extraSkillCount}
               </span>
             )}
+          </div>
+        )}
+
+        {/* Creator */}
+        {walletAddress && (
+          <div className="mt-2.5 flex items-center gap-1.5 text-[10px] text-white/30">
+            <User className="size-2.5" />
+            <Link
+              href={`/profile/${walletAddress}`}
+              onClick={(e) => e.stopPropagation()}
+              className="font-mono hover:text-[#6FEC06] transition-colors"
+            >
+              {walletAddress.slice(0, 4)}...{walletAddress.slice(-4)}
+            </Link>
           </div>
         )}
 

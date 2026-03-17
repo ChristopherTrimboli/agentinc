@@ -34,7 +34,6 @@ import {
   MARKETPLACE_CATEGORIES,
   CATEGORY_LABELS,
   type MarketplaceCategory,
-  type Milestone,
   type CreateTaskInput,
 } from "@/lib/marketplace/types";
 import { Button } from "@/components/ui/button";

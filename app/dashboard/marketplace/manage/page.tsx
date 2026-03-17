@@ -24,6 +24,7 @@ import {
   Bot,
   Building2,
   Users,
+  ExternalLink,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -69,6 +70,11 @@ interface Listing {
     tokenSymbol: string | null;
   } | null;
   user?: { id: string; email: string | null } | null;
+  externalAgentName?: string | null;
+  externalAgentImage?: string | null;
+  externalAgentUrl?: string | null;
+  externalMcpUrl?: string | null;
+  externalA2aUrl?: string | null;
 }
 
 interface Task {
@@ -569,6 +575,14 @@ function ManageListingRow({
     icon: TypeIcon,
     color: typeColor,
   } = LISTING_TYPE_CONFIG[listing.type];
+  const isExternalAgent =
+    listing.type === "agent" &&
+    !listing.agent &&
+    !!(
+      listing.externalAgentUrl ||
+      listing.externalMcpUrl ||
+      listing.externalA2aUrl
+    );
   const rarity = (listing.agent?.rarity?.toLowerCase() ?? "common") as Rarity;
   const rarityStyle = getRarityBadgeStyle(rarity);
   const ringColor = getRarityRingColor(rarity);
@@ -577,6 +591,7 @@ function ManageListingRow({
   const avatarSrc =
     listing.featuredImage ??
     listing.agent?.imageUrl ??
+    listing.externalAgentImage ??
     listing.corporation?.logo ??
     null;
   const visibleSkills = listing.skills.slice(0, 5);
@@ -635,6 +650,12 @@ function ManageListingRow({
                 <TypeIcon className="size-2.5" />
                 {typeLabel}
               </span>
+              {isExternalAgent && (
+                <span className="inline-flex items-center gap-1 rounded-md border border-cyan-500/20 bg-cyan-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-cyan-400">
+                  <ExternalLink className="size-2.5" />
+                  External
+                </span>
+              )}
               {rarity !== "common" && (
                 <span
                   className={cn(

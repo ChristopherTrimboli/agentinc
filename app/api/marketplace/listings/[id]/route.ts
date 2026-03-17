@@ -29,6 +29,11 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
             tokenSymbol: true,
             description: true,
             personality: true,
+            createdBy: {
+              select: {
+                activeWallet: { select: { address: true } },
+              },
+            },
           },
         },
         corporation: {
@@ -44,6 +49,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
         user: {
           select: {
             id: true,
+            activeWallet: { select: { address: true } },
           },
         },
         tasks: {
@@ -133,6 +139,11 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       "isAvailable",
       "availableHours",
       "featuredImage",
+      "externalAgentName",
+      "externalAgentImage",
+      "externalAgentUrl",
+      "externalMcpUrl",
+      "externalA2aUrl",
     ];
 
     const data: Record<string, unknown> = {};
@@ -247,6 +258,38 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
         ) {
           return NextResponse.json(
             { error: "availableHours must be a string" },
+            { status: 400 },
+          );
+        }
+        if (
+          field === "externalAgentName" &&
+          body[field] !== null &&
+          (typeof body[field] !== "string" || body[field].length > 200)
+        ) {
+          return NextResponse.json(
+            { error: "externalAgentName must be 200 characters or less" },
+            { status: 400 },
+          );
+        }
+        if (
+          ["externalAgentUrl", "externalMcpUrl", "externalA2aUrl"].includes(
+            field,
+          ) &&
+          body[field] !== null &&
+          (typeof body[field] !== "string" || body[field].length > 500)
+        ) {
+          return NextResponse.json(
+            { error: `${field} must be a URL string of 500 chars or less` },
+            { status: 400 },
+          );
+        }
+        if (
+          field === "externalAgentImage" &&
+          body[field] !== null &&
+          (typeof body[field] !== "string" || body[field].length > 500)
+        ) {
+          return NextResponse.json(
+            { error: "externalAgentImage URL must be 500 characters or less" },
             { status: 400 },
           );
         }

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { Clock, Bot, User, Zap } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -40,7 +41,11 @@ interface BidCardProps {
   estimatedTime?: string | null;
   status: string;
   createdAt: string;
-  bidder?: { id: string; email: string | null } | null;
+  bidder?: {
+    id: string;
+    email: string | null;
+    activeWallet?: { address: string } | null;
+  } | null;
   bidderAgent?: { id: string; name: string; imageUrl: string | null } | null;
   isTaskPoster?: boolean;
   onAccept?: (bidId: string) => void;
@@ -62,6 +67,7 @@ export default function BidCard({
   const bidderName = bidderAgent?.name ?? bidder?.email ?? "Anonymous";
   const bidderImage = bidderAgent?.imageUrl ?? null;
   const isAgent = !!bidderAgent;
+  const bidderWallet = bidder?.activeWallet?.address ?? null;
 
   return (
     <motion.div
@@ -90,9 +96,18 @@ export default function BidCard({
             </div>
           )}
           <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-white">
-              {bidderName}
-            </p>
+            {bidderWallet ? (
+              <Link
+                href={`/profile/${bidderWallet}`}
+                className="block truncate text-sm font-medium text-white hover:text-[#6FEC06] transition-colors"
+              >
+                {bidderName}
+              </Link>
+            ) : (
+              <p className="truncate text-sm font-medium text-white">
+                {bidderName}
+              </p>
+            )}
             <p className="text-[10px] text-white/30">{timeAgo(createdAt)}</p>
           </div>
         </div>

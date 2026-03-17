@@ -19,6 +19,9 @@ import {
   Globe,
   Shield,
   Zap,
+  User,
+  ExternalLink,
+  Link as LinkIcon,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -87,6 +90,7 @@ export interface ListingDetailData {
     tokenSymbol: string | null;
     description: string | null;
     personality: string | null;
+    createdBy?: { activeWallet: { address: string } | null } | null;
   } | null;
   corporation?: {
     id: string;
@@ -96,6 +100,15 @@ export interface ListingDetailData {
     tokenSymbol: string | null;
     description: string | null;
   } | null;
+  user?: {
+    id: string;
+    activeWallet?: { address: string } | null;
+  } | null;
+  externalAgentName?: string | null;
+  externalAgentImage?: string | null;
+  externalAgentUrl?: string | null;
+  externalMcpUrl?: string | null;
+  externalA2aUrl?: string | null;
   tasks: CompletedTask[];
 }
 
@@ -148,9 +161,18 @@ export default function ListingDetail({
     icon: TypeIcon,
     color: typeColor,
   } = TYPE_CONFIG[listing.type];
+  const isExternalAgent =
+    listing.type === "agent" &&
+    !listing.agent &&
+    !!(
+      listing.externalAgentUrl ||
+      listing.externalMcpUrl ||
+      listing.externalA2aUrl
+    );
   const avatarSrc =
     listing.featuredImage ??
     listing.agent?.imageUrl ??
+    listing.externalAgentImage ??
     listing.corporation?.logo ??
     null;
   const rarity = (listing.agent?.rarity?.toLowerCase() ?? "common") as Rarity;
@@ -158,6 +180,10 @@ export default function ListingDetail({
   const rarityDetail = getRarityDetailStyle(rarity);
   const tokenSymbol =
     listing.agent?.tokenSymbol ?? listing.corporation?.tokenSymbol ?? null;
+  const creatorWallet =
+    listing.user?.activeWallet?.address ??
+    listing.agent?.createdBy?.activeWallet?.address ??
+    null;
 
   const allReviews = listing.tasks.flatMap((t) => t.reviews);
 
@@ -248,6 +274,21 @@ export default function ListingDetail({
                       by {listing.agent.name}
                     </p>
                   )}
+                {isExternalAgent && listing.externalAgentName && (
+                  <p className="mt-1 inline-flex items-center gap-1.5 text-sm text-cyan-400/60">
+                    <ExternalLink className="size-3" />
+                    {listing.externalAgentName}
+                  </p>
+                )}
+                {creatorWallet && (
+                  <Link
+                    href={`/profile/${creatorWallet}`}
+                    className="mt-1.5 inline-flex items-center gap-1.5 text-xs text-white/35 font-mono hover:text-[#6FEC06] transition-colors"
+                  >
+                    <User className="size-3" />
+                    {creatorWallet.slice(0, 4)}...{creatorWallet.slice(-4)}
+                  </Link>
+                )}
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
@@ -260,6 +301,13 @@ export default function ListingDetail({
                   <TypeIcon className="size-3.5" />
                   {typeLabel}
                 </span>
+
+                {isExternalAgent && (
+                  <span className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/20 bg-cyan-500/10 px-3 py-1.5 text-xs font-semibold text-cyan-400">
+                    <ExternalLink className="size-3" />
+                    External Agent
+                  </span>
+                )}
 
                 {rarity !== "common" && (
                   <span
@@ -410,6 +458,42 @@ export default function ListingDetail({
             )}
           </div>
         </motion.section>
+
+        {/* External Agent Endpoints */}
+        {isExternalAgent && (
+          <motion.section
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.3 }}
+          >
+            <h2 className="mb-3 text-lg font-semibold text-white font-display">
+              Agent Endpoints
+            </h2>
+            <div className="rounded-2xl border border-cyan-500/10 bg-surface/60 p-6 space-y-3">
+              {listing.externalAgentUrl && (
+                <EndpointRow
+                  label="HTTP / REST"
+                  url={listing.externalAgentUrl}
+                  color="text-white/60"
+                />
+              )}
+              {listing.externalMcpUrl && (
+                <EndpointRow
+                  label="MCP Server"
+                  url={listing.externalMcpUrl}
+                  color="text-cyan-400"
+                />
+              )}
+              {listing.externalA2aUrl && (
+                <EndpointRow
+                  label="A2A Protocol"
+                  url={listing.externalA2aUrl}
+                  color="text-violet-400"
+                />
+              )}
+            </div>
+          </motion.section>
+        )}
 
         {/* Reviews */}
         <motion.section
@@ -570,6 +654,36 @@ function LoadingSkeleton() {
         ))}
       </div>
       <div className="h-40 rounded-2xl bg-surface/60 border border-white/5 skeleton-shimmer" />
+    </div>
+  );
+}
+
+function EndpointRow({
+  label,
+  url,
+  color,
+}: {
+  label: string;
+  url: string;
+  color: string;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.02] px-4 py-3">
+      <LinkIcon className={cn("size-4 shrink-0", color)} />
+      <div className="min-w-0 flex-1">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-white/30">
+          {label}
+        </p>
+        <p className="truncate text-xs font-mono text-white/50">{url}</p>
+      </div>
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="shrink-0 rounded-lg bg-white/5 p-2 text-white/40 transition-colors hover:bg-white/10 hover:text-white"
+      >
+        <ExternalLink className="size-3.5" />
+      </a>
     </div>
   );
 }

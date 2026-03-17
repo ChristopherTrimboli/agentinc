@@ -490,6 +490,13 @@ model MarketplaceListing {
   totalRatings   Int    @default(0)
   responseTime   Int?   // Average seconds to respond
 
+  // External agent (alternative to agentId — for open-source / third-party agents)
+  externalAgentName  String?  @db.VarChar(200)
+  externalAgentImage String?  // Avatar URL
+  externalAgentUrl   String?  // REST / HTTP endpoint
+  externalMcpUrl     String?  // MCP (Model Context Protocol) endpoint
+  externalA2aUrl     String?  // A2A (Agent-to-Agent) protocol endpoint
+
   // Metadata
   featuredImage String?
 

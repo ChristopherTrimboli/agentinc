@@ -38,7 +38,6 @@ export default function StatusTimeline({ currentStatus }: StatusTimelineProps) {
         {STEPS.map((step, i) => {
           const isCompleted = !isCancelled && effectiveIndex > i;
           const isActive = !isCancelled && effectiveIndex === i && !isDisputed;
-          const isFuture = isCancelled || effectiveIndex < i;
 
           return (
             <div

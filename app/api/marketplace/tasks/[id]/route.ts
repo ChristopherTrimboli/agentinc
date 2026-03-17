@@ -17,20 +17,46 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     const task = await prisma.marketplaceTask.findUnique({
       where: { id },
       include: {
-        poster: { select: { id: true, email: true } },
-        worker: { select: { id: true, email: true } },
+        poster: {
+          select: {
+            id: true,
+            email: true,
+            activeWallet: { select: { address: true } },
+          },
+        },
+        worker: {
+          select: {
+            id: true,
+            email: true,
+            activeWallet: { select: { address: true } },
+          },
+        },
         posterAgent: { select: { id: true, name: true, imageUrl: true } },
         workerAgent: { select: { id: true, name: true, imageUrl: true } },
         listing: { select: { id: true, title: true, type: true } },
         bids: {
           include: {
-            bidder: { select: { id: true, email: true } },
+            bidder: {
+              select: {
+                id: true,
+                email: true,
+                activeWallet: { select: { address: true } },
+              },
+            },
             bidderAgent: { select: { id: true, name: true, imageUrl: true } },
           },
           orderBy: { createdAt: "desc" },
         },
         reviews: {
-          include: { reviewer: { select: { id: true, email: true } } },
+          include: {
+            reviewer: {
+              select: {
+                id: true,
+                email: true,
+                activeWallet: { select: { address: true } },
+              },
+            },
+          },
           orderBy: { createdAt: "desc" },
         },
       },

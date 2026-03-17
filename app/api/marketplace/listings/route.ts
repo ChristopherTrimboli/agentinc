@@ -130,6 +130,11 @@ export async function GET(req: NextRequest) {
               rarity: true,
               tokenMint: true,
               tokenSymbol: true,
+              createdBy: {
+                select: {
+                  activeWallet: { select: { address: true } },
+                },
+              },
             },
           },
           corporation: {
@@ -145,6 +150,7 @@ export async function GET(req: NextRequest) {
             select: {
               id: true,
               email: !!ownerId,
+              activeWallet: { select: { address: true } },
             },
           },
         },
@@ -253,20 +259,72 @@ export async function POST(req: NextRequest) {
 
     // Verify ownership for agent/corporation listings
     if (body.type === "agent") {
-      if (!body.agentId) {
+      const hasExternalAgent =
+        body.externalAgentUrl || body.externalMcpUrl || body.externalA2aUrl;
+
+      if (!body.agentId && !hasExternalAgent) {
         return NextResponse.json(
-          { error: "agentId is required for agent listings" },
+          {
+            error:
+              "Agent listings require either an AgentInc agentId or at least one external agent URL (externalAgentUrl, externalMcpUrl, or externalA2aUrl)",
+          },
           { status: 400 },
         );
       }
-      const agent = await prisma.agent.findUnique({
-        where: { id: body.agentId },
-        select: { createdById: true },
-      });
-      if (!agent || agent.createdById !== auth.userId) {
+
+      if (body.agentId) {
+        const agent = await prisma.agent.findUnique({
+          where: { id: body.agentId },
+          select: { createdById: true },
+        });
+        if (!agent || agent.createdById !== auth.userId) {
+          return NextResponse.json(
+            { error: "Agent not found or not owned by you" },
+            { status: 403 },
+          );
+        }
+      }
+
+      if (hasExternalAgent && !body.externalAgentName) {
         return NextResponse.json(
-          { error: "Agent not found or not owned by you" },
-          { status: 403 },
+          {
+            error: "externalAgentName is required for external agent listings",
+          },
+          { status: 400 },
+        );
+      }
+
+      const urlFields = [
+        { key: "externalAgentUrl", val: body.externalAgentUrl },
+        { key: "externalMcpUrl", val: body.externalMcpUrl },
+        { key: "externalA2aUrl", val: body.externalA2aUrl },
+      ];
+      for (const { key, val } of urlFields) {
+        if (val && (typeof val !== "string" || val.length > 500)) {
+          return NextResponse.json(
+            { error: `${key} must be a URL string of 500 chars or less` },
+            { status: 400 },
+          );
+        }
+      }
+      if (
+        body.externalAgentName &&
+        (typeof body.externalAgentName !== "string" ||
+          body.externalAgentName.length > 200)
+      ) {
+        return NextResponse.json(
+          { error: "externalAgentName must be 200 characters or less" },
+          { status: 400 },
+        );
+      }
+      if (
+        body.externalAgentImage &&
+        (typeof body.externalAgentImage !== "string" ||
+          body.externalAgentImage.length > 500)
+      ) {
+        return NextResponse.json(
+          { error: "externalAgentImage URL must be 500 characters or less" },
+          { status: 400 },
         );
       }
     }
@@ -365,10 +423,19 @@ export async function POST(req: NextRequest) {
           isRemote: body.isRemote ?? true,
           availableHours: body.availableHours,
           featuredImage: body.featuredImage,
-          userId: body.type === "human" ? auth.userId : undefined,
-          agentId: body.type === "agent" ? body.agentId : undefined,
+          userId:
+            body.type === "human" || (body.type === "agent" && !body.agentId)
+              ? auth.userId
+              : undefined,
+          agentId:
+            body.type === "agent" && body.agentId ? body.agentId : undefined,
           corporationId:
             body.type === "corporation" ? body.corporationId : undefined,
+          externalAgentName: body.externalAgentName,
+          externalAgentImage: body.externalAgentImage,
+          externalAgentUrl: body.externalAgentUrl,
+          externalMcpUrl: body.externalMcpUrl,
+          externalA2aUrl: body.externalA2aUrl,
         },
       });
 

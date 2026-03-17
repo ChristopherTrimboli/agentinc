@@ -111,6 +111,11 @@ export interface CreateListingInput {
   agentId?: string;
   corporationId?: string;
   featuredImage?: string;
+  externalAgentName?: string;
+  externalAgentImage?: string;
+  externalAgentUrl?: string;
+  externalMcpUrl?: string;
+  externalA2aUrl?: string;
 }
 
 export interface CreateTaskInput {
