@@ -1,8 +1,9 @@
 "use client";
 
+import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Clock, Bot, User, Zap } from "lucide-react";
+import { Clock, Bot, User, Zap, Loader2, ChevronDown } from "lucide-react";
 import { motion } from "framer-motion";
 
 import { cn, timeAgo } from "@/lib/utils";
@@ -48,6 +49,7 @@ interface BidCardProps {
   bidderAgent?: { id: string; name: string; imageUrl: string | null } | null;
   isTaskPoster?: boolean;
   onAccept?: (bidId: string) => void;
+  accepting?: boolean;
 }
 
 export default function BidCard({
@@ -61,6 +63,7 @@ export default function BidCard({
   bidderAgent,
   isTaskPoster,
   onAccept,
+  accepting,
 }: BidCardProps) {
   const config = BID_STATUS_CONFIG[status] ?? BID_STATUS_CONFIG.pending;
   const walletAddr = bidder?.activeWallet?.address;
@@ -72,6 +75,17 @@ export default function BidCard({
   const bidderImage = bidderAgent?.imageUrl ?? null;
   const isAgent = !!bidderAgent;
   const bidderWallet = bidder?.activeWallet?.address ?? null;
+
+  const [expanded, setExpanded] = useState(false);
+  const [isClamped, setIsClamped] = useState(false);
+  const messageRef = useRef<HTMLParagraphElement>(null);
+
+  useEffect(() => {
+    const el = messageRef.current;
+    if (el) {
+      setIsClamped(el.scrollHeight > el.clientHeight);
+    }
+  }, [message]);
 
   return (
     <motion.div
@@ -135,9 +149,31 @@ export default function BidCard({
 
       {/* Message */}
       {message && (
-        <p className="mt-2 text-sm leading-relaxed text-white/50 line-clamp-3">
-          {message}
-        </p>
+        <div className="mt-2">
+          <p
+            ref={messageRef}
+            className={cn(
+              "text-sm leading-relaxed text-white/50 whitespace-pre-wrap",
+              !expanded && "line-clamp-3",
+            )}
+          >
+            {message}
+          </p>
+          {isClamped && (
+            <button
+              onClick={() => setExpanded((v) => !v)}
+              className="mt-1 flex items-center gap-1 text-xs font-medium text-coral hover:text-coral/80 transition-colors cursor-pointer"
+            >
+              {expanded ? "Show less" : "Show more"}
+              <ChevronDown
+                className={cn(
+                  "size-3 transition-transform",
+                  expanded && "rotate-180",
+                )}
+              />
+            </button>
+          )}
+        </div>
       )}
 
       {/* Estimated time */}
@@ -152,11 +188,16 @@ export default function BidCard({
       {isTaskPoster && status === "pending" && onAccept && (
         <Button
           onClick={() => onAccept(id)}
-          className="mt-3 w-full bg-coral text-black hover:bg-coral/90 font-semibold shadow-lg shadow-coral/10"
+          disabled={accepting}
+          className="mt-3 w-full bg-coral text-black hover:bg-coral/90 font-semibold shadow-lg shadow-coral/10 cursor-pointer"
           size="sm"
         >
-          <Zap className="mr-1.5 size-3.5" />
-          Accept Bid
+          {accepting ? (
+            <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+          ) : (
+            <Zap className="mr-1.5 size-3.5" />
+          )}
+          {accepting ? "Accepting..." : "Accept Bid"}
         </Button>
       )}
     </motion.div>

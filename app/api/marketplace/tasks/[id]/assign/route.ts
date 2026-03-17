@@ -60,25 +60,26 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Create a chat for task communication
-    const chat = await prisma.chat.create({
-      data: {
-        title: `Task: ${id.slice(0, 8)}`,
-        userId: auth.userId,
-      },
-    });
+    // Accept the bid, reject others, assign worker, create chat — all in one transaction
+    const result = await prisma.$transaction(async (tx) => {
+      const chat = await tx.chat.create({
+        data: {
+          title: `Task: ${id.slice(0, 8)}`,
+          userId: auth.userId,
+        },
+      });
 
-    // Accept the bid, reject others, assign worker, link chat
-    await prisma.$transaction([
-      prisma.marketplaceBid.update({
+      await tx.marketplaceBid.update({
         where: { id: body.bidId },
         data: { status: "accepted" },
-      }),
-      prisma.marketplaceBid.updateMany({
+      });
+
+      await tx.marketplaceBid.updateMany({
         where: { taskId: id, id: { not: body.bidId }, status: "pending" },
         data: { status: "rejected" },
-      }),
-      prisma.marketplaceTask.update({
+      });
+
+      await tx.marketplaceTask.update({
         where: { id },
         data: {
           status: "assigned",
@@ -86,10 +87,12 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
           workerAgentId: bid.bidderAgentId,
           chatId: chat.id,
         },
-      }),
-    ]);
+      });
 
-    return NextResponse.json({ success: true, chatId: chat.id });
+      return { chatId: chat.id };
+    });
+
+    return NextResponse.json({ success: true, chatId: result.chatId });
   } catch (error) {
     console.error("[Marketplace] Error assigning task:", error);
     return NextResponse.json(

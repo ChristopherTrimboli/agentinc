@@ -700,6 +700,7 @@ export default function TaskDetailPage() {
                         key={bid.id}
                         {...bid}
                         isTaskPoster={isPoster}
+                        accepting={actionLoading === bid.id}
                         onAccept={
                           isPoster && bid.status === "pending"
                             ? handleAcceptBid
