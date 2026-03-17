@@ -446,7 +446,7 @@ export default function TaskDetailPage() {
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
-          className="mb-6 rounded-2xl border border-white/10 bg-surface/80 p-6"
+          className="mb-6 rounded-2xl border border-white/10 bg-surface/80 p-6 px-8 pb-2"
         >
           <StatusTimeline currentStatus={task.status} />
           <div className="mt-4 flex items-center gap-3">
