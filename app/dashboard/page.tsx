@@ -133,6 +133,16 @@ function formatChange(change: number | undefined): string {
   return `${sign}${change.toFixed(2)}%`;
 }
 
+/** Image with automatic 404 fallback — renders fallback children on error. */
+function FallbackImage({
+  fallback,
+  ...props
+}: React.ComponentProps<typeof Image> & { fallback: React.ReactNode }) {
+  const [err, setErr] = useState(false);
+  if (err) return <>{fallback}</>;
+  return <Image {...props} onError={() => setErr(true)} />;
+}
+
 // Ticker component for top of page
 function PriceTicker({
   items,
@@ -177,12 +187,17 @@ function PriceTicker({
               className="flex items-center gap-2 px-3 py-1 hover:bg-white/5 rounded-lg transition-colors"
             >
               {item.type === "agent" && (item as ExploreAgent).imageUrl ? (
-                <Image
+                <FallbackImage
                   src={(item as ExploreAgent).imageUrl!}
                   alt={item.name}
                   width={20}
                   height={20}
                   className="rounded-full"
+                  fallback={
+                    <div className="w-5 h-5 rounded-full flex items-center justify-center bg-[#6FEC06]/20">
+                      <Bot className="w-3 h-3 text-[#6FEC06]" />
+                    </div>
+                  }
                 />
               ) : (
                 <div
@@ -364,6 +379,7 @@ function ItemCard({
   item: ExploreItem;
   price: PriceData | null;
 }) {
+  const [imgError, setImgError] = useState(false);
   const isAgent = item.type === "agent";
   const isTask = item.type === "task";
   const agent = isAgent ? (item as ExploreAgent) : null;
@@ -426,19 +442,21 @@ function ItemCard({
     >
       {/* Image */}
       <div className="relative aspect-square bg-gradient-to-br from-[#120557]/50 to-[#000028] overflow-hidden flex-shrink-0 rounded-t-2xl">
-        {agent?.imageUrl ? (
+        {agent?.imageUrl && !imgError ? (
           <Image
             src={agent.imageUrl}
             alt={item.name}
             fill
             className="object-cover group-hover:scale-105 transition-transform duration-500 rounded-t-2xl"
+            onError={() => setImgError(true)}
           />
-        ) : task?.featuredImage ? (
+        ) : task?.featuredImage && !imgError ? (
           <Image
             src={task.featuredImage}
             alt={item.name}
             fill
             className="object-cover group-hover:scale-105 transition-transform duration-500 rounded-t-2xl"
+            onError={() => setImgError(true)}
           />
         ) : (
           <div
@@ -588,7 +606,7 @@ export default function ExplorePage() {
 
   // TanStack Table state
   const [sorting, setSorting] = useState<SortingState>([
-    { id: "price", desc: true },
+    { id: "earnings", desc: true },
   ]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({
@@ -678,20 +696,30 @@ export default function ExplorePage() {
             <Link href={href} className="flex items-center gap-3 group/link">
               <div className="relative flex-shrink-0">
                 {agent?.imageUrl ? (
-                  <Image
+                  <FallbackImage
                     src={agent.imageUrl}
                     alt={item.name}
                     width={40}
                     height={40}
                     className="rounded-lg object-cover"
+                    fallback={
+                      <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gradient-to-br from-[#6FEC06]/20 to-[#120557]">
+                        <Bot className="w-5 h-5 text-[#6FEC06]" />
+                      </div>
+                    }
                   />
                 ) : task?.featuredImage ? (
-                  <Image
+                  <FallbackImage
                     src={task.featuredImage}
                     alt={item.name}
                     width={40}
                     height={40}
                     className="rounded-lg object-cover"
+                    fallback={
+                      <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-gradient-to-br from-amber-500/20 to-[#120557]">
+                        <ClipboardList className="w-5 h-5 text-amber-400" />
+                      </div>
+                    }
                   />
                 ) : (
                   <div
@@ -1151,7 +1179,7 @@ export default function ExplorePage() {
                 <span className="gradient-text-shimmer">Explore</span>
               </h1>
               <p className="text-white/50 text-sm sm:text-base">
-                Discover AI agents and corporations on Agent Inc.
+                Discover AI agents, corporations, and task tokens on Agent Inc.
               </p>
             </div>
 
@@ -1173,6 +1201,15 @@ export default function ExplorePage() {
                 </div>
                 <span className="text-[10px] sm:text-xs text-white/40">
                   Corps
+                </span>
+              </div>
+              <div className="text-center">
+                <div className="flex items-center gap-1 sm:gap-1.5 text-xl sm:text-2xl font-bold">
+                  <ClipboardList className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
+                  {items.filter((i) => i.type === "task").length}
+                </div>
+                <span className="text-[10px] sm:text-xs text-white/40">
+                  Tasks
                 </span>
               </div>
             </div>

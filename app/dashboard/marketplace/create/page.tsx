@@ -10,7 +10,6 @@ import {
   Building2,
   ArrowLeft,
   ArrowRight,
-  ChevronDown,
   X,
   Loader2,
   Globe,
@@ -26,6 +25,15 @@ import {
 
 import { useAuth } from "@/lib/auth/AuthProvider";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   MARKETPLACE_CATEGORIES,
   CATEGORY_LABELS,
@@ -658,14 +666,14 @@ export default function CreateListingPage() {
                               label="Agent Name"
                               tooltip="The display name for your external agent on the marketplace."
                             >
-                              <input
+                              <Input
                                 type="text"
                                 value={externalAgentName}
                                 onChange={(e) =>
                                   setExternalAgentName(e.target.value)
                                 }
                                 placeholder="e.g. CodeReview Bot"
-                                className="form-input"
+                                className="h-11 bg-surface-light border-white/10 text-white placeholder:text-white/40 focus-visible:border-coral/30 focus-visible:ring-coral/20"
                               />
                             </FormField>
                             <FormField
@@ -673,21 +681,21 @@ export default function CreateListingPage() {
                               tooltip="A URL to your agent's avatar image. Leave blank to use a default icon."
                               optional
                             >
-                              <input
+                              <Input
                                 type="url"
                                 value={externalAgentImage}
                                 onChange={(e) =>
                                   setExternalAgentImage(e.target.value)
                                 }
                                 placeholder="https://example.com/avatar.png"
-                                className="form-input"
+                                className="h-11 bg-surface-light border-white/10 text-white placeholder:text-white/40 focus-visible:border-coral/30 focus-visible:ring-coral/20"
                               />
                             </FormField>
 
-                            <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
-                              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-white/30">
+                            <div className="rounded-xl border border-white/8 bg-surface p-4">
+                              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-white/50">
                                 Endpoints{" "}
-                                <span className="font-normal text-white/20">
+                                <span className="font-normal text-white/40">
                                   (at least one required)
                                 </span>
                               </p>
@@ -699,14 +707,14 @@ export default function CreateListingPage() {
                                 >
                                   <div className="relative">
                                     <LinkIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-white/25" />
-                                    <input
+                                    <Input
                                       type="url"
                                       value={externalAgentUrl}
                                       onChange={(e) =>
                                         setExternalAgentUrl(e.target.value)
                                       }
                                       placeholder="https://api.example.com/agent"
-                                      className="form-input pl-10"
+                                      className="h-11 pl-10 bg-surface-light border-white/10 text-white placeholder:text-white/40 focus-visible:border-coral/30 focus-visible:ring-coral/20"
                                     />
                                   </div>
                                 </FormField>
@@ -717,14 +725,14 @@ export default function CreateListingPage() {
                                 >
                                   <div className="relative">
                                     <LinkIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-cyan-400/40" />
-                                    <input
+                                    <Input
                                       type="url"
                                       value={externalMcpUrl}
                                       onChange={(e) =>
                                         setExternalMcpUrl(e.target.value)
                                       }
                                       placeholder="https://mcp.example.com/sse"
-                                      className="form-input pl-10"
+                                      className="h-11 pl-10 bg-surface-light border-white/10 text-white placeholder:text-white/40 focus-visible:border-coral/30 focus-visible:ring-coral/20"
                                     />
                                   </div>
                                 </FormField>
@@ -735,14 +743,14 @@ export default function CreateListingPage() {
                                 >
                                   <div className="relative">
                                     <LinkIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-violet-400/40" />
-                                    <input
+                                    <Input
                                       type="url"
                                       value={externalA2aUrl}
                                       onChange={(e) =>
                                         setExternalA2aUrl(e.target.value)
                                       }
                                       placeholder="https://a2a.example.com/.well-known/agent.json"
-                                      className="form-input pl-10"
+                                      className="h-11 pl-10 bg-surface-light border-white/10 text-white placeholder:text-white/40 focus-visible:border-coral/30 focus-visible:ring-coral/20"
                                     />
                                   </div>
                                 </FormField>
@@ -853,26 +861,26 @@ export default function CreateListingPage() {
                     label="Title"
                     tooltip="A short, compelling headline. e.g. 'Senior Solana Developer' or 'AI Code Review Agent'."
                   >
-                    <input
+                    <Input
                       type="text"
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
                       placeholder="e.g. Full-Stack Developer for Hire"
-                      className="form-input"
+                      className="h-11 bg-surface-light border-white/10 text-white placeholder:text-white/40 focus-visible:border-coral/30 focus-visible:ring-coral/20"
                     />
                   </FormField>
                   <FormField
                     label="Description"
                     tooltip="Describe your experience, what you specialize in, and what kinds of tasks you're looking for."
                   >
-                    <textarea
+                    <Textarea
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                       placeholder="What do you specialize in? What kinds of tasks are you looking for? Include experience, tools, and examples..."
                       rows={4}
-                      className="form-input resize-none"
+                      className="resize-none bg-surface-light border-white/10 text-white placeholder:text-white/40 focus-visible:border-coral/30 focus-visible:ring-coral/20"
                     />
-                    <p className="mt-1 text-xs text-white/20">
+                    <p className="mt-1 text-xs text-white/40">
                       Tip: Listings with detailed descriptions get hired 3x more
                       often.
                     </p>
@@ -881,15 +889,23 @@ export default function CreateListingPage() {
                     label="Category"
                     tooltip="The primary category for your listing. Helps task posters find the right worker."
                   >
-                    <SelectDropdown
+                    <Select
                       value={category}
-                      onChange={(v) => setCategory(v as MarketplaceCategory)}
-                      placeholder="Select a category"
-                      options={MARKETPLACE_CATEGORIES.map((c) => ({
-                        value: c,
-                        label: CATEGORY_LABELS[c],
-                      }))}
-                    />
+                      onValueChange={(v) =>
+                        setCategory(v as MarketplaceCategory)
+                      }
+                    >
+                      <SelectTrigger className="h-11 w-full bg-surface-light border-white/10 text-white/70 focus-visible:border-coral/30 focus-visible:ring-coral/20">
+                        <SelectValue placeholder="Select a category" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-surface border-white/10">
+                        {MARKETPLACE_CATEGORIES.map((c) => (
+                          <SelectItem key={c} value={c}>
+                            {CATEGORY_LABELS[c]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </FormField>
                   <FormField
                     label="Skills"
@@ -897,13 +913,13 @@ export default function CreateListingPage() {
                     optional
                   >
                     <div className="space-y-2">
-                      <input
+                      <Input
                         type="text"
                         value={skillInput}
                         onChange={(e) => setSkillInput(e.target.value)}
                         onKeyDown={handleSkillKeyDown}
                         placeholder="e.g. solana, rust, react — press Enter to add"
-                        className="form-input"
+                        className="h-11 bg-surface-light border-white/10 text-white placeholder:text-white/40 focus-visible:border-coral/30 focus-visible:ring-coral/20"
                       />
                       {skills.length > 0 && (
                         <div className="flex flex-wrap gap-2">
@@ -964,12 +980,12 @@ export default function CreateListingPage() {
                     >
                       <div className="relative">
                         <MapPin className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-white/25" />
-                        <input
+                        <Input
                           type="text"
                           value={location}
                           onChange={(e) => setLocation(e.target.value)}
                           placeholder="e.g. San Francisco, CA"
-                          className="form-input pl-10"
+                          className="h-11 pl-10 bg-surface-light border-white/10 text-white placeholder:text-white/40 focus-visible:border-coral/30 focus-visible:ring-coral/20"
                         />
                       </div>
                     </FormField>
@@ -1026,7 +1042,7 @@ export default function CreateListingPage() {
                   </p>
                 )}
                 {type === "agent" && (
-                  <p className="mt-2 text-xs text-white/25">
+                  <p className="mt-2 text-xs text-white/40">
                     Leave empty to use your agent&apos;s profile image.
                   </p>
                 )}
@@ -1092,14 +1108,14 @@ export default function CreateListingPage() {
                     label="Amount in SOL"
                     tooltip="The SOL amount you charge. For hourly, this is per hour. For fixed, it's the total project price."
                   >
-                    <input
+                    <Input
                       type="number"
                       value={priceSol}
                       onChange={(e) => setPriceSol(e.target.value)}
                       placeholder="0.00"
                       min="0"
                       step="0.01"
-                      className="form-input"
+                      className="h-11 bg-surface-light border-white/10 text-white placeholder:text-white/40 focus-visible:border-coral/30 focus-visible:ring-coral/20"
                     />
                   </FormField>
                   <FormField
@@ -1107,12 +1123,12 @@ export default function CreateListingPage() {
                     tooltip="Optionally accept payment in a specific SPL token instead of SOL. Paste the token's mint address."
                     optional
                   >
-                    <input
+                    <Input
                       type="text"
                       value={priceToken}
                       onChange={(e) => setPriceToken(e.target.value)}
                       placeholder="Token mint address (leave blank for SOL)"
-                      className="form-input"
+                      className="h-11 bg-surface-light border-white/10 text-white placeholder:text-white/40 focus-visible:border-coral/30 focus-visible:ring-coral/20"
                     />
                   </FormField>
                 </SectionCard>
@@ -1121,7 +1137,7 @@ export default function CreateListingPage() {
               {priceType === "bidding" && (
                 <SectionCard title="Bidding">
                   <div className="flex items-start gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-4">
-                    <HelpCircle className="mt-0.5 size-4 shrink-0 text-white/25" />
+                    <HelpCircle className="mt-0.5 size-4 shrink-0 text-white/40" />
                     <p className="text-sm leading-relaxed text-white/40">
                       Clients will submit bids with their proposed price and
                       scope. You review each bid and accept or reject it — great
@@ -1238,7 +1254,7 @@ export default function CreateListingPage() {
             className={cn(
               "inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium transition-all",
               stepIndex === 0
-                ? "cursor-not-allowed text-white/15"
+                ? "cursor-not-allowed text-white/25"
                 : "text-white/50 hover:text-white",
             )}
           >
@@ -1267,7 +1283,7 @@ export default function CreateListingPage() {
                 "font-semibold px-6",
                 canGoNext()
                   ? "bg-coral text-black hover:bg-coral/90 shadow-lg shadow-coral/20"
-                  : "bg-white/5 text-white/20 cursor-not-allowed",
+                  : "bg-white/5 text-white/30 cursor-not-allowed",
               )}
             >
               Next
@@ -1293,11 +1309,11 @@ function SectionCard({
 }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-surface/80 p-5 sm:p-6">
-      <h2 className="mb-1 text-xs font-bold uppercase tracking-wider text-white/30">
+      <h2 className="mb-1 text-xs font-bold uppercase tracking-wider text-white/50">
         {title}
       </h2>
       {subtitle && (
-        <p className="mb-4 text-xs leading-relaxed text-white/20">{subtitle}</p>
+        <p className="mb-4 text-xs leading-relaxed text-white/40">{subtitle}</p>
       )}
       {!subtitle && <div className="mb-4" />}
       <div className="space-y-4">{children}</div>
@@ -1319,9 +1335,9 @@ function FormField({
   return (
     <div>
       <div className="mb-1.5 flex items-center gap-1.5">
-        <label className="text-sm font-medium text-white/60">{label}</label>
+        <label className="text-sm font-medium text-white/70">{label}</label>
         {optional && (
-          <span className="rounded bg-white/5 px-1.5 py-0.5 text-[10px] text-white/25">
+          <span className="rounded bg-white/5 px-1.5 py-0.5 text-[10px] text-white/35">
             optional
           </span>
         )}
@@ -1330,7 +1346,7 @@ function FormField({
             <TooltipTrigger asChild>
               <button
                 type="button"
-                className="text-white/20 transition-colors hover:text-white/40"
+                className="text-white/30 transition-colors hover:text-white/50"
               >
                 <HelpCircle className="size-3.5" />
               </button>
@@ -1345,38 +1361,6 @@ function FormField({
         )}
       </div>
       {children}
-    </div>
-  );
-}
-
-function SelectDropdown({
-  value,
-  onChange,
-  placeholder,
-  options,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-  placeholder: string;
-  options: { value: string; label: string }[];
-}) {
-  return (
-    <div className="relative">
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="form-input appearance-none pr-10"
-      >
-        <option value="" className="text-white/25">
-          {placeholder}
-        </option>
-        {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
-      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-white/25" />
     </div>
   );
 }
@@ -1452,13 +1436,13 @@ function ImageUpload({
       {uploading ? (
         <Loader2 className="size-8 animate-spin text-coral" />
       ) : (
-        <Upload className="size-8 text-white/20" />
+        <Upload className="size-8 text-white/30" />
       )}
       <div className="text-center">
         <p className="text-sm font-medium text-white/60">
           {uploading ? "Uploading..." : "Click to upload"}
         </p>
-        <p className="mt-1 text-xs text-white/25">
+        <p className="mt-1 text-xs text-white/40">
           PNG, JPG, WebP or GIF — max 5MB
         </p>
       </div>

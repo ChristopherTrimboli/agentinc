@@ -2106,7 +2106,7 @@ button[data-streamdown="link"]:hover {
 /* Marketplace form inputs — must be in components layer so utilities (e.g. pl-10) can override */
 @layer components {
   .form-input {
-    @apply w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-white/20 transition-all focus:border-[#6FEC06]/30 focus:outline-none focus:ring-1 focus:ring-[#6FEC06]/20;
+    @apply w-full rounded-xl border border-white/10 bg-[var(--surface-light)] px-4 py-3 text-white placeholder-white/40 transition-all focus:border-[#6FEC06]/30 focus:outline-none focus:ring-1 focus:ring-[#6FEC06]/20;
   }
 
   .form-input option {

@@ -33,6 +33,15 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Tooltip,
   TooltipTrigger,
@@ -494,7 +503,7 @@ function CreateTaskPage() {
                           ? "border-coral bg-coral text-black"
                           : isActive
                             ? "border-coral bg-coral/20 text-coral shadow-[0_0_12px_rgba(111,236,6,0.3)]"
-                            : "border-white/10 bg-white/5 text-white/25",
+                            : "border-white/10 bg-white/5 text-white/35",
                       )}
                     >
                       {isCompleted ? <CheckCircle2 className="size-4" /> : s}
@@ -555,15 +564,15 @@ function CreateTaskPage() {
                       label="Title"
                       tooltip="A clear, concise title that describes the task. Good titles get more attention from workers."
                     />
-                    <input
+                    <Input
                       type="text"
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
                       placeholder="e.g. Build a Solana token swap UI"
                       maxLength={200}
-                      className="form-input"
+                      className="h-11 bg-surface-light border-white/10 text-white placeholder:text-white/40 focus-visible:border-coral/30 focus-visible:ring-coral/20"
                     />
-                    <p className="mt-1 text-xs text-white/20">
+                    <p className="mt-1 text-xs text-white/40">
                       {title.length}/200 — Make it descriptive so workers
                       instantly know what you need.
                     </p>
@@ -573,15 +582,15 @@ function CreateTaskPage() {
                       label="Description"
                       tooltip="Include all the context needed to complete the task: goals, tech stack, deliverables, and any reference links."
                     />
-                    <textarea
+                    <Textarea
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                       placeholder="What's the goal? What tech stack? What does 'done' look like? Include links, specs, or references..."
                       rows={5}
                       maxLength={10000}
-                      className="form-input"
+                      className="bg-surface-light border-white/10 text-white placeholder:text-white/40 focus-visible:border-coral/30 focus-visible:ring-coral/20"
                     />
-                    <p className="mt-1 text-xs text-white/20">
+                    <p className="mt-1 text-xs text-white/40">
                       Tip: The more detail you provide, the better proposals
                       you&apos;ll receive.
                     </p>
@@ -591,20 +600,23 @@ function CreateTaskPage() {
                       label="Category"
                       tooltip="Pick the category that best matches this task. It helps workers find relevant work in their expertise."
                     />
-                    <select
+                    <Select
                       value={category}
-                      onChange={(e) =>
-                        setCategory(e.target.value as MarketplaceCategory)
+                      onValueChange={(v) =>
+                        setCategory(v as MarketplaceCategory)
                       }
-                      className="form-input appearance-none"
                     >
-                      <option value="">Select a category</option>
-                      {MARKETPLACE_CATEGORIES.map((cat) => (
-                        <option key={cat} value={cat}>
-                          {CATEGORY_LABELS[cat]}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger className="h-11 w-full bg-surface-light border-white/10 text-white/70 focus-visible:border-coral/30 focus-visible:ring-coral/20">
+                        <SelectValue placeholder="Select a category" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-surface border-white/10">
+                        {MARKETPLACE_CATEGORIES.map((cat) => (
+                          <SelectItem key={cat} value={cat}>
+                            {CATEGORY_LABELS[cat]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
                     <FieldLabel
@@ -633,7 +645,7 @@ function CreateTaskPage() {
                       </ul>
                     )}
                     <div className="flex gap-2">
-                      <input
+                      <Input
                         type="text"
                         value={newRequirement}
                         onChange={(e) => setNewRequirement(e.target.value)}
@@ -644,7 +656,7 @@ function CreateTaskPage() {
                           }
                         }}
                         placeholder="e.g. Must include unit tests — press Enter to add"
-                        className="form-input flex-1"
+                        className="h-11 flex-1 bg-surface-light border-white/10 text-white placeholder:text-white/40 focus-visible:border-coral/30 focus-visible:ring-coral/20"
                       />
                       <button
                         type="button"
@@ -664,12 +676,12 @@ function CreateTaskPage() {
                       />
                       <div className="relative">
                         <MapPin className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-white/25" />
-                        <input
+                        <Input
                           type="text"
                           value={location}
                           onChange={(e) => setLocation(e.target.value)}
                           placeholder="e.g. New York, NY"
-                          className="form-input pl-10"
+                          className="h-11 pl-10 bg-surface-light border-white/10 text-white placeholder:text-white/40 focus-visible:border-coral/30 focus-visible:ring-coral/20"
                         />
                       </div>
                     </div>
@@ -701,12 +713,12 @@ function CreateTaskPage() {
                     />
                     <div className="relative">
                       <Calendar className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-white/25" />
-                      <input
+                      <Input
                         type="date"
                         value={deadline}
                         onChange={(e) => setDeadline(e.target.value)}
                         min={new Date().toISOString().split("T")[0]}
-                        className="form-input pl-10 [color-scheme:dark]"
+                        className="h-11 pl-10 bg-surface-light border-white/10 text-white focus-visible:border-coral/30 focus-visible:ring-coral/20 [color-scheme:dark]"
                       />
                     </div>
                   </div>
@@ -719,7 +731,7 @@ function CreateTaskPage() {
                       "font-semibold px-6",
                       canProceedStep1()
                         ? "bg-coral text-black hover:bg-coral/90 shadow-lg shadow-coral/20"
-                        : "bg-white/5 text-white/20 cursor-not-allowed",
+                        : "bg-white/5 text-white/30 cursor-not-allowed",
                     )}
                   >
                     Next: Budget <ArrowRight className="ml-2 size-4" />
@@ -753,20 +765,20 @@ function CreateTaskPage() {
                       optional
                     />
                     <div className="relative">
-                      <input
+                      <Input
                         type="number"
                         step="0.01"
                         min="0.01"
                         value={budgetSol}
                         onChange={(e) => setBudgetSol(e.target.value)}
                         placeholder="0.00"
-                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-4 text-2xl font-bold text-white placeholder-white/15 focus:border-coral/30 focus:outline-none focus:ring-1 focus:ring-coral/20"
+                        className="h-14 px-4 text-2xl font-bold bg-surface-light border-white/10 text-white placeholder:text-white/30 focus-visible:border-coral/30 focus-visible:ring-coral/20"
                       />
                       <span className="absolute right-4 top-1/2 -translate-y-1/2 text-lg font-bold text-coral/50">
                         SOL
                       </span>
                     </div>
-                    <p className="mt-1.5 text-xs text-white/20">
+                    <p className="mt-1.5 text-xs text-white/40">
                       Locked in escrow until the task is approved or cancelled.
                       Refundable if cancelled.
                     </p>
@@ -804,17 +816,17 @@ function CreateTaskPage() {
                             {i + 1}
                           </div>
                           <div className="flex-1 space-y-2">
-                            <input
+                            <Input
                               type="text"
                               value={m.title}
                               onChange={(e) =>
                                 updateMilestone(i, "title", e.target.value)
                               }
                               placeholder="Milestone title"
-                              className="form-input text-sm"
+                              className="h-9 text-sm bg-surface-light border-white/10 text-white placeholder:text-white/40 focus-visible:border-coral/30 focus-visible:ring-coral/20"
                             />
                             <div className="relative">
-                              <input
+                              <Input
                                 type="number"
                                 step="0.01"
                                 min="0.01"
@@ -827,7 +839,7 @@ function CreateTaskPage() {
                                   )
                                 }
                                 placeholder="0.00"
-                                className="form-input text-sm"
+                                className="h-9 text-sm bg-surface-light border-white/10 text-white placeholder:text-white/40 focus-visible:border-coral/30 focus-visible:ring-coral/20"
                               />
                               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-coral/50">
                                 SOL
@@ -893,7 +905,7 @@ function CreateTaskPage() {
                       "font-semibold px-6",
                       canProceedStep2()
                         ? "bg-coral text-black hover:bg-coral/90 shadow-lg shadow-coral/20"
-                        : "bg-white/5 text-white/20 cursor-not-allowed",
+                        : "bg-white/5 text-white/30 cursor-not-allowed",
                     )}
                   >
                     Next: Task Token <ArrowRight className="ml-2 size-4" />
@@ -974,7 +986,7 @@ function CreateTaskPage() {
                           label="Token Name"
                           tooltip="The display name for your task token on Bags.fm. Usually matches or abbreviates the task title."
                         />
-                        <input
+                        <Input
                           type="text"
                           value={tokenName}
                           onChange={(e) => {
@@ -983,9 +995,9 @@ function CreateTaskPage() {
                           }}
                           placeholder="e.g. Build Swap UI"
                           maxLength={32}
-                          className="form-input"
+                          className="h-11 bg-surface-light border-white/10 text-white placeholder:text-white/40 focus-visible:border-coral/30 focus-visible:ring-coral/20"
                         />
-                        <p className="mt-1 text-xs text-white/20">
+                        <p className="mt-1 text-xs text-white/40">
                           {tokenName.length}/32 — Auto-filled from your task
                           title.
                         </p>
@@ -999,7 +1011,7 @@ function CreateTaskPage() {
                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-coral/40">
                             $
                           </span>
-                          <input
+                          <Input
                             type="text"
                             value={tokenSymbol}
                             onChange={(e) => {
@@ -1012,10 +1024,10 @@ function CreateTaskPage() {
                             }}
                             placeholder="TASK"
                             maxLength={10}
-                            className="form-input pl-7 font-mono uppercase"
+                            className="h-11 pl-7 font-mono uppercase bg-surface-light border-white/10 text-white placeholder:text-white/40 focus-visible:border-coral/30 focus-visible:ring-coral/20"
                           />
                         </div>
-                        <p className="mt-1 text-xs text-white/20">
+                        <p className="mt-1 text-xs text-white/40">
                           Auto-generated from title initials. Feel free to
                           customize.
                         </p>
@@ -1066,7 +1078,7 @@ function CreateTaskPage() {
                                 <label className="flex items-center gap-1 text-xs text-white/40">
                                   <PenLine className="size-3" />
                                   Custom Prompt{" "}
-                                  <span className="text-white/20">
+                                  <span className="text-white/35">
                                     (optional)
                                   </span>
                                 </label>
@@ -1080,7 +1092,7 @@ function CreateTaskPage() {
                                   </button>
                                 )}
                               </div>
-                              <textarea
+                              <Textarea
                                 value={customImagePrompt}
                                 onChange={(e) =>
                                   setCustomImagePrompt(e.target.value)
@@ -1088,10 +1100,10 @@ function CreateTaskPage() {
                                 placeholder="Leave empty to auto-generate from task details, or describe the image you want..."
                                 rows={2}
                                 maxLength={500}
-                                className="form-input text-xs"
+                                className="text-xs bg-surface-light border-white/10 text-white placeholder:text-white/40 focus-visible:border-coral/30 focus-visible:ring-coral/20"
                               />
                               {!customImagePrompt && (
-                                <p className="mt-1 flex items-center gap-1 text-xs text-white/25">
+                                <p className="mt-1 flex items-center gap-1 text-xs text-white/40">
                                   <Sparkles className="size-3" />
                                   Auto-prompt from task title & description
                                 </p>
@@ -1135,7 +1147,7 @@ function CreateTaskPage() {
                                         </p>
                                       </div>
                                     ) : (
-                                      <Wand2 className="size-10 text-white/15" />
+                                      <Wand2 className="size-10 text-white/25" />
                                     )}
                                   </div>
                                   <button
@@ -1225,11 +1237,11 @@ function CreateTaskPage() {
                                   </div>
                                 ) : (
                                   <>
-                                    <Upload className="mb-2 size-8 text-white/20" />
+                                    <Upload className="mb-2 size-8 text-white/30" />
                                     <p className="text-sm font-medium text-white/50">
                                       Click to upload
                                     </p>
-                                    <p className="mt-0.5 text-xs text-white/25">
+                                    <p className="mt-0.5 text-xs text-white/40">
                                       PNG, JPG, WebP, GIF — Max 5MB
                                     </p>
                                   </>
@@ -1240,7 +1252,7 @@ function CreateTaskPage() {
                         )}
 
                         {!taskImageUrl && (
-                          <p className="mt-2 text-center text-xs text-white/20">
+                          <p className="mt-2 text-center text-xs text-white/40">
                             Without an image, the default Agent Inc. logo will
                             be used as the token icon.
                           </p>
@@ -1289,7 +1301,7 @@ function CreateTaskPage() {
 
                   {!useTaskToken && (
                     <div className="rounded-xl border border-white/5 bg-white/[0.02] p-5 text-center">
-                      <Shield className="mx-auto size-8 text-white/10" />
+                      <Shield className="mx-auto size-8 text-white/20" />
                       <p className="mt-2 text-sm text-white/30">
                         No task token — this task will use SOL escrow only.
                       </p>
@@ -1318,7 +1330,7 @@ function CreateTaskPage() {
                       "font-semibold px-6",
                       canProceedStep3()
                         ? "bg-coral text-black hover:bg-coral/90 shadow-lg shadow-coral/20"
-                        : "bg-white/5 text-white/20 cursor-not-allowed",
+                        : "bg-white/5 text-white/30 cursor-not-allowed",
                     )}
                   >
                     Next: Review <ArrowRight className="ml-2 size-4" />
@@ -1381,7 +1393,7 @@ function CreateTaskPage() {
                     </div>
                     {requirements.length > 0 && (
                       <div>
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-white/25">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-white/40">
                           Requirements
                         </p>
                         <ul className="mt-2 space-y-1.5">
@@ -1399,7 +1411,7 @@ function CreateTaskPage() {
                     )}
                     {useMilestones && milestones.length > 0 && (
                       <div>
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-white/25">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-white/40">
                           Milestones
                         </p>
                         <div className="mt-2 space-y-2">
@@ -1584,9 +1596,9 @@ function FieldLabel({
 }) {
   return (
     <div className="mb-1.5 flex items-center gap-1.5">
-      <label className="text-sm font-medium text-white/60">{label}</label>
+      <label className="text-sm font-medium text-white/70">{label}</label>
       {optional && (
-        <span className="rounded bg-white/5 px-1.5 py-0.5 text-[10px] text-white/25">
+        <span className="rounded bg-white/5 px-1.5 py-0.5 text-[10px] text-white/35">
           optional
         </span>
       )}
@@ -1594,7 +1606,7 @@ function FieldLabel({
         <TooltipTrigger asChild>
           <button
             type="button"
-            className="text-white/20 transition-colors hover:text-white/40"
+            className="text-white/30 transition-colors hover:text-white/50"
           >
             <HelpCircle className="size-3.5" />
           </button>
@@ -1621,7 +1633,7 @@ function ReviewItem({
 }) {
   return (
     <div>
-      <p className="text-[10px] font-bold uppercase tracking-wider text-white/25">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-white/40">
         {label}
       </p>
       <p

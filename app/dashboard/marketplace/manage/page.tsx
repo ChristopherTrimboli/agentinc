@@ -576,6 +576,7 @@ function ManageListingRow({
   onToggle: () => void;
   onDelete: () => void;
 }) {
+  const [imgError, setImgError] = useState(false);
   const {
     label: typeLabel,
     icon: TypeIcon,
@@ -594,12 +595,13 @@ function ManageListingRow({
   const ringColor = getRarityRingColor(rarity);
   const tokenSymbol =
     listing.agent?.tokenSymbol ?? listing.corporation?.tokenSymbol;
-  const avatarSrc =
-    listing.featuredImage ??
-    listing.agent?.imageUrl ??
-    listing.externalAgentImage ??
-    listing.corporation?.logo ??
-    null;
+  const avatarSrc = imgError
+    ? null
+    : (listing.featuredImage ??
+      listing.agent?.imageUrl ??
+      listing.externalAgentImage ??
+      listing.corporation?.logo ??
+      null);
   const visibleSkills = listing.skills.slice(0, 5);
   const extraSkillCount = listing.skills.length - 5;
 
@@ -626,6 +628,7 @@ function ManageListingRow({
                   "size-[72px] rounded-2xl object-cover ring-2",
                   ringColor,
                 )}
+                onError={() => setImgError(true)}
               />
             ) : (
               <div className="flex size-[72px] items-center justify-center rounded-2xl bg-white/5 ring-2 ring-white/10">

@@ -16,9 +16,18 @@ import {
   Globe,
   Settings2,
   Coins,
+  LayoutGrid,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import ListingCard from "@/components/marketplace/ListingCard";
 import TaskCard from "@/components/marketplace/TaskCard";
 import {
@@ -28,7 +37,7 @@ import {
   type ListingType,
 } from "@/lib/marketplace/types";
 
-type ActiveTab = "hire" | "bounties";
+type ActiveTab = "all" | "hire" | "bounties";
 type SortOption =
   | "newest"
   | "rating"
@@ -118,7 +127,7 @@ interface TaskResponse {
 }
 
 export default function MarketplacePage() {
-  const [tab, setTab] = useState<ActiveTab>("hire");
+  const [tab, setTab] = useState<ActiveTab>("all");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [category, setCategory] = useState<MarketplaceCategory | "all">("all");
@@ -143,6 +152,7 @@ export default function MarketplacePage() {
     totalCompleted: 0,
     totalTokens: 0,
   });
+  const [taskEarnings, setTaskEarnings] = useState<Record<string, number>>({});
   const searchTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
   const statsLoadedRef = useRef(false);
 
@@ -165,7 +175,7 @@ export default function MarketplacePage() {
     setLoading(true);
     setFetchError(null);
     try {
-      if (tab === "hire") {
+      if (tab === "hire" || tab === "all") {
         const params = new URLSearchParams();
         params.set("page", String(page));
         params.set("pageSize", "20");
@@ -181,14 +191,23 @@ export default function MarketplacePage() {
         }
         const data = await res.json();
         setListings(data.listings ?? []);
-        setPagination(
-          data.pagination ?? { page: 1, pageSize: 20, total: 0, totalPages: 0 },
-        );
+        if (tab === "hire") {
+          setPagination(
+            data.pagination ?? {
+              page: 1,
+              pageSize: 20,
+              total: 0,
+              totalPages: 0,
+            },
+          );
+        }
         setStats((prev) => ({
           ...prev,
           totalListings: data.pagination?.total ?? prev.totalListings,
         }));
-      } else {
+      }
+
+      if (tab === "bounties" || tab === "all") {
         const params = new URLSearchParams();
         params.set("page", String(page));
         params.set("pageSize", "20");
@@ -203,9 +222,20 @@ export default function MarketplacePage() {
         }
         const data = await res.json();
         setTasks(data.tasks ?? []);
-        setPagination(
-          data.pagination ?? { page: 1, pageSize: 20, total: 0, totalPages: 0 },
-        );
+        if (tab === "bounties") {
+          setPagination(
+            data.pagination ?? {
+              page: 1,
+              pageSize: 20,
+              total: 0,
+              totalPages: 0,
+            },
+          );
+        }
+      }
+
+      if (tab === "all") {
+        setPagination({ page: 1, pageSize: 20, total: 0, totalPages: 1 });
       }
     } catch {
       setFetchError("Failed to load data. Please try again.");
@@ -217,6 +247,24 @@ export default function MarketplacePage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  useEffect(() => {
+    const mints = tasks.filter((t) => t.tokenMint).map((t) => t.tokenMint!);
+    if (mints.length === 0) return;
+
+    fetch(`/api/explore/prices?mints=${mints.join(",")}`)
+      .then((r) => r.json())
+      .then((data) => {
+        const earnings: Record<string, number> = {};
+        for (const mint of mints) {
+          if (data.prices?.[mint]?.earnings !== undefined) {
+            earnings[mint] = data.prices[mint].earnings;
+          }
+        }
+        setTaskEarnings(earnings);
+      })
+      .catch(() => {});
+  }, [tasks]);
 
   useEffect(() => {
     if (statsLoadedRef.current) return;
@@ -331,58 +379,8 @@ export default function MarketplacePage() {
             </div>
           </motion.div>
 
-          {/* How it works — compact inline steps */}
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.15 }}
-            className="mx-auto mt-8 flex max-w-3xl items-start justify-between gap-2 rounded-xl border border-white/5 bg-surface/30 px-5 py-4 backdrop-blur-sm"
-          >
-            {[
-              {
-                icon: <Target className="size-4 text-coral" />,
-                title: "Post a Task",
-                step: 1,
-              },
-              {
-                icon: <Coins className="size-4 text-purple-400" />,
-                title: "Mint Token",
-                step: 2,
-              },
-              {
-                icon: <TrendingUp className="size-4 text-emerald-400" />,
-                title: "Fees Grow",
-                step: 3,
-              },
-              {
-                icon: <Zap className="size-4 text-amber-400" />,
-                title: "Earn",
-                step: 4,
-              },
-            ].map((s, i, arr) => (
-              <div
-                key={s.step}
-                className="flex items-center gap-2 flex-1 min-w-0"
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-white/5">
-                    {s.icon}
-                  </div>
-                  <div className="min-w-0">
-                    <span className="block text-[10px] font-bold uppercase tracking-wider text-white/25">
-                      {s.step}
-                    </span>
-                    <span className="block truncate text-xs font-medium text-white/70">
-                      {s.title}
-                    </span>
-                  </div>
-                </div>
-                {i < arr.length - 1 && (
-                  <div className="mx-1 h-px flex-1 bg-gradient-to-r from-white/10 to-transparent sm:mx-3" />
-                )}
-              </div>
-            ))}
-          </motion.div>
+          {/* How it works — animated inline steps */}
+          <HowItWorksSteps />
         </motion.section>
 
         {/* ── Tabs ────────────────────────────────────────── */}
@@ -394,6 +392,7 @@ export default function MarketplacePage() {
         >
           <div className="inline-flex gap-1 rounded-xl border border-white/10 bg-surface/60 p-1 backdrop-blur-sm">
             {[
+              { id: "all" as ActiveTab, label: "All", icon: LayoutGrid },
               { id: "hire" as ActiveTab, label: "Hire", icon: Briefcase },
               { id: "bounties" as ActiveTab, label: "Bounties", icon: Target },
             ].map((t) => (
@@ -452,19 +451,23 @@ export default function MarketplacePage() {
           {/* Search + Type + Sort + Remote */}
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative min-w-[200px] flex-1">
-              <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-white/30" />
-              <input
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
                 type="text"
                 placeholder={
-                  tab === "hire" ? "Search listings…" : "Search bounties…"
+                  tab === "hire"
+                    ? "Search listings…"
+                    : tab === "bounties"
+                      ? "Search bounties…"
+                      : "Search listings & bounties…"
                 }
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-surface/60 py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-white/25 outline-none backdrop-blur-sm transition-all focus:border-coral/30 focus:ring-1 focus:ring-coral/20"
+                className="h-9 pl-10 bg-surface-light border-white/10 backdrop-blur-sm placeholder:text-white/40 focus-visible:border-coral/30 focus-visible:ring-coral/20"
               />
             </div>
 
-            {tab === "hire" && (
+            {(tab === "hire" || tab === "all") && (
               <div className="flex rounded-xl border border-white/10 bg-surface/60 p-0.5 backdrop-blur-sm">
                 {TYPE_FILTERS.map((tf) => (
                   <button
@@ -482,31 +485,39 @@ export default function MarketplacePage() {
               </div>
             )}
 
-            <div className="relative">
-              <SlidersHorizontal className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-white/30" />
-              <select
-                value={sort}
-                onChange={(e) => setSort(e.target.value as SortOption)}
-                className="appearance-none rounded-xl border border-white/10 bg-surface/60 py-2.5 pl-9 pr-8 text-xs text-white/60 outline-none backdrop-blur-sm transition-all focus:border-coral/30 [&>option]:bg-surface"
+            <Select
+              value={sort}
+              onValueChange={(v) => setSort(v as SortOption)}
+            >
+              <SelectTrigger
+                size="sm"
+                className="h-9 gap-1.5 border-white/10 bg-surface/60 backdrop-blur-sm text-white/60 focus-visible:border-coral/30 focus-visible:ring-coral/20"
               >
+                <SlidersHorizontal className="size-3.5 text-muted-foreground" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-surface border-white/10">
                 {SORT_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
+                  <SelectItem key={opt.value} value={opt.value}>
                     {opt.label}
-                  </option>
+                  </SelectItem>
                 ))}
-              </select>
-            </div>
+              </SelectContent>
+            </Select>
 
-            <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-white/10 bg-surface/60 px-3 py-2.5 backdrop-blur-sm transition-all hover:border-white/20">
-              <input
-                type="checkbox"
-                checked={isRemote}
-                onChange={(e) => setIsRemote(e.target.checked)}
-                className="size-3.5 accent-coral rounded"
-              />
-              <Globe className="size-3 text-white/40" />
-              <span className="text-xs text-white/50">Remote</span>
-            </label>
+            <button
+              type="button"
+              onClick={() => setIsRemote(!isRemote)}
+              className={cn(
+                "flex h-9 cursor-pointer items-center gap-2 rounded-md border px-3 text-sm backdrop-blur-sm transition-all",
+                isRemote
+                  ? "border-coral/30 bg-coral/10 text-coral"
+                  : "border-white/10 bg-surface/60 text-white/50 hover:border-white/20 hover:text-white/70",
+              )}
+            >
+              <Globe className="size-3.5" />
+              <span className="text-xs font-medium">Remote</span>
+            </button>
           </div>
         </motion.div>
 
@@ -531,76 +542,92 @@ export default function MarketplacePage() {
                 <SkeletonCard key={i} index={i} />
               ))}
             </motion.div>
-          ) : tab === "hire" ? (
-            listings.length > 0 ? (
-              <motion.div
-                key="listings"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-              >
-                {listings.map((listing, i) => (
-                  <ListingCard
-                    key={listing.id}
-                    index={i}
-                    id={listing.id}
-                    type={listing.type}
-                    title={listing.title}
-                    description={listing.description}
-                    category={listing.category}
-                    skills={listing.skills}
-                    priceType={listing.priceType}
-                    priceSol={listing.priceSol}
-                    isAvailable={listing.isAvailable}
-                    averageRating={listing.averageRating}
-                    totalRatings={listing.totalRatings}
-                    completedTasks={listing.completedTasks}
-                    featuredImage={listing.featuredImage}
-                    agent={listing.agent}
-                    corporation={listing.corporation}
-                    externalAgentName={listing.externalAgentName}
-                    externalAgentImage={listing.externalAgentImage}
-                    externalAgentUrl={listing.externalAgentUrl}
-                    externalMcpUrl={listing.externalMcpUrl}
-                    externalA2aUrl={listing.externalA2aUrl}
-                    creatorWallet={listing.user?.activeWallet?.address}
-                  />
-                ))}
-              </motion.div>
-            ) : (
-              <EmptyState message="No listings found. Try adjusting your filters." />
-            )
-          ) : tasks.length > 0 ? (
-            <motion.div
-              key="tasks"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-            >
-              {tasks.map((task, i) => (
-                <TaskCard
-                  key={task.id}
-                  index={i}
-                  id={task.id}
-                  title={task.title}
-                  description={task.description}
-                  category={task.category}
-                  status={task.status}
-                  budgetSol={task.budgetSol}
-                  isRemote={task.isRemote}
-                  deadline={task.deadline}
-                  bidCount={task._count?.bids ?? 0}
-                  createdAt={task.createdAt}
-                  tokenSymbol={task.tokenSymbol}
-                  featuredImage={task.featuredImage}
-                  posterWallet={task.poster?.activeWallet?.address}
-                />
-              ))}
-            </motion.div>
           ) : (
-            <EmptyState message="No open bounties right now. Check back soon!" />
+            (() => {
+              const showListings = tab === "all" || tab === "hire";
+              const showTasks = tab === "all" || tab === "bounties";
+              const hasListings = showListings && listings.length > 0;
+              const hasTasks = showTasks && tasks.length > 0;
+              const hasContent = hasListings || hasTasks;
+
+              if (!hasContent) {
+                return (
+                  <EmptyState
+                    message={
+                      tab === "hire"
+                        ? "No listings found. Try adjusting your filters."
+                        : tab === "bounties"
+                          ? "No open bounties right now. Check back soon!"
+                          : "No listings or bounties found. Try adjusting your filters."
+                    }
+                  />
+                );
+              }
+
+              return (
+                <motion.div
+                  key={tab}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                >
+                  {hasListings &&
+                    listings.map((listing, i) => (
+                      <ListingCard
+                        key={listing.id}
+                        index={i}
+                        id={listing.id}
+                        type={listing.type}
+                        title={listing.title}
+                        description={listing.description}
+                        category={listing.category}
+                        skills={listing.skills}
+                        priceType={listing.priceType}
+                        priceSol={listing.priceSol}
+                        isAvailable={listing.isAvailable}
+                        averageRating={listing.averageRating}
+                        totalRatings={listing.totalRatings}
+                        completedTasks={listing.completedTasks}
+                        featuredImage={listing.featuredImage}
+                        agent={listing.agent}
+                        corporation={listing.corporation}
+                        externalAgentName={listing.externalAgentName}
+                        externalAgentImage={listing.externalAgentImage}
+                        externalAgentUrl={listing.externalAgentUrl}
+                        externalMcpUrl={listing.externalMcpUrl}
+                        externalA2aUrl={listing.externalA2aUrl}
+                        creatorWallet={listing.user?.activeWallet?.address}
+                      />
+                    ))}
+                  {hasTasks &&
+                    tasks.map((task, i) => (
+                      <TaskCard
+                        key={task.id}
+                        index={i}
+                        id={task.id}
+                        title={task.title}
+                        description={task.description}
+                        category={task.category}
+                        status={task.status}
+                        budgetSol={task.budgetSol}
+                        isRemote={task.isRemote}
+                        deadline={task.deadline}
+                        bidCount={task._count?.bids ?? 0}
+                        createdAt={task.createdAt}
+                        tokenSymbol={task.tokenSymbol}
+                        featuredImage={task.featuredImage}
+                        posterWallet={task.poster?.activeWallet?.address}
+                        creatorFees={
+                          task.tokenMint
+                            ? taskEarnings[task.tokenMint]
+                            : undefined
+                        }
+                      />
+                    ))}
+                </motion.div>
+              );
+            })()
           )}
         </AnimatePresence>
 
@@ -620,7 +647,11 @@ export default function MarketplacePage() {
               <span className="text-white/50">
                 {pagination.total.toLocaleString()}
               </span>{" "}
-              {tab === "hire" ? "listings" : "bounties"}
+              {tab === "hire"
+                ? "listings"
+                : tab === "bounties"
+                  ? "bounties"
+                  : "items"}
             </p>
             <div className="flex items-center gap-1">
               <button
@@ -759,6 +790,157 @@ function EmptyState({ message }: { message: string }) {
         <Search className="size-8 text-white/15" />
       </div>
       <p className="mt-4 text-lg font-medium text-white/30">{message}</p>
+    </motion.div>
+  );
+}
+
+// ── How It Works — animated stepper ──────────────────────────────────
+
+const STEPS = [
+  {
+    icon: Target,
+    title: "Post a Task",
+    step: 1,
+    color: "var(--color-coral, #ff6b6b)",
+    twIcon: "text-coral",
+  },
+  {
+    icon: Coins,
+    title: "Mint Token",
+    step: 2,
+    color: "#c084fc",
+    twIcon: "text-purple-400",
+  },
+  {
+    icon: TrendingUp,
+    title: "Fees Grow",
+    step: 3,
+    color: "#34d399",
+    twIcon: "text-emerald-400",
+  },
+  {
+    icon: Zap,
+    title: "Earn",
+    step: 4,
+    color: "#fbbf24",
+    twIcon: "text-amber-400",
+  },
+] as const;
+
+const CYCLE_MS = 2400;
+
+function HowItWorksSteps() {
+  const [active, setActive] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(
+      () => setActive((p) => (p + 1) % STEPS.length),
+      CYCLE_MS,
+    );
+    return () => clearInterval(id);
+  }, []);
+
+  const elements: React.ReactNode[] = [];
+  STEPS.forEach((s, i) => {
+    const isActive = active === i;
+    const Icon = s.icon;
+
+    elements.push(
+      <motion.div
+        key={`step-${s.step}`}
+        className="flex shrink-0 items-center gap-2"
+        animate={{
+          scale: isActive ? 1.08 : 1,
+          opacity: isActive ? 1 : 0.55,
+        }}
+        transition={{ type: "spring", stiffness: 300, damping: 25 }}
+      >
+        <div className="relative flex size-7 shrink-0 items-center justify-center rounded-lg bg-white/5">
+          {isActive && (
+            <motion.div
+              layoutId="step-glow"
+              className="absolute inset-0 rounded-lg"
+              style={{
+                boxShadow: `0 0 12px 2px ${s.color}40, inset 0 0 8px ${s.color}20`,
+                border: `1px solid ${s.color}50`,
+                background: `${s.color}10`,
+              }}
+              transition={{ type: "spring", stiffness: 200, damping: 22 }}
+            />
+          )}
+          <Icon className={cn("size-4 relative z-10", s.twIcon)} />
+        </div>
+        <div className="min-w-0">
+          <span
+            className={cn(
+              "block text-[10px] font-bold uppercase tracking-wider transition-colors duration-500",
+              isActive ? "text-white/50" : "text-white/25",
+            )}
+          >
+            {s.step}
+          </span>
+          <span
+            className={cn(
+              "block truncate text-xs font-medium transition-colors duration-500",
+              isActive ? "text-white" : "text-white/50",
+            )}
+          >
+            {s.title}
+          </span>
+        </div>
+      </motion.div>,
+    );
+
+    if (i < STEPS.length - 1) {
+      elements.push(
+        <div
+          key={`line-${i}`}
+          className="relative mx-1 h-px flex-1 min-w-6 overflow-hidden sm:mx-3"
+        >
+          <div className="absolute inset-0 bg-white/8" />
+          <motion.div
+            className="absolute inset-y-0 left-0 h-full"
+            style={{
+              background: `linear-gradient(90deg, ${STEPS[i].color}80, ${STEPS[i + 1].color}80)`,
+            }}
+            animate={{
+              width: active >= i ? "100%" : "0%",
+              opacity: active === i ? 1 : active > i ? 0.5 : 0.15,
+            }}
+            transition={{
+              duration: (CYCLE_MS / 1000) * 0.7,
+              ease: "easeInOut",
+            }}
+          />
+          {active === i && (
+            <motion.div
+              className="absolute top-1/2 -translate-y-1/2 size-1.5 rounded-full"
+              style={{
+                background: STEPS[i + 1].color,
+                boxShadow: `0 0 6px ${STEPS[i + 1].color}`,
+              }}
+              initial={{ left: "0%" }}
+              animate={{ left: "100%" }}
+              transition={{
+                duration: (CYCLE_MS / 1000) * 0.7,
+                ease: "easeInOut",
+              }}
+              key={`dot-${active}`}
+            />
+          )}
+        </div>,
+      );
+    }
+  });
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: 0.15 }}
+      className="mx-auto mt-8 flex w-full max-w-2xl items-center justify-center rounded-xl border border-white/5 bg-surface/30 px-5 py-4 backdrop-blur-sm"
+    >
+      {elements}
     </motion.div>
   );
 }

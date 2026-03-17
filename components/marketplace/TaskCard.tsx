@@ -67,6 +67,7 @@ interface TaskCardProps {
   featuredImage?: string | null;
   posterWallet?: string | null;
   posterName?: string | null;
+  creatorFees?: number;
 }
 
 export default function TaskCard({
@@ -85,7 +86,9 @@ export default function TaskCard({
   featuredImage,
   posterWallet,
   posterName,
+  creatorFees,
 }: TaskCardProps) {
+  const [imgError, setImgError] = useState(false);
   const statusConfig = STATUS_STYLES[status] ?? STATUS_STYLES.open;
   const statusLabel =
     TASK_STATUS_LABELS[status as keyof typeof TASK_STATUS_LABELS] ?? status;
@@ -142,34 +145,58 @@ export default function TaskCard({
             )}
           </div>
           <div className="flex items-center gap-1.5">
-            {hasToken && budgetSol <= 0 && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-purple-400/60">
-                <TrendingUp className="size-2.5" />
-                fee bounty
-              </span>
-            )}
-            {budgetSol > 0 && (
-              <div className="text-right">
-                <span className="text-lg font-bold text-coral">
-                  {budgetSol}
-                </span>
-                <span className="ml-1 text-xs font-medium text-coral/60">
-                  SOL
-                </span>
-              </div>
-            )}
+            {(() => {
+              const budget = Number(budgetSol ?? 0);
+              const fees = creatorFees ?? 0;
+              const total = budget + fees;
+
+              if (total > 0) {
+                return (
+                  <div className="text-right">
+                    <span className="text-lg font-bold text-coral">
+                      {total < 0.01 ? total.toFixed(4) : total.toFixed(2)}
+                    </span>
+                    <span className="ml-1 text-xs font-medium text-coral/60">
+                      SOL
+                    </span>
+                    {hasToken && fees > 0 && (
+                      <p className="text-[9px] text-[#6FEC06]/60">
+                        +{fees < 0.01 ? fees.toFixed(4) : fees.toFixed(2)} fees
+                      </p>
+                    )}
+                  </div>
+                );
+              }
+
+              if (hasToken) {
+                return (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-purple-400/60">
+                    <TrendingUp className="size-2.5" />
+                    fee bounty
+                  </span>
+                );
+              }
+
+              return null;
+            })()}
           </div>
         </div>
 
         {/* Title + Description */}
-        <div className={cn("mt-3 flex gap-3", featuredImage && "items-start")}>
-          {featuredImage && (
+        <div
+          className={cn(
+            "mt-3 flex gap-3",
+            featuredImage && !imgError && "items-start",
+          )}
+        >
+          {featuredImage && !imgError && (
             <div className="size-10 shrink-0 overflow-hidden rounded-lg border border-white/10">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={featuredImage}
                 alt=""
                 className="size-full object-cover"
+                onError={() => setImgError(true)}
               />
             </div>
           )}
