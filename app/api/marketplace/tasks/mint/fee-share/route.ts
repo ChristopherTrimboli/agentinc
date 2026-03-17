@@ -5,9 +5,8 @@ import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
 import { getConnection } from "@/lib/constants/solana";
 import { isValidPublicKey, validatePublicKey } from "@/lib/utils/validation";
 import { rateLimitByUser } from "@/lib/rateLimit";
-import prisma from "@/lib/prisma";
 
-const FALLBACK_JITO_TIP_LAMPORTS = 0.005 * LAMPORTS_PER_SOL;
+const FALLBACK_JITO_TIP_LAMPORTS = 0.015 * LAMPORTS_PER_SOL;
 
 /**
  * Configure fee share for a task token so 100% of creator fees
@@ -52,18 +51,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: "Invalid or missing tokenMint" },
         { status: 400 },
-      );
-    }
-
-    // Verify the caller owns a task associated with this token mint
-    const task = await prisma.marketplaceTask.findFirst({
-      where: { tokenMint, posterId: auth.userId },
-      select: { id: true },
-    });
-    if (!task) {
-      return NextResponse.json(
-        { error: "No task found for this token mint owned by you" },
-        { status: 403 },
       );
     }
 

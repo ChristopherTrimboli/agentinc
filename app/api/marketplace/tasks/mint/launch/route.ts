@@ -4,7 +4,6 @@ import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
 import { getConnection } from "@/lib/constants/solana";
 import { isValidPublicKey, validatePublicKey } from "@/lib/utils/validation";
 import { rateLimitByUser } from "@/lib/rateLimit";
-import prisma from "@/lib/prisma";
 
 export async function POST(req: NextRequest) {
   const auth = await requireAuth(req);
@@ -68,18 +67,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: "metadataUrl must be a string of 500 chars or less" },
         { status: 400 },
-      );
-    }
-
-    // Verify the caller owns a task with this token mint
-    const task = await prisma.marketplaceTask.findFirst({
-      where: { tokenMint, posterId: auth.userId },
-      select: { id: true },
-    });
-    if (!task) {
-      return NextResponse.json(
-        { error: "No task found for this token mint owned by you" },
-        { status: 403 },
       );
     }
 
