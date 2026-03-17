@@ -26,6 +26,7 @@ import {
   Calendar,
   User,
   Droplets,
+  ClipboardList,
 } from "lucide-react";
 import { formatPrice } from "@/lib/utils/formatting";
 import {
@@ -73,7 +74,20 @@ interface ExploreCorporation {
   creatorWallet?: string | null;
 }
 
-type ExploreItem = ExploreAgent | ExploreCorporation;
+interface ExploreTask {
+  id: string;
+  name: string;
+  description: string | null;
+  category: string;
+  featuredImage: string | null;
+  tokenMint: string | null;
+  tokenSymbol: string | null;
+  status: string;
+  type: "task";
+  creatorWallet?: string | null;
+}
+
+type ExploreItem = ExploreAgent | ExploreCorporation | ExploreTask;
 
 interface PriceData {
   price: number;
@@ -156,7 +170,9 @@ function PriceTicker({
               href={
                 item.type === "agent"
                   ? `/agent/${item.tokenMint || item.id}`
-                  : `/corporation/${(item as { tokenMint?: string | null }).tokenMint || item.id}`
+                  : item.type === "task"
+                    ? `/dashboard/marketplace/tasks/${item.id}`
+                    : `/corporation/${(item as { tokenMint?: string | null }).tokenMint || item.id}`
               }
               className="flex items-center gap-2 px-3 py-1 hover:bg-white/5 rounded-lg transition-colors"
             >
@@ -173,11 +189,15 @@ function PriceTicker({
                   className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
                     item.type === "corporation"
                       ? "bg-[#120557]"
-                      : "bg-[#6FEC06]/20"
+                      : item.type === "task"
+                        ? "bg-amber-500/20"
+                        : "bg-[#6FEC06]/20"
                   }`}
                 >
                   {item.type === "corporation" ? (
                     <Building2 className="w-3 h-3 text-white/60" />
+                  ) : item.type === "task" ? (
+                    <ClipboardList className="w-3 h-3 text-amber-400" />
                   ) : (
                     <Bot className="w-3 h-3 text-[#6FEC06]" />
                   )}
@@ -345,8 +365,11 @@ function ItemCard({
   price: PriceData | null;
 }) {
   const isAgent = item.type === "agent";
+  const isTask = item.type === "task";
   const agent = isAgent ? (item as ExploreAgent) : null;
-  const corp = !isAgent ? (item as ExploreCorporation) : null;
+  const corp =
+    item.type === "corporation" ? (item as ExploreCorporation) : null;
+  const task = isTask ? (item as ExploreTask) : null;
   const isPositive = (price?.priceChange24h || 0) >= 0;
   const rarityStyle = agent?.rarity
     ? rarityColors[agent.rarity]
@@ -410,6 +433,13 @@ function ItemCard({
             fill
             className="object-cover group-hover:scale-105 transition-transform duration-500 rounded-t-2xl"
           />
+        ) : task?.featuredImage ? (
+          <Image
+            src={task.featuredImage}
+            alt={item.name}
+            fill
+            className="object-cover group-hover:scale-105 transition-transform duration-500 rounded-t-2xl"
+          />
         ) : (
           <div
             className="absolute inset-0 flex items-center justify-center"
@@ -425,6 +455,8 @@ function ItemCard({
               <span className="text-6xl">{corp.logo}</span>
             ) : isAgent ? (
               <Bot className="w-16 h-16 text-[#6FEC06]/40" />
+            ) : isTask ? (
+              <ClipboardList className="w-16 h-16 text-amber-400/40" />
             ) : (
               <Building2 className="w-16 h-16 text-white/20" />
             )}
@@ -485,10 +517,12 @@ function ItemCard({
               className={`text-[10px] uppercase tracking-wider font-medium px-2 py-0.5 rounded-full ${
                 isAgent
                   ? "bg-[#6FEC06]/10 text-[#6FEC06]"
-                  : "bg-[#120557] text-white/60"
+                  : isTask
+                    ? "bg-amber-500/10 text-amber-400"
+                    : "bg-[#120557] text-white/60"
               }`}
             >
-              {isAgent ? "Agent" : "Corporation"}
+              {isAgent ? "Agent" : isTask ? "Task" : "Corporation"}
             </span>
             {corp && (
               <span className="text-[10px] text-white/40">
@@ -519,11 +553,17 @@ function ItemCard({
             href={
               isAgent
                 ? `/agent/${item.tokenMint || item.id}`
-                : `/corporation/${item.tokenMint || item.id}`
+                : isTask
+                  ? `/dashboard/marketplace/tasks/${item.id}`
+                  : `/corporation/${item.tokenMint || item.id}`
             }
             className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#6FEC06]/10 border border-[#6FEC06]/30 rounded-xl text-[#6FEC06] text-sm font-medium hover:bg-[#6FEC06]/20 hover:border-[#6FEC06]/50 transition-all"
           >
-            {isAgent ? "View Profile" : "View Corporation"}
+            {isAgent
+              ? "View Profile"
+              : isTask
+                ? "View Task"
+                : "View Corporation"}
           </Link>
         </div>
       </div>
@@ -542,9 +582,9 @@ export default function ExplorePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [globalFilter, setGlobalFilter] = useState("");
-  const [typeFilter, setTypeFilter] = useState<"all" | "agent" | "corporation">(
-    "all",
-  );
+  const [typeFilter, setTypeFilter] = useState<
+    "all" | "agent" | "corporation" | "task"
+  >("all");
 
   // TanStack Table state
   const [sorting, setSorting] = useState<SortingState>([
@@ -567,26 +607,21 @@ export default function ExplorePage() {
 
   // Combine items with price data for table
   const tableData = useMemo<TableItem[]>(() => {
-    // Only show minted items with tokenMint
-    const hasPrices = Object.keys(prices).length > 0;
     let data = items
       .filter((item) => item.tokenMint)
       .map((item) => {
         const priceData = item.tokenMint ? prices[item.tokenMint] : undefined;
         return {
           ...item,
-          price: priceData?.price,
+          price: priceData?.price ?? 0,
           priceChange24h: priceData?.priceChange24h,
-          marketCap: priceData?.marketCap,
-          volume24h: priceData?.volume24h,
-          liquidity: priceData?.liquidity,
-          earnings: priceData?.earnings,
+          marketCap: priceData?.marketCap ?? 0,
+          volume24h: priceData?.volume24h ?? 0,
+          liquidity: priceData?.liquidity ?? 0,
+          earnings: priceData?.earnings ?? 0,
         };
-      })
-      // Hide delisted tokens (0 market cap) once prices have loaded
-      .filter((item) => !hasPrices || (item.marketCap && item.marketCap > 0));
+      });
 
-    // Apply type filter
     if (typeFilter !== "all") {
       data = data.filter((item) => item.type === typeFilter);
     }
@@ -624,25 +659,35 @@ export default function ExplorePage() {
         cell: ({ row }) => {
           const item = row.original;
           const isAgent = item.type === "agent";
+          const isTask = item.type === "task";
           const agent = isAgent ? (item as ExploreAgent) : null;
-          const corp = !isAgent ? (item as ExploreCorporation) : null;
+          const corp =
+            item.type === "corporation" ? (item as ExploreCorporation) : null;
+          const task = isTask ? (item as ExploreTask) : null;
           const rarityStyle = agent?.rarity
             ? rarityColors[agent.rarity]
             : rarityColors.common;
 
+          const href = isAgent
+            ? `/agent/${item.tokenMint || item.id}`
+            : isTask
+              ? `/dashboard/marketplace/tasks/${item.id}`
+              : `/corporation/${item.tokenMint || item.id}`;
+
           return (
-            <Link
-              href={
-                isAgent
-                  ? `/agent/${item.tokenMint || item.id}`
-                  : `/corporation/${item.tokenMint || item.id}`
-              }
-              className="flex items-center gap-3 group/link"
-            >
+            <Link href={href} className="flex items-center gap-3 group/link">
               <div className="relative flex-shrink-0">
                 {agent?.imageUrl ? (
                   <Image
                     src={agent.imageUrl}
+                    alt={item.name}
+                    width={40}
+                    height={40}
+                    className="rounded-lg object-cover"
+                  />
+                ) : task?.featuredImage ? (
+                  <Image
+                    src={task.featuredImage}
                     alt={item.name}
                     width={40}
                     height={40}
@@ -653,7 +698,9 @@ export default function ExplorePage() {
                     className={`w-10 h-10 rounded-lg flex items-center justify-center ${
                       isAgent
                         ? "bg-gradient-to-br from-[#6FEC06]/20 to-[#120557]"
-                        : "bg-[#120557]"
+                        : isTask
+                          ? "bg-gradient-to-br from-amber-500/20 to-[#120557]"
+                          : "bg-[#120557]"
                     }`}
                     style={
                       corp?.color
@@ -665,6 +712,8 @@ export default function ExplorePage() {
                       <span className="text-lg">{corp.logo}</span>
                     ) : isAgent ? (
                       <Bot className="w-5 h-5 text-[#6FEC06]" />
+                    ) : isTask ? (
+                      <ClipboardList className="w-5 h-5 text-amber-400" />
                     ) : (
                       <Building2 className="w-5 h-5 text-white/60" />
                     )}
@@ -680,11 +729,18 @@ export default function ExplorePage() {
                 <span className="font-medium truncate group-hover/link:text-[#6FEC06] transition-colors block">
                   {item.name}
                 </span>
-                {item.tokenSymbol && (
-                  <span className="px-1.5 py-0.5 rounded bg-[#6FEC06]/10 text-[#6FEC06] text-[10px] font-medium inline-block mt-1">
-                    ${item.tokenSymbol}
-                  </span>
-                )}
+                <div className="flex items-center gap-1.5 mt-1">
+                  {item.tokenSymbol && (
+                    <span className="px-1.5 py-0.5 rounded bg-[#6FEC06]/10 text-[#6FEC06] text-[10px] font-medium">
+                      ${item.tokenSymbol}
+                    </span>
+                  )}
+                  {isTask && (
+                    <span className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 text-[10px] font-medium">
+                      Task
+                    </span>
+                  )}
+                </div>
               </div>
             </Link>
           );
@@ -1000,7 +1056,11 @@ export default function ExplorePage() {
         if (!res.ok) throw new Error("Failed to fetch explore data");
 
         const data = await res.json();
-        const allItems = [...data.agents, ...data.corporations];
+        const allItems = [
+          ...data.agents,
+          ...data.corporations,
+          ...(data.tasks ?? []),
+        ];
         setItems(allItems);
 
         if (data.tokenMints && data.tokenMints.length > 0) {
@@ -1137,31 +1197,38 @@ export default function ExplorePage() {
           <div className="flex gap-2 sm:gap-4">
             {/* Type filter */}
             <div className="flex rounded-lg sm:rounded-xl bg-[#0a0520]/80 border border-white/10 p-0.5 sm:p-1 shrink-0">
-              {(["all", "agent", "corporation"] as const).map((type) => (
-                <button
-                  key={type}
-                  onClick={() => setTypeFilter(type)}
-                  className={`px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-md sm:rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
-                    typeFilter === type
-                      ? "bg-[#6FEC06]/20 text-[#6FEC06]"
-                      : "text-white/50 hover:text-white"
-                  }`}
-                >
-                  {type === "all" ? (
-                    "All"
-                  ) : type === "agent" ? (
-                    <span className="flex items-center gap-1 sm:gap-1.5">
-                      <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                      <span className="hidden xs:inline">Agents</span>
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-1 sm:gap-1.5">
-                      <Building2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                      <span className="hidden xs:inline">Corps</span>
-                    </span>
-                  )}
-                </button>
-              ))}
+              {(["all", "agent", "corporation", "task"] as const).map(
+                (type) => (
+                  <button
+                    key={type}
+                    onClick={() => setTypeFilter(type)}
+                    className={`px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-md sm:rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
+                      typeFilter === type
+                        ? "bg-[#6FEC06]/20 text-[#6FEC06]"
+                        : "text-white/50 hover:text-white"
+                    }`}
+                  >
+                    {type === "all" ? (
+                      "All"
+                    ) : type === "agent" ? (
+                      <span className="flex items-center gap-1 sm:gap-1.5">
+                        <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        <span className="hidden xs:inline">Agents</span>
+                      </span>
+                    ) : type === "corporation" ? (
+                      <span className="flex items-center gap-1 sm:gap-1.5">
+                        <Building2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        <span className="hidden xs:inline">Corps</span>
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 sm:gap-1.5">
+                        <ClipboardList className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        <span className="hidden xs:inline">Tasks</span>
+                      </span>
+                    )}
+                  </button>
+                ),
+              )}
             </div>
 
             {/* View toggle */}
@@ -1323,6 +1390,8 @@ export default function ExplorePage() {
                 <Building2 className="w-12 h-12 text-[#6FEC06]" />
               ) : typeFilter === "agent" ? (
                 <Bot className="w-12 h-12 text-[#6FEC06]" />
+              ) : typeFilter === "task" ? (
+                <ClipboardList className="w-12 h-12 text-[#6FEC06]" />
               ) : (
                 <Zap className="w-12 h-12 text-[#6FEC06]" />
               )}
@@ -1332,7 +1401,9 @@ export default function ExplorePage() {
                 ? "No corporations found"
                 : typeFilter === "agent"
                   ? "No agents found"
-                  : "No items found"}
+                  : typeFilter === "task"
+                    ? "No task tokens found"
+                    : "No items found"}
             </h2>
             <p className="text-white/50 mb-8 max-w-md mx-auto">
               {globalFilter
@@ -1341,13 +1412,17 @@ export default function ExplorePage() {
                   ? "Be the first to incorporate a corporation on Agent Inc."
                   : typeFilter === "agent"
                     ? "Be the first to mint an agent on Agent Inc."
-                    : "Be the first to mint agents and incorporate corporations on Agent Inc."}
+                    : typeFilter === "task"
+                      ? "Create a task and launch a token on the marketplace."
+                      : "Be the first to mint agents and incorporate corporations on Agent Inc."}
             </p>
             <Link
               href={
                 typeFilter === "corporation"
                   ? "/dashboard/incorporate"
-                  : "/dashboard/mint"
+                  : typeFilter === "task"
+                    ? "/dashboard/marketplace/tasks/create"
+                    : "/dashboard/mint"
               }
               className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-[#6FEC06] to-[#4a9f10] rounded-full text-black font-semibold hover:opacity-90 transition-all shadow-lg shadow-[#6FEC06]/25"
             >
@@ -1355,6 +1430,11 @@ export default function ExplorePage() {
                 <>
                   <Building2 className="w-5 h-5" />
                   Incorporate First Corporation
+                </>
+              ) : typeFilter === "task" ? (
+                <>
+                  <ClipboardList className="w-5 h-5" />
+                  Create a Task
                 </>
               ) : (
                 <>

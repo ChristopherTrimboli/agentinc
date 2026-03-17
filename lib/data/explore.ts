@@ -56,17 +56,32 @@ export interface ExploreCorporation {
   creatorWallet: string | null;
 }
 
+export interface ExploreTask {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  featuredImage: string | null;
+  tokenMint: string | null;
+  tokenSymbol: string | null;
+  status: string;
+  type: "task";
+  creatorWallet: string | null;
+}
+
 export interface ExplorePagination {
   page: number;
   limit: number;
   totalAgents: number;
   totalCorporations: number;
+  totalTasks: number;
   totalPages: number;
 }
 
 export interface ExploreData {
   agents: ExploreAgent[];
   corporations: ExploreCorporation[];
+  tasks: ExploreTask[];
   tokenMints: string[];
   pagination: ExplorePagination;
   timestamp: number;
@@ -88,31 +103,57 @@ export async function fetchExploreData(
 
   const agentWhere = { isMinted: true, tokenMint: { not: null } } as const;
   const corpWhere = { tokenMint: { not: null } } as const;
+  const taskWhere = { tokenMint: { not: null } } as const;
 
   // Fetch counts + paginated data in parallel
-  const [agents, agentCount, corporationsWithCounts, corpCount] =
-    await Promise.all([
-      prisma.agent.findMany({
-        where: agentWhere,
-        orderBy: { launchedAt: "desc" },
-        include: {
-          corporation: { select: { name: true, logo: true } },
-        },
-        take: limit,
-        skip: offset,
-        cacheStrategy,
-      }),
-      prisma.agent.count({ where: agentWhere, cacheStrategy }),
-      prisma.corporation.findMany({
-        where: corpWhere,
-        orderBy: { launchedAt: "desc" },
-        include: { _count: { select: { agents: true } } },
-        take: limit,
-        skip: offset,
-        cacheStrategy,
-      }),
-      prisma.corporation.count({ where: corpWhere, cacheStrategy }),
-    ]);
+  const [
+    agents,
+    agentCount,
+    corporationsWithCounts,
+    corpCount,
+    tasks,
+    taskCount,
+  ] = await Promise.all([
+    prisma.agent.findMany({
+      where: agentWhere,
+      orderBy: { launchedAt: "desc" },
+      include: {
+        corporation: { select: { name: true, logo: true } },
+      },
+      take: limit,
+      skip: offset,
+      cacheStrategy,
+    }),
+    prisma.agent.count({ where: agentWhere, cacheStrategy }),
+    prisma.corporation.findMany({
+      where: corpWhere,
+      orderBy: { launchedAt: "desc" },
+      include: { _count: { select: { agents: true } } },
+      take: limit,
+      skip: offset,
+      cacheStrategy,
+    }),
+    prisma.corporation.count({ where: corpWhere, cacheStrategy }),
+    prisma.marketplaceTask.findMany({
+      where: taskWhere,
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        category: true,
+        featuredImage: true,
+        tokenMint: true,
+        tokenSymbol: true,
+        tokenLaunchWallet: true,
+        status: true,
+      },
+      take: limit,
+      skip: offset,
+      cacheStrategy,
+    }),
+    prisma.marketplaceTask.count({ where: taskWhere, cacheStrategy }),
+  ]);
 
   // Get unique token mints for price fetching
   const tokenMints = [
@@ -120,9 +161,10 @@ export async function fetchExploreData(
     ...corporationsWithCounts
       .filter((c) => c.tokenMint)
       .map((c) => c.tokenMint!),
+    ...tasks.filter((t) => t.tokenMint).map((t) => t.tokenMint!),
   ];
 
-  const totalItems = agentCount + corpCount;
+  const totalItems = agentCount + corpCount + taskCount;
 
   return {
     agents: (agents as AgentWithCorporation[]).map((agent) => ({
@@ -155,12 +197,25 @@ export async function fetchExploreData(
         creatorWallet: corp.launchWallet,
       }),
     ),
+    tasks: tasks.map((task) => ({
+      id: task.id,
+      name: task.title,
+      description: task.description,
+      category: task.category,
+      featuredImage: task.featuredImage,
+      tokenMint: task.tokenMint,
+      tokenSymbol: task.tokenSymbol,
+      status: task.status,
+      type: "task" as const,
+      creatorWallet: task.tokenLaunchWallet,
+    })),
     tokenMints,
     pagination: {
       page,
       limit,
       totalAgents: agentCount,
       totalCorporations: corpCount,
+      totalTasks: taskCount,
       totalPages: Math.ceil(totalItems / limit),
     },
     timestamp: Date.now(),
