@@ -131,6 +131,7 @@ export default function ListingDetail({
   const [listing, setListing] = useState<ListingDetailData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -169,12 +170,13 @@ export default function ListingDetail({
       listing.externalMcpUrl ||
       listing.externalA2aUrl
     );
-  const avatarSrc =
-    listing.featuredImage ??
-    listing.agent?.imageUrl ??
-    listing.externalAgentImage ??
-    listing.corporation?.logo ??
-    null;
+  const avatarSrc = imgError
+    ? null
+    : (listing.featuredImage ??
+      listing.agent?.imageUrl ??
+      listing.externalAgentImage ??
+      listing.corporation?.logo ??
+      null);
   const rarity = (listing.agent?.rarity?.toLowerCase() ?? "common") as Rarity;
   const rarityBadge = getRarityBadgeStyle(rarity);
   const rarityDetail = getRarityDetailStyle(rarity);
@@ -247,6 +249,7 @@ export default function ListingDetail({
                       ? `${rarityDetail.border}/50`
                       : "ring-white/20",
                   )}
+                  onError={() => setImgError(true)}
                 />
               ) : (
                 <div className="flex size-28 items-center justify-center rounded-2xl border-2 border-white/20 bg-white/5">

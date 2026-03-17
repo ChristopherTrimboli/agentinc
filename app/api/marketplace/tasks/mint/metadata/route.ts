@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { BagsSDK } from "@bagsfm/bags-sdk";
+import { put } from "@vercel/blob";
 import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
 import { getConnection } from "@/lib/constants/solana";
 import { rateLimitByUser } from "@/lib/rateLimit";
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { name, symbol, description, taskId } = body;
+    const { name, symbol, description, imageUrl, taskId } = body;
 
     if (
       !name ||
@@ -60,7 +61,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verify task ownership if taskId provided
     if (taskId && typeof taskId === "string") {
       const task = await prisma.marketplaceTask.findUnique({
         where: { id: taskId },
@@ -71,6 +71,48 @@ export async function POST(req: NextRequest) {
           { error: "You can only create metadata for your own tasks" },
           { status: 403 },
         );
+      }
+    }
+
+    // Handle image — upload base64 data URLs to Vercel Blob, pass through public URLs
+    let publicImageUrl = `${APP_BASE_URL}/logo.png`;
+
+    if (imageUrl && typeof imageUrl === "string") {
+      if (imageUrl.startsWith("data:")) {
+        const matches = imageUrl.match(/^data:([^;]+);base64,(.+)$/);
+        if (!matches) {
+          return NextResponse.json(
+            { error: "Invalid image data URL format" },
+            { status: 400 },
+          );
+        }
+        const mimeType = matches[1];
+        const base64Data = matches[2];
+        const imageBuffer = Buffer.from(base64Data, "base64");
+
+        if (imageBuffer.length > 5 * 1024 * 1024) {
+          return NextResponse.json(
+            { error: "Image must be less than 5MB" },
+            { status: 400 },
+          );
+        }
+
+        const ext = mimeType.split("/")[1] || "png";
+        const safeSymbolForFile = symbol
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, "");
+        const filename = `tasks/${Date.now()}-${safeSymbolForFile}.${ext}`;
+
+        const { url } = await put(filename, imageBuffer, {
+          access: "public",
+          contentType: mimeType,
+        });
+        publicImageUrl = url;
+      } else if (
+        imageUrl.startsWith("https://") ||
+        imageUrl.startsWith("http://")
+      ) {
+        publicImageUrl = imageUrl;
       }
     }
 
@@ -97,7 +139,7 @@ export async function POST(req: NextRequest) {
       .slice(0, 1000);
 
     const tokenInfoResponse = await sdk.tokenLaunch.createTokenInfoAndMetadata({
-      imageUrl: `${APP_BASE_URL}/logo.png`,
+      imageUrl: publicImageUrl,
       name: safeName,
       symbol: safeSymbol,
       description: safeDescription,
@@ -108,12 +150,14 @@ export async function POST(req: NextRequest) {
       tokenMint: tokenInfoResponse.tokenMint,
       tokenMetadata: tokenInfoResponse.tokenMetadata,
       tokenLaunch: tokenInfoResponse.tokenLaunch,
+      imageUrl: publicImageUrl,
     });
   } catch (error) {
     console.error("[Task Token Metadata] Error:", error);
-    return NextResponse.json(
-      { error: "Failed to create task token metadata" },
-      { status: 500 },
-    );
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "Failed to create task token metadata";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

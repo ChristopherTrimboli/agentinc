@@ -109,6 +109,7 @@ interface TaskResponse {
   createdAt: string;
   tokenMint: string | null;
   tokenSymbol: string | null;
+  featuredImage: string | null;
   _count: { bids: number };
   poster?: {
     id: string;
@@ -594,6 +595,7 @@ export default function MarketplacePage() {
                   bidCount={task._count?.bids ?? 0}
                   createdAt={task.createdAt}
                   tokenSymbol={task.tokenSymbol}
+                  featuredImage={task.featuredImage}
                   posterWallet={task.poster?.activeWallet?.address}
                   posterName={task.poster?.email}
                 />

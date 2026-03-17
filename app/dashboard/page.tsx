@@ -501,11 +501,9 @@ function ItemCard({
             {item.name}
           </h3>
 
-          {item.description && (
-            <p className="text-white/50 text-sm line-clamp-2 mb-3">
-              {item.description}
-            </p>
-          )}
+          <p className="text-white/50 text-sm line-clamp-2 mb-3 min-h-[2.5rem]">
+            {item.description || "\u00A0"}
+          </p>
         </div>
 
         {/* Price and button at bottom */}

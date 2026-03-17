@@ -5,6 +5,7 @@ import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
 import { getConnection } from "@/lib/constants/solana";
 import { isValidPublicKey, validatePublicKey } from "@/lib/utils/validation";
 import { rateLimitByUser } from "@/lib/rateLimit";
+import { TREASURY_ADDRESS } from "@/lib/x402/config";
 
 const FALLBACK_JITO_TIP_LAMPORTS = 0.015 * LAMPORTS_PER_SOL;
 
@@ -29,8 +30,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const treasuryAddress = process.env.SOL_TREASURY_ADDRESS;
-    if (!treasuryAddress) {
+    if (!TREASURY_ADDRESS) {
       return NextResponse.json(
         { error: "Treasury not configured" },
         { status: 500 },
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
 
     const walletPubkey = validatePublicKey(auth.walletAddress, "wallet");
     const tokenMintPubkey = validatePublicKey(tokenMint, "tokenMint");
-    const treasuryPubkey = new PublicKey(treasuryAddress);
+    const treasuryPubkey = validatePublicKey(TREASURY_ADDRESS, "treasury");
 
     const partnerWallet = process.env.BAGS_PARTNER_WALLET;
     const partnerConfig = process.env.BAGS_PARTNER_KEY;
@@ -81,8 +81,19 @@ export async function POST(req: NextRequest) {
       configOptions.partnerConfig = new PublicKey(partnerConfig);
     }
 
-    const configResult =
-      await sdk.config.createBagsFeeShareConfig(configOptions);
+    let configResult;
+    try {
+      configResult = await sdk.config.createBagsFeeShareConfig(configOptions);
+    } catch (sdkError: unknown) {
+      console.error("[Task Token Fee Share] SDK Error details:", sdkError);
+      if (sdkError && typeof sdkError === "object" && "data" in sdkError) {
+        console.error(
+          "[Task Token Fee Share] Error data:",
+          JSON.stringify((sdkError as { data: unknown }).data, null, 2),
+        );
+      }
+      throw sdkError;
+    }
 
     const transactions = (configResult.transactions || []).map((tx) => ({
       transaction: Buffer.from(tx.serialize()).toString("base64"),
@@ -150,9 +161,10 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error("[Task Token Fee Share] Error:", error);
-    return NextResponse.json(
-      { error: "Failed to create task token fee config" },
-      { status: 500 },
-    );
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "Failed to create task token fee config";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

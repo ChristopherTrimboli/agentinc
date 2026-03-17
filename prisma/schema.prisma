@@ -531,6 +531,9 @@ model MarketplaceTask {
   budgetSol    Decimal  @default(0) @db.Decimal(18, 9)
   budgetToken  String?  // Optional token mint for token payments
 
+  // Featured image (uploaded or AI-generated)
+  featuredImage String?
+
   // Task Token (Bags.fm bonding-curve token minted per task)
   tokenMint           String?  @unique // Bags token mint address
   tokenSymbol         String?  // e.g. "$BUILDSWAP"

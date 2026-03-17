@@ -3,6 +3,8 @@
 import { useState, useCallback, useRef } from "react";
 import { useAuth } from "@/lib/auth/AuthProvider";
 import { useActiveWalletAddress } from "@/lib/hooks/useActiveWalletAddress";
+import { useWalletBalance } from "@/lib/hooks/useWalletBalance";
+import { MINT_TX_FEE_ESTIMATE } from "@/lib/constants/mint";
 import {
   DEFAULT_TASK_TOKEN_LAUNCH_STEPS,
   type TaskTokenLaunchStep,
@@ -12,6 +14,7 @@ import {
 export function useMintTaskToken() {
   const { authFetch } = useAuth();
   const walletAddress = useActiveWalletAddress();
+  const { balance: walletBalance } = useWalletBalance(walletAddress);
 
   const [isLaunching, setIsLaunching] = useState(false);
   const isLaunchingRef = useRef(false);
@@ -36,6 +39,7 @@ export function useMintTaskToken() {
       name: string;
       symbol: string;
       description: string;
+      imageUrl?: string;
       initialBuyLamports?: number;
     }) => {
       if (isLaunchingRef.current) return null;
@@ -58,7 +62,20 @@ export function useMintTaskToken() {
       setIsLaunching(true);
 
       try {
-        // Step 1: Create metadata
+        // Step 1: Balance check
+        updateStep("balance", "loading");
+
+        const initialBuySol = (params.initialBuyLamports || 0) / 1e9;
+        const requiredBalance = initialBuySol + MINT_TX_FEE_ESTIMATE;
+
+        if (walletBalance !== null && walletBalance < requiredBalance) {
+          throw new Error(
+            `Insufficient balance. Need at least ${requiredBalance.toFixed(4)} SOL (${initialBuySol > 0 ? `${initialBuySol} SOL initial buy + ` : ""}~${MINT_TX_FEE_ESTIMATE} SOL fees). Current: ${walletBalance.toFixed(4)} SOL`,
+          );
+        }
+        updateStep("balance", "complete");
+
+        // Step 2: Create metadata
         updateStep("metadata", "loading");
 
         const metadataResponse = await authFetch(
@@ -69,6 +86,7 @@ export function useMintTaskToken() {
               name: params.name.slice(0, 32),
               symbol: params.symbol.slice(0, 10),
               description: params.description,
+              imageUrl: params.imageUrl,
             }),
           },
         );
@@ -80,7 +98,7 @@ export function useMintTaskToken() {
         const metadataData = await metadataResponse.json();
         updateStep("metadata", "complete");
 
-        // Step 2: Fee share config (treasury gets 100%)
+        // Step 3: Fee share config (treasury gets 100%)
         updateStep("feeShare", "loading");
 
         const feeShareResponse = await authFetch(
@@ -99,7 +117,6 @@ export function useMintTaskToken() {
         }
         const feeShareData = await feeShareResponse.json();
 
-        // Send fee share transactions
         if (feeShareData.transactions?.length > 0) {
           for (let i = 0; i < feeShareData.transactions.length; i++) {
             const txData = feeShareData.transactions[i];
@@ -123,7 +140,6 @@ export function useMintTaskToken() {
           }
         }
 
-        // Send fee share bundles
         if (feeShareData.bundles?.length > 0) {
           for (let b = 0; b < feeShareData.bundles.length; b++) {
             const bundle = feeShareData.bundles[b] as Array<{
@@ -148,7 +164,7 @@ export function useMintTaskToken() {
 
         updateStep("feeShare", "complete");
 
-        // Step 3: Get launch transaction
+        // Step 4: Get launch transaction
         updateStep("sign", "loading");
 
         const launchTxResponse = await authFetch(
@@ -173,7 +189,7 @@ export function useMintTaskToken() {
         const launchTxData = await launchTxResponse.json();
         updateStep("sign", "complete");
 
-        // Step 4: Broadcast
+        // Step 5: Broadcast
         updateStep("broadcast", "loading");
 
         const broadcastResponse = await authFetch(
@@ -199,6 +215,7 @@ export function useMintTaskToken() {
           tokenMetadata: metadataData.tokenMetadata,
           launchSignature: broadcastData.signature,
           configKey: feeShareData.meteoraConfigKey,
+          imageUrl: metadataData.imageUrl,
         };
 
         setLaunchResult(result);
@@ -220,7 +237,7 @@ export function useMintTaskToken() {
         setIsLaunching(false);
       }
     },
-    [walletAddress, authFetch, updateStep],
+    [walletAddress, walletBalance, authFetch, updateStep],
   );
 
   const reset = useCallback(() => {
@@ -237,6 +254,7 @@ export function useMintTaskToken() {
     launchSteps,
     launchResult,
     walletAddress,
+    walletBalance,
     launchTaskToken,
     reset,
     setLaunchError,

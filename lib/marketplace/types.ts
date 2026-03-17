@@ -130,6 +130,7 @@ export interface CreateTaskInput {
   location?: string;
   isRemote?: boolean;
   deadline?: string;
+  featuredImage?: string;
   tokenMint?: string;
   tokenSymbol?: string;
   tokenMetadata?: string;
@@ -147,6 +148,7 @@ export type EscrowResult =
 // ── Task Token Types ────────────────────────────────────────────────────
 
 export const TASK_TOKEN_LAUNCH_STEP_IDS = {
+  BALANCE: "balance",
   METADATA: "metadata",
   FEE_SHARE: "feeShare",
   SIGN: "sign",
@@ -154,6 +156,7 @@ export const TASK_TOKEN_LAUNCH_STEP_IDS = {
 } as const;
 
 export const DEFAULT_TASK_TOKEN_LAUNCH_STEPS = [
+  { id: TASK_TOKEN_LAUNCH_STEP_IDS.BALANCE, label: "Checking wallet balance" },
   { id: TASK_TOKEN_LAUNCH_STEP_IDS.METADATA, label: "Creating token metadata" },
   { id: TASK_TOKEN_LAUNCH_STEP_IDS.FEE_SHARE, label: "Configuring fee share" },
   { id: TASK_TOKEN_LAUNCH_STEP_IDS.SIGN, label: "Signing launch transaction" },
@@ -173,4 +176,5 @@ export interface TaskTokenLaunchResult {
   tokenMetadata: string;
   launchSignature: string;
   configKey: string;
+  imageUrl?: string;
 }

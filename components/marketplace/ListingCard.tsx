@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -126,7 +127,8 @@ export default function ListingCard(props: ListingCardProps) {
   const walletAddress =
     creatorWallet ?? agent?.createdBy?.activeWallet?.address ?? null;
 
-  const avatarSrc = getAvatarSrc(props);
+  const [imgError, setImgError] = useState(false);
+  const avatarSrc = imgError ? null : getAvatarSrc(props);
   const {
     label: typeLabel,
     icon: TypeIcon,
@@ -143,11 +145,12 @@ export default function ListingCard(props: ListingCardProps) {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: Math.min(index * 0.05, 0.4) }}
+      className="h-full"
     >
       <Link
         href={`/dashboard/marketplace/${id}`}
         className={cn(
-          "group relative block rounded-2xl border bg-surface/80 p-4 transition-all duration-300",
+          "group relative flex h-full flex-col rounded-2xl border bg-surface/80 p-4 transition-all duration-300",
           "hover:scale-[1.02] hover:-translate-y-0.5",
           rarity !== "common"
             ? `${RARITY_BADGE_STYLES[rarity].border} ${RARITY_GLOW[rarity]}`
@@ -179,6 +182,7 @@ export default function ListingCard(props: ListingCardProps) {
                   "size-12 rounded-xl object-cover ring-2",
                   RARITY_RING[rarity] ?? RARITY_RING.common,
                 )}
+                onError={() => setImgError(true)}
               />
             ) : (
               <div className="flex size-12 items-center justify-center rounded-xl bg-white/5 ring-2 ring-white/10">
@@ -236,28 +240,26 @@ export default function ListingCard(props: ListingCardProps) {
         </div>
 
         {/* Description */}
-        <p className="mt-2.5 line-clamp-2 text-xs leading-relaxed text-white/50">
+        <p className="mt-2.5 line-clamp-2 min-h-[2.25rem] text-xs leading-relaxed text-white/50">
           {description}
         </p>
 
         {/* Skills */}
-        {visibleSkills.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {visibleSkills.map((skill) => (
-              <span
-                key={skill}
-                className="rounded-md bg-white/5 px-2 py-0.5 text-[10px] font-medium text-white/60"
-              >
-                {skill}
-              </span>
-            ))}
-            {extraSkillCount > 0 && (
-              <span className="rounded-md bg-white/5 px-2 py-0.5 text-[10px] text-white/30">
-                +{extraSkillCount}
-              </span>
-            )}
-          </div>
-        )}
+        <div className="mt-3 flex min-h-[1.375rem] flex-wrap gap-1.5">
+          {visibleSkills.map((skill) => (
+            <span
+              key={skill}
+              className="rounded-md bg-white/5 px-2 py-0.5 text-[10px] font-medium text-white/60"
+            >
+              {skill}
+            </span>
+          ))}
+          {extraSkillCount > 0 && (
+            <span className="rounded-md bg-white/5 px-2 py-0.5 text-[10px] text-white/30">
+              +{extraSkillCount}
+            </span>
+          )}
+        </div>
 
         {/* Creator */}
         {walletAddress && (
@@ -274,7 +276,7 @@ export default function ListingCard(props: ListingCardProps) {
         )}
 
         {/* Footer */}
-        <div className="mt-3 flex items-center justify-between border-t border-white/5 pt-3">
+        <div className="mt-auto flex items-center justify-between border-t border-white/5 pt-3">
           <span className="text-sm font-bold text-coral">
             {priceSol !== null ? `${priceSol} SOL` : "Bidding"}
           </span>

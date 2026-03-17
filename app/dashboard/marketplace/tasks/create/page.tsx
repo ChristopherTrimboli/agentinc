@@ -22,6 +22,14 @@ import {
   ExternalLink,
   HelpCircle,
   Info,
+  Wand2,
+  Upload,
+  RefreshCw,
+  Image as ImageIcon,
+  Sparkles,
+  PenLine,
+  Wallet,
+  AlertCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -39,6 +47,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useMintTaskToken } from "@/lib/hooks/useMintTaskToken";
 import { getBagsFmUrl } from "@/lib/constants/urls";
+import { MINT_TX_FEE_ESTIMATE } from "@/lib/constants/mint";
 
 interface ListingContext {
   id: string;
@@ -100,6 +109,13 @@ function CreateTaskPage() {
   const [userEditedTokenName, setUserEditedTokenName] = useState(false);
   const [userEditedTokenSymbol, setUserEditedTokenSymbol] = useState(false);
   const taskToken = useMintTaskToken();
+
+  // Task image state
+  const [taskImageUrl, setTaskImageUrl] = useState("");
+  const [imageMode, setImageMode] = useState<"generate" | "upload">("generate");
+  const [customImagePrompt, setCustomImagePrompt] = useState("");
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   const [listingContext, setListingContext] = useState<ListingContext | null>(
     null,
@@ -175,6 +191,69 @@ function CreateTaskPage() {
     );
   }
 
+  async function generateTaskImage() {
+    if (!authenticated) return login();
+    setIsGeneratingImage(true);
+    try {
+      const res = await authFetch(
+        "/api/marketplace/tasks/mint/generate-image",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            name: tokenName.trim() || title.trim(),
+            description: description.trim().slice(0, 200),
+            customPrompt: customImagePrompt.trim() || undefined,
+          }),
+        },
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to generate image");
+      }
+      const data = await res.json();
+      setTaskImageUrl(data.imageUrl);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to generate image");
+    } finally {
+      setIsGeneratingImage(false);
+    }
+  }
+
+  async function uploadTaskImage(file: File) {
+    if (!authenticated) return login();
+    setIsUploadingImage(true);
+    try {
+      const reader = new FileReader();
+      const base64 = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve((reader.result as string).split(",")[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const res = await authFetch(
+        "/api/marketplace/tasks/mint/generate-image",
+        {
+          method: "POST",
+          body: JSON.stringify({
+            name: tokenName.trim() || title.trim() || "task",
+            uploadedImage: base64,
+            contentType: file.type,
+          }),
+        },
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to upload image");
+      }
+      const data = await res.json();
+      setTaskImageUrl(data.imageUrl);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to upload image");
+    } finally {
+      setIsUploadingImage(false);
+    }
+  }
+
   const milestoneTotal = milestones.reduce(
     (sum, m) => sum + (parseFloat(m.amountSol) || 0),
     0,
@@ -231,6 +310,7 @@ function CreateTaskPage() {
           name: tokenName.trim().slice(0, 32),
           symbol: tokenSymbol.trim().slice(0, 10),
           description: `Task Token: ${title.trim()} — ${description.trim().slice(0, 500)}`,
+          imageUrl: taskImageUrl || undefined,
         });
 
         if (!result) {
@@ -254,6 +334,7 @@ function CreateTaskPage() {
         requirements,
         budgetSol: budgetNum,
         isRemote,
+        featuredImage: taskImageUrl || undefined,
         ...(location.trim() && { location: location.trim() }),
         ...(deadline && { deadline }),
         ...(listingId && { listingId }),
@@ -334,38 +415,36 @@ function CreateTaskPage() {
             completes the task. Both humans and AI agents can pick it up.
           </p>
 
-          {/* How it works — visible on desktop side panel */}
-          <div className="mt-6 hidden space-y-3 lg:block">
-            <div className="flex items-start gap-2.5">
-              <div className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-purple-500/10 text-[10px] font-bold text-purple-400">
-                1
-              </div>
+          {/* How Task Tokens work — visible on desktop side panel */}
+          <div className="mt-6 hidden space-y-2 lg:block">
+            <div className="mb-2.5 flex items-center gap-2">
+              <Info className="size-3.5 text-purple-400" />
+              <h3 className="text-xs font-semibold text-white/50">
+                How Task Tokens work
+              </h3>
+            </div>
+            <div className="flex items-start gap-2.5 rounded-lg bg-white/[0.03] p-2.5">
+              <Coins className="mt-0.5 size-3.5 shrink-0 text-purple-400" />
               <p className="text-xs leading-relaxed text-white/30">
-                Describe the task and set optional SOL escrow
+                Token launches on Bags.fm with its own bonding curve
               </p>
             </div>
-            <div className="flex items-start gap-2.5">
-              <div className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-purple-500/10 text-[10px] font-bold text-purple-400">
-                2
-              </div>
+            <div className="flex items-start gap-2.5 rounded-lg bg-white/[0.03] p-2.5">
+              <Zap className="mt-0.5 size-3.5 shrink-0 text-emerald-400" />
               <p className="text-xs leading-relaxed text-white/30">
-                A token launches on Bags.fm with its own bonding curve
+                Anyone (humans or AI) can buy/sell to speculate on the task
               </p>
             </div>
-            <div className="flex items-start gap-2.5">
-              <div className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-purple-500/10 text-[10px] font-bold text-purple-400">
-                3
-              </div>
+            <div className="flex items-start gap-2.5 rounded-lg bg-white/[0.03] p-2.5">
+              <Shield className="mt-0.5 size-3.5 shrink-0 text-coral" />
               <p className="text-xs leading-relaxed text-white/30">
-                Trading fees accumulate as the bounty pool
+                100% of creator fees flow into the bounty pool
               </p>
             </div>
-            <div className="flex items-start gap-2.5">
-              <div className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-purple-500/10 text-[10px] font-bold text-purple-400">
-                4
-              </div>
+            <div className="flex items-start gap-2.5 rounded-lg bg-white/[0.03] p-2.5">
+              <CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-amber-400" />
               <p className="text-xs leading-relaxed text-white/30">
-                Whoever completes the task gets all fees + escrow
+                On approval, all fees + escrow paid to worker
               </p>
             </div>
           </div>
@@ -942,46 +1021,269 @@ function CreateTaskPage() {
                         </p>
                       </div>
 
-                      <div className="rounded-xl border border-purple-500/10 bg-purple-500/[0.03] p-4">
+                      {/* ── Task Image ─────────────────────────── */}
+                      <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
                         <div className="mb-3 flex items-center gap-2">
-                          <Info className="size-4 text-purple-400" />
+                          <ImageIcon className="size-4 text-coral" />
                           <h3 className="text-sm font-semibold text-white/70">
-                            How Task Tokens work
+                            Token Image
                           </h3>
                         </div>
-                        <div className="grid gap-2 sm:grid-cols-2">
-                          <div className="flex items-start gap-2 rounded-lg bg-white/[0.03] p-2.5">
-                            <Coins className="mt-0.5 size-3.5 shrink-0 text-purple-400" />
-                            <p className="text-xs leading-relaxed text-white/40">
-                              Token launches on Bags.fm with its own bonding
-                              curve
-                            </p>
-                          </div>
-                          <div className="flex items-start gap-2 rounded-lg bg-white/[0.03] p-2.5">
-                            <Zap className="mt-0.5 size-3.5 shrink-0 text-emerald-400" />
-                            <p className="text-xs leading-relaxed text-white/40">
-                              Anyone (humans or AI) can buy/sell to speculate on
-                              the task
-                            </p>
-                          </div>
-                          <div className="flex items-start gap-2 rounded-lg bg-white/[0.03] p-2.5">
-                            <Shield className="mt-0.5 size-3.5 shrink-0 text-coral" />
-                            <p className="text-xs leading-relaxed text-white/40">
-                              100% of creator fees flow into the bounty pool
-                            </p>
-                          </div>
-                          <div className="flex items-start gap-2 rounded-lg bg-white/[0.03] p-2.5">
-                            <CheckCircle2 className="mt-0.5 size-3.5 shrink-0 text-amber-400" />
-                            <p className="text-xs leading-relaxed text-white/40">
-                              On approval, all fees
-                              {budgetNum > 0
-                                ? ` + ${budgetNum} SOL escrow`
-                                : ""}{" "}
-                              paid to worker
-                            </p>
-                          </div>
+
+                        <div className="mb-3 flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setImageMode("generate")}
+                            className={cn(
+                              "flex flex-1 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition-all",
+                              imageMode === "generate"
+                                ? "border-coral/30 bg-coral/10 text-coral"
+                                : "border-white/10 bg-white/5 text-white/40 hover:text-white/60",
+                            )}
+                          >
+                            <Wand2 className="size-3.5" />
+                            AI Generate
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setImageMode("upload")}
+                            className={cn(
+                              "flex flex-1 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition-all",
+                              imageMode === "upload"
+                                ? "border-coral/30 bg-coral/10 text-coral"
+                                : "border-white/10 bg-white/5 text-white/40 hover:text-white/60",
+                            )}
+                          >
+                            <Upload className="size-3.5" />
+                            Upload
+                          </button>
                         </div>
+
+                        {imageMode === "generate" && (
+                          <div className="space-y-3">
+                            <div>
+                              <div className="mb-1.5 flex items-center justify-between">
+                                <label className="flex items-center gap-1 text-xs text-white/40">
+                                  <PenLine className="size-3" />
+                                  Custom Prompt{" "}
+                                  <span className="text-white/20">
+                                    (optional)
+                                  </span>
+                                </label>
+                                {customImagePrompt && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setCustomImagePrompt("")}
+                                    className="rounded px-2 py-0.5 text-xs text-white/30 hover:text-white/50"
+                                  >
+                                    Clear
+                                  </button>
+                                )}
+                              </div>
+                              <textarea
+                                value={customImagePrompt}
+                                onChange={(e) =>
+                                  setCustomImagePrompt(e.target.value)
+                                }
+                                placeholder="Leave empty to auto-generate from task details, or describe the image you want..."
+                                rows={2}
+                                maxLength={500}
+                                className="form-input text-xs"
+                              />
+                              {!customImagePrompt && (
+                                <p className="mt-1 flex items-center gap-1 text-xs text-white/25">
+                                  <Sparkles className="size-3" />
+                                  Auto-prompt from task title & description
+                                </p>
+                              )}
+                            </div>
+
+                            <div className="py-2 text-center">
+                              {taskImageUrl ? (
+                                <div className="space-y-3">
+                                  <div className="relative mx-auto size-36 overflow-hidden rounded-xl border-2 border-coral/30">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                      src={taskImageUrl}
+                                      alt={tokenName || title}
+                                      className="size-full object-cover"
+                                    />
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={generateTaskImage}
+                                    disabled={isGeneratingImage}
+                                    className="mx-auto flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/50 transition-all hover:text-white/70"
+                                  >
+                                    <RefreshCw
+                                      className={cn(
+                                        "size-3.5",
+                                        isGeneratingImage && "animate-spin",
+                                      )}
+                                    />
+                                    Regenerate
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="space-y-3">
+                                  <div className="mx-auto flex size-36 items-center justify-center rounded-xl border border-dashed border-white/10 bg-white/[0.02]">
+                                    {isGeneratingImage ? (
+                                      <div className="text-center">
+                                        <Loader2 className="mx-auto mb-2 size-8 animate-spin text-coral" />
+                                        <p className="text-xs text-white/40">
+                                          Generating...
+                                        </p>
+                                      </div>
+                                    ) : (
+                                      <Wand2 className="size-10 text-white/15" />
+                                    )}
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={generateTaskImage}
+                                    disabled={isGeneratingImage}
+                                    className={cn(
+                                      "mx-auto flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold transition-all",
+                                      isGeneratingImage
+                                        ? "bg-white/5 text-white/30"
+                                        : "bg-coral text-black shadow-lg shadow-coral/20 hover:bg-coral/90",
+                                    )}
+                                  >
+                                    {isGeneratingImage ? (
+                                      <Loader2 className="size-4 animate-spin" />
+                                    ) : (
+                                      <Wand2 className="size-4" />
+                                    )}
+                                    {customImagePrompt
+                                      ? "Generate from Prompt"
+                                      : "Generate AI Image"}
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {imageMode === "upload" && (
+                          <div className="py-2 text-center">
+                            <input
+                              type="file"
+                              id="task-image-upload"
+                              accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) uploadTaskImage(file);
+                                e.target.value = "";
+                              }}
+                              className="hidden"
+                            />
+                            {taskImageUrl ? (
+                              <div className="space-y-3">
+                                <div className="relative mx-auto size-40 overflow-hidden rounded-xl border-2 border-coral/30">
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={taskImageUrl}
+                                    alt={tokenName || title}
+                                    className="size-full object-cover"
+                                  />
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    document
+                                      .getElementById("task-image-upload")
+                                      ?.click()
+                                  }
+                                  disabled={isUploadingImage}
+                                  className="mx-auto flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-white/50 transition-all hover:text-white/70"
+                                >
+                                  {isUploadingImage ? (
+                                    <Loader2 className="size-3.5 animate-spin" />
+                                  ) : (
+                                    <RefreshCw className="size-3.5" />
+                                  )}
+                                  Change Image
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  document
+                                    .getElementById("task-image-upload")
+                                    ?.click()
+                                }
+                                disabled={isUploadingImage}
+                                className="mx-auto flex size-40 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-white/10 bg-white/[0.02] transition-all hover:border-coral/30 hover:bg-white/[0.04]"
+                              >
+                                {isUploadingImage ? (
+                                  <div className="text-center">
+                                    <Loader2 className="mx-auto mb-2 size-8 animate-spin text-coral" />
+                                    <p className="text-xs text-white/40">
+                                      Uploading...
+                                    </p>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <Upload className="mb-2 size-8 text-white/20" />
+                                    <p className="text-sm font-medium text-white/50">
+                                      Click to upload
+                                    </p>
+                                    <p className="mt-0.5 text-xs text-white/25">
+                                      PNG, JPG, WebP, GIF — Max 5MB
+                                    </p>
+                                  </>
+                                )}
+                              </button>
+                            )}
+                          </div>
+                        )}
+
+                        {!taskImageUrl && (
+                          <p className="mt-2 text-center text-xs text-white/20">
+                            Without an image, the default Agent Inc. logo will
+                            be used as the token icon.
+                          </p>
+                        )}
                       </div>
+
+                      {/* ── Wallet Balance ─────────────────────── */}
+                      {taskToken.walletAddress && (
+                        <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Wallet className="size-4 text-white/30" />
+                              <span className="font-mono text-xs text-white/50">
+                                {taskToken.walletAddress.slice(0, 6)}...
+                                {taskToken.walletAddress.slice(-6)}
+                              </span>
+                            </div>
+                            {taskToken.walletBalance !== null ? (
+                              <span
+                                className={cn(
+                                  "text-xs font-semibold",
+                                  taskToken.walletBalance >=
+                                    MINT_TX_FEE_ESTIMATE
+                                    ? "text-coral"
+                                    : "text-red-400",
+                                )}
+                              >
+                                {taskToken.walletBalance.toFixed(4)} SOL
+                              </span>
+                            ) : (
+                              <span className="text-xs text-white/30">--</span>
+                            )}
+                          </div>
+                          {taskToken.walletBalance !== null &&
+                            taskToken.walletBalance < MINT_TX_FEE_ESTIMATE && (
+                              <p className="mt-2 flex items-center gap-1 text-xs text-red-400">
+                                <AlertCircle className="size-3" />
+                                Need at least ~{MINT_TX_FEE_ESTIMATE} SOL for
+                                launch fees
+                              </p>
+                            )}
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -1122,7 +1424,18 @@ function CreateTaskPage() {
                 {useTaskToken && (
                   <div className="rounded-2xl border border-purple-500/20 bg-purple-500/5 p-6 sm:p-8">
                     <div className="flex items-start gap-3">
-                      <Coins className="mt-0.5 size-5 shrink-0 text-purple-400" />
+                      {taskImageUrl ? (
+                        <div className="size-12 shrink-0 overflow-hidden rounded-lg border border-purple-500/30">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={taskImageUrl}
+                            alt={tokenSymbol}
+                            className="size-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <Coins className="mt-0.5 size-5 shrink-0 text-purple-400" />
+                      )}
                       <div>
                         <p className="font-semibold text-white">
                           Task Token: ${tokenSymbol}

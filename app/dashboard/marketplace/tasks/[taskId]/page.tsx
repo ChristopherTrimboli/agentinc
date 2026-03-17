@@ -78,6 +78,7 @@ interface TaskData {
   requirements: string[];
   status: string;
   budgetSol: number;
+  featuredImage?: string | null;
   escrowAmount?: number | null;
   escrowStatus: string;
   milestones?: Milestone[] | null;
@@ -355,6 +356,25 @@ export default function TaskDetailPage() {
             >
               <X className="size-3.5" />
             </button>
+          </motion.div>
+        )}
+
+        {/* Featured Image */}
+        {task.featuredImage && (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+            className="mb-6"
+          >
+            <div className="relative h-48 w-full overflow-hidden rounded-2xl border border-white/10 sm:h-56">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={task.featuredImage}
+                alt={task.title}
+                className="size-full object-cover"
+              />
+            </div>
           </motion.div>
         )}
 

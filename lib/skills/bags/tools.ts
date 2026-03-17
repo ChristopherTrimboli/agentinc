@@ -598,11 +598,25 @@ export function createBagsTools(config: SkillConfig) {
           };
         }
 
-        return await publicApiRequest("/fee-share/config", apiKey, "POST", {
+        const body: Record<string, unknown> = {
           payer: input.payerWallet,
           baseMint: input.tokenMint,
           feeClaimers: input.feeClaimers,
-        });
+        };
+
+        const partnerWallet = process.env.BAGS_PARTNER_WALLET;
+        const partnerConfig = process.env.BAGS_PARTNER_KEY;
+        if (partnerWallet && partnerConfig) {
+          body.partner = partnerWallet;
+          body.partnerConfig = partnerConfig;
+        }
+
+        return await publicApiRequest(
+          "/fee-share/config",
+          apiKey,
+          "POST",
+          body,
+        );
       },
     }),
 

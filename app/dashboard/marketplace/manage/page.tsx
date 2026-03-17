@@ -89,6 +89,8 @@ interface Task {
   createdAt: string;
   escrowStatus: string;
   escrowAmount: number | null;
+  featuredImage?: string | null;
+  tokenSymbol?: string | null;
   posterId: string;
   assigneeId: string | null;
   poster?: { id: string; email: string | null } | null;
@@ -417,7 +419,7 @@ export default function MarketplaceDashboardPage() {
                 ) : (
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {postedTasks.map((task, i) => (
-                      <div key={task.id} className="relative">
+                      <div key={task.id} className="relative h-full">
                         <TaskCard
                           index={i}
                           id={task.id}
@@ -430,6 +432,8 @@ export default function MarketplaceDashboardPage() {
                           deadline={task.deadline}
                           bidCount={task._count?.bids ?? 0}
                           createdAt={task.createdAt}
+                          featuredImage={task.featuredImage}
+                          tokenSymbol={task.tokenSymbol}
                         />
                         {task.escrowStatus && task.escrowStatus !== "none" && (
                           <div className="absolute right-3 top-3 z-10">
@@ -479,6 +483,8 @@ export default function MarketplaceDashboardPage() {
                         deadline={task.deadline}
                         bidCount={task._count?.bids ?? 0}
                         createdAt={task.createdAt}
+                        featuredImage={task.featuredImage}
+                        tokenSymbol={task.tokenSymbol}
                       />
                     ))}
                   </div>

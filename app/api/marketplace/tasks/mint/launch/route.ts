@@ -77,13 +77,25 @@ export async function POST(req: NextRequest) {
     const walletPubkey = validatePublicKey(auth.walletAddress, "wallet");
     const configKeyPubkey = validatePublicKey(configKey, "configKey");
 
-    const launchTransaction = await sdk.tokenLaunch.createLaunchTransaction({
-      metadataUrl,
-      tokenMint: tokenMintPubkey,
-      launchWallet: walletPubkey,
-      initialBuyLamports: initialBuyLamports ?? 0,
-      configKey: configKeyPubkey,
-    });
+    let launchTransaction;
+    try {
+      launchTransaction = await sdk.tokenLaunch.createLaunchTransaction({
+        metadataUrl,
+        tokenMint: tokenMintPubkey,
+        launchWallet: walletPubkey,
+        initialBuyLamports: initialBuyLamports ?? 0,
+        configKey: configKeyPubkey,
+      });
+    } catch (sdkError: unknown) {
+      console.error("[Task Token Launch] SDK Error details:", sdkError);
+      if (sdkError && typeof sdkError === "object" && "data" in sdkError) {
+        console.error(
+          "[Task Token Launch] Error data:",
+          JSON.stringify((sdkError as { data: unknown }).data, null, 2),
+        );
+      }
+      throw sdkError;
+    }
 
     const transactionBase64 = Buffer.from(
       launchTransaction.serialize(),
@@ -92,9 +104,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ transaction: transactionBase64 });
   } catch (error) {
     console.error("[Task Token Launch] Error:", error);
-    return NextResponse.json(
-      { error: "Failed to create task token launch transaction" },
-      { status: 500 },
-    );
+    const errorMessage =
+      error instanceof Error
+        ? error.message
+        : "Failed to create task token launch transaction";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

@@ -64,6 +64,7 @@ interface TaskCardProps {
   createdAt: string;
   index?: number;
   tokenSymbol?: string | null;
+  featuredImage?: string | null;
   posterWallet?: string | null;
   posterName?: string | null;
 }
@@ -81,6 +82,7 @@ export default function TaskCard({
   createdAt,
   index = 0,
   tokenSymbol,
+  featuredImage,
   posterWallet,
   posterName,
 }: TaskCardProps) {
@@ -105,11 +107,12 @@ export default function TaskCard({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: Math.min(index * 0.05, 0.4) }}
+      className="h-full"
     >
       <Link
         href={`/dashboard/marketplace/tasks/${id}`}
         className={cn(
-          "group relative block rounded-2xl border bg-surface/80 p-4 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-0.5",
+          "group relative flex h-full flex-col rounded-2xl border bg-surface/80 p-4 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-0.5",
           hasToken
             ? "border-purple-500/15 hover:border-purple-500/30 hover:shadow-[0_0_30px_rgba(168,85,247,0.08)]"
             : "border-white/10 hover:border-coral/20 hover:shadow-[0_0_30px_rgba(111,236,6,0.08)]",
@@ -159,12 +162,26 @@ export default function TaskCard({
         </div>
 
         {/* Title + Description */}
-        <h3 className="mt-3 truncate text-sm font-semibold text-white group-hover:text-coral transition-colors">
-          {title}
-        </h3>
-        <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-white/50">
-          {description}
-        </p>
+        <div className={cn("mt-3 flex gap-3", featuredImage && "items-start")}>
+          {featuredImage && (
+            <div className="size-10 shrink-0 overflow-hidden rounded-lg border border-white/10">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={featuredImage}
+                alt=""
+                className="size-full object-cover"
+              />
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            <h3 className="truncate text-sm font-semibold text-white group-hover:text-coral transition-colors">
+              {title}
+            </h3>
+            <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-white/50">
+              {description}
+            </p>
+          </div>
+        </div>
 
         {/* Tags row */}
         <div className="mt-3 flex flex-wrap items-center gap-1.5">
@@ -215,7 +232,7 @@ export default function TaskCard({
         )}
 
         {/* Footer */}
-        <div className="mt-3 flex items-center justify-between border-t border-white/5 pt-3 text-xs text-white/40">
+        <div className="mt-auto flex items-center justify-between border-t border-white/5 pt-3 text-xs text-white/40">
           <span className="flex items-center gap-1.5">
             <MessageSquare className="size-3" />
             <span className="font-medium text-white/60">{bidCount}</span>{" "}

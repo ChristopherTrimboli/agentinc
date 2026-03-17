@@ -299,6 +299,7 @@ export async function POST(req: NextRequest) {
         isRemote: body.isRemote ?? true,
         deadline: parsedDeadline,
         posterId: auth.userId,
+        featuredImage: body.featuredImage,
         tokenMint: body.tokenMint,
         tokenSymbol: body.tokenSymbol,
         tokenMetadata: body.tokenMetadata,
