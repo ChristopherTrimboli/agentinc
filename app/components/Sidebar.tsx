@@ -26,6 +26,11 @@ const navItems = [
     exact: true,
   },
   {
+    href: "/dashboard/marketplace",
+    label: "Marketplace",
+    icon: ShoppingBag,
+  },
+  {
     href: "/dashboard/agents",
     label: "My Agents",
     icon: Bot,
@@ -39,11 +44,6 @@ const navItems = [
     href: "/dashboard/incorporate",
     label: "Incorporate",
     icon: Building2,
-  },
-  {
-    href: "/dashboard/marketplace",
-    label: "Marketplace",
-    icon: ShoppingBag,
   },
   {
     href: "/dashboard/network",

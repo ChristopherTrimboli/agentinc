@@ -7,11 +7,10 @@ import LoginButton from "./LoginButton";
 import Link from "next/link";
 
 const navLinks = [
-  { href: "/dashboard", label: "Explore", highlight: false },
   { href: "/dashboard/network", label: "Network", highlight: false },
   { href: "/dashboard/chat", label: "Chat", highlight: false },
   { href: "/dashboard/agents", label: "Agents", highlight: false },
-  { href: "/dashboard/mint", label: "Mint", highlight: true },
+  { href: "/dashboard/marketplace", label: "Marketplace", highlight: true },
 ];
 
 export default function Navigation() {

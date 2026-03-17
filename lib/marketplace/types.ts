@@ -43,6 +43,7 @@ export type PriceType = (typeof PRICE_TYPES)[number];
 // ── Task Status ─────────────────────────────────────────────────────────
 
 export const TASK_STATUSES = [
+  "pending_escrow",
   "open",
   "assigned",
   "in_progress",
@@ -55,6 +56,7 @@ export const TASK_STATUSES = [
 export type TaskStatus = (typeof TASK_STATUSES)[number];
 
 export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
+  pending_escrow: "Pending Escrow",
   open: "Open",
   assigned: "Assigned",
   in_progress: "In Progress",
@@ -109,7 +111,6 @@ export interface CreateListingInput {
   agentId?: string;
   corporationId?: string;
   featuredImage?: string;
-  portfolio?: string[];
 }
 
 export interface CreateTaskInput {
@@ -124,12 +125,47 @@ export interface CreateTaskInput {
   location?: string;
   isRemote?: boolean;
   deadline?: string;
+  tokenMint?: string;
+  tokenSymbol?: string;
+  tokenMetadata?: string;
+  tokenLaunchWallet?: string;
+  tokenLaunchSignature?: string;
+  tokenConfigKey?: string;
 }
 
 // ── Escrow Types ────────────────────────────────────────────────────────
 
-export interface EscrowResult {
-  success: boolean;
-  txSignature?: string;
+export type EscrowResult =
+  | { success: true; txSignature?: string }
+  | { success: false; error: string };
+
+// ── Task Token Types ────────────────────────────────────────────────────
+
+export const TASK_TOKEN_LAUNCH_STEP_IDS = {
+  METADATA: "metadata",
+  FEE_SHARE: "feeShare",
+  SIGN: "sign",
+  BROADCAST: "broadcast",
+} as const;
+
+export const DEFAULT_TASK_TOKEN_LAUNCH_STEPS = [
+  { id: TASK_TOKEN_LAUNCH_STEP_IDS.METADATA, label: "Creating token metadata" },
+  { id: TASK_TOKEN_LAUNCH_STEP_IDS.FEE_SHARE, label: "Configuring fee share" },
+  { id: TASK_TOKEN_LAUNCH_STEP_IDS.SIGN, label: "Signing launch transaction" },
+  { id: TASK_TOKEN_LAUNCH_STEP_IDS.BROADCAST, label: "Broadcasting to Solana" },
+] as const;
+
+export interface TaskTokenLaunchStep {
+  id: string;
+  label: string;
+  status: "pending" | "loading" | "complete" | "error";
   error?: string;
+}
+
+export interface TaskTokenLaunchResult {
+  tokenMint: string;
+  tokenSymbol: string;
+  tokenMetadata: string;
+  launchSignature: string;
+  configKey: string;
 }

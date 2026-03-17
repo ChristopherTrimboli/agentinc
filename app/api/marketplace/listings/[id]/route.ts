@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
-import { rateLimitByIP } from "@/lib/rateLimit";
+import { rateLimitByIP, rateLimitByUser } from "@/lib/rateLimit";
 import { MARKETPLACE_CATEGORIES, PRICE_TYPES } from "@/lib/marketplace/types";
 
 interface RouteParams {
@@ -44,7 +44,6 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
         user: {
           select: {
             id: true,
-            email: true,
           },
         },
         tasks: {
@@ -82,6 +81,13 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 export async function PATCH(req: NextRequest, { params }: RouteParams) {
   const auth = await requireAuth(req);
   if (!isAuthResult(auth)) return auth;
+
+  const limited = await rateLimitByUser(
+    auth.userId,
+    "marketplace-listing-update",
+    30,
+  );
+  if (limited) return limited;
 
   const { id } = await params;
 
@@ -127,7 +133,6 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       "isAvailable",
       "availableHours",
       "featuredImage",
-      "portfolio",
     ];
 
     const data: Record<string, unknown> = {};
@@ -145,6 +150,103 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
         if (field === "priceType" && !PRICE_TYPES.includes(body[field])) {
           return NextResponse.json(
             { error: "Invalid priceType" },
+            { status: 400 },
+          );
+        }
+        if (
+          field === "title" &&
+          (typeof body[field] !== "string" || body[field].length > 200)
+        ) {
+          return NextResponse.json(
+            { error: "Title must be a string of 200 chars or less" },
+            { status: 400 },
+          );
+        }
+        if (
+          field === "description" &&
+          (typeof body[field] !== "string" || body[field].length > 10000)
+        ) {
+          return NextResponse.json(
+            { error: "Description too long" },
+            { status: 400 },
+          );
+        }
+        if (
+          field === "priceSol" &&
+          body[field] !== null &&
+          (typeof body[field] !== "number" || body[field] < 0)
+        ) {
+          return NextResponse.json(
+            { error: "priceSol must be a non-negative number" },
+            { status: 400 },
+          );
+        }
+        if (field === "skills") {
+          if (
+            !Array.isArray(body[field]) ||
+            !body[field].every((s: unknown) => typeof s === "string")
+          ) {
+            return NextResponse.json(
+              { error: "skills must be an array of strings" },
+              { status: 400 },
+            );
+          }
+          if (body[field].length > 20) {
+            return NextResponse.json(
+              { error: "Maximum 20 skills allowed" },
+              { status: 400 },
+            );
+          }
+        }
+        if (field === "isRemote" && typeof body[field] !== "boolean") {
+          return NextResponse.json(
+            { error: "isRemote must be a boolean" },
+            { status: 400 },
+          );
+        }
+        if (field === "isAvailable" && typeof body[field] !== "boolean") {
+          return NextResponse.json(
+            { error: "isAvailable must be a boolean" },
+            { status: 400 },
+          );
+        }
+        if (
+          field === "location" &&
+          body[field] !== null &&
+          (typeof body[field] !== "string" || body[field].length > 200)
+        ) {
+          return NextResponse.json(
+            { error: "location must be 200 characters or less" },
+            { status: 400 },
+          );
+        }
+        if (
+          field === "priceToken" &&
+          body[field] !== null &&
+          (typeof body[field] !== "string" || body[field].length > 100)
+        ) {
+          return NextResponse.json(
+            { error: "priceToken must be 100 characters or less" },
+            { status: 400 },
+          );
+        }
+        if (
+          field === "featuredImage" &&
+          body[field] !== null &&
+          (typeof body[field] !== "string" || body[field].length > 500)
+        ) {
+          return NextResponse.json(
+            { error: "featuredImage URL must be 500 characters or less" },
+            { status: 400 },
+          );
+        }
+        if (
+          field === "availableHours" &&
+          body[field] !== null &&
+          typeof body[field] !== "string"
+        ) {
+          return NextResponse.json(
+            { error: "availableHours must be a string" },
             { status: 400 },
           );
         }
@@ -172,6 +274,13 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
   const auth = await requireAuth(req);
   if (!isAuthResult(auth)) return auth;
 
+  const limited = await rateLimitByUser(
+    auth.userId,
+    "marketplace-listing-delete",
+    10,
+  );
+  if (limited) return limited;
+
   const { id } = await params;
 
   try {
@@ -182,6 +291,13 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
         agent: { select: { createdById: true } },
         corporation: {
           select: { agents: { select: { createdById: true } } },
+        },
+        tasks: {
+          where: {
+            status: { in: ["open", "assigned", "in_progress", "review"] },
+          },
+          select: { id: true },
+          take: 1,
         },
       },
     });
@@ -199,6 +315,13 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json(
         { error: "Not authorized to delete this listing" },
         { status: 403 },
+      );
+    }
+
+    if (listing.tasks.length > 0) {
+      return NextResponse.json(
+        { error: "Cannot delete a listing with active tasks" },
+        { status: 400 },
       );
     }
 

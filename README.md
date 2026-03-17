@@ -82,33 +82,33 @@ Native SOL micropayment protocol for API monetization.
 - **Token holder discounts**
 - Public facilitator at `agentinc.fun/api/x402/facilitator` — other apps can use it
 
-| Endpoint | Price |
-| --- | --- |
-| AI Chat | $0.01/req |
-| Text-to-Speech | $0.005/req |
-| Speech-to-Text | $0.005/req |
-| Image Generation | $0.02/req |
+| Endpoint         | Price      |
+| ---------------- | ---------- |
+| AI Chat          | $0.01/req  |
+| Text-to-Speech   | $0.005/req |
+| Speech-to-Text   | $0.005/req |
+| Image Generation | $0.02/req  |
 
 ---
 
 ## Tech Stack
 
-| Layer | Tech |
-| --- | --- |
-| Framework | Next.js 16, React 19, TypeScript 5.9 |
-| Runtime | Bun |
-| Database | PostgreSQL via Prisma 7 + Prisma Accelerate |
-| Vector search | pgvector + OpenAI `text-embedding-3-large` (1536 dims) |
-| Auth | Privy (email login, embedded Solana wallets) |
-| AI | Vercel AI SDK 6, Claude (Anthropic), OpenAI (TTS/STT/embeddings) |
-| Blockchain | Solana — `@solana/web3.js`, `@solana/kit`, Bags SDK |
-| Staking | Streamflow (`@streamflow/staking`) |
-| Styling | Tailwind CSS 4, shadcn/ui, Radix UI |
-| Visualization | PixiJS 8 |
-| Storage | Vercel Blob |
-| Caching | Upstash Redis |
-| Payments | x402 protocol (native SOL) |
-| Interop | MCP server (Model Context Protocol) |
+| Layer         | Tech                                                             |
+| ------------- | ---------------------------------------------------------------- |
+| Framework     | Next.js 16, React 19, TypeScript 5.9                             |
+| Runtime       | Bun                                                              |
+| Database      | PostgreSQL via Prisma 7 + Prisma Accelerate                      |
+| Vector search | pgvector + OpenAI `text-embedding-3-large` (1536 dims)           |
+| Auth          | Privy (email login, embedded Solana wallets)                     |
+| AI            | Vercel AI SDK 6, Claude (Anthropic), OpenAI (TTS/STT/embeddings) |
+| Blockchain    | Solana — `@solana/web3.js`, `@solana/kit`, Bags SDK              |
+| Staking       | Streamflow (`@streamflow/staking`)                               |
+| Styling       | Tailwind CSS 4, shadcn/ui, Radix UI                              |
+| Visualization | PixiJS 8                                                         |
+| Storage       | Vercel Blob                                                      |
+| Caching       | Upstash Redis                                                    |
+| Payments      | x402 protocol (native SOL)                                       |
+| Interop       | MCP server (Model Context Protocol)                              |
 
 ---
 

@@ -6,9 +6,10 @@
  */
 
 import prisma from "@/lib/prisma";
-import { createEscrow, releaseEscrow } from "./escrow";
+import { createEscrow, releaseEscrow, claimTaskTokenFees } from "./escrow";
 import {
   MARKETPLACE_CATEGORIES,
+  LISTING_TYPES,
   type MarketplaceCategory,
   type ListingType,
 } from "./types";
@@ -55,11 +56,10 @@ interface ListingSummary {
 
 interface ListingDetail extends ListingSummary {
   isAvailable: boolean;
-  availableHours: string | null;
+  availableHours: unknown;
   totalRatings: number;
   responseTime: number | null;
   featuredImage: string | null;
-  portfolio: string[];
   createdAt: Date;
 }
 
@@ -108,7 +108,7 @@ function mapListingSummary(listing: any): ListingSummary {
   }>(listing);
 
   const ownerName =
-    l.agent?.name ?? l.corporation?.name ?? l.user?.email ?? null;
+    l.agent?.name ?? l.corporation?.name ?? (l.user ? "Human Provider" : null);
 
   return {
     id: listing.id,
@@ -118,7 +118,7 @@ function mapListingSummary(listing: any): ListingSummary {
     category: listing.category,
     skills: listing.skills,
     priceType: listing.priceType,
-    priceSol: listing.priceSol,
+    priceSol: listing.priceSol !== null ? Number(listing.priceSol) : null,
     isRemote: listing.isRemote,
     location: listing.location,
     averageRating: listing.averageRating,
@@ -136,7 +136,7 @@ function mapBid(bid: Record<string, unknown>): BidSummary {
   return {
     id: bid.id as string,
     status: bid.status as string,
-    amountSol: bid.amountSol as number,
+    amountSol: Number(bid.amountSol),
     message: (bid.message as string | null) ?? null,
     bidderName: b.bidderAgent?.name ?? b.bidder?.email ?? null,
     createdAt: bid.createdAt as Date,
@@ -171,8 +171,8 @@ export async function searchListings(params: {
       where.category = category;
     }
 
-    if (type) {
-      where.type = type as ListingType;
+    if (type && LISTING_TYPES.includes(type as ListingType)) {
+      where.type = type;
     }
 
     if (maxPriceSol !== undefined) {
@@ -197,8 +197,12 @@ export async function searchListings(params: {
           agent: { select: { name: true } },
           corporation: { select: { name: true } },
         },
+        cacheStrategy: { ttl: 10, swr: 30 },
       }),
-      prisma.marketplaceListing.count({ where }),
+      prisma.marketplaceListing.count({
+        where,
+        cacheStrategy: { ttl: 10, swr: 30 },
+      }),
     ]);
 
     return ok({
@@ -222,6 +226,7 @@ export async function getListingDetail(
         agent: { select: { name: true } },
         corporation: { select: { name: true } },
       },
+      cacheStrategy: { ttl: 5, swr: 15 },
     });
 
     if (!listing) {
@@ -245,7 +250,7 @@ export async function getListingDetail(
       category: listing.category,
       skills: listing.skills,
       priceType: listing.priceType,
-      priceSol: listing.priceSol,
+      priceSol: listing.priceSol !== null ? Number(listing.priceSol) : null,
       isRemote: listing.isRemote,
       location: listing.location,
       averageRating: listing.averageRating,
@@ -256,7 +261,6 @@ export async function getListingDetail(
       totalRatings: listing.totalRatings,
       responseTime: listing.responseTime,
       featuredImage: listing.featuredImage,
-      portfolio: listing.portfolio,
       createdAt: listing.createdAt,
     });
   } catch (error) {
@@ -299,6 +303,11 @@ export async function hireListing(params: {
       return fail("This listing is currently unavailable");
     }
 
+    if (listing.userId === userId) {
+      return fail("You cannot hire your own listing");
+    }
+
+    // Create as pending_escrow to avoid visibility before escrow is confirmed
     const task = await prisma.marketplaceTask.create({
       data: {
         title: taskTitle,
@@ -310,7 +319,7 @@ export async function hireListing(params: {
         listingId: listing.id,
         workerId: listing.type === "human" ? listing.userId : undefined,
         workerAgentId: listing.type === "agent" ? listing.agentId : undefined,
-        status: "assigned",
+        status: "pending_escrow",
         isRemote: true,
       },
       include: {
@@ -323,12 +332,14 @@ export async function hireListing(params: {
 
     const escrowResult = await createEscrow(userId, task.id, budgetSol);
     if (!escrowResult.success) {
-      await prisma.marketplaceTask.update({
-        where: { id: task.id },
-        data: { status: "open", escrowStatus: "none" },
-      });
-      return fail(`Task created but escrow failed: ${escrowResult.error}`);
+      await prisma.marketplaceTask.delete({ where: { id: task.id } });
+      return fail(`Escrow failed: ${escrowResult.error}`);
     }
+
+    await prisma.marketplaceTask.update({
+      where: { id: task.id },
+      data: { status: "assigned" },
+    });
 
     const t = rel<{
       poster: { email: string | null };
@@ -343,7 +354,7 @@ export async function hireListing(params: {
       title: task.title,
       description: task.description,
       category: task.category,
-      budgetSol: task.budgetSol,
+      budgetSol: Number(task.budgetSol),
       escrowStatus: "held",
       escrowAmount: budgetSol,
       posterName: t.poster.email,
@@ -393,7 +404,7 @@ export async function postBounty(params: {
         requirements,
         budgetSol,
         posterId: userId,
-        status: "open",
+        status: "pending_escrow",
         isRemote: true,
       },
       include: {
@@ -404,12 +415,14 @@ export async function postBounty(params: {
 
     const escrowResult = await createEscrow(userId, task.id, budgetSol);
     if (!escrowResult.success) {
-      await prisma.marketplaceTask.update({
-        where: { id: task.id },
-        data: { status: "open", escrowStatus: "none" },
-      });
-      return fail(`Bounty posted but escrow failed: ${escrowResult.error}`);
+      await prisma.marketplaceTask.delete({ where: { id: task.id } });
+      return fail(`Escrow failed: ${escrowResult.error}`);
     }
+
+    await prisma.marketplaceTask.update({
+      where: { id: task.id },
+      data: { status: "open" },
+    });
 
     const t = rel<{
       poster: { email: string | null };
@@ -422,7 +435,7 @@ export async function postBounty(params: {
       title: task.title,
       description: task.description,
       category: task.category,
-      budgetSol: task.budgetSol,
+      budgetSol: Number(task.budgetSol),
       escrowStatus: "held",
       escrowAmount: budgetSol,
       posterName: t.poster.email,
@@ -446,8 +459,12 @@ export async function submitBid(params: {
   try {
     const { taskId, amountSol, message, userId, agentId } = params;
 
-    if (!userId && !agentId) {
-      return fail("Authentication required to submit a bid");
+    if (!userId) {
+      return fail("A user ID is required to submit a bid");
+    }
+
+    if (typeof amountSol !== "number" || amountSol <= 0 || isNaN(amountSol)) {
+      return fail("Bid amount must be a positive number");
     }
 
     const task = await prisma.marketplaceTask.findUnique({
@@ -463,17 +480,19 @@ export async function submitBid(params: {
       return fail(`Cannot bid on a task with status "${task.status}"`);
     }
 
-    if (userId && task.posterId === userId) {
+    if (task.posterId === userId) {
       return fail("Cannot bid on your own task");
     }
 
-    if (userId) {
-      const existingBid = await prisma.marketplaceBid.findFirst({
-        where: { taskId, bidderId: userId, status: "pending" },
-      });
-      if (existingBid) {
-        return fail("You already have a pending bid on this task");
-      }
+    const existingBid = await prisma.marketplaceBid.findFirst({
+      where: { taskId, bidderId: userId },
+    });
+    if (existingBid) {
+      return fail(
+        existingBid.status === "pending"
+          ? "You already have a pending bid on this task"
+          : "You have already bid on this task",
+      );
     }
 
     const bid = await prisma.marketplaceBid.create({
@@ -481,7 +500,7 @@ export async function submitBid(params: {
         taskId,
         amountSol,
         message: message ?? null,
-        bidderId: userId ?? null,
+        bidderId: userId,
         bidderAgentId: agentId ?? null,
         status: "pending",
       },
@@ -529,9 +548,10 @@ export async function checkTaskStatus(
       title: task.title,
       description: task.description,
       category: task.category,
-      budgetSol: task.budgetSol,
+      budgetSol: Number(task.budgetSol),
       escrowStatus: task.escrowStatus,
-      escrowAmount: task.escrowAmount,
+      escrowAmount:
+        task.escrowAmount !== null ? Number(task.escrowAmount) : null,
       posterName: t.poster.email,
       workerName: t.workerAgent?.name ?? t.worker?.email ?? null,
       bidCount: t._count.bids,
@@ -552,7 +572,15 @@ export async function approveDelivery(
   try {
     const task = await prisma.marketplaceTask.findUnique({
       where: { id: taskId },
-      include: {
+      select: {
+        id: true,
+        posterId: true,
+        status: true,
+        escrowStatus: true,
+        escrowAmount: true,
+        budgetSol: true,
+        listingId: true,
+        tokenMint: true,
         worker: {
           select: {
             activeWallet: { select: { address: true } },
@@ -606,7 +634,7 @@ export async function approveDelivery(
     const escrowResult = await releaseEscrow(
       taskId,
       workerWallet,
-      task.escrowAmount ?? task.budgetSol,
+      Number(task.escrowAmount ?? task.budgetSol),
     );
 
     if (!escrowResult.success) {
@@ -621,17 +649,43 @@ export async function approveDelivery(
       },
     });
 
+    // Claim task token fees if applicable
+    let tokenFeesClaimed = 0;
+    if (task.tokenMint && workerWallet) {
+      const feeResult = await claimTaskTokenFees(
+        taskId,
+        task.tokenMint,
+        workerWallet,
+      );
+      if (feeResult.success) {
+        tokenFeesClaimed = feeResult.claimedSol ?? 0;
+      } else {
+        console.error(
+          "[Marketplace] Token fee claim failed (non-blocking):",
+          feeResult.error,
+        );
+      }
+    }
+
     if (task.listingId) {
-      await prisma.marketplaceListing.update({
-        where: { id: task.listingId },
-        data: { completedTasks: { increment: 1 } },
-      });
+      try {
+        await prisma.marketplaceListing.update({
+          where: { id: task.listingId },
+          data: { completedTasks: { increment: 1 } },
+        });
+      } catch (statsError) {
+        console.error(
+          "[Marketplace] Failed to update listing stats:",
+          statsError,
+        );
+      }
     }
 
     return ok({
       taskId,
       status: "completed",
       txSignature: escrowResult.txSignature,
+      tokenFeesClaimed,
     });
   } catch (error) {
     console.error("[Marketplace] approveDelivery error:", error);
@@ -676,9 +730,10 @@ export async function getTaskDetail(
       title: task.title,
       description: task.description,
       category: task.category,
-      budgetSol: task.budgetSol,
+      budgetSol: Number(task.budgetSol),
       escrowStatus: task.escrowStatus,
-      escrowAmount: task.escrowAmount,
+      escrowAmount:
+        task.escrowAmount !== null ? Number(task.escrowAmount) : null,
       posterName: t.poster.email,
       workerName: t.workerAgent?.name ?? t.worker?.email ?? null,
       bidCount: t.bids.length,

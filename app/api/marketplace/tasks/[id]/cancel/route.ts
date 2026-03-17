@@ -49,6 +49,18 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       );
     }
 
+    // Atomic status transition to prevent double-cancel race condition
+    const { count: transitioned } = await prisma.marketplaceTask.updateMany({
+      where: { id, status: { in: cancellableStatuses } },
+      data: { status: "cancelled" },
+    });
+    if (transitioned === 0) {
+      return NextResponse.json(
+        { error: "Task status changed concurrently. Please refresh." },
+        { status: 409 },
+      );
+    }
+
     // Refund escrow if held
     if (task.escrowStatus === "held") {
       const posterUser = await prisma.user.findUnique({
@@ -56,19 +68,36 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         select: { activeWallet: { select: { address: true } } },
       });
 
-      if (posterUser?.activeWallet?.address) {
-        const refundResult = await refundEscrow(
-          id,
-          posterUser.activeWallet.address,
-          task.escrowAmount ?? task.budgetSol,
+      if (!posterUser?.activeWallet?.address) {
+        // Revert cancellation — can't lose escrowed funds
+        await prisma.marketplaceTask.update({
+          where: { id },
+          data: { status: task.status },
+        });
+        return NextResponse.json(
+          {
+            error: "No wallet found for refund. Please connect a wallet first.",
+          },
+          { status: 400 },
         );
+      }
 
-        if (!refundResult.success) {
-          return NextResponse.json(
-            { error: `Refund failed: ${refundResult.error}` },
-            { status: 500 },
-          );
-        }
+      const refundResult = await refundEscrow(
+        id,
+        posterUser.activeWallet.address,
+        Number(task.escrowAmount ?? task.budgetSol),
+      );
+
+      if (!refundResult.success) {
+        // Revert cancellation so user can retry
+        await prisma.marketplaceTask.update({
+          where: { id },
+          data: { status: task.status },
+        });
+        return NextResponse.json(
+          { error: "Refund failed. Please try again or contact support." },
+          { status: 500 },
+        );
       }
     }
 
@@ -76,11 +105,6 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     await prisma.marketplaceBid.updateMany({
       where: { taskId: id, status: "pending" },
       data: { status: "rejected" },
-    });
-
-    await prisma.marketplaceTask.update({
-      where: { id },
-      data: { status: "cancelled" },
     });
 
     return NextResponse.json({ success: true });

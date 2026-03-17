@@ -12,15 +12,14 @@ import {
   ArrowRight,
   ChevronDown,
   X,
-  Plus,
   Loader2,
   Globe,
   MapPin,
-  Link2,
   Upload,
   Check,
   Sparkles,
   Trash2,
+  HelpCircle,
 } from "lucide-react";
 
 import { useAuth } from "@/lib/auth/AuthProvider";
@@ -35,6 +34,11 @@ import {
   type CreateListingInput,
 } from "@/lib/marketplace/types";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
 
 // ── Steps ────────────────────────────────────────────────────────────
 
@@ -59,19 +63,20 @@ const TYPE_OPTIONS: {
     type: "human",
     icon: User,
     label: "Human",
-    description: "List yourself for hire",
+    description:
+      "Offer your skills for hire — freelance, contract, or bounties",
   },
   {
     type: "agent",
     icon: Bot,
     label: "AI Agent",
-    description: "List your AI agent",
+    description: "Put your AI agent to work — let it earn by completing tasks",
   },
   {
     type: "corporation",
     icon: Building2,
     label: "Corporation",
-    description: "List your corporation",
+    description: "List your corp's services — teams of humans and/or AI agents",
   },
 ];
 
@@ -113,10 +118,9 @@ export default function CreateListingPage() {
   const [priceToken, setPriceToken] = useState("");
   const [isRemote, setIsRemote] = useState(true);
   const [location, setLocation] = useState("");
-  const [portfolio, setPortfolio] = useState<string[]>([]);
-  const [portfolioInput, setPortfolioInput] = useState("");
   const [featuredImage, setFeaturedImage] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageUploadError, setImageUploadError] = useState<string | null>(null);
 
   const [agents, setAgents] = useState<AgentOption[]>([]);
   const [corps, setCorps] = useState<CorpOption[]>([]);
@@ -180,20 +184,13 @@ export default function CreateListingPage() {
   const removeSkill = (skill: string) =>
     setSkills((prev) => prev.filter((s) => s !== skill));
 
-  const addPortfolioUrl = () => {
-    if (portfolioInput.trim() && !portfolio.includes(portfolioInput.trim())) {
-      setPortfolio((prev) => [...prev, portfolioInput.trim()]);
-      setPortfolioInput("");
-    }
-  };
-
-  const removePortfolioUrl = (url: string) =>
-    setPortfolio((prev) => prev.filter((u) => u !== url));
-
   const canGoNext = (): boolean => {
     switch (currentStep) {
       case "type":
-        return type !== null;
+        if (type === null) return false;
+        if (type === "agent" && !selectedAgentId) return false;
+        if (type === "corporation" && !selectedCorpId) return false;
+        return true;
       case "details":
         return (
           title.trim().length > 0 &&
@@ -241,7 +238,6 @@ export default function CreateListingPage() {
       corporationId:
         type === "corporation" && selectedCorpId ? selectedCorpId : undefined,
       featuredImage: featuredImage || undefined,
-      portfolio: portfolio.length > 0 ? portfolio : undefined,
     };
 
     try {
@@ -253,7 +249,7 @@ export default function CreateListingPage() {
         const data = await res.json();
         throw new Error(data.error || "Failed to create listing");
       }
-      router.push("/dashboard/marketplace");
+      router.push("/dashboard/marketplace/manage");
     } catch (err) {
       setSubmitError(
         err instanceof Error ? err.message : "Something went wrong",
@@ -273,17 +269,19 @@ export default function CreateListingPage() {
           className="mb-8"
         >
           <button
-            onClick={() => router.push("/dashboard/marketplace")}
+            onClick={() => router.push("/dashboard/marketplace/manage")}
             className="mb-4 inline-flex items-center gap-1.5 text-sm text-white/40 transition-colors hover:text-white"
           >
             <ArrowLeft className="size-4" />
             Back to Dashboard
           </button>
           <h1 className="text-3xl font-bold text-white font-display">
-            Create Listing
+            List for Hire
           </h1>
-          <p className="mt-1 text-white/40">
-            List yourself, an agent, or a corporation on the marketplace
+          <p className="mt-2 max-w-lg text-sm leading-relaxed text-white/40">
+            Put yourself, an AI agent, or a corporation on the Task Tokens
+            marketplace. Workers pick up tasks and earn fees when work is
+            completed and approved.
           </p>
         </motion.div>
 
@@ -407,12 +405,19 @@ export default function CreateListingPage() {
                 <SectionCard title="Select Agent">
                   {loadingEntities ? (
                     <div className="flex items-center gap-2 text-sm text-white/40">
-                      <Loader2 className="size-4 animate-spin" /> Loading agents...
+                      <Loader2 className="size-4 animate-spin" /> Loading
+                      agents...
                     </div>
                   ) : agents.length === 0 ? (
                     <p className="text-sm text-white/35">
                       No agents found.{" "}
-                      <a href="/dashboard/mint" className="text-coral hover:underline">Mint an agent first</a>.
+                      <a
+                        href="/dashboard/mint"
+                        className="text-coral hover:underline"
+                      >
+                        Mint an agent first
+                      </a>
+                      .
                     </p>
                   ) : (
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -442,11 +447,20 @@ export default function CreateListingPage() {
                                 <Bot className="size-5 text-white/30" />
                               </div>
                             )}
-                            <span className={cn("truncate text-sm font-medium", selected ? "text-coral" : "text-white")}>
+                            <span
+                              className={cn(
+                                "truncate text-sm font-medium",
+                                selected ? "text-coral" : "text-white",
+                              )}
+                            >
                               {agent.name}
                             </span>
                             {selected && (
-                              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="ml-auto flex size-5 shrink-0 items-center justify-center rounded-full bg-coral">
+                              <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                className="ml-auto flex size-5 shrink-0 items-center justify-center rounded-full bg-coral"
+                              >
                                 <Check className="size-3 text-black" />
                               </motion.div>
                             )}
@@ -462,12 +476,19 @@ export default function CreateListingPage() {
                 <SectionCard title="Select Corporation">
                   {loadingEntities ? (
                     <div className="flex items-center gap-2 text-sm text-white/40">
-                      <Loader2 className="size-4 animate-spin" /> Loading corporations...
+                      <Loader2 className="size-4 animate-spin" /> Loading
+                      corporations...
                     </div>
                   ) : corps.length === 0 ? (
                     <p className="text-sm text-white/35">
                       No corporations found.{" "}
-                      <a href="/dashboard/incorporate" className="text-coral hover:underline">Incorporate first</a>.
+                      <a
+                        href="/dashboard/incorporate"
+                        className="text-coral hover:underline"
+                      >
+                        Incorporate first
+                      </a>
+                      .
                     </p>
                   ) : (
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -497,11 +518,20 @@ export default function CreateListingPage() {
                                 <Building2 className="size-5 text-white/30" />
                               </div>
                             )}
-                            <span className={cn("truncate text-sm font-medium", selected ? "text-coral" : "text-white")}>
+                            <span
+                              className={cn(
+                                "truncate text-sm font-medium",
+                                selected ? "text-coral" : "text-white",
+                              )}
+                            >
                               {corp.name}
                             </span>
                             {selected && (
-                              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="ml-auto flex size-5 shrink-0 items-center justify-center rounded-full bg-coral">
+                              <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                className="ml-auto flex size-5 shrink-0 items-center justify-center rounded-full bg-coral"
+                              >
                                 <Check className="size-3 text-black" />
                               </motion.div>
                             )}
@@ -524,9 +554,15 @@ export default function CreateListingPage() {
               exit={{ opacity: 0, x: -20 }}
               className="space-y-6"
             >
-              <SectionCard title="Listing Details">
+              <SectionCard
+                title="Listing Details"
+                subtitle="Tell people what you offer. Both task posters and AI agents browse these listings."
+              >
                 <div className="space-y-4">
-                  <FormField label="Title">
+                  <FormField
+                    label="Title"
+                    tooltip="A short, compelling headline. e.g. 'Senior Solana Developer' or 'AI Code Review Agent'."
+                  >
                     <input
                       type="text"
                       value={title}
@@ -535,16 +571,26 @@ export default function CreateListingPage() {
                       className="form-input"
                     />
                   </FormField>
-                  <FormField label="Description">
+                  <FormField
+                    label="Description"
+                    tooltip="Describe your experience, what you specialize in, and what kinds of tasks you're looking for."
+                  >
                     <textarea
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
-                      placeholder="Describe what you offer..."
+                      placeholder="What do you specialize in? What kinds of tasks are you looking for? Include experience, tools, and examples..."
                       rows={4}
                       className="form-input resize-none"
                     />
+                    <p className="mt-1 text-xs text-white/20">
+                      Tip: Listings with detailed descriptions get hired 3x more
+                      often.
+                    </p>
                   </FormField>
-                  <FormField label="Category">
+                  <FormField
+                    label="Category"
+                    tooltip="The primary category for your listing. Helps task posters find the right worker."
+                  >
                     <SelectDropdown
                       value={category}
                       onChange={(v) => setCategory(v as MarketplaceCategory)}
@@ -555,14 +601,18 @@ export default function CreateListingPage() {
                       }))}
                     />
                   </FormField>
-                  <FormField label="Skills">
+                  <FormField
+                    label="Skills"
+                    tooltip="Add relevant skills — these appear as tags on your listing and help with search matching."
+                    optional
+                  >
                     <div className="space-y-2">
                       <input
                         type="text"
                         value={skillInput}
                         onChange={(e) => setSkillInput(e.target.value)}
                         onKeyDown={handleSkillKeyDown}
-                        placeholder="Type a skill and press Enter"
+                        placeholder="e.g. solana, rust, react — press Enter to add"
                         className="form-input"
                       />
                       {skills.length > 0 && (
@@ -588,10 +638,15 @@ export default function CreateListingPage() {
                 </div>
               </SectionCard>
 
-              <SectionCard title="Location">
+              <SectionCard
+                title="Location"
+                subtitle="Most tasks on the marketplace are remote. Toggle off if on-site only."
+              >
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
                     <button
+                      role="switch"
+                      aria-checked={isRemote}
                       onClick={() => setIsRemote(!isRemote)}
                       className={cn(
                         "relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors",
@@ -613,7 +668,10 @@ export default function CreateListingPage() {
                     </div>
                   </div>
                   {!isRemote && (
-                    <FormField label="Location">
+                    <FormField
+                      label="Location"
+                      tooltip="Specify where in-person work is required."
+                    >
                       <div className="relative">
                         <MapPin className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-white/25" />
                         <input
@@ -629,57 +687,22 @@ export default function CreateListingPage() {
                 </div>
               </SectionCard>
 
-              <SectionCard title="Portfolio">
-                <div className="space-y-3">
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <Link2 className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-white/25" />
-                      <input
-                        type="url"
-                        value={portfolioInput}
-                        onChange={(e) => setPortfolioInput(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            addPortfolioUrl();
-                          }
-                        }}
-                        placeholder="https://your-portfolio.com"
-                        className="form-input pl-10"
-                      />
-                    </div>
-                    <button
-                      onClick={addPortfolioUrl}
-                      className="shrink-0 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white/40 hover:bg-white/10 hover:text-white"
-                    >
-                      <Plus className="size-4" />
-                    </button>
-                  </div>
-                  {portfolio.map((url) => (
-                    <div
-                      key={url}
-                      className="flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2"
-                    >
-                      <Link2 className="size-3.5 shrink-0 text-white/25" />
-                      <span className="flex-1 truncate text-sm text-white/60">
-                        {url}
-                      </span>
-                      <button
-                        onClick={() => removePortfolioUrl(url)}
-                        className="shrink-0 rounded-full p-0.5 text-white/25 hover:text-red-400"
-                      >
-                        <X className="size-3.5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </SectionCard>
-
-              <SectionCard title="Featured Image">
+              <SectionCard
+                title="Featured Image"
+                subtitle="A good image makes your listing stand out in the grid."
+              >
                 <ImageUpload
                   value={featuredImage}
                   uploading={uploadingImage}
                   onUpload={async (file) => {
+                    setImageUploadError(null);
+                    const MAX_SIZE = 5 * 1024 * 1024;
+                    if (file.size > MAX_SIZE) {
+                      setImageUploadError(
+                        "File too large. Maximum size is 5MB.",
+                      );
+                      return;
+                    }
                     setUploadingImage(true);
                     try {
                       const formData = new FormData();
@@ -698,13 +721,20 @@ export default function CreateListingPage() {
                       const data = await res.json();
                       setFeaturedImage(data.url);
                     } catch (err) {
-                      console.error("[Create Listing] Image upload error:", err);
+                      const msg =
+                        err instanceof Error ? err.message : "Upload failed";
+                      setImageUploadError(msg);
                     } finally {
                       setUploadingImage(false);
                     }
                   }}
                   onRemove={() => setFeaturedImage("")}
                 />
+                {imageUploadError && (
+                  <p className="mt-2 text-xs text-red-400">
+                    {imageUploadError}
+                  </p>
+                )}
                 {type === "agent" && (
                   <p className="mt-2 text-xs text-white/25">
                     Leave empty to use your agent&apos;s profile image.
@@ -723,35 +753,55 @@ export default function CreateListingPage() {
               exit={{ opacity: 0, x: -20 }}
               className="space-y-6"
             >
-              <SectionCard title="Pricing Model">
+              <SectionCard
+                title="Pricing Model"
+                subtitle="How do you want to charge for your work? This is shown on your listing card."
+              >
                 <div className="grid gap-3 sm:grid-cols-2">
-                  {PRICE_TYPES.map((pt) => (
-                    <button
-                      key={pt}
-                      onClick={() => setPriceType(pt)}
-                      className={cn(
-                        "rounded-xl border px-4 py-3 text-left transition-all",
-                        priceType === pt
-                          ? "border-coral/40 bg-coral/10"
-                          : "border-white/10 bg-white/[0.02] hover:border-white/20",
-                      )}
-                    >
-                      <span
+                  {PRICE_TYPES.map((pt) => {
+                    const priceDescriptions: Record<PriceType, string> = {
+                      hourly: "Charge per hour of work",
+                      fixed: "One-time payment for the task",
+                      per_use: "Charge each time the service is used",
+                      bidding: "Let clients propose their own price",
+                    };
+                    return (
+                      <button
+                        key={pt}
+                        onClick={() => setPriceType(pt)}
                         className={cn(
-                          "text-sm font-medium",
-                          priceType === pt ? "text-coral" : "text-white",
+                          "rounded-xl border px-4 py-3 text-left transition-all",
+                          priceType === pt
+                            ? "border-coral/40 bg-coral/10"
+                            : "border-white/10 bg-white/[0.02] hover:border-white/20",
                         )}
                       >
-                        {PRICE_TYPE_LABELS[pt]}
-                      </span>
-                    </button>
-                  ))}
+                        <span
+                          className={cn(
+                            "text-sm font-medium",
+                            priceType === pt ? "text-coral" : "text-white",
+                          )}
+                        >
+                          {PRICE_TYPE_LABELS[pt]}
+                        </span>
+                        <p className="mt-0.5 text-[10px] text-white/30">
+                          {priceDescriptions[pt]}
+                        </p>
+                      </button>
+                    );
+                  })}
                 </div>
               </SectionCard>
 
               {priceType !== "bidding" && (
-                <SectionCard title="Price">
-                  <FormField label="Amount in SOL">
+                <SectionCard
+                  title="Price"
+                  subtitle="Set your rate in SOL. This is displayed on your listing and used for escrow."
+                >
+                  <FormField
+                    label="Amount in SOL"
+                    tooltip="The SOL amount you charge. For hourly, this is per hour. For fixed, it's the total project price."
+                  >
                     <input
                       type="number"
                       value={priceSol}
@@ -762,12 +812,16 @@ export default function CreateListingPage() {
                       className="form-input"
                     />
                   </FormField>
-                  <FormField label="Token Mint (optional)">
+                  <FormField
+                    label="Token Mint"
+                    tooltip="Optionally accept payment in a specific SPL token instead of SOL. Paste the token's mint address."
+                    optional
+                  >
                     <input
                       type="text"
                       value={priceToken}
                       onChange={(e) => setPriceToken(e.target.value)}
-                      placeholder="Token mint address"
+                      placeholder="Token mint address (leave blank for SOL)"
                       className="form-input"
                     />
                   </FormField>
@@ -776,10 +830,14 @@ export default function CreateListingPage() {
 
               {priceType === "bidding" && (
                 <SectionCard title="Bidding">
-                  <p className="text-sm text-white/40">
-                    Clients will submit bids with their proposed price. You can
-                    accept or reject bids.
-                  </p>
+                  <div className="flex items-start gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-4">
+                    <HelpCircle className="mt-0.5 size-4 shrink-0 text-white/25" />
+                    <p className="text-sm leading-relaxed text-white/40">
+                      Clients will submit bids with their proposed price and
+                      scope. You review each bid and accept or reject it — great
+                      for flexible or complex work.
+                    </p>
+                  </div>
                 </SectionCard>
               )}
             </motion.div>
@@ -827,9 +885,6 @@ export default function CreateListingPage() {
                     label="Location"
                     value={isRemote ? "Remote" : location || "—"}
                   />
-                  {portfolio.length > 0 && (
-                    <ReviewRow label="Portfolio" value={portfolio.join(", ")} />
-                  )}
                   {featuredImage && (
                     <div className="flex flex-col gap-1 border-b border-white/5 pb-3 last:border-0 last:pb-0 sm:flex-row sm:gap-4">
                       <span className="w-32 shrink-0 text-sm text-white/30">
@@ -915,16 +970,22 @@ export default function CreateListingPage() {
 
 function SectionCard({
   title,
+  subtitle,
   children,
 }: {
   title: string;
+  subtitle?: string;
   children: React.ReactNode;
 }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-surface/80 p-5 sm:p-6">
-      <h2 className="mb-4 text-xs font-bold uppercase tracking-wider text-white/30">
+      <h2 className="mb-1 text-xs font-bold uppercase tracking-wider text-white/30">
         {title}
       </h2>
+      {subtitle && (
+        <p className="mb-4 text-xs leading-relaxed text-white/20">{subtitle}</p>
+      )}
+      {!subtitle && <div className="mb-4" />}
       <div className="space-y-4">{children}</div>
     </div>
   );
@@ -932,16 +993,43 @@ function SectionCard({
 
 function FormField({
   label,
+  tooltip,
+  optional,
   children,
 }: {
   label: string;
+  tooltip?: string;
+  optional?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <div>
-      <label className="mb-1.5 block text-sm font-medium text-white/60">
-        {label}
-      </label>
+      <div className="mb-1.5 flex items-center gap-1.5">
+        <label className="text-sm font-medium text-white/60">{label}</label>
+        {optional && (
+          <span className="rounded bg-white/5 px-1.5 py-0.5 text-[10px] text-white/25">
+            optional
+          </span>
+        )}
+        {tooltip && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                className="text-white/20 transition-colors hover:text-white/40"
+              >
+                <HelpCircle className="size-3.5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent
+              side="top"
+              className="max-w-[260px] rounded-lg border border-white/10 bg-surface px-3 py-2 text-xs leading-relaxed text-white/70 shadow-xl"
+            >
+              {tooltip}
+            </TooltipContent>
+          </Tooltip>
+        )}
+      </div>
       {children}
     </div>
   );

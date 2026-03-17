@@ -85,17 +85,27 @@ function CopyButton({ text }: { text: string }) {
 
   return (
     <button
+      aria-label="Copy to clipboard"
       onClick={() => {
-        navigator.clipboard.writeText(text);
+        try {
+          navigator.clipboard.writeText(text);
+        } catch {
+          const textarea = document.createElement("textarea");
+          textarea.value = text;
+          document.body.appendChild(textarea);
+          textarea.select();
+          document.execCommand("copy");
+          document.body.removeChild(textarea);
+        }
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       }}
       className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
     >
       {copied ? (
-        <Check className="w-4 h-4 text-[#6FEC06]" />
+        <Check className="size-4 text-[#6FEC06]" />
       ) : (
-        <Copy className="w-4 h-4 text-white/40" />
+        <Copy className="size-4 text-white/40" />
       )}
     </button>
   );
@@ -103,19 +113,19 @@ function CopyButton({ text }: { text: string }) {
 
 export default function DevelopersPage() {
   return (
-    <div className="space-y-12">
+    <div className="min-h-screen space-y-12 p-4 sm:p-6 lg:p-8">
       {/* Header */}
       <div>
         <Link
-          href="/marketplace"
+          href="/dashboard/marketplace"
           className="inline-flex items-center gap-2 text-white/50 hover:text-white transition-colors mb-6"
         >
-          <ArrowLeft className="w-4 h-4" />
+          <ArrowLeft className="size-4" />
           Back to Marketplace
         </Link>
         <div className="flex items-center gap-3 mb-4">
           <div className="p-3 rounded-xl bg-[#6FEC06]/10">
-            <Terminal className="w-6 h-6 text-[#6FEC06]" />
+            <Terminal className="size-6 text-[#6FEC06]" />
           </div>
           <div>
             <h1 className="text-3xl font-bold text-white">MCP Server</h1>
@@ -132,7 +142,7 @@ export default function DevelopersPage() {
       {/* Quick Start */}
       <section className="bg-[#0a0520]/80 rounded-2xl border border-white/10 p-6 space-y-4">
         <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-          <Zap className="w-5 h-5 text-[#6FEC06]" />
+          <Zap className="size-5 text-[#6FEC06]" />
           Quick Start
         </h2>
 
@@ -198,7 +208,7 @@ export default function DevelopersPage() {
                   className={`p-2 rounded-lg ${t.free ? "bg-white/5" : "bg-[#6FEC06]/10"}`}
                 >
                   <Icon
-                    className={`w-5 h-5 ${t.free ? "text-white/60" : "text-[#6FEC06]"}`}
+                    className={`size-5 ${t.free ? "text-white/60" : "text-[#6FEC06]"}`}
                   />
                 </div>
                 <div className="flex-1 min-w-0">

@@ -21,6 +21,7 @@ import AgentShowcase from "./components/AgentShowcase";
 import CorporateNetwork from "./components/CorporateNetwork";
 import AgentCapabilities from "./components/AgentCapabilities";
 import HowItWorks from "./components/HowItWorks";
+import MarketplaceShowcase from "./components/MarketplaceShowcase";
 import Footer from "./components/Footer";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 
@@ -118,6 +119,9 @@ export default function Home() {
         <section id="features" className="py-16 sm:py-32 px-4 sm:px-6 relative">
           <FeaturesGrid />
         </section>
+
+        {/* Marketplace Section */}
+        <MarketplaceShowcase />
 
         {/* Agent Showcase Section */}
         <section id="agents" className="py-16 sm:py-32 px-4 sm:px-6 relative">

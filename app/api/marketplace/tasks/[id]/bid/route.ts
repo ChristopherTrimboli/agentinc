@@ -39,26 +39,55 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     }
 
     const body = await req.json();
-    if (!body.amountSol || body.amountSol <= 0) {
+    if (
+      typeof body.amountSol !== "number" ||
+      isNaN(body.amountSol) ||
+      body.amountSol <= 0
+    ) {
       return NextResponse.json(
-        { error: "Invalid bid amount" },
+        { error: "Bid amount must be a positive number" },
         { status: 400 },
       );
     }
-    if (body.amountSol > task.budgetSol) {
+    const budgetSol = Number(task.budgetSol);
+    if (budgetSol > 0 && body.amountSol > budgetSol) {
       return NextResponse.json(
         { error: "Bid exceeds task budget" },
         { status: 400 },
       );
     }
+    if (body.message !== undefined && body.message !== null) {
+      if (typeof body.message !== "string" || body.message.length > 5000) {
+        return NextResponse.json(
+          { error: "Message must be a string of 5000 chars or less" },
+          { status: 400 },
+        );
+      }
+    }
+    if (body.estimatedTime !== undefined && body.estimatedTime !== null) {
+      if (
+        typeof body.estimatedTime !== "string" ||
+        body.estimatedTime.length > 200
+      ) {
+        return NextResponse.json(
+          { error: "estimatedTime must be a string of 200 chars or less" },
+          { status: 400 },
+        );
+      }
+    }
 
-    // Prevent duplicate bids from the same user
+    // Check for any existing bid (schema enforces @@unique([taskId, bidderId]))
     const existingBid = await prisma.marketplaceBid.findFirst({
-      where: { taskId: id, bidderId: auth.userId, status: "pending" },
+      where: { taskId: id, bidderId: auth.userId },
     });
     if (existingBid) {
       return NextResponse.json(
-        { error: "You already have a pending bid on this task" },
+        {
+          error:
+            existingBid.status === "pending"
+              ? "You already have a pending bid on this task"
+              : "You have already bid on this task",
+        },
         { status: 409 },
       );
     }
@@ -68,8 +97,8 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         taskId: id,
         bidderId: auth.userId,
         amountSol: body.amountSol,
-        message: body.message,
-        estimatedTime: body.estimatedTime,
+        message: body.message ?? null,
+        estimatedTime: body.estimatedTime ?? null,
       },
     });
 

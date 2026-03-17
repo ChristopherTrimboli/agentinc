@@ -15,7 +15,6 @@ import {
   withWalletLock,
   getWalletBalance,
 } from "@/lib/privy/wallet-service";
-import { getSolPrice } from "@/lib/x402/sol-facilitator";
 import {
   SOL_TREASURY_ADDRESS,
   issueRefund,
@@ -23,10 +22,10 @@ import {
 import type { EscrowResult } from "./types";
 
 const LAMPORTS_PER_SOL = 1_000_000_000;
-const TREASURY_WALLET_ID = process.env.X402_TREASURY_WALLET_ID || "";
+const TREASURY_WALLET_ID = process.env.X402_TREASURY_WALLET_ID ?? "";
 
 function solToLamports(sol: number): bigint {
-  return BigInt(Math.ceil(sol * LAMPORTS_PER_SOL));
+  return BigInt(Math.round(sol * LAMPORTS_PER_SOL));
 }
 
 /**
@@ -109,11 +108,13 @@ export async function createEscrow(
 
 /**
  * Release escrow: transfer SOL from treasury to worker's wallet.
+ * Optionally skip the DB status update (used by releaseMilestone which manages status itself).
  */
 export async function releaseEscrow(
   taskId: string,
   workerWalletAddress: string,
   amountSol: number,
+  options?: { skipStatusUpdate?: boolean },
 ): Promise<EscrowResult> {
   if (!SOL_TREASURY_ADDRESS || !TREASURY_WALLET_ID) {
     return {
@@ -124,31 +125,38 @@ export async function releaseEscrow(
 
   const lamports = solToLamports(amountSol);
 
-  const treasuryBalance = await getWalletBalance(SOL_TREASURY_ADDRESS);
-  if (treasuryBalance < lamports) {
-    return { success: false, error: "Treasury insufficient balance" };
-  }
+  return withWalletLock(SOL_TREASURY_ADDRESS, async () => {
+    const treasuryBalance = await getWalletBalance(SOL_TREASURY_ADDRESS);
+    if (treasuryBalance < lamports) {
+      return { success: false, error: "Treasury insufficient balance" };
+    }
 
-  const result = await sendSolFromWallet(
-    TREASURY_WALLET_ID,
-    SOL_TREASURY_ADDRESS,
-    workerWalletAddress,
-    lamports,
-  );
+    const result = await sendSolFromWallet(
+      TREASURY_WALLET_ID,
+      SOL_TREASURY_ADDRESS,
+      workerWalletAddress,
+      lamports,
+    );
 
-  if (!result.success) {
-    return { success: false, error: result.error || "Release transfer failed" };
-  }
+    if (!result.success) {
+      return {
+        success: false,
+        error: result.error || "Release transfer failed",
+      };
+    }
 
-  await prisma.marketplaceTask.update({
-    where: { id: taskId },
-    data: {
-      escrowStatus: "released",
-      settleTxSignature: result.signature,
-    },
+    if (!options?.skipStatusUpdate) {
+      await prisma.marketplaceTask.update({
+        where: { id: taskId },
+        data: {
+          escrowStatus: "released",
+          settleTxSignature: result.signature,
+        },
+      });
+    }
+
+    return { success: true, txSignature: result.signature };
   });
-
-  return { success: true, txSignature: result.signature };
 }
 
 /**
@@ -177,28 +185,30 @@ export async function refundEscrow(
     return { success: false, error: "Task not found" };
   }
 
-  const refundResult = await issueRefund(
-    task.posterId,
-    posterWalletAddress,
-    lamports,
-    amountSol,
-    "Marketplace task escrow refund",
-    task.escrowTxSignature || "",
-  );
+  return withWalletLock(SOL_TREASURY_ADDRESS, async () => {
+    const refundResult = await issueRefund(
+      task.posterId,
+      posterWalletAddress,
+      lamports,
+      amountSol,
+      "Marketplace task escrow refund",
+      task.escrowTxSignature || "",
+    );
 
-  if (!refundResult.success) {
-    return { success: false, error: refundResult.error || "Refund failed" };
-  }
+    if (!refundResult.success) {
+      return { success: false, error: refundResult.error || "Refund failed" };
+    }
 
-  await prisma.marketplaceTask.update({
-    where: { id: taskId },
-    data: {
-      escrowStatus: "refunded",
-      settleTxSignature: refundResult.refundTxSignature,
-    },
+    await prisma.marketplaceTask.update({
+      where: { id: taskId },
+      data: {
+        escrowStatus: "refunded",
+        settleTxSignature: refundResult.refundTxSignature,
+      },
+    });
+
+    return { success: true, txSignature: refundResult.refundTxSignature };
   });
-
-  return { success: true, txSignature: refundResult.refundTxSignature };
 }
 
 /**
@@ -224,7 +234,11 @@ export async function releaseMilestone(
     status: string;
   }> | null;
 
-  if (!milestones || milestoneIndex >= milestones.length) {
+  if (
+    !milestones ||
+    milestoneIndex < 0 ||
+    milestoneIndex >= milestones.length
+  ) {
     return { success: false, error: "Invalid milestone index" };
   }
 
@@ -237,11 +251,11 @@ export async function releaseMilestone(
     taskId,
     workerWalletAddress,
     milestone.amountSol,
+    { skipStatusUpdate: true },
   );
   if (!result.success) return result;
 
   milestones[milestoneIndex].status = "released";
-
   const allReleased = milestones.every((m) => m.status === "released");
 
   await prisma.marketplaceTask.update({
@@ -249,6 +263,7 @@ export async function releaseMilestone(
     data: {
       milestones: milestones,
       escrowStatus: allReleased ? "released" : "held",
+      ...(result.txSignature && { settleTxSignature: result.txSignature }),
     },
   });
 
@@ -256,8 +271,124 @@ export async function releaseMilestone(
 }
 
 /**
- * Get the current SOL price in USD.
+ * Claim accumulated Bags creator fees for a task token and
+ * forward the SOL to the worker. Returns the total SOL claimed.
  */
-export async function getCurrentSolPrice(): Promise<number> {
-  return getSolPrice();
+export async function claimTaskTokenFees(
+  taskId: string,
+  tokenMint: string,
+  workerWalletAddress: string,
+): Promise<EscrowResult & { claimedSol?: number }> {
+  if (!SOL_TREASURY_ADDRESS || !TREASURY_WALLET_ID) {
+    return {
+      success: false,
+      error: "Treasury wallet not configured for fee claiming",
+    };
+  }
+
+  try {
+    const { BagsSDK } = await import("@bagsfm/bags-sdk");
+    const { Connection, PublicKey } = await import("@solana/web3.js");
+    const { SOLANA_RPC_URL } = await import("@/lib/constants/solana");
+    const { signTransaction, sendSignedTransaction } =
+      await import("@/lib/solana");
+
+    const apiKey = process.env.BAGS_API_KEY;
+    if (!apiKey) {
+      return { success: false, error: "Bags API key not configured" };
+    }
+
+    const connection = new Connection(SOLANA_RPC_URL);
+    const sdk = new BagsSDK(apiKey, connection, "confirmed");
+    const treasuryPubkey = new PublicKey(SOL_TREASURY_ADDRESS);
+
+    const allPositions = await sdk.fee.getAllClaimablePositions(treasuryPubkey);
+    const taskPositions = allPositions.filter((p) => p.baseMint === tokenMint);
+
+    if (taskPositions.length === 0) {
+      await prisma.marketplaceTask.update({
+        where: { id: taskId },
+        data: { tokenFeesClaimed: 0 },
+      });
+      return { success: true, claimedSol: 0 };
+    }
+
+    // Hold wallet lock for the entire claim+forward cycle to prevent
+    // balance measurement corruption from concurrent treasury operations
+    const claimResult = await withWalletLock(SOL_TREASURY_ADDRESS, async () => {
+      const balanceBefore = await getWalletBalance(SOL_TREASURY_ADDRESS);
+
+      for (const position of taskPositions) {
+        const claimTxs = await sdk.fee.getClaimTransaction(
+          treasuryPubkey,
+          position,
+        );
+
+        if (claimTxs && claimTxs.length > 0) {
+          for (const tx of claimTxs) {
+            const txBase64 = Buffer.from(
+              tx.serialize({
+                requireAllSignatures: false,
+                verifySignatures: false,
+              }),
+            ).toString("base64");
+
+            const signedTx = await signTransaction(
+              TREASURY_WALLET_ID,
+              txBase64,
+            );
+            await sendSignedTransaction(signedTx, { useJito: false });
+          }
+        }
+      }
+
+      const balanceAfter = await getWalletBalance(SOL_TREASURY_ADDRESS);
+      const claimedLamports = balanceAfter - balanceBefore;
+      const claimedSol =
+        claimedLamports > 0n ? Number(claimedLamports) / LAMPORTS_PER_SOL : 0;
+
+      if (claimedSol > 0) {
+        const sendResult = await sendSolFromWallet(
+          TREASURY_WALLET_ID,
+          SOL_TREASURY_ADDRESS,
+          workerWalletAddress,
+          claimedLamports,
+        );
+
+        if (!sendResult.success) {
+          console.error(
+            "[Task Token Fees] Failed to forward claimed fees:",
+            sendResult.error,
+          );
+          return {
+            success: false as const,
+            error: `Claimed ${claimedSol} SOL but failed to forward: ${sendResult.error}`,
+            claimedSol,
+          };
+        }
+      }
+
+      return { success: true as const, claimedSol };
+    });
+
+    if (!claimResult.success) {
+      return claimResult;
+    }
+
+    const { claimedSol } = claimResult;
+
+    await prisma.marketplaceTask.update({
+      where: { id: taskId },
+      data: { tokenFeesClaimed: claimedSol },
+    });
+
+    return { success: true, claimedSol, txSignature: undefined };
+  } catch (error) {
+    console.error("[Task Token Fees] Error claiming fees:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Failed to claim token fees",
+    };
+  }
 }

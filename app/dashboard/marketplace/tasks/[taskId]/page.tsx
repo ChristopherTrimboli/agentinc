@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { usePrivy } from "@privy-io/react-auth";
 import { useAuth } from "@/lib/auth/AuthProvider";
 import { motion } from "framer-motion";
@@ -92,7 +92,6 @@ interface TaskData {
 
 export default function TaskDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const taskId = params.taskId as string;
   const { user, authenticated, login } = usePrivy();
   const { authFetch } = useAuth();
@@ -121,9 +120,8 @@ export default function TaskDetailPage() {
   const currentUserId = user?.id ?? null;
   const isPoster = currentUserId === task?.posterId;
   const isWorker = currentUserId === task?.workerId;
-  const hasReviewed = task?.reviews.some(
-    (r) => r.reviewer.id === currentUserId,
-  );
+  const hasReviewed =
+    task?.reviews?.some((r) => r.reviewer.id === currentUserId) ?? false;
 
   const fetchTask = useCallback(async () => {
     try {
@@ -147,12 +145,17 @@ export default function TaskDetailPage() {
   async function handlePlaceBid(e: React.FormEvent) {
     e.preventDefault();
     if (!authenticated) return login();
+    const parsedAmount = parseFloat(bidAmount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      setError("Bid amount must be a positive number");
+      return;
+    }
     setSubmittingBid(true);
     try {
       const res = await authFetch(`/api/marketplace/tasks/${taskId}/bid`, {
         method: "POST",
         body: JSON.stringify({
-          amountSol: parseFloat(bidAmount),
+          amountSol: parsedAmount,
           message: bidMessage || undefined,
           estimatedTime: bidTime || undefined,
         }),
@@ -287,7 +290,7 @@ export default function TaskDetailPage() {
         </div>
         <p className="text-lg font-medium text-white/40">{error}</p>
         <Link
-          href="/marketplace"
+          href="/dashboard/marketplace"
           className="text-sm text-coral hover:underline"
         >
           Back to Marketplace
@@ -306,7 +309,7 @@ export default function TaskDetailPage() {
   );
 
   return (
-    <div className="pb-20">
+    <div className="min-h-screen p-4 pb-20 sm:p-6 lg:p-8">
       <div className="mx-auto max-w-4xl">
         {/* Back button */}
         <motion.div
@@ -314,7 +317,7 @@ export default function TaskDetailPage() {
           animate={{ opacity: 1, x: 0 }}
         >
           <Link
-            href="/marketplace"
+            href="/dashboard/marketplace"
             className="mb-6 inline-flex items-center gap-2 text-sm text-white/40 transition-colors hover:text-white"
           >
             <ArrowLeft className="size-4" />
@@ -934,7 +937,7 @@ export default function TaskDetailPage() {
             {/* Listing badge */}
             {task.listing && (
               <Link
-                href={`/marketplace/${task.listing.id}`}
+                href={`/dashboard/marketplace/${task.listing.id}`}
                 className="block rounded-2xl border border-coral/20 bg-coral/5 p-4 transition-all hover:border-coral/30"
               >
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-coral/40">

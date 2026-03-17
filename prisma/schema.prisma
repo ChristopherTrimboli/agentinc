@@ -43,7 +43,8 @@ model User {
   postedTasks          MarketplaceTask[]   @relation("TasksPoster")
   assignedTasks        MarketplaceTask[]   @relation("TasksWorker")
   marketplaceBids      MarketplaceBid[]
-  marketplaceReviews   MarketplaceReview[]
+  marketplaceReviews       MarketplaceReview[]
+  marketplaceReviewsAbout  MarketplaceReview[] @relation("ReviewsAbout")
 
   @@index([twitterUserId])
   @@index([twitterUsername])
@@ -185,7 +186,7 @@ model Agent {
   agentBids            MarketplaceBid[]
 
   // Marketplace spending controls
-  marketplaceBudgetSol    Float?   // Max SOL per autonomous hire (null = disabled)
+  marketplaceBudgetSol    Decimal?  @db.Decimal(18, 9) // Max SOL per autonomous hire (null = disabled)
   marketplaceAutoApprove  Boolean  @default(false)
 
   @@index([createdById])
@@ -464,7 +465,7 @@ model MarketplaceListing {
 
   // Pricing
   priceType   String   // "hourly" | "fixed" | "per_use" | "bidding"
-  priceSol    Float?   // SOL amount (null if bidding-only)
+  priceSol    Decimal? @db.Decimal(18, 9) // SOL amount (null if bidding-only)
   priceToken  String?  // Optional: agent token mint for token payments
 
   // Location (for IRL tasks)
@@ -473,7 +474,7 @@ model MarketplaceListing {
 
   // Availability
   isAvailable    Boolean  @default(true)
-  availableHours String?  // JSON schedule
+  availableHours Json?    // Schedule object
 
   // Owner relations (exactly one should be set)
   userId        String?
@@ -491,7 +492,6 @@ model MarketplaceListing {
 
   // Metadata
   featuredImage String?
-  portfolio     String[] // URLs to past work
 
   tasks     MarketplaceTask[]
 
@@ -503,6 +503,7 @@ model MarketplaceListing {
   @@index([isAvailable])
   @@index([type, category, isAvailable])
   @@index([userId])
+  @@index([userId, isAvailable])
   @@index([averageRating])
   @@index([completedTasks])
   @@index([createdAt])
@@ -511,7 +512,7 @@ model MarketplaceListing {
 // Demand side: a posted task/bounty
 model MarketplaceTask {
   id     String @id @default(cuid())
-  status String @default("open") // open, assigned, in_progress, review, completed, disputed, cancelled
+  status String @default("open") // pending_escrow, open, assigned, in_progress, review, completed, disputed, cancelled
 
   // Task details
   title        String   @db.VarChar(200)
@@ -519,22 +520,31 @@ model MarketplaceTask {
   category     String
   requirements String[]
 
-  // Budget
-  budgetSol    Float
+  // Budget (optional fixed SOL bounty on top of task token)
+  budgetSol    Decimal  @default(0) @db.Decimal(18, 9)
   budgetToken  String?  // Optional token mint for token payments
 
-  // Escrow
-  escrowAmount       Float?  // SOL locked in treasury
-  escrowTxSignature  String? // Transfer-in tx
-  settleTxSignature  String? // Release tx
-  escrowStatus       String  @default("none") // none, held, released, refunded
+  // Task Token (Bags.fm bonding-curve token minted per task)
+  tokenMint           String?  @unique // Bags token mint address
+  tokenSymbol         String?  // e.g. "$BUILDSWAP"
+  tokenMetadata       String?  // Metadata URL
+  tokenLaunchWallet   String?  // Wallet that launched the token
+  tokenLaunchSignature String? // Launch tx signature
+  tokenConfigKey      String?  // Bags fee-share config key
+  tokenFeesClaimed    Decimal  @default(0) @db.Decimal(18, 9) // Total SOL claimed from creator fees
+
+  // Escrow (for optional fixed SOL bounty)
+  escrowAmount       Decimal? @db.Decimal(18, 9) // SOL locked in treasury
+  escrowTxSignature  String?  // Transfer-in tx
+  settleTxSignature  String?  // Release tx
+  escrowStatus       String   @default("none") // none, held, released, refunded
 
   // Milestones (JSON: [{title, amountSol, status}])
   milestones Json?
 
   // Poster (who created the task)
   posterId      String
-  poster        User   @relation("TasksPoster", fields: [posterId], references: [id], onDelete: Cascade)
+  poster        User   @relation("TasksPoster", fields: [posterId], references: [id], onDelete: Restrict)
   posterAgentId String?
   posterAgent   Agent? @relation("TasksPosterAgent", fields: [posterAgentId], references: [id], onDelete: SetNull)
 
@@ -578,6 +588,10 @@ model MarketplaceTask {
   @@index([status, category])
   @@index([posterId, status])
   @@index([workerId, status])
+  @@index([posterAgentId])
+  @@index([workerAgentId])
+  @@index([escrowStatus])
+  @@index([deadline])
   @@index([createdAt])
 }
 
@@ -586,13 +600,13 @@ model MarketplaceBid {
   id     String @id @default(cuid())
   status String @default("pending") // pending, accepted, rejected, withdrawn
 
-  amountSol     Float
+  amountSol     Decimal @db.Decimal(18, 9)
   message       String? @db.Text
   estimatedTime String? // "2 hours", "3 days"
 
   // Bidder (user or agent)
-  bidderId      String?
-  bidder        User?  @relation(fields: [bidderId], references: [id], onDelete: Cascade)
+  bidderId      String
+  bidder        User   @relation(fields: [bidderId], references: [id], onDelete: Cascade)
   bidderAgentId String?
   bidderAgent   Agent? @relation(fields: [bidderAgentId], references: [id], onDelete: SetNull)
 
@@ -600,9 +614,12 @@ model MarketplaceBid {
   task   MarketplaceTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
+  @@unique([taskId, bidderId])
   @@index([taskId])
   @@index([bidderId])
+  @@index([bidderAgentId])
   @@index([taskId, status])
 }
 
@@ -612,8 +629,13 @@ model MarketplaceReview {
   rating Int    // 1-5
   comment String? @db.Text
 
+  // Who wrote the review
   reviewerId String
   reviewer   User @relation(fields: [reviewerId], references: [id], onDelete: Cascade)
+
+  // Who the review is about (poster reviewing worker, or vice versa)
+  revieweeId String?
+  reviewee   User?  @relation("ReviewsAbout", fields: [revieweeId], references: [id], onDelete: SetNull)
 
   taskId String
   task   MarketplaceTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
@@ -623,4 +645,5 @@ model MarketplaceReview {
   @@unique([taskId, reviewerId])
   @@index([taskId])
   @@index([reviewerId])
+  @@index([revieweeId])
 }

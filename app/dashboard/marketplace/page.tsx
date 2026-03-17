@@ -1,36 +1,64 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Plus,
-  FileText,
-  ClipboardList,
-  CheckCircle2,
-  Wallet,
-  Loader2,
-  AlertCircle,
-  Eye,
-  EyeOff,
-  Trash2,
-  ExternalLink,
-  TrendingUp,
-  Clock,
-  Lock,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  SlidersHorizontal,
+  Zap,
+  Briefcase,
+  Target,
   Sparkles,
+  TrendingUp,
+  Globe,
+  Settings2,
+  Coins,
 } from "lucide-react";
 
-import { usePrivy } from "@privy-io/react-auth";
-import { useAuth } from "@/lib/auth/AuthProvider";
 import { cn } from "@/lib/utils";
 import ListingCard from "@/components/marketplace/ListingCard";
 import TaskCard from "@/components/marketplace/TaskCard";
-import EscrowBadge from "@/components/marketplace/EscrowBadge";
+import {
+  MARKETPLACE_CATEGORIES,
+  CATEGORY_LABELS,
+  type MarketplaceCategory,
+  type ListingType,
+} from "@/lib/marketplace/types";
 
-// ── Types ────────────────────────────────────────────────────────────
+type ActiveTab = "hire" | "bounties";
+type SortOption =
+  | "newest"
+  | "rating"
+  | "price_asc"
+  | "price_desc"
+  | "most_completed";
 
-interface Listing {
+const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: "newest", label: "Newest" },
+  { value: "rating", label: "Top Rated" },
+  { value: "price_asc", label: "Price: Low → High" },
+  { value: "price_desc", label: "Price: High → Low" },
+  { value: "most_completed", label: "Most Completed" },
+];
+
+const TYPE_FILTERS: { value: ListingType | "all"; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "agent", label: "Agents" },
+  { value: "human", label: "Humans" },
+  { value: "corporation", label: "Corps" },
+];
+
+interface Pagination {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
+interface ListingResponse {
   id: string;
   type: "agent" | "human" | "corporation";
   title: string;
@@ -44,24 +72,22 @@ interface Listing {
   totalRatings: number;
   completedTasks: number;
   featuredImage: string | null;
-  createdAt: string;
-  agent?: {
+  agent: {
     id: string;
     name: string;
     imageUrl: string | null;
     rarity: string | null;
     tokenSymbol: string | null;
   } | null;
-  corporation?: {
+  corporation: {
     id: string;
     name: string;
     logo: string | null;
     tokenSymbol: string | null;
   } | null;
-  user?: { id: string; email: string | null } | null;
 }
 
-interface Task {
+interface TaskResponse {
   id: string;
   title: string;
   description: string;
@@ -71,523 +97,663 @@ interface Task {
   isRemote: boolean;
   deadline: string | null;
   createdAt: string;
-  escrowStatus: string;
-  escrowAmount: number | null;
-  posterId: string;
-  assigneeId: string | null;
-  poster?: { id: string; email: string | null } | null;
-  listing?: { id: string; title: string; type: string } | null;
-  _count?: { bids: number };
+  tokenMint: string | null;
+  tokenSymbol: string | null;
+  _count: { bids: number };
 }
 
-// ── Tab Configuration ────────────────────────────────────────────────
+export default function MarketplacePage() {
+  const [tab, setTab] = useState<ActiveTab>("hire");
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [category, setCategory] = useState<MarketplaceCategory | "all">("all");
+  const [typeFilter, setTypeFilter] = useState<ListingType | "all">("all");
+  const [sort, setSort] = useState<SortOption>("newest");
+  const [isRemote, setIsRemote] = useState(false);
+  const [page, setPage] = useState(1);
 
-const TABS = [
-  { id: "listings", label: "My Listings", icon: FileText },
-  { id: "posted", label: "Posted Tasks", icon: ClipboardList },
-  { id: "assigned", label: "Assigned Tasks", icon: CheckCircle2 },
-  { id: "earnings", label: "Earnings", icon: Wallet },
-] as const;
+  const [listings, setListings] = useState<ListingResponse[]>([]);
+  const [tasks, setTasks] = useState<TaskResponse[]>([]);
+  const [pagination, setPagination] = useState<Pagination>({
+    page: 1,
+    pageSize: 20,
+    total: 0,
+    totalPages: 0,
+  });
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
-type TabId = (typeof TABS)[number]["id"];
-
-// ── Component ────────────────────────────────────────────────────────
-
-export default function MarketplaceDashboardPage() {
-  const { authFetch } = useAuth();
-  const { user } = usePrivy();
-  const userId = user?.id ?? null;
-  const [activeTab, setActiveTab] = useState<TabId>("listings");
-  const [listings, setListings] = useState<Listing[]>([]);
-  const [postedTasks, setPostedTasks] = useState<Task[]>([]);
-  const [assignedTasks, setAssignedTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchListings = useCallback(async () => {
-    if (!userId) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await authFetch(
-        `/api/marketplace/listings?ownerId=${encodeURIComponent(userId)}`,
-      );
-      if (!res.ok) throw new Error("Failed to fetch listings");
-      const data = await res.json();
-      setListings(data.listings ?? []);
-    } catch (err) {
-      console.error("[Marketplace Dashboard] Listings error:", err);
-      setError("Failed to load listings.");
-    } finally {
-      setLoading(false);
-    }
-  }, [authFetch, userId]);
-
-  const fetchPostedTasks = useCallback(async () => {
-    if (!userId) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await authFetch(
-        `/api/marketplace/tasks?posterId=${encodeURIComponent(userId)}`,
-      );
-      if (!res.ok) throw new Error("Failed to fetch tasks");
-      const data = await res.json();
-      setPostedTasks(data.tasks ?? []);
-    } catch (err) {
-      console.error("[Marketplace Dashboard] Tasks error:", err);
-      setError("Failed to load tasks.");
-    } finally {
-      setLoading(false);
-    }
-  }, [authFetch, userId]);
-
-  const fetchAssignedTasks = useCallback(async () => {
-    if (!userId) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await authFetch(
-        `/api/marketplace/tasks?workerId=${encodeURIComponent(userId)}`,
-      );
-      if (!res.ok) throw new Error("Failed to fetch assigned tasks");
-      const data = await res.json();
-      setAssignedTasks(data.tasks ?? []);
-    } catch (err) {
-      console.error("[Marketplace Dashboard] Assigned tasks error:", err);
-      setError("Failed to load assigned tasks.");
-    } finally {
-      setLoading(false);
-    }
-  }, [authFetch, userId]);
+  const [stats, setStats] = useState({
+    totalListings: 0,
+    totalCompleted: 0,
+    totalTokens: 0,
+  });
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
+  const statsLoadedRef = useRef(false);
 
   useEffect(() => {
-    if (activeTab === "listings") fetchListings();
-    else if (activeTab === "posted") fetchPostedTasks();
-    else if (activeTab === "assigned") fetchAssignedTasks();
-  }, [activeTab, fetchListings, fetchPostedTasks, fetchAssignedTasks]);
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 350);
+    return () => {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    };
+  }, [search]);
 
-  const toggleAvailability = async (listing: Listing) => {
+  useEffect(() => {
+    setPage(1);
+  }, [category, typeFilter, sort, isRemote, tab]);
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setFetchError(null);
     try {
-      const res = await authFetch(`/api/marketplace/listings/${listing.id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ isAvailable: !listing.isAvailable }),
-      });
-      if (res.ok) {
-        setListings((prev) =>
-          prev.map((l) =>
-            l.id === listing.id ? { ...l, isAvailable: !l.isAvailable } : l,
-          ),
+      if (tab === "hire") {
+        const params = new URLSearchParams();
+        params.set("page", String(page));
+        params.set("pageSize", "20");
+        params.set("sort", sort);
+        if (category !== "all") params.set("category", category);
+        if (typeFilter !== "all") params.set("type", typeFilter);
+        if (isRemote) params.set("isRemote", "true");
+        if (debouncedSearch) params.set("search", debouncedSearch);
+
+        const res = await fetch(`/api/marketplace/listings?${params}`);
+        if (!res.ok) {
+          throw new Error("Failed to fetch listings");
+        }
+        const data = await res.json();
+        setListings(data.listings ?? []);
+        setPagination(
+          data.pagination ?? { page: 1, pageSize: 20, total: 0, totalPages: 0 },
+        );
+        setStats((prev) => ({
+          ...prev,
+          totalListings: data.pagination?.total ?? prev.totalListings,
+        }));
+      } else {
+        const params = new URLSearchParams();
+        params.set("page", String(page));
+        params.set("pageSize", "20");
+        params.set("status", "open");
+        if (category !== "all") params.set("category", category);
+        if (isRemote) params.set("isRemote", "true");
+        if (debouncedSearch) params.set("search", debouncedSearch);
+
+        const res = await fetch(`/api/marketplace/tasks?${params}`);
+        if (!res.ok) {
+          throw new Error("Failed to fetch tasks");
+        }
+        const data = await res.json();
+        setTasks(data.tasks ?? []);
+        setPagination(
+          data.pagination ?? { page: 1, pageSize: 20, total: 0, totalPages: 0 },
         );
       }
-    } catch (err) {
-      console.error("[Marketplace Dashboard] Toggle error:", err);
+    } catch {
+      setFetchError("Failed to load data. Please try again.");
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [tab, page, sort, category, typeFilter, isRemote, debouncedSearch]);
 
-  const deleteListing = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this listing?")) return;
-    try {
-      const res = await authFetch(`/api/marketplace/listings/${id}`, {
-        method: "DELETE",
-      });
-      if (res.ok) {
-        setListings((prev) => prev.filter((l) => l.id !== id));
-      }
-    } catch (err) {
-      console.error("[Marketplace Dashboard] Delete error:", err);
-    }
-  };
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
-  const completedCount = postedTasks.filter(
-    (t) => t.status === "completed",
-  ).length;
-  const pendingEscrow = postedTasks
-    .filter((t) => t.escrowStatus === "held")
-    .reduce((sum, t) => sum + (t.escrowAmount ?? t.budgetSol), 0);
+  useEffect(() => {
+    if (statsLoadedRef.current) return;
+    statsLoadedRef.current = true;
+    fetch("/api/marketplace/tasks?status=completed&pageSize=1")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.pagination?.total !== undefined) {
+          setStats((prev) => ({
+            ...prev,
+            totalCompleted: d.pagination.total,
+          }));
+        }
+      })
+      .catch(() => {});
+
+    fetch("/api/marketplace/tasks?status=open&pageSize=1")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.pagination?.total !== undefined) {
+          setStats((prev) => ({ ...prev, totalTokens: d.pagination.total }));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const rangeStart = pagination.total > 0
+    ? (pagination.page - 1) * pagination.pageSize + 1
+    : 0;
+  const rangeEnd = Math.min(
+    pagination.page * pagination.pageSize,
+    pagination.total,
+  );
 
   return (
-    <div className="min-h-screen bg-abyss p-4 sm:p-6 lg:p-8">
-      <div className="mx-auto max-w-6xl">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
+    <div className="min-h-screen p-4 sm:p-6 lg:p-8">
+      <div className="mx-auto max-w-7xl space-y-10">
+        {/* ── Hero ────────────────────────────────────────── */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+          transition={{ duration: 0.5 }}
+          className="relative"
         >
-          <div>
-            <h1 className="text-3xl font-bold text-white font-display">
-              Marketplace
+          {/* Top bar: manage link */}
+          <div className="mb-6 flex justify-end">
+            <Link
+              href="/dashboard/marketplace/manage"
+              className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white/60 transition-all hover:border-white/20 hover:bg-white/10 hover:text-white"
+            >
+              <Settings2 className="size-4" />
+              Manage
+            </Link>
+          </div>
+
+          {/* Heading block */}
+          <div className="text-center">
+            <h1 className="gradient-text-shimmer text-5xl font-bold tracking-tight font-display sm:text-6xl">
+              Task Tokens
             </h1>
-            <p className="mt-1 text-white/40">
-              Manage your listings, tasks, and earnings
+            <p className="mx-auto mt-3 max-w-2xl text-base leading-relaxed text-white/50 sm:text-lg">
+              Mint a task token, get work done, fees get paid out on
+              completion. The more hype, the bigger the reward.
+            </p>
+            <p className="mt-2 flex items-center justify-center gap-1.5 text-xs text-white/30">
+              <Sparkles className="size-3 text-coral/60" />
+              made for humans & AI
             </p>
           </div>
-          <div className="flex gap-3">
-            <Link
-              href="/dashboard/marketplace/create"
-              className="btn-cta-primary inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold"
-            >
-              <Plus className="size-4" />
-              Create Listing
-            </Link>
-            <Link
-              href="/marketplace/tasks/create"
-              className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-medium text-white transition-all hover:border-white/25 hover:bg-white/10"
-            >
-              <ClipboardList className="size-4" />
-              Post Task
-            </Link>
-          </div>
-        </motion.div>
 
-        {/* Tabs */}
+          {/* CTA + stats row — everything on one line on desktop */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
+            className="mt-8 flex flex-col items-center gap-5 sm:flex-row sm:justify-center"
+          >
+            <div className="flex items-center gap-3">
+              <Link
+                href="/dashboard/marketplace/tasks/create"
+                className="btn-cta-primary inline-flex items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-bold shadow-lg shadow-coral/20"
+              >
+                <Coins className="size-4" />
+                Mint a Task Token
+              </Link>
+              <Link
+                href="/dashboard/marketplace/create"
+                className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-6 py-2.5 text-sm font-semibold text-white/70 transition-all hover:border-white/25 hover:bg-white/10 hover:text-white"
+              >
+                <Briefcase className="size-4" />
+                List for Hire
+              </Link>
+            </div>
+
+            <div className="hidden sm:block h-8 w-px bg-white/10" />
+
+            <div className="flex items-center gap-6 text-sm">
+              <HeroStat
+                icon={<TrendingUp className="size-3.5 text-coral" />}
+                value={stats.totalListings}
+                label="Listings"
+              />
+              <HeroStat
+                icon={<Briefcase className="size-3.5 text-coral" />}
+                value={stats.totalCompleted}
+                label="Completed"
+              />
+              <HeroStat
+                icon={<Coins className="size-3.5 text-purple-400" />}
+                value={stats.totalTokens}
+                label="Task Tokens"
+              />
+            </div>
+          </motion.div>
+
+          {/* How it works — compact inline steps */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.15 }}
+            className="mx-auto mt-8 flex max-w-3xl items-start justify-between gap-2 rounded-xl border border-white/5 bg-surface/30 px-5 py-4 backdrop-blur-sm"
+          >
+            {[
+              {
+                icon: <Target className="size-4 text-coral" />,
+                title: "Post a Task",
+                step: 1,
+              },
+              {
+                icon: <Coins className="size-4 text-purple-400" />,
+                title: "Mint Token",
+                step: 2,
+              },
+              {
+                icon: <TrendingUp className="size-4 text-emerald-400" />,
+                title: "Fees Grow",
+                step: 3,
+              },
+              {
+                icon: <Zap className="size-4 text-amber-400" />,
+                title: "Earn",
+                step: 4,
+              },
+            ].map((s, i, arr) => (
+              <div key={s.step} className="flex items-center gap-2 flex-1 min-w-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-white/5">
+                    {s.icon}
+                  </div>
+                  <div className="min-w-0">
+                    <span className="block text-[10px] font-bold uppercase tracking-wider text-white/25">
+                      {s.step}
+                    </span>
+                    <span className="block truncate text-xs font-medium text-white/70">
+                      {s.title}
+                    </span>
+                  </div>
+                </div>
+                {i < arr.length - 1 && (
+                  <div className="mx-1 h-px flex-1 bg-gradient-to-r from-white/10 to-transparent sm:mx-3" />
+                )}
+              </div>
+            ))}
+          </motion.div>
+        </motion.section>
+
+        {/* ── Tabs ────────────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="mb-6 flex gap-1 rounded-xl border border-white/10 bg-surface/80 p-1"
+          transition={{ duration: 0.4, delay: 0.1 }}
+          className="flex justify-center"
         >
-          {TABS.map((tab) => {
-            const Icon = tab.icon;
-            return (
+          <div className="inline-flex gap-1 rounded-xl border border-white/10 bg-surface/60 p-1 backdrop-blur-sm">
+            {[
+              { id: "hire" as ActiveTab, label: "Hire", icon: Briefcase },
+              { id: "bounties" as ActiveTab, label: "Bounties", icon: Target },
+            ].map((t) => (
               <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                key={t.id}
+                onClick={() => setTab(t.id)}
                 className={cn(
-                  "relative flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
-                  activeTab === tab.id
+                  "relative flex items-center gap-2 rounded-lg px-6 py-2.5 text-sm font-medium transition-all",
+                  tab === t.id
                     ? "text-coral"
-                    : "text-white/40 hover:text-white/60",
+                    : "text-white/40 hover:text-white/70",
                 )}
               >
-                {activeTab === tab.id && (
+                {tab === t.id && (
                   <motion.div
-                    layoutId="dashboard-tab"
+                    layoutId="marketplace-tab"
                     className="absolute inset-0 rounded-lg bg-coral/10 border border-coral/20"
                     transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
                   />
                 )}
                 <span className="relative flex items-center gap-2">
-                  <Icon className="size-4" />
-                  <span className="hidden sm:inline">{tab.label}</span>
+                  <t.icon className="size-4" />
+                  {t.label}
                 </span>
               </button>
-            );
-          })}
+            ))}
+          </div>
         </motion.div>
 
-        {/* Loading */}
+        {/* ── Filters ─────────────────────────────────────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.15 }}
+          className="space-y-4"
+        >
+          {/* Category pills */}
+          <div className="flex flex-wrap gap-2">
+            <CategoryPill
+              active={category === "all"}
+              onClick={() => setCategory("all")}
+            >
+              All
+            </CategoryPill>
+            {MARKETPLACE_CATEGORIES.map((cat) => (
+              <CategoryPill
+                key={cat}
+                active={category === cat}
+                onClick={() => setCategory(cat)}
+              >
+                {CATEGORY_LABELS[cat]}
+              </CategoryPill>
+            ))}
+          </div>
+
+          {/* Search + Type + Sort + Remote */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative min-w-[200px] flex-1">
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-white/30" />
+              <input
+                type="text"
+                placeholder={
+                  tab === "hire" ? "Search listings…" : "Search bounties…"
+                }
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full rounded-xl border border-white/10 bg-surface/60 py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-white/25 outline-none backdrop-blur-sm transition-all focus:border-coral/30 focus:ring-1 focus:ring-coral/20"
+              />
+            </div>
+
+            {tab === "hire" && (
+              <div className="flex rounded-xl border border-white/10 bg-surface/60 p-0.5 backdrop-blur-sm">
+                {TYPE_FILTERS.map((tf) => (
+                  <button
+                    key={tf.value}
+                    onClick={() => setTypeFilter(tf.value)}
+                    className={`rounded-lg px-3 py-2 text-xs font-medium transition-all ${
+                      typeFilter === tf.value
+                        ? "bg-white/10 text-white"
+                        : "text-white/35 hover:text-white/60"
+                    }`}
+                  >
+                    {tf.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="relative">
+              <SlidersHorizontal className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-white/30" />
+              <select
+                value={sort}
+                onChange={(e) => setSort(e.target.value as SortOption)}
+                className="appearance-none rounded-xl border border-white/10 bg-surface/60 py-2.5 pl-9 pr-8 text-xs text-white/60 outline-none backdrop-blur-sm transition-all focus:border-coral/30 [&>option]:bg-surface"
+              >
+                {SORT_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-white/10 bg-surface/60 px-3 py-2.5 backdrop-blur-sm transition-all hover:border-white/20">
+              <input
+                type="checkbox"
+                checked={isRemote}
+                onChange={(e) => setIsRemote(e.target.checked)}
+                className="size-3.5 accent-coral rounded"
+              />
+              <Globe className="size-3 text-white/40" />
+              <span className="text-xs text-white/50">Remote</span>
+            </label>
+          </div>
+        </motion.div>
+
+        {/* ── Error Banner ──────────────────────────────── */}
+        {fetchError && (
+          <div className="rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-400">
+            {fetchError}
+          </div>
+        )}
+
+        {/* ── Grid ────────────────────────────────────────── */}
         <AnimatePresence mode="wait">
-          {loading && (
+          {loading ? (
             <motion.div
-              key="loading"
+              key="skeleton"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex items-center justify-center py-20"
+              className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
             >
-              <Loader2 className="size-8 animate-spin text-coral" />
+              {Array.from({ length: 8 }).map((_, i) => (
+                <SkeletonCard key={i} index={i} />
+              ))}
             </motion.div>
-          )}
-
-          {/* Error */}
-          {error && !loading && (
+          ) : tab === "hire" ? (
+            listings.length > 0 ? (
+              <motion.div
+                key="listings"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+              >
+                {listings.map((listing, i) => (
+                  <ListingCard
+                    key={listing.id}
+                    index={i}
+                    id={listing.id}
+                    type={listing.type}
+                    title={listing.title}
+                    description={listing.description}
+                    category={listing.category}
+                    skills={listing.skills}
+                    priceType={listing.priceType}
+                    priceSol={listing.priceSol}
+                    isAvailable={listing.isAvailable}
+                    averageRating={listing.averageRating}
+                    totalRatings={listing.totalRatings}
+                    completedTasks={listing.completedTasks}
+                    featuredImage={listing.featuredImage}
+                    agent={listing.agent}
+                    corporation={listing.corporation}
+                  />
+                ))}
+              </motion.div>
+            ) : (
+              <EmptyState message="No listings found. Try adjusting your filters." />
+            )
+          ) : tasks.length > 0 ? (
             <motion.div
-              key="error"
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="flex items-center gap-3 rounded-2xl border border-red-500/20 bg-red-500/5 px-5 py-4 text-sm text-red-400"
-            >
-              <AlertCircle className="size-5 shrink-0" />
-              {error}
-            </motion.div>
-          )}
-
-          {/* ── My Listings Tab ───────────────────────────────────── */}
-          {!loading && !error && activeTab === "listings" && (
-            <motion.div
-              key="listings"
+              key="tasks"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
             >
-              {listings.length === 0 ? (
-                <EmptyState
-                  title="No listings yet"
-                  description="Create your first listing to start offering your services."
-                  actionLabel="Create Listing"
-                  actionHref="/dashboard/marketplace/create"
+              {tasks.map((task, i) => (
+                <TaskCard
+                  key={task.id}
+                  index={i}
+                  id={task.id}
+                  title={task.title}
+                  description={task.description}
+                  category={task.category}
+                  status={task.status}
+                  budgetSol={task.budgetSol}
+                  isRemote={task.isRemote}
+                  deadline={task.deadline}
+                  bidCount={task._count?.bids ?? 0}
+                  createdAt={task.createdAt}
+                  tokenSymbol={task.tokenSymbol}
                 />
-              ) : (
-                <div className="space-y-4">
-                  {listings.map((listing, i) => (
-                    <motion.div
-                      key={listing.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.05 }}
-                      className="rounded-2xl border border-white/10 bg-surface/60 p-4"
-                    >
-                      <div className="flex flex-col gap-4 lg:flex-row">
-                        <div className="flex-1">
-                          <ListingCard {...listing} />
-                        </div>
-                        <div className="flex items-start gap-2 lg:flex-col">
-                          <button
-                            onClick={() => toggleAvailability(listing)}
-                            className={cn(
-                              "inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-all",
-                              listing.isAvailable
-                                ? "bg-coral/10 text-coral hover:bg-coral/15"
-                                : "bg-white/5 text-white/40 hover:bg-white/10",
-                            )}
-                          >
-                            {listing.isAvailable ? (
-                              <Eye className="size-3.5" />
-                            ) : (
-                              <EyeOff className="size-3.5" />
-                            )}
-                            {listing.isAvailable ? "Active" : "Hidden"}
-                          </button>
-                          <Link
-                            href={`/marketplace/${listing.id}`}
-                            className="inline-flex items-center gap-1.5 rounded-lg bg-white/5 px-3 py-2 text-xs font-medium text-white/40 transition-all hover:bg-white/10 hover:text-white/70"
-                          >
-                            <ExternalLink className="size-3.5" />
-                            View
-                          </Link>
-                          <button
-                            onClick={() => deleteListing(listing.id)}
-                            className="inline-flex items-center gap-1.5 rounded-lg bg-red-500/5 px-3 py-2 text-xs font-medium text-red-400/70 transition-all hover:bg-red-500/10 hover:text-red-400"
-                          >
-                            <Trash2 className="size-3.5" />
-                            Delete
-                          </button>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              )}
+              ))}
             </motion.div>
-          )}
-
-          {/* ── Posted Tasks Tab ──────────────────────────────────── */}
-          {!loading && !error && activeTab === "posted" && (
-            <motion.div
-              key="posted"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              {postedTasks.length === 0 ? (
-                <EmptyState
-                  title="No posted tasks"
-                  description="Post a task to find agents or humans to get work done."
-                  actionLabel="Post Task"
-                  actionHref="/marketplace/tasks/create"
-                />
-              ) : (
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {postedTasks.map((task, i) => (
-                    <div key={task.id} className="relative">
-                      <TaskCard
-                        index={i}
-                        id={task.id}
-                        title={task.title}
-                        description={task.description}
-                        category={task.category}
-                        status={task.status}
-                        budgetSol={task.budgetSol}
-                        isRemote={task.isRemote}
-                        deadline={task.deadline}
-                        bidCount={task._count?.bids ?? 0}
-                        createdAt={task.createdAt}
-                      />
-                      {task.escrowStatus && task.escrowStatus !== "none" && (
-                        <div className="absolute right-3 top-3 z-10">
-                          <EscrowBadge
-                            status={task.escrowStatus}
-                            amount={task.escrowAmount ?? undefined}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </motion.div>
-          )}
-
-          {/* ── Assigned Tasks Tab ────────────────────────────────── */}
-          {!loading && !error && activeTab === "assigned" && (
-            <motion.div
-              key="assigned"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              {assignedTasks.length === 0 ? (
-                <EmptyState
-                  title="No assigned tasks"
-                  description="Tasks assigned to you will show up here. Browse the marketplace to find work."
-                  actionLabel="Browse Marketplace"
-                  actionHref="/marketplace"
-                />
-              ) : (
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {assignedTasks.map((task, i) => (
-                    <TaskCard
-                      key={task.id}
-                      index={i}
-                      id={task.id}
-                      title={task.title}
-                      description={task.description}
-                      category={task.category}
-                      status={task.status}
-                      budgetSol={task.budgetSol}
-                      isRemote={task.isRemote}
-                      deadline={task.deadline}
-                      bidCount={task._count?.bids ?? 0}
-                      createdAt={task.createdAt}
-                    />
-                  ))}
-                </div>
-              )}
-            </motion.div>
-          )}
-
-          {/* ── Earnings Tab ──────────────────────────────────────── */}
-          {!loading && !error && activeTab === "earnings" && (
-            <motion.div
-              key="earnings"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="space-y-6"
-            >
-              <div className="grid gap-4 sm:grid-cols-3">
-                <EarningsCard
-                  icon={TrendingUp}
-                  label="Total Earned"
-                  value="— SOL"
-                  subtitle="Coming soon"
-                />
-                <EarningsCard
-                  icon={Lock}
-                  label="Pending Escrow"
-                  value={`${pendingEscrow.toFixed(2)} SOL`}
-                  subtitle={`${postedTasks.filter((t) => t.escrowStatus === "held").length} active`}
-                  accent
-                />
-                <EarningsCard
-                  icon={Clock}
-                  label="Completed Tasks"
-                  value={String(completedCount)}
-                  subtitle="All time"
-                />
-              </div>
-
-              <div className="rounded-2xl border border-white/10 bg-surface/60 p-10 text-center">
-                <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl border border-coral/20 bg-coral/5">
-                  <Sparkles className="size-7 text-coral" />
-                </div>
-                <h3 className="text-lg font-semibold text-white font-display">
-                  Detailed Analytics Coming Soon
-                </h3>
-                <p className="mx-auto mt-2 max-w-md text-sm text-white/40">
-                  Track your revenue, payout history, and performance metrics
-                  all in one place.
-                </p>
-              </div>
-            </motion.div>
+          ) : (
+            <EmptyState message="No open bounties right now. Check back soon!" />
           )}
         </AnimatePresence>
+
+        {/* ── Pagination ──────────────────────────────────── */}
+        {pagination.totalPages > 1 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex flex-col items-center gap-4 sm:flex-row sm:justify-between"
+          >
+            <p className="text-sm text-white/30">
+              Showing{" "}
+              <span className="text-white/50">
+                {rangeStart}–{rangeEnd}
+              </span>{" "}
+              of{" "}
+              <span className="text-white/50">
+                {pagination.total.toLocaleString()}
+              </span>{" "}
+              {tab === "hire" ? "listings" : "bounties"}
+            </p>
+            <div className="flex items-center gap-1">
+              <button
+                disabled={page <= 1}
+                onClick={() => setPage((p) => p - 1)}
+                className="rounded-lg border border-white/10 p-2 text-white/50 transition-all hover:border-white/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+              >
+                <ChevronLeft className="size-4" />
+              </button>
+
+              {generatePageNumbers(page, pagination.totalPages).map((p, i) =>
+                p === "..." ? (
+                  <span key={`dots-${i}`} className="px-2 text-white/20">
+                    …
+                  </span>
+                ) : (
+                  <button
+                    key={p}
+                    onClick={() => setPage(p as number)}
+                    className={`size-9 rounded-lg text-sm font-medium transition-all ${
+                      page === p
+                        ? "bg-coral text-black shadow-lg shadow-coral/20"
+                        : "border border-white/10 text-white/40 hover:border-white/20 hover:text-white"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ),
+              )}
+
+              <button
+                disabled={page >= pagination.totalPages}
+                onClick={() => setPage((p) => p + 1)}
+                className="rounded-lg border border-white/10 p-2 text-white/50 transition-all hover:border-white/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+              >
+                <ChevronRight className="size-4" />
+              </button>
+            </div>
+          </motion.div>
+        )}
       </div>
     </div>
   );
 }
 
-// ── Sub-components ───────────────────────────────────────────────────
+// ── Sub-components ────────────────────────────────────────────────────
 
-function EmptyState({
-  title,
-  description,
-  actionLabel,
-  actionHref,
+function HeroStat({
+  icon,
+  value,
+  label,
 }: {
-  title: string;
-  description: string;
-  actionLabel: string;
-  actionHref: string;
+  icon: React.ReactNode;
+  value: number;
+  label: string;
 }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="rounded-2xl border border-white/10 bg-surface/60 px-6 py-16 text-center"
+    <div className="flex items-center gap-2">
+      {icon}
+      <span className="font-bold text-white tabular-nums">
+        {value.toLocaleString()}
+      </span>
+      <span className="text-[10px] uppercase tracking-wider text-white/30">
+        {label}
+      </span>
+    </div>
+  );
+}
+
+function CategoryPill({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
+        active
+          ? "bg-coral text-black shadow-sm shadow-coral/20"
+          : "bg-white/5 text-white/50 hover:bg-white/10 hover:text-white/70"
+      }`}
     >
-      <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
-        <FileText className="size-7 text-white/20" />
+      {children}
+    </button>
+  );
+}
+
+function SkeletonCard({ index }: { index: number }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ delay: index * 0.05 }}
+      className="skeleton-shimmer rounded-2xl border border-white/5 bg-surface/60 p-4"
+    >
+      <div className="flex items-start gap-3">
+        <div className="size-12 rounded-xl bg-white/5" />
+        <div className="flex-1 space-y-2">
+          <div className="flex gap-1.5">
+            <div className="h-4 w-14 rounded-md bg-white/5" />
+            <div className="h-4 w-12 rounded-md bg-white/5" />
+          </div>
+          <div className="h-4 w-3/4 rounded bg-white/5" />
+        </div>
       </div>
-      <h3 className="text-lg font-semibold text-white font-display">{title}</h3>
-      <p className="mx-auto mt-2 max-w-sm text-sm text-white/40">
-        {description}
-      </p>
-      <Link
-        href={actionHref}
-        className="btn-cta-primary mt-6 inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold"
-      >
-        <Plus className="size-4" />
-        {actionLabel}
-      </Link>
+      <div className="mt-3 space-y-2">
+        <div className="h-3 w-full rounded bg-white/5" />
+        <div className="h-3 w-2/3 rounded bg-white/5" />
+      </div>
+      <div className="mt-3 flex gap-1.5">
+        <div className="h-5 w-14 rounded-md bg-white/5" />
+        <div className="h-5 w-12 rounded-md bg-white/5" />
+        <div className="h-5 w-16 rounded-md bg-white/5" />
+      </div>
+      <div className="mt-3 flex justify-between border-t border-white/5 pt-3">
+        <div className="h-4 w-16 rounded bg-white/5" />
+        <div className="h-3 w-20 rounded bg-white/5" />
+      </div>
     </motion.div>
   );
 }
 
-function EarningsCard({
-  icon: Icon,
-  label,
-  value,
-  subtitle,
-  accent,
-}: {
-  icon: typeof TrendingUp;
-  label: string;
-  value: string;
-  subtitle: string;
-  accent?: boolean;
-}) {
+function EmptyState({ message }: { message: string }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="rounded-2xl border border-white/10 bg-surface/60 p-5"
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="flex flex-col items-center justify-center py-20 text-center"
     >
-      <div className="mb-3 flex items-center gap-2">
-        <div
-          className={cn(
-            "flex size-9 items-center justify-center rounded-lg",
-            accent ? "bg-coral/10 border border-coral/20" : "bg-white/5",
-          )}
-        >
-          <Icon
-            className={cn("size-4", accent ? "text-coral" : "text-white/40")}
-          />
-        </div>
-        <span className="text-sm text-white/40">{label}</span>
+      <div className="flex size-20 items-center justify-center rounded-2xl border border-white/10 bg-surface/60">
+        <Search className="size-8 text-white/15" />
       </div>
-      <p
-        className={cn(
-          "text-2xl font-bold",
-          accent ? "text-coral" : "text-white",
-        )}
-      >
-        {value}
-      </p>
-      <p className="mt-1 text-xs text-white/25">{subtitle}</p>
+      <p className="mt-4 text-lg font-medium text-white/30">{message}</p>
     </motion.div>
   );
+}
+
+// ── Helper ────────────────────────────────────────────────────────────
+
+function generatePageNumbers(
+  current: number,
+  total: number,
+): (number | "...")[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+
+  const pages: (number | "...")[] = [1];
+  if (current > 3) pages.push("...");
+
+  const start = Math.max(2, current - 1);
+  const end = Math.min(total - 1, current + 1);
+  for (let i = start; i <= end; i++) pages.push(i);
+
+  if (current < total - 2) pages.push("...");
+  pages.push(total);
+  return pages;
 }

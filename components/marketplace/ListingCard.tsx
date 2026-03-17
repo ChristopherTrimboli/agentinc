@@ -68,6 +68,14 @@ const RARITY_GLOW: Record<string, string> = {
   common: "",
 };
 
+const RARITY_RING: Record<string, string> = {
+  legendary: "ring-[#FFD700]/40",
+  epic: "ring-[#A855F7]/40",
+  rare: "ring-[#3B82F6]/40",
+  uncommon: "ring-[#6FEC06]/40",
+  common: "ring-white/10",
+};
+
 function getAvatarSrc(props: ListingCardProps): string | null {
   if (props.featuredImage) return props.featuredImage;
   if (props.agent?.imageUrl) return props.agent.imageUrl;
@@ -110,7 +118,7 @@ export default function ListingCard(props: ListingCardProps) {
       transition={{ duration: 0.3, delay: Math.min(index * 0.05, 0.4) }}
     >
       <Link
-        href={`/marketplace/${id}`}
+        href={`/dashboard/marketplace/${id}`}
         className={cn(
           "group relative block rounded-2xl border bg-surface/80 p-4 transition-all duration-300",
           "hover:scale-[1.02] hover:-translate-y-0.5",
@@ -142,9 +150,7 @@ export default function ListingCard(props: ListingCardProps) {
                 height={48}
                 className={cn(
                   "size-12 rounded-xl object-cover ring-2",
-                  rarity !== "common"
-                    ? `ring-${rarity === "legendary" ? "[#FFD700]" : rarity === "epic" ? "[#A855F7]" : rarity === "rare" ? "[#3B82F6]" : "[#6FEC06]"}/40`
-                    : "ring-white/10",
+                  RARITY_RING[rarity] ?? RARITY_RING.common,
                 )}
               />
             ) : (

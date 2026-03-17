@@ -19,11 +19,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const rateLimited = await rateLimitByUser(
-    userId,
-    "marketplace-upload",
-    20,
-  );
+  const rateLimited = await rateLimitByUser(userId, "marketplace-upload", 20);
   if (rateLimited) return rateLimited;
 
   try {
