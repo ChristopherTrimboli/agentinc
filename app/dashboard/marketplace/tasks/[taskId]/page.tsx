@@ -21,9 +21,14 @@ import {
   Shield,
   Zap,
   X,
+  ExternalLink,
+  Coins,
+  Copy,
+  Check,
 } from "lucide-react";
 import Link from "next/link";
 import { cn, timeAgo } from "@/lib/utils";
+import { getBagsFmUrl, getSolscanUrl } from "@/lib/constants/urls";
 import StatusTimeline from "@/components/marketplace/StatusTimeline";
 import EscrowBadge from "@/components/marketplace/EscrowBadge";
 import BidCard from "@/components/marketplace/BidCard";
@@ -52,7 +57,6 @@ interface TaskBid {
   createdAt: string;
   bidder?: {
     id: string;
-    email: string | null;
     activeWallet?: { address: string } | null;
   } | null;
   bidderAgent?: { id: string; name: string; imageUrl: string | null } | null;
@@ -65,7 +69,6 @@ interface TaskReview {
   createdAt: string;
   reviewer: {
     id: string;
-    email: string | null;
     activeWallet?: { address: string } | null;
   };
 }
@@ -85,13 +88,11 @@ interface TaskData {
   posterId: string;
   poster: {
     id: string;
-    email: string | null;
     activeWallet?: { address: string } | null;
   };
   workerId?: string | null;
   worker?: {
     id: string;
-    email: string | null;
     activeWallet?: { address: string } | null;
   } | null;
   workerAgent?: { id: string; name: string; imageUrl: string | null } | null;
@@ -101,6 +102,10 @@ interface TaskData {
   isRemote: boolean;
   deadline?: string | null;
   completedAt?: string | null;
+  tokenMint?: string | null;
+  tokenSymbol?: string | null;
+  tokenMetadata?: string | null;
+  tokenLaunchSignature?: string | null;
   bids: TaskBid[];
   reviews: TaskReview[];
   createdAt: string;
@@ -133,6 +138,7 @@ export default function TaskDetailPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [disputeOpen, setDisputeOpen] = useState(false);
   const [disputeReason, setDisputeReason] = useState("");
+  const [copiedMint, setCopiedMint] = useState(false);
 
   const currentUserId = user?.id ?? null;
   const isPoster = currentUserId === task?.posterId;
@@ -396,13 +402,10 @@ export default function TaskDetailPage() {
                   href={`/profile/${task.poster.activeWallet.address}`}
                   className="text-white/60 hover:text-[#6FEC06] transition-colors"
                 >
-                  {task.poster.email ??
-                    `${task.poster.activeWallet.address.slice(0, 4)}...${task.poster.activeWallet.address.slice(-4)}`}
+                  {`${task.poster.activeWallet.address.slice(0, 4)}...${task.poster.activeWallet.address.slice(-4)}`}
                 </Link>
               ) : (
-                <span className="text-white/60">
-                  {task.poster.email ?? "Anonymous"}
-                </span>
+                <span className="text-white/60">Anonymous</span>
               )}
             </span>
             <span className="text-white/15">·</span>
@@ -590,14 +593,11 @@ export default function TaskDetailPage() {
                         className="text-sm font-medium text-white hover:text-[#6FEC06] transition-colors"
                       >
                         {task.workerAgent?.name ??
-                          task.worker?.email ??
                           `${task.worker.activeWallet.address.slice(0, 4)}...${task.worker.activeWallet.address.slice(-4)}`}
                       </Link>
                     ) : (
                       <p className="text-sm font-medium text-white">
-                        {task.workerAgent?.name ??
-                          task.worker?.email ??
-                          "Anonymous"}
+                        {task.workerAgent?.name ?? "Anonymous"}
                       </p>
                     )}
                     <p className="text-xs text-white/30">Assigned worker</p>
@@ -830,12 +830,11 @@ export default function TaskDetailPage() {
                                 href={`/profile/${review.reviewer.activeWallet.address}`}
                                 className="text-sm text-white/60 hover:text-[#6FEC06] transition-colors"
                               >
-                                {review.reviewer.email ??
-                                  `${review.reviewer.activeWallet.address.slice(0, 4)}...${review.reviewer.activeWallet.address.slice(-4)}`}
+                                {`${review.reviewer.activeWallet.address.slice(0, 4)}...${review.reviewer.activeWallet.address.slice(-4)}`}
                               </Link>
                             ) : (
                               <span className="text-sm text-white/60">
-                                {review.reviewer.email ?? "Anonymous"}
+                                Anonymous
                               </span>
                             )}
                           </div>
@@ -957,6 +956,77 @@ export default function TaskDetailPage() {
               </p>
               <p className="text-sm font-medium text-coral/40">SOL</p>
             </div>
+
+            {/* Task Token Card */}
+            {task.tokenMint && (
+              <div className="rounded-2xl border border-[#6FEC06]/20 bg-[#6FEC06]/5 p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <Coins className="size-4 text-[#6FEC06]" />
+                  <h3 className="text-sm font-semibold text-white">
+                    Task Token
+                  </h3>
+                </div>
+
+                {task.tokenSymbol && (
+                  <p className="text-2xl font-bold text-[#6FEC06] mb-3">
+                    {task.tokenSymbol}
+                  </p>
+                )}
+
+                <div className="mb-3 flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2">
+                  <code className="flex-1 truncate text-xs text-white/50">
+                    {task.tokenMint}
+                  </code>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(task.tokenMint!);
+                      setCopiedMint(true);
+                      setTimeout(() => setCopiedMint(false), 2000);
+                    }}
+                    className="shrink-0 rounded-md p-1 text-white/30 hover:bg-white/10 hover:text-white/60 transition-colors"
+                  >
+                    {copiedMint ? (
+                      <Check className="size-3.5 text-[#6FEC06]" />
+                    ) : (
+                      <Copy className="size-3.5" />
+                    )}
+                  </button>
+                </div>
+
+                <div className="space-y-2">
+                  <a
+                    href={getBagsFmUrl(task.tokenMint)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 w-full rounded-xl border border-[#6FEC06]/30 bg-[#6FEC06]/10 px-4 py-2.5 text-sm font-semibold text-[#6FEC06] hover:bg-[#6FEC06]/20 transition-all"
+                  >
+                    <Zap className="size-4" />
+                    Buy on Bags
+                    <ExternalLink className="size-3" />
+                  </a>
+                  <a
+                    href={getSolscanUrl("token", task.tokenMint)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-medium text-white/50 hover:bg-white/10 hover:text-white/70 transition-all"
+                  >
+                    View on Solscan
+                    <ExternalLink className="size-3" />
+                  </a>
+                </div>
+
+                {task.tokenLaunchSignature && (
+                  <a
+                    href={getSolscanUrl("tx", task.tokenLaunchSignature)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 block text-center text-[10px] text-white/25 hover:text-white/40 transition-colors"
+                  >
+                    View launch transaction
+                  </a>
+                )}
+              </div>
+            )}
 
             {/* Task Details Card */}
             <div className="rounded-2xl border border-white/10 bg-surface/80 p-5">

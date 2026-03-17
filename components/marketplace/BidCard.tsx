@@ -43,7 +43,6 @@ interface BidCardProps {
   createdAt: string;
   bidder?: {
     id: string;
-    email: string | null;
     activeWallet?: { address: string } | null;
   } | null;
   bidderAgent?: { id: string; name: string; imageUrl: string | null } | null;
@@ -64,7 +63,12 @@ export default function BidCard({
   onAccept,
 }: BidCardProps) {
   const config = BID_STATUS_CONFIG[status] ?? BID_STATUS_CONFIG.pending;
-  const bidderName = bidderAgent?.name ?? bidder?.email ?? "Anonymous";
+  const walletAddr = bidder?.activeWallet?.address;
+  const bidderName =
+    bidderAgent?.name ??
+    (walletAddr
+      ? `${walletAddr.slice(0, 4)}...${walletAddr.slice(-4)}`
+      : "Anonymous");
   const bidderImage = bidderAgent?.imageUrl ?? null;
   const isAgent = !!bidderAgent;
   const bidderWallet = bidder?.activeWallet?.address ?? null;

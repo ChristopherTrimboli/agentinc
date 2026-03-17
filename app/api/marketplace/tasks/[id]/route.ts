@@ -20,14 +20,12 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
         poster: {
           select: {
             id: true,
-            email: true,
             activeWallet: { select: { address: true } },
           },
         },
         worker: {
           select: {
             id: true,
-            email: true,
             activeWallet: { select: { address: true } },
           },
         },
@@ -39,7 +37,6 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
             bidder: {
               select: {
                 id: true,
-                email: true,
                 activeWallet: { select: { address: true } },
               },
             },
@@ -52,7 +49,6 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
             reviewer: {
               select: {
                 id: true,
-                email: true,
                 activeWallet: { select: { address: true } },
               },
             },
