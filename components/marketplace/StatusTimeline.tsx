@@ -29,13 +29,33 @@ const STEPS = [
 
 const STEP_META: Record<
   string,
-  { label: string; icon: typeof Circle; color: string }
+  { label: string; shortLabel: string; icon: typeof Circle; color: string }
 > = {
-  open: { label: "Open", icon: Circle, color: "#34d399" },
-  assigned: { label: "Assigned", icon: UserCheck, color: "#a78bfa" },
-  in_progress: { label: "In Progress", icon: Play, color: "#38bdf8" },
-  review: { label: "Review", icon: Eye, color: "#facc15" },
-  completed: { label: "Completed", icon: Trophy, color: "#6FEC06" },
+  open: { label: "Open", shortLabel: "Open", icon: Circle, color: "#34d399" },
+  assigned: {
+    label: "Assigned",
+    shortLabel: "Assign",
+    icon: UserCheck,
+    color: "#a78bfa",
+  },
+  in_progress: {
+    label: "In Progress",
+    shortLabel: "Active",
+    icon: Play,
+    color: "#38bdf8",
+  },
+  review: {
+    label: "Review",
+    shortLabel: "Review",
+    icon: Eye,
+    color: "#facc15",
+  },
+  completed: {
+    label: "Completed",
+    shortLabel: "Done",
+    icon: Trophy,
+    color: "#6FEC06",
+  },
 };
 
 export default function StatusTimeline({ currentStatus }: StatusTimelineProps) {
@@ -57,7 +77,7 @@ export default function StatusTimeline({ currentStatus }: StatusTimelineProps) {
     elements.push(
       <div key={step} className="flex shrink-0 flex-col items-center gap-1.5">
         {/* Circle node */}
-        <div className="relative flex items-center justify-center size-8">
+        <div className="relative flex items-center justify-center size-7 sm:size-8">
           {isActive && !isCancelled && (
             <div
               className="absolute inset-0 animate-timeline-pulse rounded-full"
@@ -76,7 +96,7 @@ export default function StatusTimeline({ currentStatus }: StatusTimelineProps) {
               delay: i * 0.08,
             }}
             className={cn(
-              "relative z-10 flex size-8 items-center justify-center rounded-full border-2 transition-all duration-300",
+              "relative z-10 flex size-7 sm:size-8 items-center justify-center rounded-full border-2 transition-all duration-300",
               isCancelled
                 ? "border-white/10 bg-white/5 text-white/20"
                 : isCompleted
@@ -116,7 +136,7 @@ export default function StatusTimeline({ currentStatus }: StatusTimelineProps) {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3, delay: i * 0.08 + 0.1 }}
           className={cn(
-            "text-center text-[10px] font-semibold uppercase tracking-wider leading-tight whitespace-nowrap",
+            "text-center text-[8px] sm:text-[10px] font-semibold uppercase tracking-wider leading-tight",
             isCancelled
               ? "text-white/15"
               : isCompleted
@@ -127,7 +147,8 @@ export default function StatusTimeline({ currentStatus }: StatusTimelineProps) {
           )}
           style={isActive ? { color: meta.color } : undefined}
         >
-          {meta.label}
+          <span className="sm:hidden">{meta.shortLabel}</span>
+          <span className="hidden sm:inline">{meta.label}</span>
         </motion.span>
       </div>,
     );
@@ -137,7 +158,7 @@ export default function StatusTimeline({ currentStatus }: StatusTimelineProps) {
       elements.push(
         <div
           key={`line-${i}`}
-          className="relative h-0.5 flex-1 min-w-3 mt-[15px] overflow-hidden rounded-full"
+          className="relative h-0.5 flex-1 min-w-2 sm:min-w-3 mt-[13px] sm:mt-[15px] overflow-hidden rounded-full"
         >
           <div className="absolute inset-0 rounded-full bg-white/8" />
           {isReached && !isCancelled && (

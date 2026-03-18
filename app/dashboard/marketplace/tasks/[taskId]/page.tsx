@@ -25,6 +25,7 @@ import {
   Coins,
   Copy,
   Check,
+  Ban,
 } from "lucide-react";
 import Link from "next/link";
 import { cn, timeAgo } from "@/lib/utils";
@@ -45,6 +46,8 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -95,9 +98,15 @@ interface TaskData {
     id: string;
     activeWallet?: { address: string } | null;
   } | null;
-  workerAgent?: { id: string; name: string; imageUrl: string | null } | null;
+  workerAgent?: {
+    id: string;
+    name: string;
+    imageUrl: string | null;
+    createdById?: string | null;
+  } | null;
   listing?: { id: string; title: string; type: string } | null;
   deliverables?: string | null;
+  disputeReason?: string | null;
   location?: string | null;
   isRemote: boolean;
   deadline?: string | null;
@@ -144,9 +153,16 @@ export default function TaskDetailPage() {
 
   const currentUserId = user?.id ?? null;
   const isPoster = currentUserId === task?.posterId;
-  const isWorker = currentUserId === task?.workerId;
+  const isWorker =
+    currentUserId === task?.workerId ||
+    (!!task?.workerAgent?.createdById &&
+      currentUserId === task.workerAgent.createdById);
   const hasReviewed =
     task?.reviews?.some((r) => r.reviewer.id === currentUserId) ?? false;
+  const canCancel =
+    isPoster &&
+    !!task &&
+    ["open", "assigned", "disputed"].includes(task.status);
 
   const fetchTask = useCallback(async () => {
     try {
@@ -316,6 +332,25 @@ export default function TaskDetailPage() {
     }
   }
 
+  async function handleCancel() {
+    if (!window.confirm("Are you sure you want to cancel this task?")) return;
+    setActionLoading("cancel");
+    try {
+      const res = await authFetch(`/api/marketplace/tasks/${taskId}/cancel`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to cancel");
+      }
+      await fetchTask();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to cancel task");
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
   // ── Loading / Error States ───────────────────────────────────────────
 
   if (loading) {
@@ -360,8 +395,8 @@ export default function TaskDetailPage() {
   );
 
   return (
-    <div className="min-h-screen p-4 pb-20 sm:p-6 lg:p-8">
-      <div className="mx-auto max-w-4xl">
+    <div className="min-h-screen overflow-x-hidden p-4 pb-20 sm:p-6 lg:p-8">
+      <div className="mx-auto max-w-4xl min-w-0">
         {/* Back button */}
         <motion.div
           initial={{ opacity: 0, x: -10 }}
@@ -401,7 +436,7 @@ export default function TaskDetailPage() {
             transition={{ delay: 0.05 }}
             className="mb-6"
           >
-            <div className="relative h-48 w-full overflow-hidden rounded-2xl border border-white/10 sm:h-56">
+            <div className="relative h-40 w-full overflow-hidden rounded-2xl border border-white/10 sm:h-56">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={task.featuredImage}
@@ -419,7 +454,7 @@ export default function TaskDetailPage() {
           transition={{ delay: 0.1 }}
           className="mb-6"
         >
-          <h1 className="text-3xl font-bold text-white font-display">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white font-display">
             {task.title}
           </h1>
           <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-white/40">
@@ -446,7 +481,7 @@ export default function TaskDetailPage() {
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
-          className="mb-6 rounded-2xl border border-white/10 bg-surface/80 p-6 px-8 pb-2"
+          className="mb-6 rounded-2xl border border-white/10 bg-surface/80 p-4 px-4 sm:p-6 sm:px-8 pb-2"
         >
           <StatusTimeline currentStatus={task.status} />
           <div className="mt-4 flex items-center gap-3">
@@ -457,15 +492,15 @@ export default function TaskDetailPage() {
           </div>
         </motion.div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid min-w-0 gap-6 lg:grid-cols-3">
           {/* ── Main Content ───────────────────────────────────────── */}
-          <div className="space-y-6 lg:col-span-2">
+          <div className="min-w-0 space-y-6 lg:col-span-2">
             {/* Description */}
             <motion.section
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="rounded-2xl border border-white/10 bg-surface/80 p-6"
+              className="rounded-2xl border border-white/10 bg-surface/80 p-4 sm:p-6"
             >
               <h2 className="mb-3 text-lg font-semibold text-white font-display">
                 Description
@@ -481,7 +516,7 @@ export default function TaskDetailPage() {
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.25 }}
-                className="rounded-2xl border border-white/10 bg-surface/80 p-6"
+                className="rounded-2xl border border-white/10 bg-surface/80 p-4 sm:p-6"
               >
                 <h2 className="mb-3 text-lg font-semibold text-white font-display">
                   Requirements
@@ -506,7 +541,7 @@ export default function TaskDetailPage() {
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="rounded-2xl border border-white/10 bg-surface/80 p-6"
+                className="rounded-2xl border border-white/10 bg-surface/80 p-4 sm:p-6"
               >
                 <h2 className="mb-3 text-lg font-semibold text-white font-display">
                   Milestones
@@ -545,16 +580,16 @@ export default function TaskDetailPage() {
                       <div
                         key={i}
                         className={cn(
-                          "flex items-center justify-between rounded-xl border px-4 py-3",
+                          "flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between rounded-xl border px-3 py-2.5 sm:px-4 sm:py-3",
                           isComplete
                             ? "border-coral/20 bg-coral/5"
                             : "border-white/5 bg-white/[0.02]",
                         )}
                       >
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
                           <div
                             className={cn(
-                              "flex size-6 items-center justify-center rounded-full text-xs font-bold",
+                              "flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-bold",
                               isComplete
                                 ? "bg-coral text-black"
                                 : "border border-white/15 text-white/30",
@@ -568,14 +603,14 @@ export default function TaskDetailPage() {
                           </div>
                           <span
                             className={cn(
-                              "text-sm",
+                              "text-sm min-w-0 break-words",
                               isComplete ? "text-white/80" : "text-white/50",
                             )}
                           >
                             {m.title}
                           </span>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 pl-8 sm:pl-0 shrink-0">
                           <span className="text-sm font-bold text-coral">
                             {m.amountSol} SOL
                           </span>
@@ -605,7 +640,7 @@ export default function TaskDetailPage() {
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.35 }}
-                className="rounded-2xl border border-white/10 bg-surface/80 p-6"
+                className="rounded-2xl border border-white/10 bg-surface/80 p-4 sm:p-6"
               >
                 <h2 className="mb-3 text-lg font-semibold text-white font-display">
                   Worker
@@ -635,17 +670,24 @@ export default function TaskDetailPage() {
                 {/* Worker: submit deliverables */}
                 {isWorker &&
                   (task.status === "assigned" ||
-                    task.status === "in_progress") && (
+                    task.status === "in_progress" ||
+                    task.status === "disputed") && (
                     <form
                       onSubmit={handleSubmitDeliverables}
                       className="mt-4 space-y-3"
                     >
-                      <textarea
+                      <label className="block text-xs font-medium text-white/40">
+                        {task.status === "disputed"
+                          ? "Submit Revised Deliverables"
+                          : "Submit Deliverables"}
+                      </label>
+                      <Textarea
                         value={deliverables}
                         onChange={(e) => setDeliverables(e.target.value)}
                         placeholder="Describe your deliverables, attach links..."
-                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/25 focus:border-coral/30 focus:outline-none focus:ring-1 focus:ring-coral/20"
+                        className="bg-surface-light border-white/10 text-white placeholder:text-white/25 focus-visible:border-coral/30 focus-visible:ring-coral/20"
                         rows={4}
+                        maxLength={50000}
                         required
                       />
                       <Button
@@ -658,10 +700,25 @@ export default function TaskDetailPage() {
                         ) : (
                           <FileText className="mr-2 size-4" />
                         )}
-                        Submit Deliverables
+                        {task.status === "disputed"
+                          ? "Re-submit Deliverables"
+                          : "Submit Deliverables"}
                       </Button>
                     </form>
                   )}
+
+                {/* Display dispute reason */}
+                {task.status === "disputed" && task.disputeReason && (
+                  <div className="mt-4 rounded-xl border border-red-500/20 bg-red-500/5 p-4">
+                    <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-red-400">
+                      <AlertTriangle className="size-4" />
+                      Dispute Reason
+                    </h3>
+                    <p className="whitespace-pre-wrap text-sm text-red-300/70">
+                      {task.disputeReason}
+                    </p>
+                  </div>
+                )}
 
                 {/* Display deliverables */}
                 {task.deliverables && (
@@ -677,7 +734,7 @@ export default function TaskDetailPage() {
 
                 {/* Poster actions during review */}
                 {isPoster && task.status === "review" && (
-                  <div className="mt-4 flex gap-3">
+                  <div className="mt-4 flex flex-wrap gap-3">
                     <Button
                       onClick={handleApprove}
                       disabled={actionLoading === "approve"}
@@ -701,6 +758,56 @@ export default function TaskDetailPage() {
                     </Button>
                   </div>
                 )}
+
+                {/* Poster: cancel task */}
+                {canCancel && (
+                  <div className="mt-4 border-t border-white/5 pt-4">
+                    <Button
+                      onClick={handleCancel}
+                      disabled={actionLoading === "cancel"}
+                      variant="ghost"
+                      className="text-white/30 hover:text-red-400 hover:bg-red-500/10"
+                      size="sm"
+                    >
+                      {actionLoading === "cancel" ? (
+                        <Loader2 className="mr-2 size-4 animate-spin" />
+                      ) : (
+                        <Ban className="mr-2 size-4" />
+                      )}
+                      Cancel Task
+                    </Button>
+                  </div>
+                )}
+              </motion.section>
+            )}
+
+            {/* Poster cancel for tasks without a worker (open tasks) */}
+            {canCancel && !task.workerId && (
+              <motion.section
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.35 }}
+                className="rounded-2xl border border-white/10 bg-surface/80 p-4 sm:p-6"
+              >
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-white font-display">
+                    Task Actions
+                  </h2>
+                  <Button
+                    onClick={handleCancel}
+                    disabled={actionLoading === "cancel"}
+                    variant="ghost"
+                    className="text-white/30 hover:text-red-400 hover:bg-red-500/10"
+                    size="sm"
+                  >
+                    {actionLoading === "cancel" ? (
+                      <Loader2 className="mr-2 size-4 animate-spin" />
+                    ) : (
+                      <Ban className="mr-2 size-4" />
+                    )}
+                    Cancel Task
+                  </Button>
+                </div>
               </motion.section>
             )}
 
@@ -711,7 +818,7 @@ export default function TaskDetailPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
                 id="bids"
-                className="rounded-2xl border border-white/10 bg-surface/80 p-6"
+                className="rounded-2xl border border-white/10 bg-surface/80 p-4 sm:p-6"
               >
                 <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-white font-display">
                   <MessageSquare className="size-5 text-white/40" />
@@ -762,7 +869,7 @@ export default function TaskDetailPage() {
                           Amount (SOL)
                         </label>
                         <div className="relative">
-                          <input
+                          <Input
                             type="number"
                             step="0.01"
                             min="0.01"
@@ -770,7 +877,7 @@ export default function TaskDetailPage() {
                             onChange={(e) => setBidAmount(e.target.value)}
                             placeholder="0.00"
                             required
-                            className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-white/20 focus:border-coral/30 focus:outline-none focus:ring-1 focus:ring-coral/20"
+                            className="h-11 pr-12 bg-surface-light border-white/10 text-white placeholder:text-white/20 focus-visible:border-coral/30 focus-visible:ring-coral/20"
                           />
                           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-coral/60">
                             SOL
@@ -781,12 +888,12 @@ export default function TaskDetailPage() {
                         <label className="mb-1.5 block text-xs font-medium text-white/40">
                           Estimated Time
                         </label>
-                        <input
+                        <Input
                           type="text"
                           value={bidTime}
                           onChange={(e) => setBidTime(e.target.value)}
                           placeholder="e.g. 3 days"
-                          className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-white/20 focus:border-coral/30 focus:outline-none focus:ring-1 focus:ring-coral/20"
+                          className="h-11 bg-surface-light border-white/10 text-white placeholder:text-white/20 focus-visible:border-coral/30 focus-visible:ring-coral/20"
                         />
                       </div>
                     </div>
@@ -794,12 +901,13 @@ export default function TaskDetailPage() {
                       <label className="mb-1.5 block text-xs font-medium text-white/40">
                         Message
                       </label>
-                      <textarea
+                      <Textarea
                         value={bidMessage}
                         onChange={(e) => setBidMessage(e.target.value)}
                         placeholder="Why are you the best fit for this task?"
                         rows={3}
-                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/20 focus:border-coral/30 focus:outline-none focus:ring-1 focus:ring-coral/20"
+                        maxLength={5000}
+                        className="bg-surface-light border-white/10 text-white placeholder:text-white/20 focus-visible:border-coral/30 focus-visible:ring-coral/20"
                       />
                     </div>
                     <Button
@@ -836,7 +944,7 @@ export default function TaskDetailPage() {
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
-                className="rounded-2xl border border-white/10 bg-surface/80 p-6"
+                className="rounded-2xl border border-white/10 bg-surface/80 p-4 sm:p-6"
               >
                 <h2 className="mb-4 text-lg font-semibold text-white font-display">
                   Reviews
@@ -933,12 +1041,13 @@ export default function TaskDetailPage() {
                       <label className="mb-1.5 block text-xs font-medium text-white/40">
                         Comment (optional)
                       </label>
-                      <textarea
+                      <Textarea
                         value={reviewComment}
                         onChange={(e) => setReviewComment(e.target.value)}
                         placeholder="How was your experience?"
                         rows={3}
-                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/20 focus:border-coral/30 focus:outline-none focus:ring-1 focus:ring-coral/20"
+                        maxLength={5000}
+                        className="bg-surface-light border-white/10 text-white placeholder:text-white/20 focus-visible:border-coral/30 focus-visible:ring-coral/20"
                       />
                     </div>
                     <Button
@@ -973,7 +1082,7 @@ export default function TaskDetailPage() {
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.25 }}
-            className="space-y-4"
+            className="min-w-0 space-y-4"
           >
             {/* Bounty Card */}
             {(() => {
@@ -984,12 +1093,12 @@ export default function TaskDetailPage() {
               const hasToken = !!task.tokenMint;
 
               return (
-                <div className="rounded-2xl border border-coral/20 bg-coral/5 p-6">
+                <div className="rounded-2xl border border-coral/20 bg-coral/5 p-4 sm:p-6">
                   <div className="text-center">
                     <p className="text-xs font-semibold uppercase tracking-wider text-coral/50">
                       {hasToken ? "Total Bounty" : "Budget"}
                     </p>
-                    <p className="mt-1 text-4xl font-bold text-coral">
+                    <p className="mt-1 text-3xl sm:text-4xl font-bold text-coral">
                       {totalBounty > 0
                         ? totalBounty < 0.01
                           ? totalBounty.toFixed(6)
@@ -1026,7 +1135,7 @@ export default function TaskDetailPage() {
 
             {/* Task Token Card */}
             {task.tokenMint && (
-              <div className="rounded-2xl border border-[#6FEC06]/20 bg-[#6FEC06]/5 p-5">
+              <div className="rounded-2xl border border-[#6FEC06]/20 bg-[#6FEC06]/5 p-4 sm:p-5">
                 <div className="flex items-center gap-2 mb-3">
                   <Coins className="size-4 text-[#6FEC06]" />
                   <h3 className="text-sm font-semibold text-white">
@@ -1035,7 +1144,7 @@ export default function TaskDetailPage() {
                 </div>
 
                 {task.tokenSymbol && (
-                  <p className="text-2xl font-bold text-[#6FEC06] mb-3">
+                  <p className="text-xl sm:text-2xl font-bold text-[#6FEC06] mb-3">
                     {task.tokenSymbol}
                   </p>
                 )}
@@ -1202,12 +1311,13 @@ export default function TaskDetailPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 pt-2">
-            <textarea
+            <Textarea
               value={disputeReason}
               onChange={(e) => setDisputeReason(e.target.value)}
               placeholder="Describe the issue in detail..."
               rows={4}
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/20 focus:border-red-500/30 focus:outline-none focus:ring-1 focus:ring-red-500/20"
+              maxLength={5000}
+              className="bg-surface-light border-white/10 text-white placeholder:text-white/20 focus-visible:border-red-500/30 focus-visible:ring-red-500/20"
             />
             <div className="flex justify-end gap-3">
               <Button

@@ -219,7 +219,7 @@ export default function ListingDetail({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.1 }}
           className={cn(
-            "relative overflow-hidden rounded-3xl border p-6 sm:p-8",
+            "relative overflow-hidden rounded-2xl sm:rounded-3xl border p-4 sm:p-6 lg:p-8",
             rarity !== "common"
               ? `${rarityDetail.border}/30 ${rarityDetail.glow}`
               : "border-white/10",
@@ -244,7 +244,7 @@ export default function ListingDetail({
                   width={112}
                   height={112}
                   className={cn(
-                    "size-28 rounded-2xl object-cover ring-2",
+                    "size-20 sm:size-28 rounded-2xl object-cover ring-2",
                     rarity !== "common"
                       ? `${rarityDetail.border}/50`
                       : "ring-white/20",
@@ -252,8 +252,8 @@ export default function ListingDetail({
                   onError={() => setImgError(true)}
                 />
               ) : (
-                <div className="flex size-28 items-center justify-center rounded-2xl border-2 border-white/20 bg-white/5">
-                  <TypeIcon className="size-12 text-white/30" />
+                <div className="flex size-20 sm:size-28 items-center justify-center rounded-2xl border-2 border-white/20 bg-white/5">
+                  <TypeIcon className="size-8 sm:size-12 text-white/30" />
                 </div>
               )}
               {listing.isAvailable && (
@@ -268,7 +268,7 @@ export default function ListingDetail({
 
             <div className="min-w-0 flex-1 space-y-4">
               <div>
-                <h1 className="text-3xl font-bold text-white font-display sm:text-4xl">
+                <h1 className="text-2xl font-bold text-white font-display sm:text-3xl lg:text-4xl">
                   {listing.title}
                 </h1>
                 {listing.agent?.name &&
@@ -424,7 +424,7 @@ export default function ListingDetail({
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.22 }}
-            className="flex flex-col items-center gap-4 rounded-2xl border border-coral/20 bg-coral/5 p-6 sm:flex-row sm:justify-between"
+            className="flex flex-col items-center gap-4 rounded-2xl border border-coral/20 bg-coral/5 p-4 sm:p-6 sm:flex-row sm:justify-between"
           >
             <PriceDisplay listing={listing} />
             <Link
@@ -556,7 +556,7 @@ export default function ListingDetail({
       {/* Fixed bottom Hire CTA */}
       {ctaStyle === "fixed" && listing.isAvailable && (
         <div className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-abyss/90 backdrop-blur-xl">
-          <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+          <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:py-4 sm:px-6 lg:px-8">
             <PriceDisplay listing={listing} />
             <Link
               href={hireLinkHref}
@@ -628,19 +628,19 @@ function StatCard({
 
 function LoadingSkeleton() {
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       <div className="h-4 w-32 rounded bg-white/5 skeleton-shimmer" />
-      <div className="rounded-3xl border border-white/5 bg-surface/60 p-8 skeleton-shimmer">
-        <div className="flex gap-6">
-          <div className="size-28 rounded-2xl bg-white/5" />
+      <div className="rounded-2xl sm:rounded-3xl border border-white/5 bg-surface/60 p-5 sm:p-8 skeleton-shimmer">
+        <div className="flex flex-col gap-4 sm:flex-row sm:gap-6">
+          <div className="size-20 sm:size-28 shrink-0 rounded-2xl bg-white/5" />
           <div className="flex-1 space-y-3">
-            <div className="h-10 w-72 rounded-lg bg-white/5" />
-            <div className="flex gap-2">
+            <div className="h-8 sm:h-10 w-full sm:w-72 rounded-lg bg-white/5" />
+            <div className="flex flex-wrap gap-2">
               <div className="h-7 w-24 rounded-lg bg-white/5" />
               <div className="h-7 w-20 rounded-lg bg-white/5" />
               <div className="h-7 w-20 rounded-lg bg-white/5" />
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <div className="h-6 w-16 rounded-lg bg-white/5" />
               <div className="h-6 w-20 rounded-lg bg-white/5" />
               <div className="h-6 w-14 rounded-lg bg-white/5" />
@@ -649,7 +649,7 @@ function LoadingSkeleton() {
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5">
-        {Array.from({ length: 5 }).map((_, i) => (
+        {Array.from({ length: 4 }).map((_, i) => (
           <div
             key={i}
             className="h-24 rounded-xl bg-surface/60 border border-white/5 skeleton-shimmer"

@@ -285,20 +285,22 @@ export default function MarketplaceDashboardPage() {
               Manage your listings, tasks, and earnings
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-2 sm:gap-3">
             <Link
               href="/dashboard/marketplace/create"
-              className="btn-cta-primary inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold"
+              className="btn-cta-primary inline-flex items-center gap-1.5 sm:gap-2 rounded-xl px-3.5 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm font-bold"
             >
               <Plus className="size-4" />
-              Create Listing
+              <span className="hidden sm:inline">Create Listing</span>
+              <span className="sm:hidden">Listing</span>
             </Link>
             <Link
               href="/dashboard/marketplace/tasks/create"
-              className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-5 py-2.5 text-sm font-medium text-white transition-all hover:border-white/25 hover:bg-white/10"
+              className="inline-flex items-center gap-1.5 sm:gap-2 rounded-xl border border-white/15 bg-white/5 px-3.5 sm:px-5 py-2 sm:py-2.5 text-xs sm:text-sm font-medium text-white transition-all hover:border-white/25 hover:bg-white/10"
             >
               <ClipboardList className="size-4" />
-              Post Task
+              <span className="hidden sm:inline">Post Task</span>
+              <span className="sm:hidden">Task</span>
             </Link>
           </div>
         </motion.div>
@@ -308,7 +310,7 @@ export default function MarketplaceDashboardPage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="mb-6 flex gap-1 rounded-xl border border-white/10 bg-surface/80 p-1"
+          className="mb-6 flex gap-0.5 sm:gap-1 overflow-x-auto rounded-xl border border-white/10 bg-surface/80 p-1 scrollbar-none"
         >
           {TABS.map((tab) => {
             const Icon = tab.icon;
@@ -317,7 +319,7 @@ export default function MarketplaceDashboardPage() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  "relative flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-all",
+                  "relative flex flex-1 shrink-0 items-center justify-center gap-1.5 sm:gap-2 rounded-lg px-2 sm:px-3 py-2 sm:py-2.5 text-xs sm:text-sm font-medium transition-all",
                   activeTab === tab.id
                     ? "text-coral"
                     : "text-white/40 hover:text-white/60",
@@ -613,9 +615,9 @@ function ManageListingRow({
     >
       <Link
         href={`/dashboard/marketplace/${listing.id}`}
-        className="group block rounded-2xl border border-white/10 bg-surface/60 p-5 transition-all hover:border-white/20 hover:bg-surface/80"
+        className="group block rounded-2xl border border-white/10 bg-surface/60 p-4 sm:p-5 transition-all hover:border-white/20 hover:bg-surface/80"
       >
-        <div className="flex gap-5">
+        <div className="flex gap-3 sm:gap-5">
           {/* Avatar */}
           <div className="relative shrink-0">
             {avatarSrc ? (
@@ -625,19 +627,19 @@ function ManageListingRow({
                 width={72}
                 height={72}
                 className={cn(
-                  "size-[72px] rounded-2xl object-cover ring-2",
+                  "size-12 sm:size-[72px] rounded-xl sm:rounded-2xl object-cover ring-2",
                   ringColor,
                 )}
                 onError={() => setImgError(true)}
               />
             ) : (
-              <div className="flex size-[72px] items-center justify-center rounded-2xl bg-white/5 ring-2 ring-white/10">
-                <TypeIcon className="size-7 text-white/30" />
+              <div className="flex size-12 sm:size-[72px] items-center justify-center rounded-xl sm:rounded-2xl bg-white/5 ring-2 ring-white/10">
+                <TypeIcon className="size-5 sm:size-7 text-white/30" />
               </div>
             )}
             <span
               className={cn(
-                "absolute -right-1 -top-1 size-3.5 rounded-full border-2 border-surface",
+                "absolute -right-1 -top-1 size-3 sm:size-3.5 rounded-full border-2 border-surface",
                 listing.isAvailable ? "bg-emerald-400" : "bg-white/20",
               )}
             />
@@ -712,9 +714,9 @@ function ManageListingRow({
         </div>
 
         {/* Bottom bar: stats + actions */}
-        <div className="mt-4 flex items-center justify-between border-t border-white/5 pt-4">
+        <div className="mt-3 sm:mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-t border-white/5 pt-3 sm:pt-4">
           {/* Stats */}
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4 sm:gap-6">
             <span className="text-sm font-bold text-coral">
               {listing.priceSol !== null
                 ? `${listing.priceSol} SOL`

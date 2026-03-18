@@ -890,25 +890,29 @@ function CreateTaskPage() {
                   )}
                 </div>
 
-                <div className="mt-8 flex justify-between">
+                <div className="mt-8 flex justify-between gap-3">
                   <Button
                     variant="ghost"
                     onClick={() => setStep(1)}
                     className="text-white/50 hover:text-white"
                   >
-                    <ArrowLeft className="mr-2 size-4" /> Previous
+                    <ArrowLeft className="mr-2 size-4" />{" "}
+                    <span className="hidden sm:inline">Previous</span>
+                    <span className="sm:hidden">Back</span>
                   </Button>
                   <Button
                     onClick={() => setStep(3)}
                     disabled={!canProceedStep2()}
                     className={cn(
-                      "font-semibold px-6",
+                      "font-semibold px-4 sm:px-6",
                       canProceedStep2()
                         ? "bg-coral text-black hover:bg-coral/90 shadow-lg shadow-coral/20"
                         : "bg-white/5 text-white/30 cursor-not-allowed",
                     )}
                   >
-                    Next: Task Token <ArrowRight className="ml-2 size-4" />
+                    <span className="hidden sm:inline">Next: Task Token</span>
+                    <span className="sm:hidden">Next</span>{" "}
+                    <ArrowRight className="ml-2 size-4" />
                   </Button>
                 </div>
               </motion.div>
@@ -1315,25 +1319,29 @@ function CreateTaskPage() {
                   )}
                 </div>
 
-                <div className="mt-8 flex justify-between">
+                <div className="mt-8 flex justify-between gap-3">
                   <Button
                     variant="ghost"
                     onClick={() => setStep(2)}
                     className="text-white/50 hover:text-white"
                   >
-                    <ArrowLeft className="mr-2 size-4" /> Previous
+                    <ArrowLeft className="mr-2 size-4" />{" "}
+                    <span className="hidden sm:inline">Previous</span>
+                    <span className="sm:hidden">Back</span>
                   </Button>
                   <Button
                     onClick={() => setStep(4)}
                     disabled={!canProceedStep3()}
                     className={cn(
-                      "font-semibold px-6",
+                      "font-semibold px-4 sm:px-6",
                       canProceedStep3()
                         ? "bg-coral text-black hover:bg-coral/90 shadow-lg shadow-coral/20"
                         : "bg-white/5 text-white/30 cursor-not-allowed",
                     )}
                   >
-                    Next: Review <ArrowRight className="ml-2 size-4" />
+                    <span className="hidden sm:inline">Next: Review</span>
+                    <span className="sm:hidden">Next</span>{" "}
+                    <ArrowRight className="ml-2 size-4" />
                   </Button>
                 </div>
               </motion.div>
@@ -1542,7 +1550,7 @@ function CreateTaskPage() {
                   )}
 
                 {/* Navigation */}
-                <div className="flex justify-between">
+                <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
                   <Button
                     variant="ghost"
                     onClick={() => setStep(3)}
@@ -1558,7 +1566,7 @@ function CreateTaskPage() {
                       taskToken.isLaunching ||
                       (!useTaskToken && budgetNum <= 0)
                     }
-                    className="bg-coral text-black hover:bg-coral/90 font-bold shadow-lg shadow-coral/20 px-8"
+                    className="bg-coral text-black hover:bg-coral/90 font-bold shadow-lg shadow-coral/20 px-6 sm:px-8"
                   >
                     {submitting || taskToken.isLaunching ? (
                       <Loader2 className="mr-2 size-4 animate-spin" />
@@ -1568,12 +1576,12 @@ function CreateTaskPage() {
                       <Lock className="mr-2 size-4" />
                     )}
                     {taskToken.isLaunching
-                      ? "Launching Token..."
+                      ? "Launching..."
                       : submitting
-                        ? "Creating Task..."
+                        ? "Creating..."
                         : useTaskToken
-                          ? "Launch Token & Post Task"
-                          : "Post Task & Lock Escrow"}
+                          ? "Launch & Post"
+                          : "Post & Escrow"}
                   </Button>
                 </div>
               </motion.div>

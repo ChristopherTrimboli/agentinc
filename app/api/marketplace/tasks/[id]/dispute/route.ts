@@ -39,16 +39,26 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     }
 
     const body = await req.json();
-    if (!body.reason) {
+    if (
+      !body.reason ||
+      typeof body.reason !== "string" ||
+      !body.reason.trim()
+    ) {
       return NextResponse.json(
-        { error: "Dispute reason is required" },
+        { error: "Dispute reason is required and must be a non-empty string" },
+        { status: 400 },
+      );
+    }
+    if (body.reason.length > 5000) {
+      return NextResponse.json(
+        { error: "Dispute reason must be under 5,000 characters" },
         { status: 400 },
       );
     }
 
     await prisma.marketplaceTask.update({
       where: { id },
-      data: { status: "disputed", disputeReason: body.reason },
+      data: { status: "disputed", disputeReason: body.reason.trim() },
     });
 
     return NextResponse.json({ success: true });

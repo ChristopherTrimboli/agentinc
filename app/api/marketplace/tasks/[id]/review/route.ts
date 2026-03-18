@@ -51,10 +51,33 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     }
 
     const body = await req.json();
-    if (!body.rating || body.rating < 1 || body.rating > 5) {
+    const rating = Number(body.rating);
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
       return NextResponse.json(
-        { error: "Rating must be 1-5" },
+        { error: "Rating must be an integer from 1 to 5" },
         { status: 400 },
+      );
+    }
+    if (
+      body.comment !== undefined &&
+      body.comment !== null &&
+      (typeof body.comment !== "string" || body.comment.length > 5000)
+    ) {
+      return NextResponse.json(
+        { error: "Comment must be a string under 5,000 characters" },
+        { status: 400 },
+      );
+    }
+
+    const existing = await prisma.marketplaceReview.findUnique({
+      where: {
+        taskId_reviewerId: { taskId: id, reviewerId: auth.userId },
+      },
+    });
+    if (existing) {
+      return NextResponse.json(
+        { error: "You have already reviewed this task" },
+        { status: 409 },
       );
     }
 
@@ -62,26 +85,33 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       data: {
         taskId: id,
         reviewerId: auth.userId,
-        rating: Math.round(body.rating),
-        comment: body.comment,
+        rating,
+        comment: body.comment?.trim() || null,
       },
     });
 
     // Update listing aggregate rating
     if (task.listingId) {
-      const agg = await prisma.marketplaceReview.aggregate({
-        where: { task: { listingId: task.listingId } },
-        _avg: { rating: true },
-        _count: { rating: true },
-      });
+      try {
+        const agg = await prisma.marketplaceReview.aggregate({
+          where: { task: { listingId: task.listingId } },
+          _avg: { rating: true },
+          _count: { rating: true },
+        });
 
-      await prisma.marketplaceListing.update({
-        where: { id: task.listingId },
-        data: {
-          averageRating: agg._avg.rating || 0,
-          totalRatings: agg._count.rating,
-        },
-      });
+        await prisma.marketplaceListing.update({
+          where: { id: task.listingId },
+          data: {
+            averageRating: agg._avg.rating || 0,
+            totalRatings: agg._count.rating,
+          },
+        });
+      } catch (statsError) {
+        console.error(
+          "[Marketplace] Failed to update listing rating stats:",
+          statsError,
+        );
+      }
     }
 
     return NextResponse.json(review, { status: 201 });

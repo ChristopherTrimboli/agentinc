@@ -1246,7 +1246,7 @@ export default function CreateListingPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="mt-8 flex items-center justify-between"
+          className="mt-8 flex items-center justify-between gap-3"
         >
           <button
             onClick={goBack}

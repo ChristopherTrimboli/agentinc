@@ -320,7 +320,7 @@ export default function MarketplacePage() {
 
           {/* Heading block */}
           <div className="text-center">
-            <h1 className="gradient-text-shimmer text-5xl font-bold tracking-tight font-display sm:text-6xl">
+            <h1 className="gradient-text-shimmer text-3xl font-bold tracking-tight font-display sm:text-5xl lg:text-6xl">
               Task Tokens
             </h1>
             <p className="mx-auto mt-3 max-w-2xl text-base leading-relaxed text-white/50 sm:text-lg">
@@ -340,17 +340,17 @@ export default function MarketplacePage() {
             transition={{ duration: 0.4, delay: 0.1 }}
             className="mt-8 flex flex-col items-center gap-5 sm:flex-row sm:justify-center"
           >
-            <div className="flex items-center gap-3">
+            <div className="flex w-full flex-col gap-2.5 px-4 sm:w-auto sm:flex-row sm:gap-3 sm:px-0">
               <Link
                 href="/dashboard/marketplace/tasks/create"
-                className="btn-cta-primary inline-flex items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-bold shadow-lg shadow-coral/20"
+                className="btn-cta-primary inline-flex items-center justify-center gap-2 rounded-xl px-6 py-2.5 text-sm font-bold shadow-lg shadow-coral/20"
               >
                 <Coins className="size-4" />
                 Mint a Task Token
               </Link>
               <Link
                 href="/dashboard/marketplace/create"
-                className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-6 py-2.5 text-sm font-semibold text-white/70 transition-all hover:border-white/25 hover:bg-white/10 hover:text-white"
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-6 py-2.5 text-sm font-semibold text-white/70 transition-all hover:border-white/25 hover:bg-white/10 hover:text-white"
               >
                 <Briefcase className="size-4" />
                 List for Hire
@@ -399,7 +399,7 @@ export default function MarketplacePage() {
                 key={t.id}
                 onClick={() => setTab(t.id)}
                 className={cn(
-                  "relative flex items-center gap-2 rounded-lg px-6 py-2.5 text-sm font-medium transition-all",
+                  "relative flex items-center gap-1.5 sm:gap-2 rounded-lg px-4 sm:px-6 py-2.5 text-sm font-medium transition-all",
                   tab === t.id
                     ? "text-coral"
                     : "text-white/40 hover:text-white/70",
@@ -429,7 +429,7 @@ export default function MarketplacePage() {
           className="space-y-4"
         >
           {/* Category pills */}
-          <div className="flex flex-wrap gap-2">
+          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-2 sm:mx-0 sm:flex-wrap sm:overflow-x-visible sm:px-0 sm:pb-0 scrollbar-none">
             <CategoryPill
               active={category === "all"}
               onClick={() => setCategory("all")}
@@ -448,8 +448,8 @@ export default function MarketplacePage() {
           </div>
 
           {/* Search + Type + Sort + Remote */}
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="relative min-w-[200px] flex-1">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+            <div className="relative w-full sm:min-w-[200px] sm:flex-1">
               <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 type="text"
@@ -466,57 +466,59 @@ export default function MarketplacePage() {
               />
             </div>
 
-            {(tab === "hire" || tab === "all") && (
-              <div className="flex rounded-xl border border-white/10 bg-surface/60 p-0.5 backdrop-blur-sm">
-                {TYPE_FILTERS.map((tf) => (
-                  <button
-                    key={tf.value}
-                    onClick={() => setTypeFilter(tf.value)}
-                    className={`rounded-lg px-3 py-2 text-xs font-medium transition-all ${
-                      typeFilter === tf.value
-                        ? "bg-white/10 text-white"
-                        : "text-white/35 hover:text-white/60"
-                    }`}
-                  >
-                    {tf.label}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            <Select
-              value={sort}
-              onValueChange={(v) => setSort(v as SortOption)}
-            >
-              <SelectTrigger
-                size="sm"
-                className="h-9 gap-1.5 border-white/10 bg-surface/60 backdrop-blur-sm text-white/60 focus-visible:border-coral/30 focus-visible:ring-coral/20"
-              >
-                <SlidersHorizontal className="size-3.5 text-muted-foreground" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-surface border-white/10">
-                {SORT_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <button
-              type="button"
-              onClick={() => setIsRemote(!isRemote)}
-              className={cn(
-                "flex h-9 cursor-pointer items-center gap-2 rounded-md border px-3 text-sm backdrop-blur-sm transition-all",
-                isRemote
-                  ? "border-coral/30 bg-coral/10 text-coral"
-                  : "border-white/10 bg-surface/60 text-white/50 hover:border-white/20 hover:text-white/70",
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+              {(tab === "hire" || tab === "all") && (
+                <div className="flex rounded-xl border border-white/10 bg-surface/60 p-0.5 backdrop-blur-sm">
+                  {TYPE_FILTERS.map((tf) => (
+                    <button
+                      key={tf.value}
+                      onClick={() => setTypeFilter(tf.value)}
+                      className={`rounded-lg px-3 py-2 text-xs font-medium transition-all ${
+                        typeFilter === tf.value
+                          ? "bg-white/10 text-white"
+                          : "text-white/35 hover:text-white/60"
+                      }`}
+                    >
+                      {tf.label}
+                    </button>
+                  ))}
+                </div>
               )}
-            >
-              <Globe className="size-3.5" />
-              <span className="text-xs font-medium">Remote</span>
-            </button>
+
+              <Select
+                value={sort}
+                onValueChange={(v) => setSort(v as SortOption)}
+              >
+                <SelectTrigger
+                  size="sm"
+                  className="h-9 gap-1.5 border-white/10 bg-surface/60 backdrop-blur-sm text-white/60 focus-visible:border-coral/30 focus-visible:ring-coral/20"
+                >
+                  <SlidersHorizontal className="size-3.5 text-muted-foreground" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-surface border-white/10">
+                  {SORT_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <button
+                type="button"
+                onClick={() => setIsRemote(!isRemote)}
+                className={cn(
+                  "flex h-9 cursor-pointer items-center gap-2 rounded-md border px-3 text-sm backdrop-blur-sm transition-all",
+                  isRemote
+                    ? "border-coral/30 bg-coral/10 text-coral"
+                    : "border-white/10 bg-surface/60 text-white/50 hover:border-white/20 hover:text-white/70",
+                )}
+              >
+                <Globe className="size-3.5" />
+                <span className="text-xs font-medium">Remote</span>
+              </button>
+            </div>
           </div>
         </motion.div>
 
@@ -732,7 +734,7 @@ function CategoryPill({
   return (
     <button
       onClick={onClick}
-      className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
+      className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
         active
           ? "bg-coral text-black shadow-sm shadow-coral/20"
           : "bg-white/5 text-white/50 hover:bg-white/10 hover:text-white/70"
@@ -847,7 +849,7 @@ function HowItWorksSteps() {
     elements.push(
       <motion.div
         key={`step-${s.step}`}
-        className="flex shrink-0 items-center gap-2"
+        className="flex min-w-0 items-center gap-1.5 sm:gap-2"
         animate={{
           scale: isActive ? 1.08 : 1,
           opacity: isActive ? 1 : 0.55,
@@ -869,7 +871,7 @@ function HowItWorksSteps() {
           )}
           <Icon className={cn("size-4 relative z-10", s.twIcon)} />
         </div>
-        <div className="min-w-0">
+        <div className="hidden min-w-0 sm:block">
           <span
             className={cn(
               "block text-[10px] font-bold uppercase tracking-wider transition-colors duration-500",
@@ -887,6 +889,15 @@ function HowItWorksSteps() {
             {s.title}
           </span>
         </div>
+        {/* Mobile: just step number below icon */}
+        <span
+          className={cn(
+            "block sm:hidden text-[9px] font-bold transition-colors duration-500",
+            isActive ? "text-white" : "text-white/35",
+          )}
+        >
+          {s.step}
+        </span>
       </motion.div>,
     );
 
@@ -894,7 +905,7 @@ function HowItWorksSteps() {
       elements.push(
         <div
           key={`line-${i}`}
-          className="relative mx-1 h-px flex-1 min-w-6 overflow-hidden sm:mx-3"
+          className="relative mx-1 h-px flex-1 min-w-4 overflow-hidden sm:mx-3 sm:min-w-6"
         >
           <div className="absolute inset-0 bg-white/8" />
           <motion.div
@@ -937,7 +948,7 @@ function HowItWorksSteps() {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.15 }}
-      className="mx-auto mt-8 flex w-full max-w-2xl items-center justify-center rounded-xl border border-white/5 bg-surface/30 px-5 py-4 backdrop-blur-sm"
+      className="mx-auto mt-8 flex w-full max-w-2xl items-center justify-center rounded-xl border border-white/5 bg-surface/30 px-3 py-3 sm:px-5 sm:py-4 backdrop-blur-sm"
     >
       {elements}
     </motion.div>

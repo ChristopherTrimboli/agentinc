@@ -40,7 +40,8 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         { status: 403 },
       );
     }
-    if (task.status !== "assigned" && task.status !== "in_progress") {
+    const submittableStatuses = ["assigned", "in_progress", "disputed"];
+    if (!submittableStatuses.includes(task.status)) {
       return NextResponse.json(
         { error: "Task is not in a submittable state" },
         { status: 400 },
@@ -48,16 +49,30 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     }
 
     const body = await req.json();
-    if (!body.deliverables) {
+    if (
+      !body.deliverables ||
+      typeof body.deliverables !== "string" ||
+      !body.deliverables.trim()
+    ) {
       return NextResponse.json(
-        { error: "deliverables is required" },
+        { error: "deliverables is required and must be a non-empty string" },
+        { status: 400 },
+      );
+    }
+    if (body.deliverables.length > 50000) {
+      return NextResponse.json(
+        { error: "deliverables must be under 50,000 characters" },
         { status: 400 },
       );
     }
 
     await prisma.marketplaceTask.update({
       where: { id },
-      data: { deliverables: body.deliverables, status: "review" },
+      data: {
+        deliverables: body.deliverables.trim(),
+        status: "review",
+        disputeReason: null,
+      },
     });
 
     return NextResponse.json({ success: true });
