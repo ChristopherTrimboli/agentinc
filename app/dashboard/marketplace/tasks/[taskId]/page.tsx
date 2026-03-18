@@ -116,6 +116,7 @@ interface TaskData {
   tokenMetadata?: string | null;
   tokenLaunchSignature?: string | null;
   tokenFeesClaimed?: number | string | null;
+  liveEarnings?: number | null;
   bids: TaskBid[];
   reviews: TaskReview[];
   createdAt: string;
@@ -150,6 +151,13 @@ export default function TaskDetailPage() {
   const [disputeReason, setDisputeReason] = useState("");
   const [copiedMint, setCopiedMint] = useState(false);
   const [liveEarnings, setLiveEarnings] = useState<number | null>(null);
+
+  // Sync liveEarnings from the task API response (includes cached Bags data)
+  useEffect(() => {
+    if (task?.liveEarnings != null) {
+      setLiveEarnings(task.liveEarnings);
+    }
+  }, [task?.liveEarnings]);
 
   const currentUserId = user?.id ?? null;
   const isPoster = currentUserId === task?.posterId;
@@ -195,14 +203,17 @@ export default function TaskDetailPage() {
           setLiveEarnings(priceData.earnings);
         }
       } catch {
-        // Non-critical
+        // Non-critical — task API provides earnings on initial load
       }
     }
 
-    fetchEarnings();
-    const interval = setInterval(fetchEarnings, 30_000);
+    // Only start polling after a delay since the task API already provides
+    // earnings on initial load via liveEarnings field
+    const timeout = setTimeout(fetchEarnings, 60_000);
+    const interval = setInterval(fetchEarnings, 60_000);
     return () => {
       cancelled = true;
+      clearTimeout(timeout);
       clearInterval(interval);
     };
   }, [task?.tokenMint]);

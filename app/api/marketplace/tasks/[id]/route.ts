@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
 import { rateLimitByIP, rateLimitByUser } from "@/lib/rateLimit";
+import { fetchEarningsFromBags } from "@/lib/prices";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -65,7 +66,16 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
     }
 
-    return NextResponse.json(task);
+    let liveEarnings: number | undefined;
+    if (task.tokenMint) {
+      try {
+        liveEarnings = await fetchEarningsFromBags(task.tokenMint);
+      } catch {
+        // Non-critical — frontend falls back to tokenFeesClaimed
+      }
+    }
+
+    return NextResponse.json({ ...task, liveEarnings });
   } catch (error) {
     console.error("[Marketplace] Error fetching task:", error);
     return NextResponse.json(

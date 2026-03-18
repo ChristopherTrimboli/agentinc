@@ -114,7 +114,7 @@ async function setCachedEarnings(
 
 // ── Fetch earnings from Bags API ────────────────────────────────────
 
-async function fetchEarningsFromBags(
+export async function fetchEarningsFromBags(
   tokenMint: string,
 ): Promise<number | undefined> {
   const cached = await getCachedEarnings(tokenMint);
@@ -148,6 +148,47 @@ async function fetchEarningsFromBags(
   }
 
   return undefined;
+}
+
+/**
+ * Return only cached price data (no external fetches).
+ * Used as a graceful fallback when rate limited.
+ * Returns null if no cached data is available.
+ */
+export async function fetchCachedPricesOnly(
+  mints: string | null,
+): Promise<NextResponse | null> {
+  if (!mints) return null;
+
+  const mintList = mints.split(",").filter(Boolean).slice(0, MAX_MINTS);
+  if (mintList.length === 0) return null;
+
+  const prices: Record<string, PriceData> = {};
+  let hasAny = false;
+
+  await Promise.all(
+    mintList.map(async (mint) => {
+      const cached = await getCachedPrice(mint);
+      if (cached) {
+        prices[mint] = cached;
+        hasAny = true;
+      } else {
+        const earnings = await getCachedEarnings(mint);
+        if (earnings !== undefined) {
+          prices[mint] = { price: 0, earnings };
+          hasAny = true;
+        }
+      }
+    }),
+  );
+
+  if (!hasAny) return null;
+
+  return NextResponse.json({
+    prices,
+    timestamp: Date.now(),
+    cached: true,
+  });
 }
 
 /**
