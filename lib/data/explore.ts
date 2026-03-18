@@ -98,8 +98,7 @@ export async function fetchExploreData(
   const limit = opts.limit ?? 50;
   const offset = (page - 1) * limit;
 
-  // Accelerate cache strategy: 60s TTL with 120s SWR
-  const cacheStrategy = { ttl: 60, swr: 120 };
+  const cacheStrategy = { ttl: 1800, swr: 3600 };
 
   const agentWhere = { isMinted: true, tokenMint: { not: null } } as const;
   const corpWhere = { tokenMint: { not: null } } as const;

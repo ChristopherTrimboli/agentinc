@@ -280,7 +280,7 @@ export default function MarketplacePage() {
       })
       .catch(() => {});
 
-    fetch("/api/marketplace/tasks?status=open&pageSize=1")
+    fetch("/api/marketplace/tasks?hasToken=true&pageSize=1")
       .then((r) => r.json())
       .then((d) => {
         if (d.pagination?.total !== undefined) {

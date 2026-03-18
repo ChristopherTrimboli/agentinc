@@ -48,6 +48,7 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get("search");
     const posterId = searchParams.get("posterId");
     const workerId = searchParams.get("workerId");
+    const hasToken = searchParams.get("hasToken");
 
     const where: Prisma.MarketplaceTaskWhereInput = {};
     const andConditions: Prisma.MarketplaceTaskWhereInput[] = [];
@@ -70,6 +71,9 @@ export async function GET(req: NextRequest) {
     }
     if (isRemote === "true") {
       where.isRemote = true;
+    }
+    if (hasToken === "true") {
+      where.tokenMint = { not: null };
     }
     if (minBudget !== undefined || maxBudget !== undefined) {
       where.budgetSol = {};

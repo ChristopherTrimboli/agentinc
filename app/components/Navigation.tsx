@@ -10,7 +10,7 @@ const navLinks = [
   { href: "/dashboard/network", label: "Network", highlight: false },
   { href: "/dashboard/chat", label: "Chat", highlight: false },
   { href: "/dashboard/agents", label: "Agents", highlight: false },
-  { href: "/dashboard/marketplace", label: "Marketplace", highlight: true },
+  { href: "/dashboard/marketplace", label: "Marketplace", highlight: false },
 ];
 
 export default function Navigation() {

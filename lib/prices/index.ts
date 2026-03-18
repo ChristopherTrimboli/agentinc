@@ -10,94 +10,72 @@ export interface PriceData {
   earnings?: number;
 }
 
-// ── In-memory fallback cache ──────────────────────────────────────────
+// ── Cache TTLs (30 minutes) ──────────────────────────────────────────
 
-interface CacheEntry {
-  prices: Record<string, PriceData>;
+const CACHE_TTL_MS = 30 * 60 * 1000;
+const REDIS_TTL_SECONDS = 1800;
+const MAX_MEMORY_CACHE_SIZE = 500;
+const MAX_MINTS = 100;
+
+// ── Per-mint in-memory caches ────────────────────────────────────────
+
+interface MintPriceEntry {
+  data: PriceData;
   timestamp: number;
 }
 
-const memoryPriceCache = new Map<string, CacheEntry>();
-const MEMORY_CACHE_TTL_MS = 30 * 1000;
-const MAX_MEMORY_CACHE_SIZE = 100;
-
+const memoryPriceCache = new Map<string, MintPriceEntry>();
 const memoryEarningsCache = new Map<
   string,
   { earnings: number; timestamp: number }
 >();
-const EARNINGS_MEMORY_TTL_MS = 5 * 60 * 1000;
 
-// ── Redis TTLs ──────────────────────────────────────────────────────────
-
-const PRICE_REDIS_TTL = 30; // 30 seconds
-const EARNINGS_REDIS_TTL = 300; // 5 minutes
-
-// Max mints per request
-const MAX_MINTS = 100;
-
-function getCacheKey(mints: string[]): string {
-  return [...mints].sort().join(",");
+function evictOldest(map: Map<string, unknown>, max: number): void {
+  if (map.size <= max) return;
+  const oldest = map.keys().next().value;
+  if (oldest) map.delete(oldest);
 }
 
-// ── Cache getters (Redis → in-memory fallback) ─────────────────────────
+// ── Per-mint cache getters (Redis → in-memory fallback) ──────────────
 
-async function getFromCache(mints: string[]): Promise<CacheEntry | null> {
-  const key = getCacheKey(mints);
-
-  // Try Redis first
+async function getCachedPrice(mint: string): Promise<PriceData | null> {
   if (isRedisConfigured()) {
     try {
       const redis = getRedis();
-      const cached = await redis.get<CacheEntry>(`prices:${key}`);
+      const cached = await redis.get<PriceData>(`price:${mint}`);
       if (cached) return cached;
     } catch {
       // Fall through to memory
     }
   }
 
-  // In-memory fallback
-  const memCached = memoryPriceCache.get(key);
-  if (memCached && Date.now() - memCached.timestamp < MEMORY_CACHE_TTL_MS) {
-    return memCached;
+  const memCached = memoryPriceCache.get(mint);
+  if (memCached && Date.now() - memCached.timestamp < CACHE_TTL_MS) {
+    return memCached.data;
   }
-  if (memCached) {
-    memoryPriceCache.delete(key);
-  }
-
+  if (memCached) memoryPriceCache.delete(mint);
   return null;
 }
 
-async function setCache(
-  mints: string[],
-  prices: Record<string, PriceData>,
-): Promise<void> {
-  const key = getCacheKey(mints);
-  const entry: CacheEntry = { prices, timestamp: Date.now() };
-
-  // Write to Redis
+async function setCachedPrice(mint: string, data: PriceData): Promise<void> {
   if (isRedisConfigured()) {
     try {
       const redis = getRedis();
-      await redis.set(`prices:${key}`, entry, { ex: PRICE_REDIS_TTL });
+      await redis.set(`price:${mint}`, data, { ex: REDIS_TTL_SECONDS });
     } catch {
       // Non-critical
     }
   }
 
-  // Also update in-memory for ultra-fast reads
-  memoryPriceCache.set(key, entry);
-  if (memoryPriceCache.size > MAX_MEMORY_CACHE_SIZE) {
-    const oldestKey = memoryPriceCache.keys().next().value;
-    if (oldestKey) memoryPriceCache.delete(oldestKey);
-  }
+  memoryPriceCache.set(mint, { data, timestamp: Date.now() });
+  evictOldest(memoryPriceCache, MAX_MEMORY_CACHE_SIZE);
 }
 
-// ── Earnings cache (Redis → in-memory fallback) ────────────────────────
+// ── Per-mint earnings cache ──────────────────────────────────────────
 
 async function getCachedEarnings(
   tokenMint: string,
 ): Promise<number | undefined> {
-  // Try Redis first
   if (isRedisConfigured()) {
     try {
       const redis = getRedis();
@@ -108,12 +86,10 @@ async function getCachedEarnings(
     }
   }
 
-  // In-memory fallback
   const memCached = memoryEarningsCache.get(tokenMint);
-  if (memCached && Date.now() - memCached.timestamp < EARNINGS_MEMORY_TTL_MS) {
+  if (memCached && Date.now() - memCached.timestamp < CACHE_TTL_MS) {
     return memCached.earnings;
   }
-
   return undefined;
 }
 
@@ -121,38 +97,31 @@ async function setCachedEarnings(
   tokenMint: string,
   earnings: number,
 ): Promise<void> {
-  // Write to Redis
   if (isRedisConfigured()) {
     try {
       const redis = getRedis();
       await redis.set(`earnings:${tokenMint}`, earnings, {
-        ex: EARNINGS_REDIS_TTL,
+        ex: REDIS_TTL_SECONDS,
       });
     } catch {
       // Non-critical
     }
   }
 
-  // Also keep in memory
-  memoryEarningsCache.set(tokenMint, {
-    earnings,
-    timestamp: Date.now(),
-  });
+  memoryEarningsCache.set(tokenMint, { earnings, timestamp: Date.now() });
+  evictOldest(memoryEarningsCache, MAX_MEMORY_CACHE_SIZE);
 }
 
-// ── Fetch earnings from Bags API ────────────────────────────────────────
+// ── Fetch earnings from Bags API ────────────────────────────────────
 
 async function fetchEarningsFromBags(
   tokenMint: string,
 ): Promise<number | undefined> {
-  // Check cache first
   const cached = await getCachedEarnings(tokenMint);
   if (cached !== undefined) return cached;
 
   const apiKey = process.env.BAGS_API_KEY;
-  if (!apiKey) {
-    return undefined;
-  }
+  if (!apiKey) return undefined;
 
   try {
     const response = await fetch(
@@ -168,13 +137,9 @@ async function fetchEarningsFromBags(
     if (response.ok) {
       const data = await response.json();
       if (data.success && data.response) {
-        // Convert lamports to SOL (1 SOL = 1e9 lamports)
         const earningsLamports = BigInt(data.response);
         const earningsSol = Number(earningsLamports) / 1e9;
-
-        // Cache the result
         await setCachedEarnings(tokenMint, earningsSol);
-
         return earningsSol;
       }
     }
@@ -187,7 +152,8 @@ async function fetchEarningsFromBags(
 
 /**
  * Fetch prices from DexScreener and earnings from Bags API.
- * Used by /api/explore/prices.
+ * Uses per-mint caching with 30-minute TTL — only fetches fresh data
+ * for mints that aren't already cached.
  */
 export async function fetchPrices(mints: string | null): Promise<NextResponse> {
   try {
@@ -209,92 +175,98 @@ export async function fetchPrices(mints: string | null): Promise<NextResponse> {
       });
     }
 
-    // Check cache first
-    const cached = await getFromCache(mintList);
-    if (cached) {
-      const response = NextResponse.json({
-        prices: cached.prices,
-        timestamp: cached.timestamp,
-        cached: true,
-      });
-      response.headers.set(
-        "Cache-Control",
-        "public, s-maxage=30, stale-while-revalidate=60",
-      );
-      return response;
-    }
-
+    // Check per-mint cache, collect misses
     const prices: Record<string, PriceData> = {};
+    const uncachedMints: string[] = [];
 
-    // Fetch prices from DexScreener
-    const dexResponse = await fetch(
-      `https://api.dexscreener.com/latest/dex/tokens/${mintList.join(",")}`,
-      {
-        headers: { "Content-Type": "application/json" },
-        next: { revalidate: 30 },
-      },
+    await Promise.all(
+      mintList.map(async (mint) => {
+        const cached = await getCachedPrice(mint);
+        if (cached) {
+          prices[mint] = cached;
+        } else {
+          uncachedMints.push(mint);
+        }
+      }),
     );
 
-    if (dexResponse.ok) {
-      const data = await dexResponse.json();
+    const allCached = uncachedMints.length === 0;
 
-      if (data.pairs && Array.isArray(data.pairs)) {
-        const liquidityMap = new Map<string, number>();
-        const mintSet = new Set(mintList);
+    // Fetch fresh prices only for uncached mints
+    if (uncachedMints.length > 0) {
+      const dexResponse = await fetch(
+        `https://api.dexscreener.com/latest/dex/tokens/${uncachedMints.join(",")}`,
+        {
+          headers: { "Content-Type": "application/json" },
+          next: { revalidate: 1800 },
+        },
+      );
 
-        for (const pair of data.pairs) {
-          const mint = pair.baseToken?.address;
-          if (mint && mintSet.has(mint) && pair.priceUsd) {
-            const currentLiquidity = liquidityMap.get(mint) || 0;
-            const pairLiquidity = pair.liquidity?.usd || 0;
+      if (dexResponse.ok) {
+        const data = await dexResponse.json();
 
-            if (!prices[mint] || pairLiquidity > currentLiquidity) {
-              prices[mint] = {
-                price: parseFloat(pair.priceUsd),
-                priceChange24h: pair.priceChange?.h24
-                  ? parseFloat(pair.priceChange.h24)
-                  : undefined,
-                marketCap: pair.marketCap || pair.fdv || undefined,
-                volume24h: pair.volume?.h24 || undefined,
-                liquidity: pairLiquidity || undefined,
-              };
-              liquidityMap.set(mint, pairLiquidity);
+        if (data.pairs && Array.isArray(data.pairs)) {
+          const liquidityMap = new Map<string, number>();
+          const mintSet = new Set(uncachedMints);
+
+          for (const pair of data.pairs) {
+            const mint = pair.baseToken?.address;
+            if (mint && mintSet.has(mint) && pair.priceUsd) {
+              const currentLiquidity = liquidityMap.get(mint) || 0;
+              const pairLiquidity = pair.liquidity?.usd || 0;
+
+              if (!prices[mint] || pairLiquidity > currentLiquidity) {
+                prices[mint] = {
+                  price: parseFloat(pair.priceUsd),
+                  priceChange24h: pair.priceChange?.h24
+                    ? parseFloat(pair.priceChange.h24)
+                    : undefined,
+                  marketCap: pair.marketCap || pair.fdv || undefined,
+                  volume24h: pair.volume?.h24 || undefined,
+                  liquidity: pairLiquidity || undefined,
+                };
+                liquidityMap.set(mint, pairLiquidity);
+              }
             }
           }
         }
       }
-    }
 
-    // Fetch earnings from Bags API in parallel
-    const earningsPromises = mintList.map(async (mint) => {
-      const earnings = await fetchEarningsFromBags(mint);
-      return { mint, earnings };
-    });
+      // Fetch earnings for uncached mints in parallel
+      const earningsResults = await Promise.all(
+        uncachedMints.map(async (mint) => {
+          const earnings = await fetchEarningsFromBags(mint);
+          return { mint, earnings };
+        }),
+      );
 
-    const earningsResults = await Promise.all(earningsPromises);
-
-    // Merge earnings into prices
-    for (const { mint, earnings } of earningsResults) {
-      if (prices[mint]) {
-        prices[mint].earnings = earnings;
-      } else if (earnings !== undefined) {
-        // Create entry even if no DexScreener data
-        prices[mint] = { price: 0, earnings };
+      for (const { mint, earnings } of earningsResults) {
+        if (prices[mint]) {
+          prices[mint].earnings = earnings;
+        } else if (earnings !== undefined) {
+          prices[mint] = { price: 0, earnings };
+        }
       }
-    }
 
-    // Cache the results
-    await setCache(mintList, prices);
+      // Cache each newly-fetched mint individually
+      await Promise.all(
+        uncachedMints.map(async (mint) => {
+          if (prices[mint]) {
+            await setCachedPrice(mint, prices[mint]);
+          }
+        }),
+      );
+    }
 
     const jsonResponse = NextResponse.json({
       prices,
       timestamp: Date.now(),
-      cached: false,
+      cached: allCached,
     });
 
     jsonResponse.headers.set(
       "Cache-Control",
-      "public, s-maxage=30, stale-while-revalidate=60",
+      "public, s-maxage=1800, stale-while-revalidate=3600",
     );
 
     return jsonResponse;

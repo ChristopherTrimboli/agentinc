@@ -589,8 +589,7 @@ function ItemCard({
   );
 }
 
-// Cache TTL in milliseconds
-const PRICE_CACHE_TTL = 30 * 1000; // 30 seconds
+const PRICE_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
 // Main Explore component
 export default function ExplorePage() {
