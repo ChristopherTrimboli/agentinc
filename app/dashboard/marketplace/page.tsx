@@ -211,7 +211,6 @@ export default function MarketplacePage() {
         const params = new URLSearchParams();
         params.set("page", String(page));
         params.set("pageSize", "20");
-        params.set("status", "open");
         if (category !== "all") params.set("category", category);
         if (isRemote) params.set("isRemote", "true");
         if (debouncedSearch) params.set("search", debouncedSearch);
@@ -557,7 +556,7 @@ export default function MarketplacePage() {
                       tab === "hire"
                         ? "No listings found. Try adjusting your filters."
                         : tab === "bounties"
-                          ? "No open bounties right now. Check back soon!"
+                          ? "No bounties found. Try adjusting your filters."
                           : "No listings or bounties found. Try adjusting your filters."
                     }
                   />
