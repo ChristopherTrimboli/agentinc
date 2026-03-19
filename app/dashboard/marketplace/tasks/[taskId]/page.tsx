@@ -26,6 +26,7 @@ import {
   Copy,
   Check,
   Ban,
+  UserX,
 } from "lucide-react";
 import Link from "next/link";
 import { cn, timeAgo } from "@/lib/utils";
@@ -171,6 +172,10 @@ export default function TaskDetailPage() {
     isPoster &&
     !!task &&
     ["open", "assigned", "disputed"].includes(task.status);
+  const canUnassign =
+    isPoster &&
+    !!task &&
+    ["assigned", "in_progress", "disputed"].includes(task.status);
 
   const fetchTask = useCallback(async () => {
     try {
@@ -357,6 +362,32 @@ export default function TaskDetailPage() {
       await fetchTask();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to cancel task");
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  async function handleUnassign() {
+    if (
+      !window.confirm(
+        "Unassign this worker? The task will reopen for new bids.",
+      )
+    )
+      return;
+    setActionLoading("unassign");
+    try {
+      const res = await authFetch(`/api/marketplace/tasks/${taskId}/unassign`, {
+        method: "POST",
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to unassign");
+      }
+      await fetchTask();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to unassign worker",
+      );
     } finally {
       setActionLoading(null);
     }
@@ -770,23 +801,41 @@ export default function TaskDetailPage() {
                   </div>
                 )}
 
-                {/* Poster: cancel task */}
-                {canCancel && (
-                  <div className="mt-4 border-t border-white/5 pt-4">
-                    <Button
-                      onClick={handleCancel}
-                      disabled={actionLoading === "cancel"}
-                      variant="ghost"
-                      className="text-white/30 hover:text-red-400 hover:bg-red-500/10"
-                      size="sm"
-                    >
-                      {actionLoading === "cancel" ? (
-                        <Loader2 className="mr-2 size-4 animate-spin" />
-                      ) : (
-                        <Ban className="mr-2 size-4" />
-                      )}
-                      Cancel Task
-                    </Button>
+                {/* Poster: unassign / cancel */}
+                {(canUnassign || canCancel) && (
+                  <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-white/5 pt-4">
+                    {canUnassign && (
+                      <Button
+                        onClick={handleUnassign}
+                        disabled={actionLoading === "unassign"}
+                        variant="outline"
+                        className="border-amber-500/30 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 hover:text-amber-300"
+                        size="sm"
+                      >
+                        {actionLoading === "unassign" ? (
+                          <Loader2 className="mr-2 size-4 animate-spin" />
+                        ) : (
+                          <UserX className="mr-2 size-4" />
+                        )}
+                        Unassign Worker
+                      </Button>
+                    )}
+                    {canCancel && (
+                      <Button
+                        onClick={handleCancel}
+                        disabled={actionLoading === "cancel"}
+                        variant="ghost"
+                        className="text-white/30 hover:text-red-400 hover:bg-red-500/10"
+                        size="sm"
+                      >
+                        {actionLoading === "cancel" ? (
+                          <Loader2 className="mr-2 size-4 animate-spin" />
+                        ) : (
+                          <Ban className="mr-2 size-4" />
+                        )}
+                        Cancel Task
+                      </Button>
+                    )}
                   </div>
                 )}
               </motion.section>
