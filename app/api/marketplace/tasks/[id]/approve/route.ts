@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
 import { rateLimitByUser } from "@/lib/rateLimit";
 import { releaseEscrow, claimTaskTokenFees } from "@/lib/marketplace/escrow";
+import { sendEmail, taskApprovedEmail } from "@/lib/email";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -30,6 +31,10 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         budgetSol: true,
         listingId: true,
         tokenMint: true,
+        title: true,
+        tokenSymbol: true,
+        tokenFeesClaimed: true,
+        featuredImage: true,
       },
     });
 
@@ -152,6 +157,33 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
           statsError,
         );
       }
+    }
+
+    // Notify worker via email (fire-and-forget)
+    const workerUserId = task.workerId;
+    if (workerUserId) {
+      prisma.user
+        .findUnique({
+          where: { id: workerUserId },
+          select: { email: true },
+        })
+        .then((worker) => {
+          if (worker?.email) {
+            const { subject, html } = taskApprovedEmail({
+              taskTitle: task.title,
+              taskId: id,
+              budgetSol: Number(task.budgetSol),
+              creatorFees: Number(task.tokenFeesClaimed),
+              tokenMint: task.tokenMint,
+              tokenSymbol: task.tokenSymbol,
+              featuredImage: task.featuredImage,
+              escrowReleasedSol: escrowAmount || 0,
+              tokenFeesClaimedSol: tokenFeesClaimed,
+            });
+            sendEmail({ to: worker.email, subject, html });
+          }
+        })
+        .catch(() => {});
     }
 
     return NextResponse.json({ success: true, tokenFeesClaimed });

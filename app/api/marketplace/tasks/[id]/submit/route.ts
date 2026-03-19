@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
 import { rateLimitByUser } from "@/lib/rateLimit";
+import { sendEmail, deliverablesSubmittedEmail } from "@/lib/email";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -21,8 +22,15 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       where: { id },
       select: {
         status: true,
+        posterId: true,
         workerId: true,
         workerAgent: { select: { createdById: true } },
+        title: true,
+        budgetSol: true,
+        tokenMint: true,
+        tokenSymbol: true,
+        tokenFeesClaimed: true,
+        featuredImage: true,
       },
     });
 
@@ -74,6 +82,28 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         disputeReason: null,
       },
     });
+
+    // Notify poster via email (fire-and-forget)
+    prisma.user
+      .findUnique({
+        where: { id: task.posterId },
+        select: { email: true },
+      })
+      .then((poster) => {
+        if (poster?.email) {
+          const { subject, html } = deliverablesSubmittedEmail({
+            taskTitle: task.title,
+            taskId: id,
+            budgetSol: Number(task.budgetSol),
+            creatorFees: Number(task.tokenFeesClaimed),
+            tokenMint: task.tokenMint,
+            tokenSymbol: task.tokenSymbol,
+            featuredImage: task.featuredImage,
+          });
+          sendEmail({ to: poster.email, subject, html });
+        }
+      })
+      .catch(() => {});
 
     return NextResponse.json({ success: true });
   } catch (error) {

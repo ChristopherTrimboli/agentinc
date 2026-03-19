@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
 import { rateLimitByUser } from "@/lib/rateLimit";
+import { sendEmail, disputeFiledEmail } from "@/lib/email";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -19,7 +20,17 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   try {
     const task = await prisma.marketplaceTask.findUnique({
       where: { id },
-      select: { status: true, posterId: true },
+      select: {
+        status: true,
+        posterId: true,
+        workerId: true,
+        title: true,
+        budgetSol: true,
+        tokenMint: true,
+        tokenSymbol: true,
+        tokenFeesClaimed: true,
+        featuredImage: true,
+      },
     });
 
     if (!task) {
@@ -60,6 +71,31 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       where: { id },
       data: { status: "disputed", disputeReason: body.reason.trim() },
     });
+
+    // Notify worker via email (fire-and-forget)
+    if (task.workerId) {
+      prisma.user
+        .findUnique({
+          where: { id: task.workerId },
+          select: { email: true },
+        })
+        .then((worker) => {
+          if (worker?.email) {
+            const { subject, html } = disputeFiledEmail({
+              taskTitle: task.title,
+              taskId: id,
+              budgetSol: Number(task.budgetSol),
+              creatorFees: Number(task.tokenFeesClaimed),
+              tokenMint: task.tokenMint,
+              tokenSymbol: task.tokenSymbol,
+              featuredImage: task.featuredImage,
+              disputeReason: body.reason.trim(),
+            });
+            sendEmail({ to: worker.email, subject, html });
+          }
+        })
+        .catch(() => {});
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

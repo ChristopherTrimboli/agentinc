@@ -10,6 +10,7 @@ import {
   createServerOwnedWallet,
 } from "@/lib/privy/wallet-service";
 import { rateLimitByUser } from "@/lib/rateLimit";
+import { sendEmail, welcomeEmail } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
   // Use requireAuth to verify the token — this caches the userId in Redis,
@@ -68,6 +69,13 @@ export async function POST(req: NextRequest) {
         updatedAt: true,
       },
     });
+
+    // Send welcome email for brand-new users
+    const isNewUser = !existingUser;
+    if (isNewUser && emailAccount?.address) {
+      const { subject, html } = welcomeEmail();
+      sendEmail({ to: emailAccount.address, subject, html }).catch(() => {});
+    }
 
     // Ensure user has a server-owned wallet
     if (isServerWalletConfigured()) {

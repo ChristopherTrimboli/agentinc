@@ -235,6 +235,252 @@ export function taskUnassignedEmail(params: TaskEmailParams) {
   };
 }
 
+// ── Welcome Email ─────────────────────────────────────────────────────
+
+export function welcomeEmail() {
+  const dashboardUrl = "https://agentinc.fun/dashboard";
+  const marketplaceUrl = "https://agentinc.fun/dashboard/marketplace";
+  const mintUrl = "https://agentinc.fun/dashboard/mint";
+  const body = `
+    <div style="margin:0 0 20px;display:inline-block;background:rgba(111,236,6,0.1);border:1px solid rgba(111,236,6,0.2);border-radius:8px;padding:6px 14px;">
+      <span style="font-size:12px;font-weight:600;color:${GREEN};letter-spacing:0.5px;text-transform:uppercase;">Welcome</span>
+    </div>
+    <h2 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#ffffff;letter-spacing:-0.3px;">Welcome to Agent Inc.</h2>
+    <p style="margin:0 0 24px;font-size:14px;line-height:1.7;color:rgba(255,255,255,0.5);">
+      Your account is set up and ready to go. Mint AI agents, trade on the marketplace, and earn SOL.
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
+      <tr>
+        <td style="padding:12px 16px;background:${SURFACE_LIGHT};border:1px solid rgba(111,236,6,0.1);border-radius:10px;margin-bottom:8px;">
+          <p style="margin:0 0 4px;font-size:13px;font-weight:600;color:#ffffff;">Mint an Agent</p>
+          <p style="margin:0;font-size:12px;color:rgba(255,255,255,0.4);">Create AI agents with unique traits and launch tokens.</p>
+        </td>
+      </tr>
+      <tr><td style="height:8px;"></td></tr>
+      <tr>
+        <td style="padding:12px 16px;background:${SURFACE_LIGHT};border:1px solid rgba(111,236,6,0.1);border-radius:10px;">
+          <p style="margin:0 0 4px;font-size:13px;font-weight:600;color:#ffffff;">Marketplace</p>
+          <p style="margin:0;font-size:12px;color:rgba(255,255,255,0.4);">Post tasks, bid on bounties, and earn SOL for your work.</p>
+        </td>
+      </tr>
+    </table>
+    <table cellpadding="0" cellspacing="0">
+      <tr>
+        <td style="padding-right:10px;">
+          <a href="${dashboardUrl}" style="display:inline-block;background:${GREEN};color:#000104;font-size:14px;font-weight:700;text-decoration:none;padding:12px 24px;border-radius:10px;">
+            Dashboard &rarr;
+          </a>
+        </td>
+        <td style="padding-right:10px;">
+          <a href="${mintUrl}" style="display:inline-block;background:${INDIGO};border:1px solid rgba(111,236,6,0.2);color:#ffffff;font-size:13px;font-weight:600;text-decoration:none;padding:11px 20px;border-radius:10px;">
+            Mint
+          </a>
+        </td>
+        <td>
+          <a href="${marketplaceUrl}" style="display:inline-block;background:${INDIGO};border:1px solid rgba(111,236,6,0.2);color:#ffffff;font-size:13px;font-weight:600;text-decoration:none;padding:11px 20px;border-radius:10px;">
+            Marketplace
+          </a>
+        </td>
+      </tr>
+    </table>`;
+  return {
+    subject: "Welcome to Agent Inc.",
+    html: emailLayout(body),
+  };
+}
+
+// ── Bid Placed Email (→ poster) ───────────────────────────────────────
+
+interface BidPlacedEmailParams extends TaskEmailParams {
+  bidAmountSol: number;
+  bidMessage?: string | null;
+  bidEstimatedTime?: string | null;
+}
+
+export function bidPlacedEmail(params: BidPlacedEmailParams) {
+  const { taskTitle, taskId, bidAmountSol } = params;
+  const taskUrl = `https://agentinc.fun/dashboard/marketplace/tasks/${taskId}#bids`;
+  const body = `
+    <div style="margin:0 0 20px;display:inline-block;background:rgba(111,236,6,0.1);border:1px solid rgba(111,236,6,0.2);border-radius:8px;padding:6px 14px;">
+      <span style="font-size:12px;font-weight:600;color:${GREEN};letter-spacing:0.5px;text-transform:uppercase;">New Bid</span>
+    </div>
+    <h2 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#ffffff;letter-spacing:-0.3px;">Someone bid on your task</h2>
+    <p style="margin:0 0 24px;font-size:14px;line-height:1.7;color:rgba(255,255,255,0.5);">
+      A new bid has been placed on your task. Review it and decide whether to accept.
+    </p>
+    ${featuredImageBlock(params.featuredImage)}
+    <div style="background:${SURFACE_LIGHT};border:1px solid rgba(111,236,6,0.12);border-radius:12px;padding:20px 24px;margin-bottom:20px;">
+      <p style="margin:0 0 12px;font-size:16px;font-weight:600;color:#ffffff;letter-spacing:-0.2px;">${escapeHtml(taskTitle)}</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid rgba(255,255,255,0.06);padding-top:12px;">
+        <tr>
+          <td style="font-size:12px;color:rgba(255,255,255,0.35);padding:3px 0;">Bid Amount</td>
+          <td align="right" style="font-size:14px;font-weight:700;color:${GREEN};padding:3px 0;">${formatSol(bidAmountSol)} SOL</td>
+        </tr>
+        ${params.bidEstimatedTime ? `<tr><td style="font-size:12px;color:rgba(255,255,255,0.35);padding:3px 0;">Estimated Time</td><td align="right" style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.6);padding:3px 0;">${escapeHtml(params.bidEstimatedTime)}</td></tr>` : ""}
+      </table>
+      ${params.bidMessage ? `<div style="margin-top:12px;border-top:1px solid rgba(255,255,255,0.06);padding-top:12px;"><p style="margin:0;font-size:13px;font-style:italic;color:rgba(255,255,255,0.4);line-height:1.6;">&ldquo;${escapeHtml(params.bidMessage.slice(0, 300))}${params.bidMessage.length > 300 ? "..." : ""}&rdquo;</p></div>` : ""}
+    </div>
+    ${bountyBlock(params)}
+    <a href="${taskUrl}" style="display:inline-block;background:${GREEN};color:#000104;font-size:14px;font-weight:700;text-decoration:none;padding:12px 28px;border-radius:10px;letter-spacing:-0.2px;">
+      Review Bids &rarr;
+    </a>`;
+  return {
+    subject: `New bid on: ${taskTitle}`,
+    html: emailLayout(body),
+  };
+}
+
+// ── Deliverables Submitted Email (→ poster) ──────────────────────────
+
+export function deliverablesSubmittedEmail(params: TaskEmailParams) {
+  const { taskTitle, taskId } = params;
+  const taskUrl = `https://agentinc.fun/dashboard/marketplace/tasks/${taskId}`;
+  const body = `
+    <div style="margin:0 0 20px;display:inline-block;background:rgba(111,236,6,0.1);border:1px solid rgba(111,236,6,0.2);border-radius:8px;padding:6px 14px;">
+      <span style="font-size:12px;font-weight:600;color:${GREEN};letter-spacing:0.5px;text-transform:uppercase;">Ready for Review</span>
+    </div>
+    <h2 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#ffffff;letter-spacing:-0.3px;">Deliverables submitted</h2>
+    <p style="margin:0 0 24px;font-size:14px;line-height:1.7;color:rgba(255,255,255,0.5);">
+      The worker has submitted deliverables for your review. Approve to release escrow, or dispute if revisions are needed.
+    </p>
+    ${featuredImageBlock(params.featuredImage)}
+    <div style="background:${SURFACE_LIGHT};border:1px solid rgba(111,236,6,0.12);border-radius:12px;padding:20px 24px;margin-bottom:20px;">
+      <p style="margin:0;font-size:16px;font-weight:600;color:#ffffff;letter-spacing:-0.2px;">${escapeHtml(taskTitle)}</p>
+    </div>
+    ${bountyBlock(params)}
+    ${tokenBlock(params)}
+    <a href="${taskUrl}" style="display:inline-block;background:${GREEN};color:#000104;font-size:14px;font-weight:700;text-decoration:none;padding:12px 28px;border-radius:10px;letter-spacing:-0.2px;">
+      Review Deliverables &rarr;
+    </a>`;
+  return {
+    subject: `Deliverables ready: ${taskTitle}`,
+    html: emailLayout(body),
+  };
+}
+
+// ── Task Approved Email (→ worker) ───────────────────────────────────
+
+interface TaskApprovedEmailParams extends TaskEmailParams {
+  escrowReleasedSol?: number;
+  tokenFeesClaimedSol?: number;
+}
+
+export function taskApprovedEmail(params: TaskApprovedEmailParams) {
+  const { taskTitle, taskId } = params;
+  const taskUrl = `https://agentinc.fun/dashboard/marketplace/tasks/${taskId}`;
+  const totalPaid =
+    (params.escrowReleasedSol ?? 0) + (params.tokenFeesClaimedSol ?? 0);
+
+  let payoutBlock = "";
+  if (totalPaid > 0) {
+    let rows = "";
+    if (params.escrowReleasedSol && params.escrowReleasedSol > 0) {
+      rows += `<tr><td style="font-size:12px;color:rgba(255,255,255,0.35);padding:3px 0;">Escrow</td><td align="right" style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.6);padding:3px 0;">${formatSol(params.escrowReleasedSol)} SOL</td></tr>`;
+    }
+    if (params.tokenFeesClaimedSol && params.tokenFeesClaimedSol > 0) {
+      rows += `<tr><td style="font-size:12px;color:rgba(255,255,255,0.35);padding:3px 0;">Creator Fees</td><td align="right" style="font-size:12px;font-weight:600;color:${GREEN};padding:3px 0;">${formatSol(params.tokenFeesClaimedSol)} SOL</td></tr>`;
+    }
+    const breakdownTable =
+      params.escrowReleasedSol &&
+      params.tokenFeesClaimedSol &&
+      params.escrowReleasedSol > 0 &&
+      params.tokenFeesClaimedSol > 0
+        ? `<table width="100%" cellpadding="0" cellspacing="0" style="margin-top:12px;border-top:1px solid rgba(111,236,6,0.1);padding-top:12px;">${rows}</table>`
+        : "";
+    payoutBlock = `
+      <div style="background:rgba(111,236,6,0.05);border:1px solid rgba(111,236,6,0.15);border-radius:12px;padding:20px 24px;margin-bottom:20px;text-align:center;">
+        <p style="margin:0 0 2px;font-size:11px;font-weight:600;color:rgba(111,236,6,0.5);letter-spacing:0.5px;text-transform:uppercase;">You Earned</p>
+        <p style="margin:0;font-size:32px;font-weight:700;color:${GREEN};letter-spacing:-0.5px;">${formatSol(totalPaid)}</p>
+        <p style="margin:0;font-size:13px;font-weight:500;color:rgba(111,236,6,0.4);">SOL</p>
+        ${breakdownTable}
+      </div>`;
+  }
+
+  const body = `
+    <div style="margin:0 0 20px;display:inline-block;background:rgba(111,236,6,0.1);border:1px solid rgba(111,236,6,0.2);border-radius:8px;padding:6px 14px;">
+      <span style="font-size:12px;font-weight:600;color:${GREEN};letter-spacing:0.5px;text-transform:uppercase;">Approved</span>
+    </div>
+    <h2 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#ffffff;letter-spacing:-0.3px;">Your work was approved!</h2>
+    <p style="margin:0 0 24px;font-size:14px;line-height:1.7;color:rgba(255,255,255,0.5);">
+      The poster approved your deliverables${totalPaid > 0 ? " and payment has been released to your wallet" : ""}. Great work!
+    </p>
+    ${featuredImageBlock(params.featuredImage)}
+    <div style="background:${SURFACE_LIGHT};border:1px solid rgba(111,236,6,0.12);border-radius:12px;padding:20px 24px;margin-bottom:20px;">
+      <p style="margin:0;font-size:16px;font-weight:600;color:#ffffff;letter-spacing:-0.2px;">${escapeHtml(taskTitle)}</p>
+    </div>
+    ${payoutBlock}
+    ${tokenBlock(params)}
+    <a href="${taskUrl}" style="display:inline-block;background:${GREEN};color:#000104;font-size:14px;font-weight:700;text-decoration:none;padding:12px 28px;border-radius:10px;letter-spacing:-0.2px;">
+      View Task &rarr;
+    </a>`;
+  return {
+    subject: `Approved & paid: ${taskTitle}`,
+    html: emailLayout(body),
+  };
+}
+
+// ── Dispute Filed Email (→ worker) ───────────────────────────────────
+
+interface DisputeEmailParams extends TaskEmailParams {
+  disputeReason: string;
+}
+
+export function disputeFiledEmail(params: DisputeEmailParams) {
+  const { taskTitle, taskId, disputeReason } = params;
+  const taskUrl = `https://agentinc.fun/dashboard/marketplace/tasks/${taskId}`;
+  const RED = "#ef4444";
+  const body = `
+    <div style="margin:0 0 20px;display:inline-block;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:6px 14px;">
+      <span style="font-size:12px;font-weight:600;color:${RED};letter-spacing:0.5px;text-transform:uppercase;">Disputed</span>
+    </div>
+    <h2 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#ffffff;letter-spacing:-0.3px;">Your work has been disputed</h2>
+    <p style="margin:0 0 24px;font-size:14px;line-height:1.7;color:rgba(255,255,255,0.5);">
+      The poster has disputed your deliverables. Review the reason below and submit revised work.
+    </p>
+    ${featuredImageBlock(params.featuredImage)}
+    <div style="background:${SURFACE_LIGHT};border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:20px 24px;margin-bottom:20px;">
+      <p style="margin:0 0 16px;font-size:16px;font-weight:600;color:#ffffff;letter-spacing:-0.2px;">${escapeHtml(taskTitle)}</p>
+      <div style="border-top:1px solid rgba(239,68,68,0.15);padding-top:14px;">
+        <p style="margin:0 0 6px;font-size:11px;font-weight:600;color:${RED};letter-spacing:0.5px;text-transform:uppercase;">Dispute Reason</p>
+        <p style="margin:0;font-size:13px;line-height:1.6;color:rgba(255,255,255,0.5);">${escapeHtml(disputeReason.slice(0, 500))}${disputeReason.length > 500 ? "..." : ""}</p>
+      </div>
+    </div>
+    ${bountyBlock(params)}
+    <a href="${taskUrl}" style="display:inline-block;background:${INDIGO};border:1px solid rgba(239,68,68,0.3);color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;padding:12px 28px;border-radius:10px;letter-spacing:-0.2px;">
+      View Task &rarr;
+    </a>`;
+  return {
+    subject: `Dispute filed: ${taskTitle}`,
+    html: emailLayout(body),
+  };
+}
+
+// ── Task Cancelled Email (→ worker / bidders) ────────────────────────
+
+export function taskCancelledEmail(params: TaskEmailParams) {
+  const { taskTitle, taskId } = params;
+  const marketplaceUrl = "https://agentinc.fun/dashboard/marketplace";
+  const body = `
+    <div style="margin:0 0 20px;display:inline-block;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:6px 14px;">
+      <span style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.4);letter-spacing:0.5px;text-transform:uppercase;">Cancelled</span>
+    </div>
+    <h2 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#ffffff;letter-spacing:-0.3px;">A task has been cancelled</h2>
+    <p style="margin:0 0 24px;font-size:14px;line-height:1.7;color:rgba(255,255,255,0.5);">
+      The poster has cancelled the following task. Any held escrow has been refunded.
+    </p>
+    ${featuredImageBlock(params.featuredImage)}
+    <div style="background:${SURFACE_LIGHT};border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:20px 24px;margin-bottom:20px;">
+      <p style="margin:0;font-size:16px;font-weight:600;color:#ffffff;letter-spacing:-0.2px;">${escapeHtml(taskTitle)}</p>
+    </div>
+    <a href="${marketplaceUrl}" style="display:inline-block;background:${INDIGO};border:1px solid rgba(111,236,6,0.2);color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;padding:12px 28px;border-radius:10px;letter-spacing:-0.2px;">
+      Browse Marketplace &rarr;
+    </a>`;
+  return {
+    subject: `Task cancelled: ${taskTitle}`,
+    html: emailLayout(body),
+  };
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────
 
 function escapeHtml(str: string): string {

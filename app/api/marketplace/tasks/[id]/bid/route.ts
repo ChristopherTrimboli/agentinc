@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
 import { rateLimitByUser } from "@/lib/rateLimit";
+import { sendEmail, bidPlacedEmail } from "@/lib/email";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -19,7 +20,16 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   try {
     const task = await prisma.marketplaceTask.findUnique({
       where: { id },
-      select: { status: true, posterId: true, budgetSol: true },
+      select: {
+        status: true,
+        posterId: true,
+        budgetSol: true,
+        title: true,
+        tokenMint: true,
+        tokenSymbol: true,
+        tokenFeesClaimed: true,
+        featuredImage: true,
+      },
     });
 
     if (!task) {
@@ -101,6 +111,31 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         estimatedTime: body.estimatedTime ?? null,
       },
     });
+
+    // Notify poster via email (fire-and-forget)
+    prisma.user
+      .findUnique({
+        where: { id: task.posterId },
+        select: { email: true },
+      })
+      .then((poster) => {
+        if (poster?.email) {
+          const { subject, html } = bidPlacedEmail({
+            taskTitle: task.title,
+            taskId: id,
+            budgetSol: Number(task.budgetSol),
+            creatorFees: Number(task.tokenFeesClaimed),
+            tokenMint: task.tokenMint,
+            tokenSymbol: task.tokenSymbol,
+            featuredImage: task.featuredImage,
+            bidAmountSol: body.amountSol,
+            bidMessage: body.message,
+            bidEstimatedTime: body.estimatedTime,
+          });
+          sendEmail({ to: poster.email, subject, html });
+        }
+      })
+      .catch(() => {});
 
     return NextResponse.json(bid, { status: 201 });
   } catch (error) {

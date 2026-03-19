@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
 import { rateLimitByUser } from "@/lib/rateLimit";
 import { refundEscrow } from "@/lib/marketplace/escrow";
+import { sendEmail, taskCancelledEmail } from "@/lib/email";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -23,9 +24,12 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       select: {
         status: true,
         posterId: true,
+        workerId: true,
         escrowAmount: true,
         escrowStatus: true,
         budgetSol: true,
+        title: true,
+        featuredImage: true,
       },
     });
 
@@ -101,11 +105,44 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       }
     }
 
-    // Reject all pending bids
+    // Reject all pending bids — capture bidder IDs first for notifications
+    const pendingBids = await prisma.marketplaceBid.findMany({
+      where: { taskId: id, status: "pending" },
+      select: { bidderId: true },
+    });
+
     await prisma.marketplaceBid.updateMany({
       where: { taskId: id, status: "pending" },
       data: { status: "rejected" },
     });
+
+    // Notify affected users via email (fire-and-forget)
+    const emailParams = {
+      taskTitle: task.title,
+      taskId: id,
+      featuredImage: task.featuredImage,
+    };
+
+    const userIdsToNotify = new Set<string>();
+    if (task.workerId) userIdsToNotify.add(task.workerId);
+    for (const bid of pendingBids) {
+      if (bid.bidderId) userIdsToNotify.add(bid.bidderId);
+    }
+
+    if (userIdsToNotify.size > 0) {
+      prisma.user
+        .findMany({
+          where: { id: { in: [...userIdsToNotify] }, email: { not: null } },
+          select: { email: true },
+        })
+        .then((users) => {
+          const { subject, html } = taskCancelledEmail(emailParams);
+          for (const u of users) {
+            if (u.email) sendEmail({ to: u.email, subject, html });
+          }
+        })
+        .catch(() => {});
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
