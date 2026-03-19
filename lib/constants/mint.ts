@@ -36,3 +36,35 @@ export const MINT_WIZARD_STEPS = [
   { title: "Configure", stepIndex: 2 },
   { title: "Launch", stepIndex: 3 },
 ] as const;
+
+// Bags fee structure types (maps to BAGS_CONFIG_TYPE from @bagsfm/bags-sdk)
+export const BAGS_FEE_STRUCTURES = {
+  DEFAULT: {
+    id: "fa29606e-5e48-4c37-827f-4b03d58ee23d",
+    label: "Standard (2%)",
+    description: "2% fees both pre and post migration",
+    preFee: "2%",
+    postFee: "2%",
+    compounding: false,
+  },
+  LOW_PRE: {
+    id: "d16d3585-6488-4a6c-9a6f-e6c39ca0fda3",
+    label: "Low Pre-Migration (0.25%)",
+    description:
+      "0.25% fees pre-migration, 1% post-migration, 50% compounding",
+    preFee: "0.25%",
+    postFee: "1%",
+    compounding: true,
+  },
+  LOW_POST: {
+    id: "a7c8e1f2-3d4b-5a6c-9e0f-1b2c3d4e5f6a",
+    label: "Low Post-Migration (0.25%)",
+    description:
+      "1% fees pre-migration, 0.25% post-migration, 50% compounding",
+    preFee: "1%",
+    postFee: "0.25%",
+    compounding: true,
+  },
+} as const;
+
+export type BagsFeeStructureKey = keyof typeof BAGS_FEE_STRUCTURES;

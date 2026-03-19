@@ -52,9 +52,10 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { tokenMint, feeEarners } = body as {
+    const { tokenMint, feeEarners, bagsConfigType } = body as {
       tokenMint: string;
       feeEarners?: FeeEarnerInput[];
+      bagsConfigType?: string;
     };
 
     if (!tokenMint) {
@@ -174,13 +175,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Build config options
-    const configOptions: {
-      payer: PublicKey;
-      baseMint: PublicKey;
-      feeClaimers: Array<{ user: PublicKey; userBps: number }>;
-      partner?: PublicKey;
-      partnerConfig?: PublicKey;
-    } = {
+    const configOptions: Parameters<
+      typeof sdk.config.createBagsFeeShareConfig
+    >[0] = {
       payer: walletPubkey,
       baseMint: tokenMintPubkey,
       feeClaimers,
@@ -190,6 +187,10 @@ export async function POST(req: NextRequest) {
     if (partnerWallet && partnerConfig) {
       configOptions.partner = new PublicKey(partnerWallet);
       configOptions.partnerConfig = new PublicKey(partnerConfig);
+    }
+
+    if (bagsConfigType) {
+      configOptions.bagsConfigType = bagsConfigType as typeof configOptions.bagsConfigType;
     }
 
     // Create fee share config using SDK

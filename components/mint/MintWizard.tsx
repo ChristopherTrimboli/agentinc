@@ -24,6 +24,7 @@ import {
   Plus,
   Trash2,
   Users,
+  MessageCircle,
   LogIn,
 } from "lucide-react";
 import { PersonalityRadar } from "@/components/ui/PersonalityRadar";
@@ -34,7 +35,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { APP_BASE_URL, MINT_TX_FEE_ESTIMATE } from "@/lib/constants/mint";
+import {
+  APP_BASE_URL,
+  MINT_TX_FEE_ESTIMATE,
+  BAGS_FEE_STRUCTURES,
+  type BagsFeeStructureKey,
+} from "@/lib/constants/mint";
 import { UseMintAgentReturn } from "@/lib/hooks/useMintAgent";
 import { EXTERNAL_APIS } from "@/lib/constants/urls";
 import { RarityBadge } from "./RarityBadge";
@@ -95,6 +101,10 @@ export function MintWizard({ mint, chatPath }: MintWizardProps) {
     feeEarners,
     totalFeeEarnerBps,
     creatorBps,
+    telegramUrl,
+    feeStructure,
+    setTelegramUrl,
+    setFeeStructure,
     addFeeEarner,
     removeFeeEarner,
     updateFeeEarner,
@@ -770,6 +780,74 @@ export function MintWizard({ mint, chatPath }: MintWizardProps) {
                             />
                           </div>
                         </div>
+
+                        {/* Telegram */}
+                        <div>
+                          <label className="block text-[11px] uppercase tracking-wide text-white/40 mb-1.5 font-bold flex items-center gap-1">
+                            <MessageCircle className="w-3 h-3" />
+                            Telegram
+                          </label>
+                          <input
+                            type="text"
+                            value={telegramUrl}
+                            onChange={(e) =>
+                              setTelegramUrl(e.target.value.trim())
+                            }
+                            className="w-full px-3 py-2 bg-[#120557]/50 border border-[#6FEC06]/20 rounded-lg text-white text-sm placeholder-white/30 hover:border-[#6FEC06]/30 hover:bg-[#120557]/60 focus:outline-none focus:border-[#6FEC06]/50 focus:ring-2 focus:ring-[#6FEC06]/20 transition-all duration-200"
+                            placeholder="https://t.me/your_group"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Fee Structure Section */}
+                      <div className="pt-2 border-t border-white/10">
+                        <p className="text-[11px] uppercase tracking-wide text-white/50 mb-3 font-bold flex items-center gap-1">
+                          <Coins className="w-3 h-3" />
+                          Fee Structure
+                        </p>
+                        <div className="space-y-2">
+                          {(
+                            Object.entries(BAGS_FEE_STRUCTURES) as Array<
+                              [
+                                BagsFeeStructureKey,
+                                (typeof BAGS_FEE_STRUCTURES)[BagsFeeStructureKey],
+                              ]
+                            >
+                          ).map(([key, config]) => (
+                            <button
+                              key={key}
+                              type="button"
+                              onClick={() =>
+                                setFeeStructure(key as BagsFeeStructureKey)
+                              }
+                              className={`w-full text-left px-3 py-2.5 rounded-lg border transition-all duration-200 ${
+                                feeStructure === key
+                                  ? "bg-[#6FEC06]/10 border-[#6FEC06]/40 ring-1 ring-[#6FEC06]/20"
+                                  : "bg-[#120557]/30 border-white/10 hover:border-white/20 hover:bg-[#120557]/40"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <span
+                                  className={`text-xs font-semibold ${feeStructure === key ? "text-[#6FEC06]" : "text-white/70"}`}
+                                >
+                                  {config.label}
+                                </span>
+                                <div className="flex items-center gap-2 text-[10px] text-white/40">
+                                  <span>Pre: {config.preFee}</span>
+                                  <span>Post: {config.postFee}</span>
+                                  {config.compounding && (
+                                    <span className="text-[#6FEC06]/60">
+                                      +50% compound
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <p className="text-[10px] text-white/30 mt-0.5">
+                                {config.description}
+                              </p>
+                            </button>
+                          ))}
+                        </div>
                       </div>
 
                       {/* Fee Sharing Section */}
@@ -1049,6 +1127,14 @@ export function MintWizard({ mint, chatPath }: MintWizardProps) {
                           {parseFloat(initialBuyAmount) > 0
                             ? `${initialBuyAmount} SOL`
                             : "None"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center py-2 border-b border-white/10">
+                        <span className="text-white/50 text-xs">
+                          Fee Structure
+                        </span>
+                        <span className="font-semibold text-sm text-white/80">
+                          {BAGS_FEE_STRUCTURES[feeStructure].label}
                         </span>
                       </div>
                       <div className="flex justify-between items-center py-2 border-b border-white/10">

@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     } catch {
       return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     }
-    const { wallet, tokenMint } = body;
+    const { wallet, tokenMint, bagsConfigType } = body;
 
     // Validate required fields
     if (!wallet || !tokenMint) {
@@ -77,13 +77,9 @@ export async function POST(request: NextRequest) {
     const feeClaimers = [{ user: walletPubkey, userBps: 10000 }];
 
     // Build config options
-    const configOptions: {
-      payer: PublicKey;
-      baseMint: PublicKey;
-      feeClaimers: Array<{ user: PublicKey; userBps: number }>;
-      partner?: PublicKey;
-      partnerConfig?: PublicKey;
-    } = {
+    const configOptions: Parameters<
+      typeof sdk.config.createBagsFeeShareConfig
+    >[0] = {
       payer: walletPubkey,
       baseMint: tokenMintPubkey,
       feeClaimers,
@@ -93,6 +89,10 @@ export async function POST(request: NextRequest) {
     if (partnerWallet && partnerConfig) {
       configOptions.partner = new PublicKey(partnerWallet);
       configOptions.partnerConfig = new PublicKey(partnerConfig);
+    }
+
+    if (bagsConfigType) {
+      configOptions.bagsConfigType = bagsConfigType as typeof configOptions.bagsConfigType;
     }
 
     // Create fee share config using SDK

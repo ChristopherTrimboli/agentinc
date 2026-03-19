@@ -24,6 +24,10 @@ import {
 } from "lucide-react";
 import Navigation from "../components/Navigation";
 import { getBagsFmUrl, EXTERNAL_APIS } from "@/lib/constants/urls";
+import {
+  BAGS_FEE_STRUCTURES,
+  type BagsFeeStructureKey,
+} from "@/lib/constants/mint";
 
 interface IncorporateAgent {
   id: string;
@@ -480,6 +484,8 @@ export default function IncorporatePage() {
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [telegramUrl, setTelegramUrl] = useState("");
   const [initialBuyAmount, setInitialBuyAmount] = useState("0.01");
+  const [feeStructure, setFeeStructure] =
+    useState<BagsFeeStructureKey>("DEFAULT");
 
   const [agents, setAgents] = useState<IncorporateAgent[]>([]);
   const [selectedAgentIds, setSelectedAgentIds] = useState<string[]>([]);
@@ -613,6 +619,7 @@ export default function IncorporatePage() {
         body: JSON.stringify({
           wallet: walletAddress,
           tokenMint: metadataData.tokenMint,
+          bagsConfigType: BAGS_FEE_STRUCTURES[feeStructure].id,
         }),
       });
 
@@ -1368,6 +1375,47 @@ export default function IncorporatePage() {
                         />
                       </div>
                     </div>
+                  </div>
+                </div>
+
+                {/* Fee Structure */}
+                <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-800/50">
+                  <label className="block text-[10px] sm:text-[11px] font-medium text-gray-500 mb-2 uppercase tracking-wider flex items-center gap-1">
+                    <Coins className="w-3 h-3" />
+                    Fee Structure
+                  </label>
+                  <div className="grid gap-2 grid-cols-1 sm:grid-cols-3">
+                    {(
+                      Object.entries(BAGS_FEE_STRUCTURES) as Array<
+                        [
+                          BagsFeeStructureKey,
+                          (typeof BAGS_FEE_STRUCTURES)[BagsFeeStructureKey],
+                        ]
+                      >
+                    ).map(([key, config]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() =>
+                          setFeeStructure(key as BagsFeeStructureKey)
+                        }
+                        className={`text-left px-3 py-2.5 rounded-lg border transition-all duration-200 ${
+                          feeStructure === key
+                            ? "bg-purple-500/10 border-purple-500/40 ring-1 ring-purple-500/20"
+                            : "bg-gray-800/50 border-gray-700/40 hover:border-gray-600/40 hover:bg-gray-800/70"
+                        }`}
+                      >
+                        <span
+                          className={`text-xs font-semibold block ${feeStructure === key ? "text-purple-400" : "text-white/70"}`}
+                        >
+                          {config.label}
+                        </span>
+                        <span className="text-[10px] text-gray-500 block mt-0.5">
+                          Pre: {config.preFee} · Post: {config.postFee}
+                          {config.compounding ? " · 50% compound" : ""}
+                        </span>
+                      </button>
+                    ))}
                   </div>
                 </div>
 

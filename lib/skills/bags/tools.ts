@@ -141,6 +141,16 @@ const feeShareSchema = z.object({
       }),
     )
     .describe("Array of fee recipients and their share (must total 10000 bps)"),
+  bagsConfigType: z
+    .enum([
+      "fa29606e-5e48-4c37-827f-4b03d58ee23d",
+      "d16d3585-6488-4a6c-9a6f-e6c39ca0fda3",
+      "a7c8e1f2-3d4b-5a6c-9e0f-1b2c3d4e5f6a",
+    ])
+    .optional()
+    .describe(
+      "Fee structure type. DEFAULT (2% pre+post), LOW_PRE (0.25% pre, 1% post, 50% compounding), LOW_POST (1% pre, 0.25% post, 50% compounding). Defaults to DEFAULT.",
+    ),
   apiKey: z.string().optional().describe("API key (optional if set in config)"),
 });
 
@@ -603,6 +613,10 @@ export function createBagsTools(config: SkillConfig) {
           baseMint: input.tokenMint,
           feeClaimers: input.feeClaimers,
         };
+
+        if (input.bagsConfigType) {
+          body.bagsConfigType = input.bagsConfigType;
+        }
 
         const partnerWallet = process.env.BAGS_PARTNER_WALLET;
         const partnerConfig = process.env.BAGS_PARTNER_KEY;

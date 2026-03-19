@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { tokenMint } = body;
+    const { tokenMint, bagsConfigType } = body;
 
     if (!tokenMint || !isValidPublicKey(tokenMint)) {
       return NextResponse.json(
@@ -64,13 +64,9 @@ export async function POST(req: NextRequest) {
     const partnerWallet = process.env.BAGS_PARTNER_WALLET;
     const partnerConfig = process.env.BAGS_PARTNER_KEY;
 
-    const configOptions: {
-      payer: PublicKey;
-      baseMint: PublicKey;
-      feeClaimers: Array<{ user: PublicKey; userBps: number }>;
-      partner?: PublicKey;
-      partnerConfig?: PublicKey;
-    } = {
+    const configOptions: Parameters<
+      typeof sdk.config.createBagsFeeShareConfig
+    >[0] = {
       payer: walletPubkey,
       baseMint: tokenMintPubkey,
       feeClaimers: [{ user: treasuryPubkey, userBps: 10000 }],
@@ -79,6 +75,10 @@ export async function POST(req: NextRequest) {
     if (partnerWallet && partnerConfig) {
       configOptions.partner = new PublicKey(partnerWallet);
       configOptions.partnerConfig = new PublicKey(partnerConfig);
+    }
+
+    if (bagsConfigType) {
+      configOptions.bagsConfigType = bagsConfigType as typeof configOptions.bagsConfigType;
     }
 
     let configResult;

@@ -11,6 +11,8 @@ import {
   APP_BASE_URL,
   MINT_TX_FEE_ESTIMATE,
   DEFAULT_LAUNCH_STEPS,
+  BAGS_FEE_STRUCTURES,
+  type BagsFeeStructureKey,
 } from "@/lib/constants/mint";
 import { useAuth } from "@/lib/auth/AuthProvider";
 import { useWalletBalance } from "@/lib/hooks/useWalletBalance";
@@ -52,6 +54,11 @@ export function useMintAgent() {
   const [description, setDescription] = useState("");
   const [initialBuyAmount, setInitialBuyAmount] = useState("0.01");
   const [twitterHandle, setTwitterHandle] = useState("");
+  const [telegramUrl, setTelegramUrl] = useState("");
+
+  // Fee structure (Bags config type)
+  const [feeStructure, setFeeStructure] =
+    useState<BagsFeeStructureKey>("DEFAULT");
 
   // Image configuration
   const [imageMode, setImageMode] = useState<"generate" | "upload">("generate");
@@ -366,6 +373,8 @@ export function useMintAgent() {
         ? `https://x.com/${twitterUsername}`
         : undefined;
 
+      const formattedTelegram = telegramUrl.trim() || undefined;
+
       const metadataResponse = await authFetch("/api/agents/mint/metadata", {
         method: "POST",
         body: JSON.stringify({
@@ -377,6 +386,7 @@ export function useMintAgent() {
           imageUrl: imageUrl,
           website: websiteUrl,
           twitter: formattedTwitter,
+          telegram: formattedTelegram,
         }),
       });
 
@@ -399,6 +409,7 @@ export function useMintAgent() {
         body: JSON.stringify({
           tokenMint: metadataData.tokenMint,
           feeEarners: validFeeEarners.length > 0 ? validFeeEarners : undefined,
+          bagsConfigType: BAGS_FEE_STRUCTURES[feeStructure].id,
         }),
       });
 
@@ -589,6 +600,8 @@ export function useMintAgent() {
     walletBalance,
     agentId,
     twitterHandle,
+    telegramUrl,
+    feeStructure,
     agentName,
     tokenSymbol,
     description,
@@ -608,7 +621,9 @@ export function useMintAgent() {
     setTokenSymbol("");
     setDescription("");
     setTwitterHandle("");
+    setTelegramUrl("");
     setFeeEarners([]);
+    setFeeStructure("DEFAULT");
     setLaunchError("");
     setLaunchSteps([]);
     setImageMode("generate");
@@ -666,6 +681,8 @@ export function useMintAgent() {
     feeEarners,
     totalFeeEarnerBps,
     creatorBps,
+    telegramUrl,
+    feeStructure,
 
     // Computed
     requiredBalance,
@@ -687,6 +704,8 @@ export function useMintAgent() {
     setImageUrl,
     setBannerUrl,
     setFeeEarners,
+    setTelegramUrl,
+    setFeeStructure,
 
     // Actions
     randomizeAgent,
