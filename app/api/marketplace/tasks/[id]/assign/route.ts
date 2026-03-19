@@ -84,11 +84,6 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         data: { status: "accepted" },
       });
 
-      await tx.marketplaceBid.updateMany({
-        where: { taskId: id, id: { not: body.bidId }, status: "pending" },
-        data: { status: "rejected" },
-      });
-
       await tx.marketplaceTask.update({
         where: { id },
         data: {

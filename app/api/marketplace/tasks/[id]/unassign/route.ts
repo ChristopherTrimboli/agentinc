@@ -73,10 +73,10 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         throw new Error("CONCURRENT_CHANGE");
       }
 
-      // Mark the previously-accepted bid as rejected so the slot is clean
+      // Reset all non-withdrawn bids back to pending so the poster can reassign
       await tx.marketplaceBid.updateMany({
-        where: { taskId: id, status: "accepted" },
-        data: { status: "rejected" },
+        where: { taskId: id, status: { in: ["accepted", "rejected"] } },
+        data: { status: "pending" },
       });
     });
 
