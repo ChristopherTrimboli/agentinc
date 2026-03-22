@@ -6,7 +6,6 @@ import {
   getCachedCollectionPointers,
   getCachedIsIndexerAvailable,
   getCachedSearchAgentsPage,
-  getCachedCollectionAssetsPage,
 } from "@/lib/erc8004/cached";
 import prisma from "@/lib/prisma";
 import { rateLimitByIP } from "@/lib/rateLimit";
@@ -21,18 +20,6 @@ export const dynamic = "force-dynamic";
 const PAGE_SIZE = 200;
 
 type IndexedAgent = Awaited<ReturnType<SolanaSDK["searchAgents"]>>[number];
-
-async function fetchAllCollectionAssets(col: string): Promise<IndexedAgent[]> {
-  const all: IndexedAgent[] = [];
-  let offset = 0;
-  for (;;) {
-    const page = await getCachedCollectionAssetsPage(col, PAGE_SIZE, offset);
-    all.push(...page);
-    if (page.length < PAGE_SIZE) break;
-    offset += PAGE_SIZE;
-  }
-  return all;
-}
 
 async function fetchAllAgents(): Promise<IndexedAgent[]> {
   const all: IndexedAgent[] = [];
@@ -177,6 +164,15 @@ export async function GET(req: NextRequest) {
       console.warn("[8004 Network] DB enrichment failed:", dbResult.reason);
     }
 
+    // Fetch ALL agents in one paginated pass (avoids broken getCollectionAssets)
+    let allAgents: IndexedAgent[] = [];
+    try {
+      allAgents = await fetchAllAgents();
+    } catch (err) {
+      console.error("[8004 Network] Failed to fetch agents:", err);
+    }
+
+    // Build collection pointer metadata lookup
     const uniquePointers = new Map<string, (typeof pointers)[number]>();
     for (const ptr of pointers) {
       if (!uniquePointers.has(ptr.col)) {
@@ -184,73 +180,71 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const collections = await Promise.all(
-      Array.from(uniquePointers.values()).map(async (ptr) => {
-        let agents: IndexedAgent[] = [];
-        try {
-          agents = await fetchAllCollectionAssets(ptr.col);
-        } catch (err) {
-          console.warn(
-            `[8004 Network] Failed to fetch assets for ${ptr.col}:`,
-            err,
-          );
+    // Group agents by collection_pointer
+    const agentsByCollection = new Map<string, IndexedAgent[]>();
+    const uncollectedAgents: IndexedAgent[] = [];
+
+    for (const agent of allAgents) {
+      const cp = agent.collection_pointer;
+      if (cp && uniquePointers.has(cp)) {
+        let bucket = agentsByCollection.get(cp);
+        if (!bucket) {
+          bucket = [];
+          agentsByCollection.set(cp, bucket);
         }
-
-        const isOwn = ptr.col === COLLECTION_POINTER;
-
-        return {
-          id: ptr.col,
-          address: ptr.collection || ptr.col,
-          creator: ptr.creator,
-          name: ptr.name || "Unknown Collection",
-          symbol: ptr.symbol || null,
-          description: ptr.description || null,
-          image: ptr.image && !isPlaceholderUri(ptr.image) ? ptr.image : null,
-          bannerImage: ptr.banner_image || null,
-          website: ptr.social_website || null,
-          twitter: ptr.social_x || null,
-          agentCount: agents.length || parseInt(String(ptr.asset_count)) || 0,
-          isOwn,
-          agents: agents.map((a) => ({
-            asset: a.asset,
-            agentId: a.agent_id ?? null,
-            owner: a.owner,
-            name:
-              a.nft_name || (isOwn ? ownAgentNames.get(a.asset) : null) || null,
-            uri: a.agent_uri,
-            image: isOwn ? ownAgentImages.get(a.asset) || null : null,
-            trustTier: a.trust_tier,
-            qualityScore: a.quality_score,
-            feedbackCount: a.feedback_count,
-            confidence: a.confidence,
-            riskScore: a.risk_score,
-            diversityRatio: a.diversity_ratio,
-            atomEnabled: a.atom_enabled ?? false,
-            createdAt: a.created_at,
-            collectionPointer: a.collection_pointer || null,
-          })),
-        };
-      }),
-    );
-
-    // Build asset set for dedup before fetching unassigned agents
-    const collectionAssetSet = new Set(
-      collections.flatMap((c) => c.agents.map((a) => a.asset)),
-    );
-
-    // Fetch all agents to find ones not in any collection
-    let searchResult: IndexedAgent[] = [];
-    try {
-      searchResult = await fetchAllAgents();
-    } catch (err) {
-      console.error("[8004 Network] Failed to fetch unassigned agents:", err);
+        bucket.push(agent);
+      } else {
+        uncollectedAgents.push(agent);
+      }
     }
 
-    const uncollected = searchResult.filter(
-      (a) => !collectionAssetSet.has(a.asset),
-    );
+    function mapAgent(a: IndexedAgent, isOwn: boolean) {
+      return {
+        asset: a.asset,
+        agentId: a.agent_id ?? null,
+        owner: a.owner,
+        name:
+          a.nft_name ||
+          (isOwn ? ownAgentNames.get(a.asset) : null) ||
+          ownAgentNames.get(a.asset) ||
+          null,
+        uri: a.agent_uri ?? null,
+        image: ownAgentImages.get(a.asset) || null,
+        trustTier: a.trust_tier,
+        qualityScore: a.quality_score,
+        feedbackCount: a.feedback_count,
+        confidence: a.confidence,
+        riskScore: a.risk_score,
+        diversityRatio: a.diversity_ratio,
+        atomEnabled: a.atom_enabled ?? false,
+        createdAt: a.created_at,
+        collectionPointer: a.collection_pointer || null,
+      };
+    }
 
-    if (uncollected.length > 0) {
+    // Build collection objects from pointer metadata + grouped agents
+    const collections = Array.from(uniquePointers.values()).map((ptr) => {
+      const agents = agentsByCollection.get(ptr.col) ?? [];
+      const isOwn = ptr.col === COLLECTION_POINTER;
+
+      return {
+        id: ptr.col,
+        address: ptr.collection || ptr.col,
+        creator: ptr.creator,
+        name: ptr.name || "Unknown Collection",
+        symbol: ptr.symbol || null,
+        description: ptr.description || null,
+        image: ptr.image && !isPlaceholderUri(ptr.image) ? ptr.image : null,
+        bannerImage: ptr.banner_image || null,
+        website: ptr.social_website || null,
+        twitter: ptr.social_x || null,
+        agentCount: agents.length || parseInt(String(ptr.asset_count)) || 0,
+        isOwn,
+        agents: agents.map((a) => mapAgent(a, isOwn)),
+      };
+    });
+
+    if (uncollectedAgents.length > 0) {
       collections.push({
         id: "__unassigned__",
         address: "__unassigned__",
@@ -262,25 +256,9 @@ export async function GET(req: NextRequest) {
         bannerImage: null,
         website: null,
         twitter: null,
-        agentCount: uncollected.length,
+        agentCount: uncollectedAgents.length,
         isOwn: false,
-        agents: uncollected.map((a) => ({
-          asset: a.asset,
-          agentId: a.agent_id ?? null,
-          owner: a.owner,
-          name: ownAgentNames.get(a.asset) || a.nft_name || null,
-          uri: a.agent_uri ?? null,
-          image: ownAgentImages.get(a.asset) || null,
-          trustTier: a.trust_tier,
-          qualityScore: a.quality_score,
-          feedbackCount: a.feedback_count,
-          confidence: a.confidence,
-          riskScore: a.risk_score,
-          diversityRatio: a.diversity_ratio,
-          atomEnabled: a.atom_enabled ?? false,
-          createdAt: a.created_at,
-          collectionPointer: a.collection_pointer || null,
-        })),
+        agents: uncollectedAgents.map((a) => mapAgent(a, false)),
       });
     }
 

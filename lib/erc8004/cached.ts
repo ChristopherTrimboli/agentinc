@@ -84,3 +84,37 @@ export function getCachedCollectionAssetsPage(
     { revalidate: REVALIDATE },
   )();
 }
+
+// ── Uncached (direct SDK) helpers for full refresh ──────────────────────────
+
+export async function getUncachedGlobalStats() {
+  const sdk = getErc8004Sdk();
+  return sdk.getGlobalStats();
+}
+
+export async function getUncachedCollectionPointers() {
+  const sdk = getErc8004Sdk();
+  return sdk.getCollectionPointers();
+}
+
+export async function getUncachedIsIndexerAvailable() {
+  const sdk = getErc8004Sdk();
+  return sdk.isIndexerAvailable();
+}
+
+export async function getUncachedSearchAgentsPage(
+  limit: number,
+  offset: number,
+) {
+  const sdk = getErc8004Sdk();
+  return sdk.searchAgents({ limit, offset });
+}
+
+export async function getUncachedCollectionAssetsPage(
+  col: string,
+  limit: number,
+  offset: number,
+) {
+  const sdk = getErc8004Sdk();
+  return sdk.getCollectionAssets(col, { limit, offset });
+}

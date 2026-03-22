@@ -108,9 +108,7 @@ export async function POST(req: NextRequest) {
       tokenMint: string;
     }> = [];
 
-    const uniqueMints = [
-      ...new Set(positionsToProcess.map((p) => p.baseMint)),
-    ];
+    const uniqueMints = [...new Set(positionsToProcess.map((p) => p.baseMint))];
 
     const txResults = await Promise.all(
       uniqueMints.map(async (mint) => {

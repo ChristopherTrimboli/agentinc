@@ -332,10 +332,7 @@ export async function claimTaskTokenFees(
             }),
           ).toString("base64");
 
-          const signedTx = await signTransaction(
-            TREASURY_WALLET_ID,
-            txBase64,
-          );
+          const signedTx = await signTransaction(TREASURY_WALLET_ID, txBase64);
           await sendSignedTransaction(signedTx, { useJito: false });
         }
       }
