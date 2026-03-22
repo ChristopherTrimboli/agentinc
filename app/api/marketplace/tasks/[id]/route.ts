@@ -13,6 +13,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
   if (limited) return limited;
 
   const { id } = await params;
+  const skipCache = req.nextUrl.searchParams.has("fresh");
 
   try {
     const task = await prisma.marketplaceTask.findUnique({
@@ -59,7 +60,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
           orderBy: { createdAt: "desc" },
         },
       },
-      cacheStrategy: { ttl: 5, swr: 15 },
+      ...(!skipCache && { cacheStrategy: { ttl: 5, swr: 15 } }),
     });
 
     if (!task) {

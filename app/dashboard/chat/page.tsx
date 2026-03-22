@@ -579,6 +579,7 @@ interface ChatInputAreaProps {
   tokenHolding?: TokenHolding | null;
   payWithAgentToken?: boolean;
   onPayWithAgentTokenChange?: (value: boolean) => void;
+  holdsAgentIncToken?: boolean;
 }
 
 const ChatInputArea = React.memo(function ChatInputArea({
@@ -593,6 +594,7 @@ const ChatInputArea = React.memo(function ChatInputArea({
   tokenHolding,
   payWithAgentToken = false,
   onPayWithAgentTokenChange,
+  holdsAgentIncToken = false,
 }: ChatInputAreaProps) {
   const [input, setInput] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -737,6 +739,20 @@ const ChatInputArea = React.memo(function ChatInputArea({
                       <span className="text-[9px] opacity-50">-20%</span>
                     )}
                   </button>
+                )}
+
+                {/* AGENTINC holder discount badge — visible when holding platform token and not paying with agent token */}
+                {holdsAgentIncToken && !payWithAgentToken && (
+                  <div
+                    className="h-9 px-2.5 rounded-lg border bg-amber-500/15 border-amber-500/40 text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.15)] flex items-center gap-1.5 text-xs font-medium shrink-0"
+                    title="You hold $AGENTINC — 20% off all chats"
+                  >
+                    <Coins className="w-3.5 h-3.5 shrink-0" />
+                    <span className="hidden sm:inline">$AGENTINC</span>
+                    <span className="text-[9px] font-bold bg-amber-400 text-black rounded-full px-1.5 py-0.5 leading-none">
+                      -20%
+                    </span>
+                  </div>
                 )}
 
                 {/* Model Picker - Enhanced with neon green accents */}
@@ -1150,6 +1166,9 @@ function ChatInterface({
   // Token holding state — populated when the agent has a launched token
   const [tokenHolding, setTokenHolding] = useState<TokenHolding | null>(null);
   const [payWithAgentToken, setPayWithAgentToken] = useState(false);
+
+  // AGENTINC platform token holding — 20% off all SOL-billed chats
+  const [holdsAgentIncToken, setHoldsAgentIncToken] = useState(false);
 
   // Chat history state
   const [chatId, setChatId] = useState<string | undefined>(initialChatId);
@@ -1681,6 +1700,27 @@ function ChatInterface({
     fetchTokenHolding();
   }, [agentInfo?.tokenMint, agentId, identityToken]);
 
+  // Fetch AGENTINC platform token holding (20% off all chats)
+  useEffect(() => {
+    if (!identityToken) return;
+
+    async function fetchAgentIncHolding() {
+      try {
+        const response = await fetch("/api/agentinc-token/balance", {
+          headers: { "privy-id-token": identityToken! },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setHoldsAgentIncToken(data.holdsToken === true);
+        }
+      } catch {
+        // Non-fatal
+      }
+    }
+
+    fetchAgentIncHolding();
+  }, [identityToken]);
+
   // Load existing chat messages if chatId is provided
   useEffect(() => {
     async function loadChat() {
@@ -1951,6 +1991,18 @@ function ChatInterface({
                                   tokenHolding.balance < 1 ? 2 : 0,
                                 )}
                         </span>
+                      </span>
+                    </>
+                  )}
+                  {holdsAgentIncToken && !payWithAgentToken && (
+                    <>
+                      <span className="w-1 h-1 rounded-full bg-white/20" />
+                      <span
+                        className="flex items-center gap-1 text-amber-400 bg-amber-500/10 border border-amber-500/25 rounded-full px-1.5 py-0.5 leading-none"
+                        title="AGENTINC holder — 20% off all chats"
+                      >
+                        <Coins className="w-2.5 h-2.5" />
+                        <span className="text-[9px] font-bold">-20%</span>
                       </span>
                     </>
                   )}
@@ -2665,6 +2717,7 @@ function ChatInterface({
           tokenHolding={tokenHolding}
           payWithAgentToken={payWithAgentToken}
           onPayWithAgentTokenChange={setPayWithAgentToken}
+          holdsAgentIncToken={holdsAgentIncToken}
         />
       </div>
 

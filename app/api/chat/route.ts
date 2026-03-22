@@ -225,6 +225,10 @@ async function chatHandler(req: RequestWithBilling) {
     decimals: number;
   } | null = null;
 
+  // AGENTINC platform token discount: 20% off SOL billing for holders.
+  // Checked independently of any specific agent's token.
+  let holdsAgentIncToken = false;
+
   // If agentId is provided, fetch the agent's system prompt and skills
   // Supports both database ID and tokenMint for dual-use URLs
   if (agentId) {
@@ -368,6 +372,23 @@ async function chatHandler(req: RequestWithBilling) {
       }
     } catch (error) {
       console.error("Failed to fetch agent:", error);
+    }
+  }
+
+  // Check AGENTINC platform token holding for the 20% SOL discount.
+  // Runs independently of the per-agent token check above.
+  if (billingContext?.walletAddress && !tokenPaymentContext) {
+    try {
+      const { checkTokenHolding } =
+        await import("@/lib/x402/token-holder-discount");
+      const { AGENTINC_TOKEN_MINT } = await import("@/lib/constants/mint");
+      const holding = await checkTokenHolding(
+        billingContext.walletAddress,
+        AGENTINC_TOKEN_MINT,
+      );
+      holdsAgentIncToken = holding.holdsToken;
+    } catch (err) {
+      console.error("[Chat] AGENTINC token holding check failed:", err);
     }
   }
 
@@ -782,9 +803,19 @@ Remember: CALL these tools, don't write code about them!`;
                 console.error("[Chat] Token billing error:", error);
               });
           } else {
-            // Standard SOL billing path
+            // Standard SOL billing path (20% off for AGENTINC holders)
+            const { applyTokenDiscount } =
+              await import("@/lib/x402/token-holder-discount");
+            const finalCost = holdsAgentIncToken
+              ? applyTokenDiscount(costResult.totalCost)
+              : costResult.totalCost;
+            if (holdsAgentIncToken) {
+              console.log(
+                `[Chat] AGENTINC holder discount: $${costResult.totalCost.toFixed(6)} → $${finalCost.toFixed(6)} (20% off)`,
+              );
+            }
             billingContext
-              .chargeUsage(costResult.totalCost, description, metadata)
+              .chargeUsage(finalCost, description, metadata)
               .then((result) => {
                 if (!result.success && result.error) {
                   console.error(`[Chat] Billing failed: ${result.error}`);

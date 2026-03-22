@@ -190,7 +190,8 @@ export async function POST(req: NextRequest) {
     }
 
     if (bagsConfigType) {
-      configOptions.bagsConfigType = bagsConfigType as typeof configOptions.bagsConfigType;
+      configOptions.bagsConfigType =
+        bagsConfigType as typeof configOptions.bagsConfigType;
     }
 
     // Create fee share config using SDK

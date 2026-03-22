@@ -177,18 +177,24 @@ export default function TaskDetailPage() {
     !!task &&
     ["assigned", "in_progress", "disputed"].includes(task.status);
 
-  const fetchTask = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/marketplace/tasks/${taskId}`);
-      if (!res.ok) throw new Error("Task not found");
-      const data = await res.json();
-      setTask(data);
-    } catch {
-      setError("Failed to load task");
-    } finally {
-      setLoading(false);
-    }
-  }, [taskId]);
+  const fetchTask = useCallback(
+    async ({ fresh }: { fresh?: boolean } = {}) => {
+      try {
+        const url = fresh
+          ? `/api/marketplace/tasks/${taskId}?fresh=1`
+          : `/api/marketplace/tasks/${taskId}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("Task not found");
+        const data = await res.json();
+        setTask(data);
+      } catch {
+        setError("Failed to load task");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [taskId],
+  );
 
   useEffect(() => {
     fetchTask();
@@ -250,7 +256,7 @@ export default function TaskDetailPage() {
       setBidAmount("");
       setBidMessage("");
       setBidTime("");
-      await fetchTask();
+      await fetchTask({ fresh: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to place bid");
     } finally {
@@ -266,7 +272,7 @@ export default function TaskDetailPage() {
         body: JSON.stringify({ bidId }),
       });
       if (!res.ok) throw new Error("Failed to accept bid");
-      await fetchTask();
+      await fetchTask({ fresh: true });
     } catch {
       setError("Failed to accept bid");
     } finally {
@@ -283,7 +289,7 @@ export default function TaskDetailPage() {
         body: JSON.stringify({ deliverables }),
       });
       if (!res.ok) throw new Error("Failed to submit deliverables");
-      await fetchTask();
+      await fetchTask({ fresh: true });
     } catch {
       setError("Failed to submit deliverables");
     } finally {
@@ -298,7 +304,7 @@ export default function TaskDetailPage() {
         method: "POST",
       });
       if (!res.ok) throw new Error("Failed to approve");
-      await fetchTask();
+      await fetchTask({ fresh: true });
     } catch {
       setError("Failed to approve deliverables");
     } finally {
@@ -317,7 +323,7 @@ export default function TaskDetailPage() {
       if (!res.ok) throw new Error("Failed to dispute");
       setDisputeOpen(false);
       setDisputeReason("");
-      await fetchTask();
+      await fetchTask({ fresh: true });
     } catch {
       setError("Failed to dispute task");
     } finally {
@@ -340,7 +346,7 @@ export default function TaskDetailPage() {
       if (!res.ok) throw new Error("Failed to submit review");
       setReviewRating(0);
       setReviewComment("");
-      await fetchTask();
+      await fetchTask({ fresh: true });
     } catch {
       setError("Failed to submit review");
     } finally {
@@ -359,7 +365,7 @@ export default function TaskDetailPage() {
         const data = await res.json();
         throw new Error(data.error || "Failed to cancel");
       }
-      await fetchTask();
+      await fetchTask({ fresh: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to cancel task");
     } finally {
@@ -383,7 +389,7 @@ export default function TaskDetailPage() {
         const data = await res.json();
         throw new Error(data.error || "Failed to unassign");
       }
-      await fetchTask();
+      await fetchTask({ fresh: true });
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to unassign worker",
@@ -897,7 +903,9 @@ export default function TaskDetailPage() {
                         isTaskPoster={isPoster}
                         accepting={actionLoading === bid.id}
                         onAccept={
-                          isPoster && bid.status === "pending"
+                          isPoster &&
+                          bid.status === "pending" &&
+                          task.status === "open"
                             ? handleAcceptBid
                             : undefined
                         }

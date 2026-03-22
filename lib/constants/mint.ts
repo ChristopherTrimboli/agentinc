@@ -3,6 +3,11 @@
 // Base URL for agent pages (used in token metadata)
 export const APP_BASE_URL = "https://agentinc.fun";
 
+// Main AGENTINC platform token mint address (bags.fm)
+// Holders get 20% off all AI chat costs when paying with SOL.
+export const AGENTINC_TOKEN_MINT =
+  "AwGg6CLP5P5LreVbgD4RuSmwXgnu71SmVr6GYsDaBAGS";
+
 // Estimated transaction fees (in SOL) for minting process
 // Covers: metadata creation, fee share config, launch transaction
 export const MINT_TX_FEE_ESTIMATE = 0.02;
@@ -50,8 +55,7 @@ export const BAGS_FEE_STRUCTURES = {
   LOW_PRE: {
     id: "d16d3585-6488-4a6c-9a6f-e6c39ca0fda3",
     label: "Low Pre-Migration (0.25%)",
-    description:
-      "0.25% fees pre-migration, 1% post-migration, 50% compounding",
+    description: "0.25% fees pre-migration, 1% post-migration, 50% compounding",
     preFee: "0.25%",
     postFee: "1%",
     compounding: true,
@@ -59,8 +63,7 @@ export const BAGS_FEE_STRUCTURES = {
   LOW_POST: {
     id: "a7c8e1f2-3d4b-5a6c-9e0f-1b2c3d4e5f6a",
     label: "Low Post-Migration (0.25%)",
-    description:
-      "1% fees pre-migration, 0.25% post-migration, 50% compounding",
+    description: "1% fees pre-migration, 0.25% post-migration, 50% compounding",
     preFee: "1%",
     postFee: "0.25%",
     compounding: true,
