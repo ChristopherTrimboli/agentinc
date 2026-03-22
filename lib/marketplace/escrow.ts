@@ -318,27 +318,25 @@ export async function claimTaskTokenFees(
     const claimResult = await withWalletLock(SOL_TREASURY_ADDRESS, async () => {
       const balanceBefore = await getWalletBalance(SOL_TREASURY_ADDRESS);
 
-      for (const position of taskPositions) {
-        const claimTxs = await sdk.fee.getClaimTransaction(
-          treasuryPubkey,
-          position,
-        );
+      const claimTxs = await sdk.fee.getClaimTransactions(
+        treasuryPubkey,
+        new PublicKey(tokenMint),
+      );
 
-        if (claimTxs && claimTxs.length > 0) {
-          for (const tx of claimTxs) {
-            const txBase64 = Buffer.from(
-              tx.serialize({
-                requireAllSignatures: false,
-                verifySignatures: false,
-              }),
-            ).toString("base64");
+      if (claimTxs && claimTxs.length > 0) {
+        for (const tx of claimTxs) {
+          const txBase64 = Buffer.from(
+            tx.serialize({
+              requireAllSignatures: false,
+              verifySignatures: false,
+            }),
+          ).toString("base64");
 
-            const signedTx = await signTransaction(
-              TREASURY_WALLET_ID,
-              txBase64,
-            );
-            await sendSignedTransaction(signedTx, { useJito: false });
-          }
+          const signedTx = await signTransaction(
+            TREASURY_WALLET_ID,
+            txBase64,
+          );
+          await sendSignedTransaction(signedTx, { useJito: false });
         }
       }
 

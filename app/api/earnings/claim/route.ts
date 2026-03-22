@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { BagsSDK } from "@bagsfm/bags-sdk";
-import { Connection } from "@solana/web3.js";
+import { Connection, PublicKey } from "@solana/web3.js";
 import { SOLANA_RPC_URL } from "@/lib/constants/solana";
 import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
 import { isValidPublicKey, validatePublicKey } from "@/lib/utils/validation";
@@ -102,19 +102,22 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Generate claim transactions for each position
+    // Generate claim transactions per unique baseMint (SDK takes tokenMint, not position)
     const allTransactions: Array<{
       transaction: string;
       tokenMint: string;
     }> = [];
 
-    // Generate claim transactions for all positions in parallel
+    const uniqueMints = [
+      ...new Set(positionsToProcess.map((p) => p.baseMint)),
+    ];
+
     const txResults = await Promise.all(
-      positionsToProcess.map(async (position) => {
+      uniqueMints.map(async (mint) => {
         try {
-          const claimTxs = await sdk.fee.getClaimTransaction(
+          const claimTxs = await sdk.fee.getClaimTransactions(
             walletPubkey,
-            position,
+            new PublicKey(mint),
           );
 
           if (claimTxs && claimTxs.length > 0) {
@@ -125,13 +128,13 @@ export async function POST(req: NextRequest) {
                   verifySignatures: false,
                 }),
               ).toString("base64"),
-              tokenMint: position.baseMint,
+              tokenMint: mint,
             }));
           }
           return [];
         } catch (txError) {
           console.error(
-            `[Earnings] Error generating claim tx for ${position.baseMint}:`,
+            `[Earnings] Error generating claim tx for ${mint}:`,
             txError,
           );
           return [];
