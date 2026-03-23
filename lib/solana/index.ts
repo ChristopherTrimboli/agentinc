@@ -230,11 +230,13 @@ async function sendViaRpc(base58Tx: string): Promise<string | null> {
         return data.result;
       }
     } catch (err) {
-      // Re-throw insufficient funds errors
-      if (err instanceof Error && err.message.includes("insufficient")) {
+      if (
+        err instanceof Error &&
+        (err.message.includes("insufficient") ||
+          err.message.includes("Blockhash not found"))
+      ) {
         throw err;
       }
-      // Log and continue to next endpoint
       console.error(`[RPC] Failed to send via ${rpcUrl}:`, err);
     }
   }

@@ -246,6 +246,123 @@ export async function registerAgentOn8004(
   };
 }
 
+// ── Corporation Collection ───────────────────────────────────────────────────
+
+interface CorporationCollectionInput {
+  name: string;
+  description: string;
+  logo?: string;
+  tokenSymbol?: string;
+  tokenMint?: string;
+}
+
+interface CorporationCollectionResult {
+  cid: string;
+  uri: string;
+  pointer: string;
+}
+
+/**
+ * Create an 8004 on-chain collection for a corporation.
+ * Uses the server signer key — the collection represents the corporation
+ * on the 8004 registry with its agents as members.
+ */
+export async function createCorporationCollection(
+  input: CorporationCollectionInput,
+): Promise<CorporationCollectionResult> {
+  const key = process.env.ERC8004_SIGNER_PRIVATE_KEY;
+  if (!key) {
+    throw new Error(
+      "ERC8004_SIGNER_PRIVATE_KEY required for corporation collection",
+    );
+  }
+
+  const ipfs = getIpfsClient();
+  if (!ipfs) {
+    throw new Error("PINATA_JWT required for corporation collection (IPFS)");
+  }
+
+  const signer = Keypair.fromSecretKey(bs58.decode(key));
+
+  const sdk = new SolanaSDK({
+    cluster: ERC8004_CLUSTER,
+    rpcUrl: SOLANA_RPC_URL,
+    signer,
+    ipfsClient: ipfs,
+  });
+
+  const socials: Record<string, string> = {
+    website: APP_URL,
+    x: "https://x.com/agentincdotfun",
+  };
+
+  if (input.tokenMint) {
+    socials.bags = `https://bags.fm/b/${input.tokenMint}`;
+  }
+
+  const result = await sdk.createCollection({
+    name: input.name,
+    symbol: input.tokenSymbol || input.name.slice(0, 6).toUpperCase(),
+    description:
+      input.description ||
+      `${input.name} — an AI corporation on Agent Inc.`,
+    image: input.logo || `${APP_URL}/agentinc.jpg`,
+    banner_image: `${APP_URL}/og-image.png`,
+    socials,
+  });
+
+  if (!result.cid || !result.pointer) {
+    throw new Error(
+      "[ERC8004] Corporation collection creation failed — no CID or pointer",
+    );
+  }
+
+  return {
+    cid: result.cid,
+    uri: result.uri!,
+    pointer: result.pointer,
+  };
+}
+
+/**
+ * Update an agent's 8004 collection pointer to a corporation's collection.
+ * Requires the agent to already be registered on 8004.
+ */
+export async function setAgentCorporationPointer(
+  agentAsset: string,
+  corporationPointer: string,
+  walletAddress: string,
+  walletId: string,
+): Promise<string> {
+  const sdk = getErc8004Sdk();
+  const userPubkey = new PublicKey(walletAddress);
+  const assetPubkey = new PublicKey(agentAsset);
+
+  const prepared = await sdk.setCollectionPointer(
+    assetPubkey,
+    corporationPointer,
+    { skipSend: true, signer: userPubkey, lock: false },
+  );
+
+  if (!("transaction" in prepared)) {
+    throw new Error("Expected PreparedTransaction for setCollectionPointer");
+  }
+
+  const tx = Transaction.from(
+    Buffer.from(prepared.transaction, "base64"),
+  );
+  const txBase64 = Buffer.from(
+    tx.serialize({ requireAllSignatures: false }),
+  ).toString("base64");
+
+  const signed = await signTransaction(walletId, txBase64);
+  const { signature } = await sendSignedTransaction(signed, {
+    useJito: true,
+  });
+
+  return signature;
+}
+
 // ── Re-exports ───────────────────────────────────────────────────────────────
 
 export { SolanaSDK, ServiceType, Tag } from "8004-solana";

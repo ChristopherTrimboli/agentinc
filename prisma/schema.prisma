@@ -240,6 +240,10 @@ model Corporation {
   launchSignature String?
   launchedAt      DateTime?
 
+  // ERC-8004 on-chain collection
+  erc8004CollectionPointer String?
+  erc8004CollectionCid     String?
+
   // Relations
   agents Agent[]
 

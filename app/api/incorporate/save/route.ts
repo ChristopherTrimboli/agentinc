@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { requireAuth, isAuthResult } from "@/lib/auth/verifyRequest";
 import { rateLimitByUser } from "@/lib/rateLimit";
 import { PublicKey } from "@solana/web3.js";
+import { createCorporationCollection } from "@/lib/erc8004";
 
 // POST /api/incorporate/save - Save corporation to database
 export async function POST(request: NextRequest) {
@@ -78,10 +79,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate agent IDs are valid UUIDs
-    const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!agentIds.every((id: string) => uuidRegex.test(id))) {
+    // Validate agent IDs are non-empty strings (Prisma CUIDs)
+    if (!agentIds.every((id: string) => typeof id === "string" && id.length > 0 && id.length <= 30)) {
       return NextResponse.json(
         { error: "Invalid agent ID format" },
         { status: 400 },
@@ -138,6 +137,36 @@ export async function POST(request: NextRequest) {
         include: { agents: true },
       });
     });
+
+    // Fire-and-forget: create an 8004 on-chain collection in the background
+    // so the user doesn't wait for the on-chain tx to confirm
+    if (corporation) {
+      createCorporationCollection({
+        name,
+        description: description || `${name} — an AI corporation`,
+        logo: logo || undefined,
+        tokenSymbol,
+        tokenMint,
+      })
+        .then(async (collectionResult) => {
+          await prisma.corporation.update({
+            where: { id: corporation.id },
+            data: {
+              erc8004CollectionPointer: collectionResult.pointer,
+              erc8004CollectionCid: collectionResult.cid,
+            },
+          });
+          console.log(
+            `[Incorporate] 8004 collection created for ${name}: pointer=${collectionResult.pointer}`,
+          );
+        })
+        .catch((err) => {
+          console.error(
+            "[Incorporate] 8004 collection creation failed (non-blocking):",
+            err,
+          );
+        });
+    }
 
     return NextResponse.json({ corporation }, { status: 201 });
   } catch (error) {

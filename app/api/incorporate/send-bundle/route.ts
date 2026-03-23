@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   const limited = await rateLimitByUser(
     auth.userId,
     "incorporate-send-bundle",
-    5,
+    15,
   );
   if (limited) return limited;
 
