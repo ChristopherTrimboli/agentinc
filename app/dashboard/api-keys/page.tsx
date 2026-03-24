@@ -2,7 +2,14 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth/AuthProvider";
-import { Key, Plus, Copy, Check, Trash2, AlertTriangle } from "lucide-react";
+import {
+  Key,
+  Plus,
+  Copy,
+  Check,
+  Trash2,
+  AlertTriangle,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -125,9 +132,13 @@ export default function ApiKeysPage() {
   };
 
   const copyToClipboard = async (text: string) => {
-    await navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard API unavailable (insecure context / denied permission)
+    }
   };
 
   const activeKeys = keys.filter((k) => !k.revokedAt);
@@ -233,31 +244,37 @@ export default function ApiKeysPage() {
                     <h3 className="font-medium text-white truncate">
                       {apiKey.name}
                     </h3>
-                    <p className="text-white/40 text-xs font-mono mt-0.5">
+                    <button
+                      onClick={() => copyToClipboard(apiKey.prefix + "...")}
+                      className="text-white/40 text-xs font-mono mt-0.5 hover:text-white/60 transition-colors flex items-center gap-1 cursor-pointer"
+                      title="Copy key prefix"
+                    >
                       {apiKey.prefix}...
-                    </p>
+                      <Copy className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </button>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-6 shrink-0">
-                  <div className="hidden sm:flex flex-col items-end text-xs">
+                <div className="flex items-center gap-3 sm:gap-6 shrink-0">
+                  <div className="flex flex-col items-end text-xs">
                     <span className="text-white/40">
-                      {apiKey.totalRequests.toLocaleString()} requests
+                      {apiKey.totalRequests.toLocaleString()} req
                     </span>
-                    <span className="text-white/30">
+                    <span className="text-white/30 hidden sm:block">
                       {apiKey.lastUsedAt
-                        ? `Last used ${timeAgo(apiKey.lastUsedAt)}`
+                        ? `Used ${timeAgo(apiKey.lastUsedAt)}`
                         : "Never used"}
                     </span>
                   </div>
-                  <div className="text-xs text-white/30">
+                  <div className="text-xs text-white/30 hidden sm:block">
                     {timeAgo(apiKey.createdAt)}
                   </div>
                   <Button
                     variant="ghost"
                     size="icon-sm"
                     onClick={() => setRevokeTarget(apiKey)}
-                    className="text-white/30 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="text-white/30 hover:text-red-400 hover:bg-red-500/10 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+                    aria-label={`Revoke ${apiKey.name}`}
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -319,7 +336,9 @@ export default function ApiKeysPage() {
               onChange={(e) => setNewKeyName(e.target.value)}
               placeholder="e.g. My App — Production"
               className="bg-white/5 border-white/10 text-white placeholder:text-white/30"
-              onKeyDown={(e) => e.key === "Enter" && handleCreate()}
+              onKeyDown={(e) =>
+                e.key === "Enter" && !isCreating && handleCreate()
+              }
               autoFocus
             />
           </div>
@@ -437,22 +456,39 @@ export default function ApiKeysPage() {
       {/* Quick start section */}
       {!isLoading && activeKeys.length > 0 && (
         <div className="mt-10 p-6 rounded-2xl bg-white/[0.02] border border-white/10">
-          <h2 className="text-sm font-medium text-white/60 mb-4">
-            Quick Start
-          </h2>
-          <pre className="text-xs text-white/70 bg-black/30 p-4 rounded-lg overflow-x-auto font-mono leading-relaxed">
-            <code>{`import { createAgentInc } from "@agent-inc/ai-sdk-provider";
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-medium text-white/60">Quick Start</h2>
+            <a
+              href="https://www.npmjs.com/package/@agent-inc/ai-sdk-provider"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-[#6FEC06]/60 hover:text-[#6FEC06] transition-colors"
+            >
+              npm package &rarr;
+            </a>
+          </div>
+          <div className="mb-3">
+            <p className="text-xs text-white/30 mb-1.5">Install</p>
+            <pre className="text-xs text-white/70 bg-black/30 p-3 rounded-lg overflow-x-auto font-mono">
+              <code>npm install @agent-inc/ai-sdk-provider ai</code>
+            </pre>
+          </div>
+          <div>
+            <p className="text-xs text-white/30 mb-1.5">Usage</p>
+            <pre className="text-xs text-white/70 bg-black/30 p-3 rounded-lg overflow-x-auto font-mono leading-relaxed">
+              <code>{`import { createAgentInc } from "@agent-inc/ai-sdk-provider";
 import { generateText } from "ai";
 
 const agentinc = createAgentInc({
-  apiKey: "your-api-key-here",
+  apiKey: process.env.AGENTINC_API_KEY,
 });
 
 const { text } = await generateText({
   model: agentinc("anthropic/claude-haiku-4.6"),
   prompt: "Hello!",
 });`}</code>
-          </pre>
+            </pre>
+          </div>
         </div>
       )}
     </div>

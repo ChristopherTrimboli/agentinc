@@ -12,28 +12,39 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ keyId: string }> },
 ) {
-  const auth = await requireAuth(req);
-  if (!isAuthResult(auth)) return auth;
+  try {
+    const auth = await requireAuth(req);
+    if (!isAuthResult(auth)) return auth;
 
-  const { keyId } = await params;
+    const { keyId } = await params;
 
-  const existing = await prisma.apiKey.findUnique({
-    where: { id: keyId },
-    select: { userId: true, revokedAt: true },
-  });
+    const existing = await prisma.apiKey.findUnique({
+      where: { id: keyId },
+      select: { userId: true, revokedAt: true },
+    });
 
-  if (!existing || existing.userId !== auth.userId) {
-    return NextResponse.json({ error: "Key not found" }, { status: 404 });
+    if (!existing || existing.userId !== auth.userId) {
+      return NextResponse.json({ error: "Key not found" }, { status: 404 });
+    }
+
+    if (existing.revokedAt) {
+      return NextResponse.json(
+        { error: "Key already revoked" },
+        { status: 400 },
+      );
+    }
+
+    await prisma.apiKey.update({
+      where: { id: keyId },
+      data: { revokedAt: new Date() },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("[api-keys] DELETE error:", error);
+    return NextResponse.json(
+      { error: "Failed to revoke key" },
+      { status: 500 },
+    );
   }
-
-  if (existing.revokedAt) {
-    return NextResponse.json({ error: "Key already revoked" }, { status: 400 });
-  }
-
-  await prisma.apiKey.update({
-    where: { id: keyId },
-    data: { revokedAt: new Date() },
-  });
-
-  return NextResponse.json({ success: true });
 }

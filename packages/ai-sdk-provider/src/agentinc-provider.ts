@@ -118,8 +118,8 @@ export function createAgentInc(
       })
     : options.fetch;
 
-  // Resolve API key lazily — only read env var when the first request is made,
-  // not at module load time. This prevents crashes for x402-only consumers.
+  // In x402 mode no API key is needed. Otherwise fall through to env var.
+  // Passing undefined is safe — createOpenAICompatible treats it as "no key".
   const apiKey = isX402Mode ? undefined : (options.apiKey ?? undefined);
 
   const inner: OpenAICompatibleProvider<

@@ -43,7 +43,6 @@
     "web3",
     "blockchain"
   ],
-  "sideEffects": false,
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -65,8 +64,8 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
+    "build": "bun run build.ts",
+    "dev": "bun --watch run build.ts",
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
@@ -84,10 +83,10 @@
   },
   "devDependencies": {
     "@solana/kit": "^6.5.0",
-    "tsup": "^8.0.0",
     "typescript": "^5.9.0"
   },
   "engines": {
     "node": ">=18"
-  }
+  },
+  "sideEffects": false
 }
