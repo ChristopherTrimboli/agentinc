@@ -1,0 +1,148 @@
+---
+title: Agent Inc.
+description: Agent Inc. Provider for the AI SDK
+---
+
+# Agent Inc.
+
+[Agent Inc.](https://agentinc.fun) is an AI agent platform on Solana that offers pay-per-inference through the [x402](https://github.com/anthropics/x402) micropayment protocol. The Agent Inc. provider for the AI SDK enables access to leading AI models with two payment options:
+
+- **API Key Mode**: Traditional bearer token authentication for simple integration
+- **x402 SOL Payments**: Trustless, per-request native SOL micropayments on Solana — no accounts, no subscriptions, no API keys required
+- **Multiple Model Access**: Anthropic Claude and OpenAI models via a single provider
+- **Embedding Support**: Text embeddings for RAG and semantic search
+- **Web3 Native**: Built for the Solana ecosystem with on-chain payment settlement
+
+Learn more in the [Agent Inc. Documentation](https://agentinc.fun).
+
+## Setup
+
+The Agent Inc. provider is available in the `@agent-inc/ai-sdk-provider` package. You can install it with:
+
+<Tabs items={["pnpm", "npm", "yarn", "bun"]}>
+  <Tab>
+    <Snippet text="pnpm add @agent-inc/ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="npm install @agent-inc/ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="yarn add @agent-inc/ai-sdk-provider" dark />
+  </Tab>
+  <Tab>
+    <Snippet text="bun add @agent-inc/ai-sdk-provider" dark />
+  </Tab>
+</Tabs>
+
+For x402 SOL payment mode, also install the Solana SDK:
+
+```bash
+bun add @solana/kit
+```
+
+## Provider Instance
+
+### API Key Mode
+
+```typescript
+import { createAgentInc } from "@agent-inc/ai-sdk-provider";
+
+const agentinc = createAgentInc({
+  apiKey: "YOUR_AGENTINC_API_KEY",
+});
+```
+
+### x402 SOL Payment Mode
+
+```typescript
+import { createAgentInc } from "@agent-inc/ai-sdk-provider";
+
+const agentinc = createAgentInc({
+  solanaSecretKey: myKeypairBytes, // 64-byte Uint8Array
+  solanaNetwork: "solana-devnet", // or 'solana' for mainnet
+});
+```
+
+With x402 mode, the provider automatically handles the payment protocol: when the server returns HTTP 402, the provider builds a SOL transfer transaction, signs it with your keypair, and retries with the payment attached.
+
+## Language Models
+
+```typescript
+const model = agentinc("anthropic/claude-haiku-4.5");
+```
+
+Supported chat models:
+
+| Model ID                     | Description             |
+| ---------------------------- | ----------------------- |
+| `anthropic/claude-haiku-4.5` | Fast and cost-efficient |
+| `anthropic/claude-sonnet-4`  | Balanced performance    |
+
+## Embedding Models
+
+```typescript
+const embeddingModel = agentinc.embeddingModel("openai/text-embedding-3-large");
+```
+
+## Examples
+
+### `generateText`
+
+```typescript
+import { createAgentInc } from "@agent-inc/ai-sdk-provider";
+import { generateText } from "ai";
+
+const agentinc = createAgentInc({
+  apiKey: "YOUR_AGENTINC_API_KEY",
+});
+
+const { text } = await generateText({
+  model: agentinc("anthropic/claude-haiku-4.5"),
+  prompt: "What is the x402 payment protocol?",
+});
+
+console.log(text);
+```
+
+### `streamText`
+
+```typescript
+import { createAgentInc } from "@agent-inc/ai-sdk-provider";
+import { streamText } from "ai";
+
+const agentinc = createAgentInc({
+  apiKey: "YOUR_AGENTINC_API_KEY",
+});
+
+const result = streamText({
+  model: agentinc("anthropic/claude-sonnet-4"),
+  prompt: "Explain how Solana micropayments work.",
+});
+
+for await (const chunk of result.textStream) {
+  process.stdout.write(chunk);
+}
+```
+
+### `embed`
+
+```typescript
+import { createAgentInc } from "@agent-inc/ai-sdk-provider";
+import { embed } from "ai";
+
+const agentinc = createAgentInc({
+  apiKey: "YOUR_AGENTINC_API_KEY",
+});
+
+const { embedding } = await embed({
+  model: agentinc.embeddingModel("openai/text-embedding-3-large"),
+  value: "What is the meaning of life?",
+});
+```
+
+## Additional Resources
+
+- [Agent Inc. Platform](https://agentinc.fun)
+- [Provider Repository](https://github.com/ChristopherTrimboli/agentinc/tree/main/packages/ai-sdk-provider)
+- [x402 Protocol Specification](https://github.com/anthropics/x402)
+- [Solana Kit Documentation](https://solanakit.org)

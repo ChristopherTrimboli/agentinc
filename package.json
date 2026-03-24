@@ -24,6 +24,9 @@
     "x402",
     "bags"
   ],
+  "workspaces": [
+    "packages/*"
+  ],
   "engines": {
     "bun": ">=1.0.0"
   },
@@ -37,13 +40,15 @@
     "db:generate": "bun prisma generate",
     "db:migrate": "bun prisma migrate dev",
     "db:push": "bun prisma db push",
-    "db:studio": "bun prisma studio"
+    "db:studio": "bun prisma studio",
+    "build:packages": "cd packages/ai-sdk-provider && bun run build",
+    "publish:provider": "cd packages/ai-sdk-provider && bun publish --access public"
   },
   "dependencies": {
     "8004-solana": "^0.7.9",
-    "@ai-sdk/anthropic": "^3.0.63",
+    "@ai-sdk/anthropic": "^3.0.64",
     "@ai-sdk/openai": "^3.0.48",
-    "@ai-sdk/react": "^3.0.139",
+    "@ai-sdk/react": "^3.0.140",
     "@bagsfm/bags-sdk": "^1.3.4",
     "@metaplex-foundation/mpl-token-metadata": "^3.4.0",
     "@metaplex-foundation/umi": "^1.5.1",
@@ -76,7 +81,7 @@
     "@vercel/blob": "^2.3.1",
     "@workflow/ai": "^4.0.1-beta.56",
     "@xdevplatform/xdk": "^0.4.0",
-    "ai": "^6.0.137",
+    "ai": "^6.0.138",
     "bs58": "^6.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -84,7 +89,7 @@
     "date-fns": "^4.1.0",
     "framer-motion": "^12.38.0",
     "lucide-react": "^0.563.0",
-    "mcp-handler": "^1.0.7",
+    "mcp-handler": "^1.1.0",
     "nanoid": "^5.1.7",
     "next": "16.1.4",
     "pdf-parse": "^2.4.5",
@@ -99,7 +104,7 @@
     "streamdown": "^2.5.0",
     "swr": "^2.4.1",
     "tailwind-merge": "^3.5.0",
-    "twilio": "^5.13.0",
+    "twilio": "^5.13.1",
     "use-stick-to-bottom": "^1.1.3",
     "workflow": "^4.1.0-beta.63",
     "zod": "^4.3.6"

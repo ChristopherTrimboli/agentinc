@@ -10,6 +10,7 @@ import {
   Network,
   MessageSquare,
   ChevronLeft,
+  Key,
 } from "lucide-react";
 
 // Skeleton sidebar that mirrors the real sidebar structure
@@ -23,6 +24,7 @@ function SidebarSkeleton() {
     { icon: Building2, width: 78 },
     { icon: Network, width: 65 },
     { icon: MessageSquare, width: 82 },
+    { icon: Key, width: 72 },
   ];
 
   return (

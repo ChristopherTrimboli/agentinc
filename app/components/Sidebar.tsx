@@ -15,6 +15,7 @@ import {
   ChevronLeft,
   Store,
   ShoppingBag,
+  Key,
 } from "lucide-react";
 import LoginButton from "./LoginButton";
 
@@ -54,6 +55,11 @@ const navItems = [
     href: "/dashboard/chat",
     label: "Chat",
     icon: MessageSquare,
+  },
+  {
+    href: "/dashboard/api-keys",
+    label: "API Keys",
+    icon: Key,
   },
 ];
 

@@ -46,6 +46,9 @@ model User {
   marketplaceReviews       MarketplaceReview[]
   marketplaceReviewsAbout  MarketplaceReview[] @relation("ReviewsAbout")
 
+  // API keys for public /api/v1 endpoints
+  apiKeys ApiKey[]
+
   @@index([twitterUserId])
   @@index([twitterUsername])
   @@index([activeWalletId])
@@ -660,4 +663,28 @@ model MarketplaceReview {
   @@index([taskId])
   @@index([reviewerId])
   @@index([revieweeId])
+}
+
+// Public API keys for the @agent-inc/ai-sdk-provider and /api/v1 endpoints.
+// The raw key is shown once at creation time; only the SHA-256 hash is stored.
+model ApiKey {
+  id        String   @id @default(cuid())
+  name      String   // User-chosen label (e.g. "My App - Production")
+  prefix    String   // First 8 chars of the key for display ("sk-ai_abc1...")
+  keyHash   String   @unique // SHA-256 hash of the full key
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Usage tracking
+  lastUsedAt DateTime?
+  totalRequests Int   @default(0)
+
+  // Lifecycle
+  revokedAt DateTime?
+  expiresAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }

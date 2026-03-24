@@ -1,0 +1,75 @@
+{
+  "name": "@agent-inc/ai-sdk-provider",
+  "version": "0.1.2",
+  "description": "Vercel AI SDK provider for AgentInc — pay-per-inference with native SOL via x402 on Solana",
+  "license": "MIT",
+  "author": "Agent Inc. <hello@agentinc.fun> (https://agentinc.fun)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ChristopherTrimboli/agentinc.git",
+    "directory": "packages/ai-sdk-provider"
+  },
+  "homepage": "https://agentinc.fun",
+  "bugs": {
+    "url": "https://github.com/ChristopherTrimboli/agentinc/issues"
+  },
+  "keywords": [
+    "ai-sdk",
+    "ai-sdk-provider",
+    "vercel-ai",
+    "agentinc",
+    "solana",
+    "x402",
+    "micropayments",
+    "llm",
+    "anthropic",
+    "openai",
+    "web3"
+  ],
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@solana/kit": ">=6.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@solana/kit": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "@ai-sdk/openai-compatible": "^2.0.30",
+    "@ai-sdk/provider": "^3.0.8",
+    "@ai-sdk/provider-utils": "^4.0.15"
+  },
+  "devDependencies": {
+    "@solana/kit": "^6.5.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.9.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
