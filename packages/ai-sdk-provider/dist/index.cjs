@@ -10,28 +10,37 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 var __copyProps = (to, from, except, desc) => {
-  if (from && typeof from === "object" || typeof from === "function") {
+  if ((from && typeof from === "object") || typeof from === "function") {
     for (let key of __getOwnPropNames(from))
       if (!__hasOwnProp.call(to, key) && key !== except)
-        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+        __defProp(to, key, {
+          get: () => from[key],
+          enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable,
+        });
   }
   return to;
 };
-var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
-  // If the importer is in node compatibility mode or this is not an ESM
-  // file that has been converted to a CommonJS file using a Babel-
-  // compatible transform (i.e. "__esModule" has not been set), then set
-  // "default" to the CommonJS "module.exports" for node compatibility.
-  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
-  mod
-));
-var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
+var __toESM = (mod, isNodeMode, target) => (
+  (target = mod != null ? __create(__getProtoOf(mod)) : {}),
+  __copyProps(
+    // If the importer is in node compatibility mode or this is not an ESM
+    // file that has been converted to a CommonJS file using a Babel-
+    // compatible transform (i.e. "__esModule" has not been set), then set
+    // "default" to the CommonJS "module.exports" for node compatibility.
+    isNodeMode || !mod || !mod.__esModule
+      ? __defProp(target, "default", { value: mod, enumerable: true })
+      : target,
+    mod,
+  )
+);
+var __toCommonJS = (mod) =>
+  __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
 // src/index.ts
 var index_exports = {};
 __export(index_exports, {
   agentinc: () => agentinc,
-  createAgentInc: () => createAgentInc
+  createAgentInc: () => createAgentInc,
 });
 module.exports = __toCommonJS(index_exports);
 
@@ -43,7 +52,7 @@ var import_provider_utils = require("@ai-sdk/provider-utils");
 var SYSTEM_PROGRAM = "11111111111111111111111111111111";
 var DEFAULT_RPC = {
   solana: "https://api.mainnet-beta.solana.com",
-  "solana-devnet": "https://api.devnet.solana.com"
+  "solana-devnet": "https://api.devnet.solana.com",
 };
 function buildTransferInstruction(source, destination, amount) {
   const data = new Uint8Array(12);
@@ -56,15 +65,15 @@ function buildTransferInstruction(source, destination, amount) {
       {
         address: source.address,
         role: 3,
-        signer: source
+        signer: source,
       },
       {
         address: destination,
-        role: 1
+        role: 1,
         /* WRITABLE */
-      }
+      },
     ],
-    data
+    data,
   };
 }
 function uint8ArrayToBase64(bytes) {
@@ -93,7 +102,7 @@ function createX402Fetch(options) {
         } catch {
           signerPromise = null;
           throw new Error(
-            "@solana/kit is required for x402 payment mode. Install it: bun add @solana/kit"
+            "@solana/kit is required for x402 payment mode. Install it: bun add @solana/kit",
           );
         }
       })();
@@ -115,7 +124,7 @@ function createX402Fetch(options) {
     }
     if (requirements.network !== network) {
       throw new Error(
-        `x402: network mismatch \u2014 server requires ${requirements.network}, provider configured for ${network}`
+        `x402: network mismatch \u2014 server requires ${requirements.network}, provider configured for ${network}`,
       );
     }
     const solana = await import("@solana/kit");
@@ -129,39 +138,37 @@ function createX402Fetch(options) {
     const emptyMsg = solana.createTransactionMessage({ version: 0 });
     const withPayer = solana.setTransactionMessageFeePayerSigner(
       signer,
-      emptyMsg
+      emptyMsg,
     );
     const withLifetime = solana.setTransactionMessageLifetimeUsingBlockhash(
       latestBlockhash,
-      withPayer
+      withPayer,
     );
     const fullMsg = solana.appendTransactionMessageInstructions(
       [transferIx],
-      withLifetime
+      withLifetime,
     );
     const signedTx = await solana.signTransactionMessageWithSigners(fullMsg);
     const txEncoder = solana.getTransactionEncoder();
-    const txBytes = txEncoder.encode(
-      signedTx
-    );
+    const txBytes = txEncoder.encode(signedTx);
     const txBase64 = uint8ArrayToBase64(new Uint8Array(txBytes));
     const paymentPayload = {
       x402Version: 1,
       scheme: "exact",
       network,
-      payload: { transaction: txBase64 }
+      payload: { transaction: txBase64 },
     };
     const paymentHeader = stringToBase64(JSON.stringify(paymentPayload));
     const retryHeaders = new Headers(init?.headers);
     retryHeaders.set("X-PAYMENT", paymentHeader);
     const retryInit = {
       ...init,
-      headers: Object.fromEntries(retryHeaders.entries())
+      headers: Object.fromEntries(retryHeaders.entries()),
     };
     const paidResponse = await baseFetch(input, retryInit);
     if (paidResponse.status === 402) {
       throw new Error(
-        "x402: payment was rejected by the server after retry \u2014 check wallet balance and network"
+        "x402: payment was rejected by the server after retry \u2014 check wallet balance and network",
       );
     }
     return paidResponse;
@@ -171,21 +178,25 @@ function createX402Fetch(options) {
 // src/agentinc-provider.ts
 var DEFAULT_BASE_URL = "https://agentinc.fun/api/v1";
 function createAgentInc(options = {}) {
-  const baseURL = (0, import_provider_utils.withoutTrailingSlash)(options.baseURL) ?? DEFAULT_BASE_URL;
+  const baseURL =
+    (0, import_provider_utils.withoutTrailingSlash)(options.baseURL) ??
+    DEFAULT_BASE_URL;
   const isX402Mode = !!options.solanaSecretKey && !options.apiKey;
-  const fetchFn = isX402Mode ? createX402Fetch({
-    secretKey: options.solanaSecretKey,
-    network: options.solanaNetwork ?? "solana",
-    rpcUrl: options.solanaRpcUrl,
-    baseFetch: options.fetch
-  }) : options.fetch;
-  const apiKey = isX402Mode ? void 0 : options.apiKey ?? void 0;
+  const fetchFn = isX402Mode
+    ? createX402Fetch({
+        secretKey: options.solanaSecretKey,
+        network: options.solanaNetwork ?? "solana",
+        rpcUrl: options.solanaRpcUrl,
+        baseFetch: options.fetch,
+      })
+    : options.fetch;
+  const apiKey = isX402Mode ? void 0 : (options.apiKey ?? void 0);
   const inner = (0, import_openai_compatible.createOpenAICompatible)({
     name: "agentinc",
     baseURL,
     apiKey: apiKey ?? process.env.AGENTINC_API_KEY,
     headers: options.headers,
-    fetch: fetchFn
+    fetch: fetchFn,
   });
   const provider = function agentinc2(modelId) {
     return inner.chatModel(modelId);
@@ -196,8 +207,9 @@ function createAgentInc(options = {}) {
 }
 var agentinc = createAgentInc();
 // Annotate the CommonJS export names for ESM import in node:
-0 && (module.exports = {
-  agentinc,
-  createAgentInc
-});
+0 &&
+  (module.exports = {
+    agentinc,
+    createAgentInc,
+  });
 //# sourceMappingURL=index.cjs.map

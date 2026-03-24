@@ -1,14 +1,12 @@
 // src/agentinc-provider.ts
-import {
-  createOpenAICompatible
-} from "@ai-sdk/openai-compatible";
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { withoutTrailingSlash } from "@ai-sdk/provider-utils";
 
 // src/agentinc-x402-fetch.ts
 var SYSTEM_PROGRAM = "11111111111111111111111111111111";
 var DEFAULT_RPC = {
   solana: "https://api.mainnet-beta.solana.com",
-  "solana-devnet": "https://api.devnet.solana.com"
+  "solana-devnet": "https://api.devnet.solana.com",
 };
 function buildTransferInstruction(source, destination, amount) {
   const data = new Uint8Array(12);
@@ -21,15 +19,15 @@ function buildTransferInstruction(source, destination, amount) {
       {
         address: source.address,
         role: 3,
-        signer: source
+        signer: source,
       },
       {
         address: destination,
-        role: 1
+        role: 1,
         /* WRITABLE */
-      }
+      },
     ],
-    data
+    data,
   };
 }
 function uint8ArrayToBase64(bytes) {
@@ -58,7 +56,7 @@ function createX402Fetch(options) {
         } catch {
           signerPromise = null;
           throw new Error(
-            "@solana/kit is required for x402 payment mode. Install it: bun add @solana/kit"
+            "@solana/kit is required for x402 payment mode. Install it: bun add @solana/kit",
           );
         }
       })();
@@ -80,7 +78,7 @@ function createX402Fetch(options) {
     }
     if (requirements.network !== network) {
       throw new Error(
-        `x402: network mismatch \u2014 server requires ${requirements.network}, provider configured for ${network}`
+        `x402: network mismatch \u2014 server requires ${requirements.network}, provider configured for ${network}`,
       );
     }
     const solana = await import("@solana/kit");
@@ -94,39 +92,37 @@ function createX402Fetch(options) {
     const emptyMsg = solana.createTransactionMessage({ version: 0 });
     const withPayer = solana.setTransactionMessageFeePayerSigner(
       signer,
-      emptyMsg
+      emptyMsg,
     );
     const withLifetime = solana.setTransactionMessageLifetimeUsingBlockhash(
       latestBlockhash,
-      withPayer
+      withPayer,
     );
     const fullMsg = solana.appendTransactionMessageInstructions(
       [transferIx],
-      withLifetime
+      withLifetime,
     );
     const signedTx = await solana.signTransactionMessageWithSigners(fullMsg);
     const txEncoder = solana.getTransactionEncoder();
-    const txBytes = txEncoder.encode(
-      signedTx
-    );
+    const txBytes = txEncoder.encode(signedTx);
     const txBase64 = uint8ArrayToBase64(new Uint8Array(txBytes));
     const paymentPayload = {
       x402Version: 1,
       scheme: "exact",
       network,
-      payload: { transaction: txBase64 }
+      payload: { transaction: txBase64 },
     };
     const paymentHeader = stringToBase64(JSON.stringify(paymentPayload));
     const retryHeaders = new Headers(init?.headers);
     retryHeaders.set("X-PAYMENT", paymentHeader);
     const retryInit = {
       ...init,
-      headers: Object.fromEntries(retryHeaders.entries())
+      headers: Object.fromEntries(retryHeaders.entries()),
     };
     const paidResponse = await baseFetch(input, retryInit);
     if (paidResponse.status === 402) {
       throw new Error(
-        "x402: payment was rejected by the server after retry \u2014 check wallet balance and network"
+        "x402: payment was rejected by the server after retry \u2014 check wallet balance and network",
       );
     }
     return paidResponse;
@@ -138,19 +134,21 @@ var DEFAULT_BASE_URL = "https://agentinc.fun/api/v1";
 function createAgentInc(options = {}) {
   const baseURL = withoutTrailingSlash(options.baseURL) ?? DEFAULT_BASE_URL;
   const isX402Mode = !!options.solanaSecretKey && !options.apiKey;
-  const fetchFn = isX402Mode ? createX402Fetch({
-    secretKey: options.solanaSecretKey,
-    network: options.solanaNetwork ?? "solana",
-    rpcUrl: options.solanaRpcUrl,
-    baseFetch: options.fetch
-  }) : options.fetch;
-  const apiKey = isX402Mode ? void 0 : options.apiKey ?? void 0;
+  const fetchFn = isX402Mode
+    ? createX402Fetch({
+        secretKey: options.solanaSecretKey,
+        network: options.solanaNetwork ?? "solana",
+        rpcUrl: options.solanaRpcUrl,
+        baseFetch: options.fetch,
+      })
+    : options.fetch;
+  const apiKey = isX402Mode ? void 0 : (options.apiKey ?? void 0);
   const inner = createOpenAICompatible({
     name: "agentinc",
     baseURL,
     apiKey: apiKey ?? process.env.AGENTINC_API_KEY,
     headers: options.headers,
-    fetch: fetchFn
+    fetch: fetchFn,
   });
   const provider = function agentinc2(modelId) {
     return inner.chatModel(modelId);
@@ -160,8 +158,5 @@ function createAgentInc(options = {}) {
   return provider;
 }
 var agentinc = createAgentInc();
-export {
-  agentinc,
-  createAgentInc
-};
+export { agentinc, createAgentInc };
 //# sourceMappingURL=index.js.map

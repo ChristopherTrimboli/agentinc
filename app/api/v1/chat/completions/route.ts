@@ -13,10 +13,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { streamText, generateText, type ModelMessage } from "ai";
 import { rateLimitByIP, rateLimitByUser } from "@/lib/rateLimit";
-import {
-  withSolPayment,
-  isSolPaymentEnabled,
-} from "@/lib/x402/sol-middleware";
+import { withSolPayment, isSolPaymentEnabled } from "@/lib/x402/sol-middleware";
 import { calculateCost } from "@/lib/x402/ai-gateway-cost";
 import { validateApiKey } from "@/lib/auth/validateApiKey";
 import { nanoid } from "nanoid";
@@ -44,9 +41,7 @@ interface OpenAIChatRequest {
 
 // ── Helpers ─────────────────────────────────────────────────────────────
 
-function convertToModelMessages(
-  messages: OpenAIChatMessage[],
-): ModelMessage[] {
+function convertToModelMessages(messages: OpenAIChatMessage[]): ModelMessage[] {
   return messages.map((msg) => {
     if (msg.role === "system") {
       return { role: "system" as const, content: msg.content };
@@ -71,7 +66,9 @@ function extractBearerToken(req: NextRequest): string | null {
 }
 
 function hasX402Payment(req: NextRequest): boolean {
-  return !!(req.headers.get("X-PAYMENT") || req.headers.get("PAYMENT-SIGNATURE"));
+  return !!(
+    req.headers.get("X-PAYMENT") || req.headers.get("PAYMENT-SIGNATURE")
+  );
 }
 
 // ── OpenAI SSE streaming encoder ────────────────────────────────────────
@@ -140,7 +137,13 @@ async function completionsHandler(req: NextRequest): Promise<Response> {
 
   if (!bearerToken && !hasPayment) {
     return NextResponse.json(
-      { error: { message: "Missing authentication. Provide an API key via Authorization header or x402 payment via X-PAYMENT header.", type: "auth_error" } },
+      {
+        error: {
+          message:
+            "Missing authentication. Provide an API key via Authorization header or x402 payment via X-PAYMENT header.",
+          type: "auth_error",
+        },
+      },
       { status: 401 },
     );
   }
@@ -170,14 +173,21 @@ async function completionsHandler(req: NextRequest): Promise<Response> {
     body = await req.json();
   } catch {
     return NextResponse.json(
-      { error: { message: "Invalid JSON body", type: "invalid_request_error" } },
+      {
+        error: { message: "Invalid JSON body", type: "invalid_request_error" },
+      },
       { status: 400 },
     );
   }
 
   if (!Array.isArray(body.messages) || body.messages.length === 0) {
     return NextResponse.json(
-      { error: { message: "messages is required and must be a non-empty array", type: "invalid_request_error" } },
+      {
+        error: {
+          message: "messages is required and must be a non-empty array",
+          type: "invalid_request_error",
+        },
+      },
       { status: 400 },
     );
   }
@@ -214,11 +224,7 @@ async function completionsHandler(req: NextRequest): Promise<Response> {
         },
       });
 
-      const stream = createOpenAIStream(
-        result.textStream,
-        completionId,
-        model,
-      );
+      const stream = createOpenAIStream(result.textStream, completionId, model);
 
       return new Response(stream, {
         headers: {
@@ -289,7 +295,15 @@ async function completionsHandler(req: NextRequest): Promise<Response> {
   }
 }
 
-// Wrap with x402 SOL payment middleware when enabled
-export const POST = isSolPaymentEnabled()
+// Bearer API keys bypass x402 payment. If no bearer token, fall through to x402 middleware.
+const x402Handler = isSolPaymentEnabled()
   ? withSolPayment(completionsHandler, "chat")
   : completionsHandler;
+
+export async function POST(req: NextRequest): Promise<Response> {
+  const bearer = req.headers.get("authorization");
+  if (bearer?.startsWith("Bearer sk-ai_")) {
+    return completionsHandler(req);
+  }
+  return x402Handler(req);
+}

@@ -1,7 +1,7 @@
 {
   "name": "@agent-inc/ai-sdk-provider",
-  "version": "0.1.2",
-  "description": "Vercel AI SDK provider for AgentInc — pay-per-inference with native SOL via x402 on Solana",
+  "version": "0.1.3",
+  "description": "Vercel AI SDK provider for Agent Inc. — access Claude, GPT, Gemini & 30+ models with API key or pay-per-inference SOL micropayments via x402",
   "license": "MIT",
   "author": "Agent Inc. <hello@agentinc.fun> (https://agentinc.fun)",
   "repository": {
@@ -13,19 +13,37 @@
   "bugs": {
     "url": "https://github.com/ChristopherTrimboli/agentinc/issues"
   },
+  "funding": {
+    "type": "individual",
+    "url": "https://agentinc.fun"
+  },
   "keywords": [
+    "ai",
     "ai-sdk",
     "ai-sdk-provider",
     "vercel-ai",
+    "agent-inc",
     "agentinc",
+    "llm",
+    "inference",
+    "streaming",
+    "anthropic",
+    "claude",
+    "openai",
+    "gpt",
+    "gemini",
+    "deepseek",
+    "grok",
+    "embedding",
     "solana",
     "x402",
     "micropayments",
-    "llm",
-    "anthropic",
-    "openai",
-    "web3"
+    "pay-per-use",
+    "crypto",
+    "web3",
+    "blockchain"
   ],
+  "sideEffects": false,
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",

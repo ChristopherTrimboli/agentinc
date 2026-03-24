@@ -1,17 +1,25 @@
 # @agent-inc/ai-sdk-provider
 
-[Vercel AI SDK](https://sdk.vercel.ai) provider for [Agent Inc.](https://agentinc.fun) — pay-per-inference with native SOL via the [x402](https://github.com/anthropics/x402) payment protocol on Solana.
+[![npm version](https://img.shields.io/npm/v/@agent-inc/ai-sdk-provider.svg)](https://www.npmjs.com/package/@agent-inc/ai-sdk-provider)
+[![npm bundle size](https://img.shields.io/bundlephobia/minzip/@agent-inc/ai-sdk-provider)](https://bundlephobia.com/package/@agent-inc/ai-sdk-provider)
+[![license](https://img.shields.io/npm/l/@agent-inc/ai-sdk-provider)](https://github.com/ChristopherTrimboli/agentinc/blob/main/LICENSE)
+
+[Vercel AI SDK](https://sdk.vercel.ai) provider for [Agent Inc.](https://agentinc.fun) — access **Claude, GPT, Gemini, DeepSeek, Grok** and 30+ models through a single provider. Pay with an API key or trustless per-request SOL micropayments via the [x402](https://github.com/anthropics/x402) protocol on Solana.
 
 ## Installation
 
 ```bash
+npm install @agent-inc/ai-sdk-provider
+# or
+pnpm add @agent-inc/ai-sdk-provider
+# or
 bun add @agent-inc/ai-sdk-provider
 ```
 
 For x402 SOL payment mode (optional):
 
 ```bash
-bun add @agent-inc/ai-sdk-provider @solana/kit
+npm install @agent-inc/ai-sdk-provider @solana/kit
 ```
 
 ## Quick Start
@@ -88,27 +96,27 @@ const { text } = await generateText({
 
 All models on the [Vercel AI Gateway](https://sdk.vercel.ai/models) are supported. Popular picks:
 
-| Model ID | Price (in / out per 1M tokens) |
-| --- | --- |
-| `anthropic/claude-haiku-4.6` | Fast, cost-efficient (default) |
-| `anthropic/claude-sonnet-4.6` | Balanced |
-| `anthropic/claude-opus-4.6` | Highest capability |
-| `openai/gpt-5-nano` | $0.05 / $0.40 |
-| `openai/gpt-5-mini` | $0.25 / $2.00 |
-| `openai/gpt-5.4` | $2.50 / $15.00 |
-| `google/gemini-2.5-flash` | $0.30 / $2.50 |
-| `google/gemini-2.5-pro` | $1.25 / $10.00 |
-| `deepseek/deepseek-v3.2` | $0.28 / $0.42 |
-| `xai/grok-4-fast-reasoning` | $0.20 / $0.50 |
+| Model ID                      | Price (in / out per 1M tokens) |
+| ----------------------------- | ------------------------------ |
+| `anthropic/claude-haiku-4.6`  | Fast, cost-efficient (default) |
+| `anthropic/claude-sonnet-4.6` | Balanced                       |
+| `anthropic/claude-opus-4.6`   | Highest capability             |
+| `openai/gpt-5-nano`           | $0.05 / $0.40                  |
+| `openai/gpt-5-mini`           | $0.25 / $2.00                  |
+| `openai/gpt-5.4`              | $2.50 / $15.00                 |
+| `google/gemini-2.5-flash`     | $0.30 / $2.50                  |
+| `google/gemini-2.5-pro`       | $1.25 / $10.00                 |
+| `deepseek/deepseek-v3.2`      | $0.28 / $0.42                  |
+| `xai/grok-4-fast-reasoning`   | $0.20 / $0.50                  |
 
 Any `provider/model` string is accepted — the type hints provide autocomplete, not restrictions.
 
 Embedding models:
 
-| Model ID | Description |
-| --- | --- |
+| Model ID                        | Description         |
+| ------------------------------- | ------------------- |
 | `openai/text-embedding-3-large` | 1536-dim embeddings |
-| `openai/text-embedding-3-small` | 512-dim embeddings |
+| `openai/text-embedding-3-small` | 512-dim embeddings  |
 
 ## Configuration
 
@@ -126,9 +134,9 @@ const agentinc = createAgentInc({
   headers: { "X-Custom": "value" },
 
   // x402 SOL payment options (alternative to apiKey)
-  solanaSecretKey: keypairBytes,       // 64-byte Uint8Array
-  solanaNetwork: "solana",             // "solana" | "solana-devnet"
-  solanaRpcUrl: "https://my-rpc.com",  // Custom RPC endpoint
+  solanaSecretKey: keypairBytes, // 64-byte Uint8Array
+  solanaNetwork: "solana", // "solana" | "solana-devnet"
+  solanaRpcUrl: "https://my-rpc.com", // Custom RPC endpoint
 });
 ```
 
@@ -148,8 +156,8 @@ const { embedding } = await embed({
 
 ## Environment Variables
 
-| Variable | Description |
-| --- | --- |
+| Variable           | Description                                              |
+| ------------------ | -------------------------------------------------------- |
 | `AGENTINC_API_KEY` | API key for bearer token auth (used by default instance) |
 
 ## Links
