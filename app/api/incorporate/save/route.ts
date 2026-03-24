@@ -80,7 +80,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate agent IDs are non-empty strings (Prisma CUIDs)
-    if (!agentIds.every((id: string) => typeof id === "string" && id.length > 0 && id.length <= 30)) {
+    if (
+      !agentIds.every(
+        (id: string) =>
+          typeof id === "string" && id.length > 0 && id.length <= 30,
+      )
+    ) {
       return NextResponse.json(
         { error: "Invalid agent ID format" },
         { status: 400 },

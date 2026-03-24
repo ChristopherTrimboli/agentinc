@@ -423,8 +423,9 @@ export default function IncorporatePage() {
         );
       const feeShareData = await feeShareResponse.json();
 
-      // Process regular transactions — confirm each before sending the next
-      // since later txs may depend on state created by earlier ones
+      // Send fee config transactions via server-side signing.
+      // The server refreshes the blockhash and signs with the user's Privy
+      // wallet, eliminating stale-blockhash issues from sequential signing.
       if (feeShareData.transactions?.length > 0) {
         const MAX_RETRIES = 2;
         for (let i = 0; i < feeShareData.transactions.length; i++) {
@@ -432,25 +433,6 @@ export default function IncorporatePage() {
           for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
             try {
               const txData = feeShareData.transactions[i];
-              let txBytes: Uint8Array;
-              try {
-                txBytes = Uint8Array.from(atob(txData.transaction), (c) =>
-                  c.charCodeAt(0),
-                );
-              } catch {
-                throw new Error(
-                  `Invalid transaction data for fee config ${i + 1}`,
-                );
-              }
-              const signResult = await signTransaction({
-                transaction: txBytes,
-                wallet: signingWallet!,
-              });
-              const signedTxBase64 = btoa(
-                String.fromCharCode(
-                  ...new Uint8Array(signResult.signedTransaction),
-                ),
-              );
 
               const sendResponse = await fetch(
                 "/api/incorporate/send-transaction",
@@ -461,7 +443,7 @@ export default function IncorporatePage() {
                     "privy-id-token": identityToken,
                   },
                   body: JSON.stringify({
-                    signedTransaction: signedTxBase64,
+                    transaction: txData.transaction,
                     confirm: true,
                   }),
                 },
@@ -481,9 +463,7 @@ export default function IncorporatePage() {
               lastError =
                 error instanceof Error ? error : new Error("Unknown error");
               if (attempt < MAX_RETRIES) {
-                await new Promise((r) =>
-                  setTimeout(r, 2000 * (attempt + 1)),
-                );
+                await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
               }
             }
           }
@@ -495,7 +475,7 @@ export default function IncorporatePage() {
         }
       }
 
-      // Process bundles (if any) — sign all transactions then send as Jito bundle
+      // Send bundles via server-side signing (server refreshes blockhash)
       if (feeShareData.bundles?.length > 0) {
         const BUNDLE_MAX_RETRIES = 2;
         for (
@@ -504,39 +484,12 @@ export default function IncorporatePage() {
           bundleIdx++
         ) {
           let bundleLastError: Error | null = null;
-          for (
-            let attempt = 0;
-            attempt <= BUNDLE_MAX_RETRIES;
-            attempt++
-          ) {
+          for (let attempt = 0; attempt <= BUNDLE_MAX_RETRIES; attempt++) {
             try {
               const bundle = feeShareData.bundles[bundleIdx];
-              const signedTransactions: string[] = [];
-
-              for (let txIdx = 0; txIdx < bundle.length; txIdx++) {
-                const txData = bundle[txIdx];
-                let txBytes: Uint8Array;
-                try {
-                  txBytes = Uint8Array.from(
-                    atob(txData.transaction),
-                    (c) => c.charCodeAt(0),
-                  );
-                } catch {
-                  throw new Error(
-                    `Invalid bundle ${bundleIdx + 1} transaction ${txIdx + 1} data`,
-                  );
-                }
-                const signResult = await signTransaction({
-                  transaction: txBytes,
-                  wallet: signingWallet!,
-                });
-                const signedTxBase64 = btoa(
-                  String.fromCharCode(
-                    ...new Uint8Array(signResult.signedTransaction),
-                  ),
-                );
-                signedTransactions.push(signedTxBase64);
-              }
+              const transactions = bundle.map(
+                (txData: { transaction: string }) => txData.transaction,
+              );
 
               const bundleResponse = await fetch(
                 "/api/incorporate/send-bundle",
@@ -546,17 +499,14 @@ export default function IncorporatePage() {
                     "Content-Type": "application/json",
                     "privy-id-token": identityToken,
                   },
-                  body: JSON.stringify({ signedTransactions }),
+                  body: JSON.stringify({ transactions }),
                 },
               );
 
               if (!bundleResponse.ok) {
-                const errorData = await bundleResponse
-                  .json()
-                  .catch(() => ({}));
+                const errorData = await bundleResponse.json().catch(() => ({}));
                 throw new Error(
-                  errorData.error ||
-                    `Failed to send bundle ${bundleIdx + 1}`,
+                  errorData.error || `Failed to send bundle ${bundleIdx + 1}`,
                 );
               }
 
@@ -564,13 +514,9 @@ export default function IncorporatePage() {
               break;
             } catch (error) {
               bundleLastError =
-                error instanceof Error
-                  ? error
-                  : new Error("Unknown error");
+                error instanceof Error ? error : new Error("Unknown error");
               if (attempt < BUNDLE_MAX_RETRIES) {
-                await new Promise((r) =>
-                  setTimeout(r, 3000 * (attempt + 1)),
-                );
+                await new Promise((r) => setTimeout(r, 3000 * (attempt + 1)));
               }
             }
           }

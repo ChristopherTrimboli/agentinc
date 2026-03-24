@@ -304,8 +304,7 @@ export async function createCorporationCollection(
     name: input.name,
     symbol: input.tokenSymbol || input.name.slice(0, 6).toUpperCase(),
     description:
-      input.description ||
-      `${input.name} — an AI corporation on Agent Inc.`,
+      input.description || `${input.name} — an AI corporation on Agent Inc.`,
     image: input.logo || `${APP_URL}/agentinc.jpg`,
     banner_image: `${APP_URL}/og-image.png`,
     socials,
@@ -348,9 +347,7 @@ export async function setAgentCorporationPointer(
     throw new Error("Expected PreparedTransaction for setCollectionPointer");
   }
 
-  const tx = Transaction.from(
-    Buffer.from(prepared.transaction, "base64"),
-  );
+  const tx = Transaction.from(Buffer.from(prepared.transaction, "base64"));
   const txBase64 = Buffer.from(
     tx.serialize({ requireAllSignatures: false }),
   ).toString("base64");
