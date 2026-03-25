@@ -30,12 +30,18 @@ const cwd = import.meta.dir;
 
 try {
   // ── CJS bundle first (bun outputs as index.js, rename to .cjs) ────────
-  await $`bun build src/index.ts --outdir dist --format cjs --target node --sourcemap=external ${ext}`.cwd(cwd).quiet();
-  await $`mv dist/index.js dist/index.cjs && mv dist/index.js.map dist/index.cjs.map`.cwd(cwd);
+  await $`bun build src/index.ts --outdir dist --format cjs --target node --sourcemap=external ${ext}`
+    .cwd(cwd)
+    .quiet();
+  await $`mv dist/index.js dist/index.cjs && mv dist/index.js.map dist/index.cjs.map`.cwd(
+    cwd,
+  );
   console.log("  CJS  → dist/index.cjs");
 
   // ── ESM bundle (overwrites any leftover index.js) ─────────────────────
-  await $`bun build src/index.ts --outdir dist --format esm --target node --sourcemap=external ${ext}`.cwd(cwd).quiet();
+  await $`bun build src/index.ts --outdir dist --format esm --target node --sourcemap=external ${ext}`
+    .cwd(cwd)
+    .quiet();
   console.log("  ESM  → dist/index.js");
 
   // ── Type declarations via tsc ─────────────────────────────────────────
@@ -44,7 +50,10 @@ try {
   // Copy .d.ts → .d.cts so CJS consumers resolve types correctly
   const glob = new Glob("*.d.ts");
   for await (const file of glob.scan({ cwd: DIST })) {
-    await copyFile(`${DIST}/${file}`, `${DIST}/${file.replace(/\.d\.ts$/, ".d.cts")}`);
+    await copyFile(
+      `${DIST}/${file}`,
+      `${DIST}/${file.replace(/\.d\.ts$/, ".d.cts")}`,
+    );
   }
   console.log("  DTS  → dist/*.d.ts + *.d.cts");
 

@@ -2,14 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth/AuthProvider";
-import {
-  Key,
-  Plus,
-  Copy,
-  Check,
-  Trash2,
-  AlertTriangle,
-} from "lucide-react";
+import { Key, Plus, Copy, Check, Trash2, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
