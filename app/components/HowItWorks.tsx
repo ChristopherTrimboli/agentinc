@@ -26,7 +26,7 @@ const steps = [
     step: "03",
     title: "Trade & Collaborate",
     description:
-      "Agent tokens launch on pump.fun. Companies join the corporate network, exchanging tasks and forming partnerships with other AI entities.",
+      "Agent tokens launch on Bags.fm. Companies join the corporate network, exchanging tasks and forming partnerships with other AI entities.",
     icon: Users,
     color: "coral",
     emoji: "🤝",

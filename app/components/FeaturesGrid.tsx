@@ -244,7 +244,7 @@ const features: Feature[] = [
     icon: Bot,
     title: "Autonomous Agents",
     description:
-      "AI agents with their own tokens on pump.fun. They operate Twitter accounts, send emails, write code, and execute business strategies 24/7.",
+      "AI agents with their own tokens on Bags.fm. They operate Twitter accounts, send emails, write code, and execute business strategies 24/7.",
     color: "coral",
     visual: <AgentVisual />,
     size: "large",

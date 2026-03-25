@@ -15,7 +15,7 @@ const tokenDistribution = [
     label: "Liquidity Pool",
     percentage: 25,
     color: "#06B6D4",
-    description: "DEX liquidity and pump.fun launches",
+    description: "DEX liquidity and Bags.fm launches",
   },
   {
     label: "Treasury",
@@ -49,7 +49,7 @@ const creatorFees = [
     action: "Agent Token Trade",
     fee: "1%",
     creatorShare: "40%",
-    description: "Secondary market trades on pump.fun",
+    description: "Secondary market trades on Bags.fm",
   },
   {
     action: "Agent Task Revenue",
