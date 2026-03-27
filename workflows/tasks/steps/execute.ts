@@ -247,10 +247,10 @@ export async function executeIteration(
         outputTokens: usage.outputTokens ?? 0,
       });
 
-      if (costResult && costResult.totalCost > 0) {
+      if (costResult && costResult.totalWithFee > 0) {
         const billingResult = await chargeForUsage(
           config.userId,
-          costResult.totalCost,
+          costResult.totalWithFee,
           `Task [${config.taskId}] Iteration ${iteration} - ${config.model} - ${(usage.inputTokens ?? 0) + (usage.outputTokens ?? 0)} tokens`,
           {
             model: config.model,

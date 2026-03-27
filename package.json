@@ -114,6 +114,9 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@ai-sdk/openai-compatible": "^2.0.37",
+    "@ai-sdk/provider": "^3.0.8",
+    "@ai-sdk/provider-utils": "^4.0.21",
     "@tailwindcss/postcss": "^4.2.2",
     "@types/bn.js": "^5.2.0",
     "@types/node": "^20.19.37",

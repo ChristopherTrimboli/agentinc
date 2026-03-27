@@ -688,3 +688,57 @@ model ApiKey {
 
   @@index([userId])
 }
+
+// ── Revenue Sharing ──────────────────────────────────────────────────────────
+// Tracks platform revenue events and distributions to $AGENTINC token holders.
+
+model RevenueEvent {
+  id                   String   @id @default(cuid())
+  timestamp            DateTime @default(now())
+  type                 String   // x402_flat, usage_based, tool_cost, token_payment
+  grossLamports        BigInt
+  costLamports         BigInt
+  profitLamports       BigInt
+  revenueShareLamports BigInt
+  txSignature          String?
+  userId               String?
+  distributed          Boolean  @default(false)
+  distributionId       String?
+  distribution         RevenueDistribution? @relation(fields: [distributionId], references: [id])
+
+  @@index([distributed, timestamp])
+  @@index([timestamp])
+}
+
+model RevenueDistribution {
+  id                  String   @id @default(cuid())
+  timestamp           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  totalProfitLamports BigInt
+  distributedLamports BigInt
+  holderCount         Int
+  perHolderLamports   BigInt
+  status              String   @default("pending") // pending, processing, completed, partial, failed
+  events              RevenueEvent[]
+  payouts             RevenueSharePayout[]
+
+  @@index([timestamp])
+  @@index([status])
+}
+
+model RevenueSharePayout {
+  id               String    @id @default(cuid())
+  distributionId   String
+  walletAddress    String
+  amountLamports   BigInt
+  tier             String    // Bronze, Silver, Gold, Diamond
+  txSignature      String?
+  status           String    @default("pending") // pending, sent, confirmed, failed
+  createdAt        DateTime  @default(now())
+  confirmedAt      DateTime?
+  distribution     RevenueDistribution @relation(fields: [distributionId], references: [id])
+
+  @@index([walletAddress, createdAt])
+  @@index([distributionId])
+  @@index([status])
+}

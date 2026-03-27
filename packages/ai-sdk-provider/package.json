@@ -77,9 +77,9 @@
     }
   },
   "dependencies": {
-    "@ai-sdk/openai-compatible": "^2.0.30",
+    "@ai-sdk/openai-compatible": "^2.0.37",
     "@ai-sdk/provider": "^3.0.8",
-    "@ai-sdk/provider-utils": "^4.0.15"
+    "@ai-sdk/provider-utils": "^4.0.21"
   },
   "devDependencies": {
     "@solana/kit": "^6.5.0",

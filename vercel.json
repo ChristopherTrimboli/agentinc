@@ -3,6 +3,10 @@
     {
       "path": "/api/8004/verify",
       "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/distribute-revenue",
+      "schedule": "*/5 * * * *"
     }
   ]
 }

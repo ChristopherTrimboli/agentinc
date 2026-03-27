@@ -766,7 +766,7 @@ Remember: CALL these tools, don't write code about them!`;
           outputTokens: usage.outputTokens,
         });
 
-        if (costResult && costResult.totalCost > 0) {
+        if (costResult && costResult.totalWithFee > 0) {
           const description = `AI Chat [${model}] - ${usage.totalTokens || 0} tokens`;
           const metadata = {
             model,
@@ -774,11 +774,14 @@ Remember: CALL these tools, don't write code about them!`;
             outputTokens: usage.outputTokens,
           };
 
+          // Use totalWithFee (includes 20% platform fee) as the billable amount
+          const billableAmount = costResult.totalWithFee;
+
           // Token holder path: pay with the agent's token at 20% discount
           if (tokenPaymentContext) {
             billingContext
               .chargeUsageInToken(
-                costResult.totalCost,
+                billableAmount,
                 tokenPaymentContext.tokenMint,
                 tokenPaymentContext.decimals,
                 description,
@@ -790,8 +793,8 @@ Remember: CALL these tools, don't write code about them!`;
                 } else if (result.success) {
                   const discount = Math.round(
                     (1 -
-                      (result.discountedUsdCost ?? costResult.totalCost) /
-                        costResult.totalCost) *
+                      (result.discountedUsdCost ?? billableAmount) /
+                        billableAmount) *
                       100,
                   );
                   console.log(
@@ -807,11 +810,11 @@ Remember: CALL these tools, don't write code about them!`;
             const { applyTokenDiscount } =
               await import("@/lib/x402/token-holder-discount");
             const finalCost = holdsAgentIncToken
-              ? applyTokenDiscount(costResult.totalCost)
-              : costResult.totalCost;
+              ? applyTokenDiscount(billableAmount)
+              : billableAmount;
             if (holdsAgentIncToken) {
               console.log(
-                `[Chat] AGENTINC holder discount: $${costResult.totalCost.toFixed(6)} → $${finalCost.toFixed(6)} (20% off)`,
+                `[Chat] AGENTINC holder discount: $${billableAmount.toFixed(6)} → $${finalCost.toFixed(6)} (20% off)`,
               );
             }
             billingContext

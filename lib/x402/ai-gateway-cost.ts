@@ -9,7 +9,9 @@
  */
 
 import { gateway } from "@ai-sdk/gateway";
+
 import { isRedisConfigured, getRedis } from "@/lib/redis";
+import { PLATFORM_FEE_RATE } from "@/lib/revenue/constants";
 
 /**
  * Model pricing information
@@ -38,8 +40,12 @@ export interface TokenUsage {
  * Calculated cost result
  */
 export interface CalculatedCost {
-  /** Total cost in USD */
+  /** Base cost in USD (raw AI Gateway cost) */
   totalCost: number;
+  /** Total cost including platform fee (what the user pays) */
+  totalWithFee: number;
+  /** Platform fee portion in USD */
+  platformFee: number;
   /** Input token cost */
   inputCost: number;
   /** Output token cost */
@@ -242,8 +248,13 @@ export async function calculateCost(
     cachedTokens *
     (pricing.cachedInputCostPerToken ?? pricing.inputCostPerToken);
 
+  const baseCost = inputCost + outputCost + cachedCost;
+  const platformFee = baseCost * PLATFORM_FEE_RATE;
+
   return {
-    totalCost: inputCost + outputCost + cachedCost,
+    totalCost: baseCost,
+    totalWithFee: baseCost + platformFee,
+    platformFee,
     inputCost,
     outputCost,
     cachedCost,

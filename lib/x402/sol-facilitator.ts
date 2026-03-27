@@ -15,6 +15,7 @@ import {
 import { SOLANA_RPC_URL } from "@/lib/constants/solana";
 import { SolPaymentPayloadSchema } from "./validation";
 import { isRedisConfigured, getRedis } from "@/lib/redis";
+import { logPaymentRevenue } from "@/lib/revenue/events";
 
 // In-memory fallback cache for when Redis is unavailable
 let memoryCachedSolPrice: { price: number; timestamp: number } | null = null;
@@ -500,6 +501,18 @@ export async function settlePayment(
         };
       }
     }
+
+    // Fire-and-forget: log revenue event for x402 flat-rate payment.
+    // For flat-rate payments the actual AI cost isn't known at settle time,
+    // so we conservatively treat the entire payment as profit. This slightly
+    // overestimates revenue share but never under-distributes.
+    const grossLamports = Number(BigInt(paymentRequirements.maxAmountRequired));
+    logPaymentRevenue({
+      type: "x402_flat",
+      grossLamports,
+      costLamports: 0,
+      txSignature: signature,
+    }).catch(() => {});
 
     return {
       success: true,

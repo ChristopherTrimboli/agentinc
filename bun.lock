@@ -7,14 +7,14 @@
       "dependencies": {
         "8004-solana": "^0.7.9",
         "@ai-sdk/anthropic": "^3.0.64",
-        "@ai-sdk/gateway": "^3.0.80",
+        "@ai-sdk/gateway": "^3.0.82",
         "@ai-sdk/openai": "^3.0.48",
-        "@ai-sdk/react": "^3.0.140",
+        "@ai-sdk/react": "^3.0.142",
         "@bagsfm/bags-sdk": "^1.3.4",
         "@metaplex-foundation/mpl-token-metadata": "^3.4.0",
         "@metaplex-foundation/umi": "^1.5.1",
         "@metaplex-foundation/umi-bundle-defaults": "^1.5.1",
-        "@modelcontextprotocol/sdk": "^1.27.1",
+        "@modelcontextprotocol/sdk": "^1.28.0",
         "@prisma/client": "^7.5.0",
         "@prisma/extension-accelerate": "^3.0.1",
         "@privy-io/node": "^0.8.0",
@@ -44,7 +44,7 @@
         "@vercel/blob": "^2.3.1",
         "@workflow/ai": "^4.0.1-beta.56",
         "@xdevplatform/xdk": "^0.4.0",
-        "ai": "^6.0.138",
+        "ai": "^6.0.140",
         "bn.js": "^5.2.3",
         "bs58": "^6.0.0",
         "class-variance-authority": "^0.7.1",
@@ -74,6 +74,9 @@
         "zod": "^4.3.6",
       },
       "devDependencies": {
+        "@ai-sdk/openai-compatible": "^2.0.37",
+        "@ai-sdk/provider": "^3.0.8",
+        "@ai-sdk/provider-utils": "^4.0.21",
         "@tailwindcss/postcss": "^4.2.2",
         "@types/bn.js": "^5.2.0",
         "@types/node": "^20.19.37",
@@ -94,9 +97,9 @@
       "name": "@agent-inc/ai-sdk-provider",
       "version": "1.0.0",
       "dependencies": {
-        "@ai-sdk/openai-compatible": "^2.0.30",
+        "@ai-sdk/openai-compatible": "^2.0.37",
         "@ai-sdk/provider": "^3.0.8",
-        "@ai-sdk/provider-utils": "^4.0.15",
+        "@ai-sdk/provider-utils": "^4.0.21",
       },
       "devDependencies": {
         "@solana/kit": "^6.5.0",
@@ -140,7 +143,7 @@
 
     "@ai-sdk/openai": ["@ai-sdk/openai@3.0.48", "", { "dependencies": { "@ai-sdk/provider": "3.0.8", "@ai-sdk/provider-utils": "4.0.21" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-ALmj/53EXpcRqMbGpPJPP4UOSWw0q4VGpnDo7YctvsynjkrKDmoneDG/1a7VQnSPYHnJp6tTRMf5ZdxZ5whulg=="],
 
-    "@ai-sdk/openai-compatible": ["@ai-sdk/openai-compatible@2.0.30", "", { "dependencies": { "@ai-sdk/provider": "3.0.8", "@ai-sdk/provider-utils": "4.0.15" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-iTjumHf1/u4NhjXYFn/aONM2GId3/o7J1Lp5ql8FCbgIMyRwrmanR5xy1S3aaVkfTscuDvLTzWiy1mAbGzK3nQ=="],
+    "@ai-sdk/openai-compatible": ["@ai-sdk/openai-compatible@2.0.37", "", { "dependencies": { "@ai-sdk/provider": "3.0.8", "@ai-sdk/provider-utils": "4.0.21" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-+POSFVcgiu47BK64dhsI6OpcDC0/VAE2ZSaXdXGNNhpC/ava++uSRJYks0k2bpfY0wwCTgpAWZsXn/dG2Yppiw=="],
 
     "@ai-sdk/provider": ["@ai-sdk/provider@3.0.8", "", { "dependencies": { "json-schema": "^0.4.0" } }, "sha512-oGMAgGoQdBXbZqNG0Ze56CHjDZ1IDYOwGYxYjO5KLSlz5HiNQ9udIXsPZ61VWaHGZ5XW/jyjmr6t2xz2jGVwbQ=="],
 
@@ -3672,7 +3675,7 @@
 
     "@ai-sdk/google/@ai-sdk/provider-utils": ["@ai-sdk/provider-utils@4.0.15", "", { "dependencies": { "@ai-sdk/provider": "3.0.8", "@standard-schema/spec": "^1.1.0", "eventsource-parser": "^3.0.6" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-8XiKWbemmCbvNN0CLR9u3PQiet4gtEVIrX4zzLxnCj06AwsEDJwJVBbKrEI4t6qE8XRSIvU2irka0dcpziKW6w=="],
 
-    "@ai-sdk/openai-compatible/@ai-sdk/provider-utils": ["@ai-sdk/provider-utils@4.0.15", "", { "dependencies": { "@ai-sdk/provider": "3.0.8", "@standard-schema/spec": "^1.1.0", "eventsource-parser": "^3.0.6" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-8XiKWbemmCbvNN0CLR9u3PQiet4gtEVIrX4zzLxnCj06AwsEDJwJVBbKrEI4t6qE8XRSIvU2irka0dcpziKW6w=="],
+    "@ai-sdk/xai/@ai-sdk/openai-compatible": ["@ai-sdk/openai-compatible@2.0.30", "", { "dependencies": { "@ai-sdk/provider": "3.0.8", "@ai-sdk/provider-utils": "4.0.15" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-iTjumHf1/u4NhjXYFn/aONM2GId3/o7J1Lp5ql8FCbgIMyRwrmanR5xy1S3aaVkfTscuDvLTzWiy1mAbGzK3nQ=="],
 
     "@ai-sdk/xai/@ai-sdk/provider-utils": ["@ai-sdk/provider-utils@4.0.15", "", { "dependencies": { "@ai-sdk/provider": "3.0.8", "@standard-schema/spec": "^1.1.0", "eventsource-parser": "^3.0.6" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-8XiKWbemmCbvNN0CLR9u3PQiet4gtEVIrX4zzLxnCj06AwsEDJwJVBbKrEI4t6qE8XRSIvU2irka0dcpziKW6w=="],
 

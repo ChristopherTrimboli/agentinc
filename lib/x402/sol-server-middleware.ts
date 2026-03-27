@@ -52,6 +52,8 @@ import {
   addPaymentReceiptHeader as addReceiptHeader,
 } from "./shared";
 import { isRedisConfigured, getRedis } from "@/lib/redis";
+import { logPaymentRevenue } from "@/lib/revenue/events";
+import { PLATFORM_FEE_RATE } from "@/lib/revenue/constants";
 
 // Re-export for backward compatibility
 export { SOL_NETWORK, type SolNetwork, type PricingKey };
@@ -613,6 +615,21 @@ export async function chargeForUsage(
         );
       }
 
+      // Fire-and-forget: log revenue event for the distribution system
+      if (sendResult.success) {
+        const grossLamports = Number(lamports);
+        const costLamports = Math.floor(
+          grossLamports / (1 + PLATFORM_FEE_RATE),
+        );
+        logPaymentRevenue({
+          type: "usage_based",
+          grossLamports,
+          costLamports,
+          txSignature: sendResult.signature,
+          userId,
+        }).catch(() => {});
+      }
+
       return {
         success: sendResult.success,
         transaction: sendResult.signature,
@@ -741,6 +758,23 @@ export async function chargeForUsageInToken(
   );
 
   if (transferResult.success) {
+    // Fire-and-forget: log revenue for token payments using USD-equivalent lamports
+    const { usdToLamports: convertToLamports } =
+      await import("@/lib/x402/sol-facilitator");
+    convertToLamports(discountedUsdCost)
+      .then((grossLamportsBigInt) => {
+        const gross = Number(grossLamportsBigInt);
+        const costLamports = Math.floor(gross / (1 + PLATFORM_FEE_RATE));
+        return logPaymentRevenue({
+          type: "token_payment",
+          grossLamports: gross,
+          costLamports,
+          txSignature: transferResult.signature,
+          userId,
+        });
+      })
+      .catch(() => {});
+
     return {
       success: true,
       transaction: transferResult.signature,
