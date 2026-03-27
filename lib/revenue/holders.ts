@@ -13,6 +13,7 @@ import { isRedisConfigured, getRedis } from "@/lib/redis";
 
 import {
   AGENTINC_TOKEN_MINT,
+  AGENTINC_TOKEN_DECIMALS,
   MIN_HOLDING_AMOUNT,
   REVENUE_SHARE_TIERS,
   HOLDER_CACHE_TTL,
@@ -28,7 +29,6 @@ interface HeliusTokenAccount {
   address: string;
   owner: string;
   amount: number;
-  decimals: number;
 }
 
 interface HeliusResponse {
@@ -100,10 +100,7 @@ async function fetchAllHolders(): Promise<EligibleHolder[]> {
     const accounts = data.result?.token_accounts ?? [];
 
     for (const account of accounts) {
-      const uiBalance =
-        account.decimals > 0
-          ? account.amount / Math.pow(10, account.decimals)
-          : account.amount;
+      const uiBalance = account.amount / Math.pow(10, AGENTINC_TOKEN_DECIMALS);
 
       if (uiBalance < MIN_HOLDING_AMOUNT) continue;
 

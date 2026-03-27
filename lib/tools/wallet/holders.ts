@@ -66,7 +66,27 @@ interface HeliusTokenAccount {
   address: string;
   owner: string;
   amount: number;
-  decimals: number;
+}
+
+/** Fetch the decimals value for an SPL token mint via getAccountInfo. */
+async function fetchMintDecimals(mint: string): Promise<number> {
+  const response = await fetch(SOLANA_RPC_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      id: "mint-decimals",
+      method: "getAccountInfo",
+      params: [mint, { encoding: "base64" }],
+    }),
+  });
+
+  const data = await response.json();
+  const b64 = data?.result?.value?.data?.[0];
+  if (!b64) throw new Error(`Mint account not found: ${mint}`);
+
+  const buf = Buffer.from(b64, "base64");
+  return buf[44];
 }
 
 /**
@@ -77,6 +97,7 @@ async function fetchTokenHolders(
   mint: string,
   limit: number,
 ): Promise<TokenHolder[]> {
+  const decimals = await fetchMintDecimals(mint);
   const allAccounts: HeliusTokenAccount[] = [];
   let cursor: string | undefined;
   const pageSize = Math.min(limit, 100);
@@ -128,11 +149,9 @@ async function fetchTokenHolders(
     .slice(0, limit);
 
   // Map to TokenHolder format
+  const divisor = Math.pow(10, decimals);
   return sorted.map((account) => {
-    const uiAmount =
-      account.decimals > 0
-        ? account.amount / Math.pow(10, account.decimals)
-        : account.amount;
+    const uiAmount = account.amount / divisor;
 
     return {
       address: account.owner,

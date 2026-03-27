@@ -78,7 +78,9 @@ export async function distributeRevenue(): Promise<DistributionResult> {
     const pendingPool = await getPendingPool();
 
     if (events.length === 0 && pendingPool <= 0) {
-      console.log("[Revenue] No events and no pending pool — nothing to distribute.");
+      console.log(
+        "[Revenue] No events and no pending pool — nothing to distribute.",
+      );
       result.success = true;
       return result;
     }
@@ -126,9 +128,7 @@ export async function distributeRevenue(): Promise<DistributionResult> {
 
     const processableHolders = holders.slice(0, MAX_HOLDERS_PER_CYCLE);
 
-    console.log(
-      `[Revenue] ${processableHolders.length} eligible holders:`,
-    );
+    console.log(`[Revenue] ${processableHolders.length} eligible holders:`);
     for (const h of processableHolders) {
       console.log(
         `  ${h.wallet} | ${h.tier} (${h.multiplier}x) | balance=${h.balance.toLocaleString()} tokens`,
@@ -236,12 +236,16 @@ export async function distributeRevenue(): Promise<DistributionResult> {
     let sentCount = 0;
     let failedCount = 0;
 
-    console.log(`[Revenue] Sending ${viablePayouts.length} payouts in batches of ${PAYOUT_BATCH_SIZE}...`);
+    console.log(
+      `[Revenue] Sending ${viablePayouts.length} payouts in batches of ${PAYOUT_BATCH_SIZE}...`,
+    );
 
     for (let i = 0; i < viablePayouts.length; i += PAYOUT_BATCH_SIZE) {
       const batch = viablePayouts.slice(i, i + PAYOUT_BATCH_SIZE);
       const batchNum = Math.floor(i / PAYOUT_BATCH_SIZE) + 1;
-      console.log(`[Revenue] Processing batch ${batchNum} (${batch.length} payouts)...`);
+      console.log(
+        `[Revenue] Processing batch ${batchNum} (${batch.length} payouts)...`,
+      );
 
       const batchResults = await processBatch(batch, distribution.id);
 

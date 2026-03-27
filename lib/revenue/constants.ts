@@ -18,6 +18,9 @@ export const REVENUE_SHARE_RATE = 0.5;
 
 // ── Holder Tiers ─────────────────────────────────────────────────────────────
 
+/** Number of decimals for the $AGENTINC SPL token */
+export const AGENTINC_TOKEN_DECIMALS = 9;
+
 /** Minimum token balance to qualify for revenue sharing (Bronze entry) */
 export const MIN_HOLDING_AMOUNT = 5_000_000;
 
