@@ -9,7 +9,7 @@ import Footer from "@/app/components/Footer";
 
 import LeaderboardTable, { type HolderRow } from "./LeaderboardTable";
 
-export const revalidate = 60;
+export const revalidate = 300;
 
 interface PayoutAggRow {
   walletAddress: string;

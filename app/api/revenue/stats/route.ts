@@ -20,7 +20,7 @@ import {
   MIN_HOLDING_AMOUNT,
 } from "@/lib/revenue/constants";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 120;
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   const limited = await rateLimitByIP(req, "revenue-stats", 30);

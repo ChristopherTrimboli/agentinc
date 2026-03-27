@@ -5,7 +5,9 @@
  * Uses Helius DAS `getTokenAccounts` to enumerate all holders,
  * filters by minimum balance, and assigns tier multipliers.
  *
- * Results are cached in Redis for 120 seconds to avoid hammering the RPC.
+ * Results are cached in Redis for 300s. A distributed lock prevents
+ * thundering herd: only one caller fetches from Helius on cache miss
+ * while others receive stale data or wait briefly.
  */
 
 import { SOLANA_RPC_URL } from "@/lib/constants/solana";
@@ -129,11 +131,17 @@ async function fetchAllHolders(): Promise<EligibleHolder[]> {
 
 // ── Cached Public API ────────────────────────────────────────────────────────
 
+const REFRESH_LOCK_KEY = "revshare:holders_refresh_lock";
+const REFRESH_LOCK_TTL = 30; // seconds — prevents overlapping fetches
+
 /**
  * Get all eligible $AGENTINC holders for revenue sharing.
  *
- * Returns cached results when available (120s TTL).
- * Falls back to a live Helius DAS fetch on cache miss.
+ * Returns cached results when available (300s TTL).
+ * On cache miss, acquires a distributed lock so only one caller
+ * fetches from Helius. Concurrent callers receive stale data
+ * (kept for an extra TTL window) or an empty array if no stale
+ * data exists.
  */
 export async function getEligibleHolders(): Promise<EligibleHolder[]> {
   if (isRedisConfigured()) {
@@ -147,29 +155,71 @@ export async function getEligibleHolders(): Promise<EligibleHolder[]> {
     }
   }
 
+  // Thundering herd protection: only one caller refreshes at a time
+  if (isRedisConfigured()) {
+    try {
+      const redis = getRedis();
+      const acquired = await redis.set(REFRESH_LOCK_KEY, "1", {
+        nx: true,
+        ex: REFRESH_LOCK_TTL,
+      });
+
+      if (!acquired) {
+        // Another caller is already refreshing — return stale data if available
+        const stale = await redis.get<EligibleHolder[]>(
+          REDIS_KEYS.ELIGIBLE_HOLDERS + ":stale",
+        );
+        if (stale && stale.length > 0) return stale;
+        return [];
+      }
+    } catch {
+      // Lock acquisition failed — proceed with fetch anyway
+    }
+  }
+
   try {
     const holders = await fetchAllHolders();
 
     if (isRedisConfigured()) {
       try {
         const redis = getRedis();
-        await redis.set(REDIS_KEYS.ELIGIBLE_HOLDERS, holders, {
-          ex: HOLDER_CACHE_TTL,
-        });
-        await redis.set(REDIS_KEYS.ELIGIBLE_COUNT, holders.length, {
-          ex: HOLDER_CACHE_TTL,
-        });
-        await redis.set(REDIS_KEYS.LAST_REFRESH, Date.now(), {
-          ex: HOLDER_CACHE_TTL * 10,
-        });
+        await Promise.all([
+          redis.set(REDIS_KEYS.ELIGIBLE_HOLDERS, holders, {
+            ex: HOLDER_CACHE_TTL,
+          }),
+          // Keep a stale copy for 3x the TTL so concurrent callers never get empty
+          redis.set(REDIS_KEYS.ELIGIBLE_HOLDERS + ":stale", holders, {
+            ex: HOLDER_CACHE_TTL * 3,
+          }),
+          redis.set(REDIS_KEYS.ELIGIBLE_COUNT, holders.length, {
+            ex: HOLDER_CACHE_TTL,
+          }),
+          redis.set(REDIS_KEYS.LAST_REFRESH, Date.now(), {
+            ex: HOLDER_CACHE_TTL * 10,
+          }),
+          redis.del(REFRESH_LOCK_KEY),
+        ]);
       } catch {
-        // Non-critical
+        // Non-critical — try to release lock at minimum
+        try {
+          await getRedis().del(REFRESH_LOCK_KEY);
+        } catch {
+          // Lock will auto-expire
+        }
       }
     }
 
     return holders;
   } catch (error) {
     console.error("[Revenue] Failed to fetch eligible holders:", error);
+    // Release lock on failure so next caller can retry
+    if (isRedisConfigured()) {
+      try {
+        await getRedis().del(REFRESH_LOCK_KEY);
+      } catch {
+        // Lock will auto-expire
+      }
+    }
     return [];
   }
 }

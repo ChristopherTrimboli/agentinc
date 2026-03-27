@@ -60,7 +60,7 @@ export const PAYOUT_BATCH_SIZE = 10;
 // ── Cache Config ─────────────────────────────────────────────────────────────
 
 /** Redis TTL for cached eligible holder list (seconds) */
-export const HOLDER_CACHE_TTL = 120;
+export const HOLDER_CACHE_TTL = 300;
 
 // ── Redis Keys ───────────────────────────────────────────────────────────────
 

@@ -10,6 +10,31 @@ import { z } from "zod";
 import { SOLANA_RPC_URL } from "@/lib/constants/solana";
 import type { TokenHolder } from "./types";
 
+// ── In-memory cache for agent tool calls ─────────────────────────────
+
+const TOOL_CACHE_TTL_MS = 60_000;
+
+interface CachedResult<T> {
+  data: T;
+  expiresAt: number;
+}
+
+const holderCache = new Map<string, CachedResult<TokenHolder[]>>();
+
+function getCachedHolders(key: string): TokenHolder[] | null {
+  const entry = holderCache.get(key);
+  if (!entry) return null;
+  if (Date.now() > entry.expiresAt) {
+    holderCache.delete(key);
+    return null;
+  }
+  return entry.data;
+}
+
+function setCachedHolders(key: string, data: TokenHolder[]): void {
+  holderCache.set(key, { data, expiresAt: Date.now() + TOOL_CACHE_TTL_MS });
+}
+
 // ── getTokenHolders ──────────────────────────────────────────────────
 
 const tokenHolderSchema = z.object({
@@ -34,8 +59,13 @@ function createGetTokenHolders() {
     execute: async (input: z.infer<typeof tokenHolderSchema>) => {
       const { mint, limit } = input;
       try {
-        // Step 1: Fetch token accounts via Helius DAS API
-        const holders = await fetchTokenHolders(mint, limit);
+        const cacheKey = `${mint}:${limit}`;
+        let holders = getCachedHolders(cacheKey);
+
+        if (!holders) {
+          holders = await fetchTokenHolders(mint, limit);
+          setCachedHolders(cacheKey, holders);
+        }
 
         if (holders.length === 0) {
           return {
