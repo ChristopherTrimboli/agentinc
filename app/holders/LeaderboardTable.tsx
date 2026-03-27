@@ -452,7 +452,9 @@ export default function LeaderboardTable({
                             ? "hover:bg-white/[0.03]"
                             : "hover:bg-white/[0.02]"
                         }`}
-                        style={{ animationDelay: `${650 + Math.min(i, 15) * 30}ms` }}
+                        style={{
+                          animationDelay: `${650 + Math.min(i, 15) * 30}ms`,
+                        }}
                       >
                         {/* Rank */}
                         <TableCell className="text-center font-mono text-gray-600 text-sm">
