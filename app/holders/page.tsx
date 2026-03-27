@@ -39,7 +39,7 @@ export default async function HoldersPage() {
   // Run Prisma Accelerate queries sequentially to avoid compounding worker resource usage
   const payoutAggRaw = (await prisma.revenueSharePayout.groupBy({
     by: ["walletAddress"],
-    where: { status: "sent" },
+    where: { status: "confirmed" },
     _sum: { amountLamports: true },
     _count: { id: true },
     cacheStrategy: { ttl: 120, swr: 300 },
