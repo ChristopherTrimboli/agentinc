@@ -30,6 +30,7 @@ export const MIN_HOLDING_AMOUNT = 5_000_000;
  */
 export const HOLDER_BLACKLIST = new Set([
   "HLnpSz9h2S4hiLQ43rnSD9XkcUThA7B8hQMKmDaiTLcC", // Meteora Pool Authority
+  "GrNkeWK1zFFcbbz5akatAXuRCC7QZCnMLGwbYtLDcSTj", // Agent Inc. team wallet
 ]);
 
 /**
