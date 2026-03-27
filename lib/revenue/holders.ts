@@ -15,6 +15,7 @@ import {
   AGENTINC_TOKEN_MINT,
   AGENTINC_TOKEN_DECIMALS,
   MIN_HOLDING_AMOUNT,
+  HOLDER_BLACKLIST,
   REVENUE_SHARE_TIERS,
   HOLDER_CACHE_TTL,
   MAX_HOLDER_PAGES,
@@ -100,6 +101,8 @@ async function fetchAllHolders(): Promise<EligibleHolder[]> {
     const accounts = data.result?.token_accounts ?? [];
 
     for (const account of accounts) {
+      if (HOLDER_BLACKLIST.has(account.owner)) continue;
+
       const uiBalance = account.amount / Math.pow(10, AGENTINC_TOKEN_DECIMALS);
 
       if (uiBalance < MIN_HOLDING_AMOUNT) continue;

@@ -25,6 +25,14 @@ export const AGENTINC_TOKEN_DECIMALS = 9;
 export const MIN_HOLDING_AMOUNT = 5_000_000;
 
 /**
+ * Wallets excluded from revenue sharing regardless of balance.
+ * Used to filter out protocol-owned accounts (e.g. liquidity pools, vaults).
+ */
+export const HOLDER_BLACKLIST = new Set([
+  "HLnpSz9h2S4hiLQ43rnSD9XkcUThA7B8hQMKmDaiTLcC", // Meteora Pool Authority
+]);
+
+/**
  * Tier definitions ordered from highest to lowest.
  * The first matching tier (balance >= minTokens) is assigned.
  */
