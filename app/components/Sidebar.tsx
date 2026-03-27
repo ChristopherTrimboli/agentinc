@@ -16,6 +16,7 @@ import {
   Store,
   ShoppingBag,
   Key,
+  Coins,
 } from "lucide-react";
 import LoginButton from "./LoginButton";
 
@@ -60,6 +61,11 @@ const navItems = [
     href: "/dashboard/api-keys",
     label: "API Keys",
     icon: Key,
+  },
+  {
+    href: "/holders",
+    label: "Holders",
+    icon: Coins,
   },
 ];
 

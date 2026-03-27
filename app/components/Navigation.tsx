@@ -1,19 +1,22 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import Image from "next/image";
 import LoginButton from "./LoginButton";
 import Link from "next/link";
 
 const navLinks = [
-  { href: "/dashboard/network", label: "Network", highlight: false },
-  { href: "/dashboard/chat", label: "Chat", highlight: false },
-  { href: "/dashboard/agents", label: "Agents", highlight: false },
-  { href: "/dashboard/marketplace", label: "Marketplace", highlight: false },
+  { href: "/dashboard/network", label: "Network" },
+  { href: "/dashboard/chat", label: "Chat" },
+  { href: "/dashboard/agents", label: "Agents" },
+  { href: "/dashboard/marketplace", label: "Marketplace" },
+  { href: "/holders", label: "Holders" },
 ];
 
 export default function Navigation() {
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
 
   // Close menu on escape key
@@ -57,19 +60,22 @@ export default function Navigation() {
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-8">
-          {navLinks.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              className={
-                link.highlight
-                  ? "text-[#6FEC06] hover:text-[#9FF24A] transition-colors font-medium"
-                  : "text-white/60 hover:text-white transition-colors"
-              }
-            >
-              {link.label}
-            </a>
-          ))}
+          {navLinks.map((link) => {
+            const isActive = pathname.startsWith(link.href);
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={
+                  isActive
+                    ? "text-[#6FEC06] hover:text-[#9FF24A] transition-colors font-medium"
+                    : "text-white/60 hover:text-white transition-colors"
+                }
+              >
+                {link.label}
+              </Link>
+            );
+          })}
         </div>
 
         {/* Desktop CTA */}
@@ -108,23 +114,26 @@ export default function Navigation() {
         <div className="max-w-7xl mx-auto px-6 py-6">
           {/* Navigation Links */}
           <div className="flex flex-col gap-1">
-            {navLinks.map((link, index) => (
-              <a
-                key={link.href}
-                href={link.href}
-                onClick={handleLinkClick}
-                className={`py-3 px-4 rounded-lg text-lg font-medium transition-all duration-200 ${
-                  link.highlight
-                    ? "text-[#6FEC06] hover:bg-[#6FEC06]/10"
-                    : "text-white/70 hover:text-white hover:bg-white/5"
-                }`}
-                style={{
-                  transitionDelay: isOpen ? `${index * 50}ms` : "0ms",
-                }}
-              >
-                {link.label}
-              </a>
-            ))}
+            {navLinks.map((link, index) => {
+              const isActive = pathname.startsWith(link.href);
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={handleLinkClick}
+                  className={`py-3 px-4 rounded-lg text-lg font-medium transition-all duration-200 ${
+                    isActive
+                      ? "text-[#6FEC06] hover:bg-[#6FEC06]/10"
+                      : "text-white/70 hover:text-white hover:bg-white/5"
+                  }`}
+                  style={{
+                    transitionDelay: isOpen ? `${index * 50}ms` : "0ms",
+                  }}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
           </div>
 
           {/* Mobile CTA */}

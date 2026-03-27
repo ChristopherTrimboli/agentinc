@@ -99,6 +99,7 @@
     "pdf-parse": "^2.4.5",
     "pixi.js": "^8.17.1",
     "qrcode.react": "^4.2.0",
+    "radix-ui": "^1.4.3",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-slot-counter": "^3.3.2",
