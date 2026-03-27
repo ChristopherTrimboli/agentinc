@@ -35,15 +35,26 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
     const result = await distributeRevenue();
 
+    const payoutsSent = result.payouts.filter((p) => p.status === "sent");
+    const payoutsFailed = result.payouts.filter((p) => p.status === "failed");
+
     return NextResponse.json({
       success: result.success,
       totalProfitLamports: result.totalProfitLamports.toString(),
       distributedLamports: result.distributedLamports.toString(),
       holderCount: result.holderCount,
       payoutCount: result.payouts.length,
-      payoutsSent: result.payouts.filter((p) => p.status === "sent").length,
-      payoutsFailed: result.payouts.filter((p) => p.status === "failed").length,
+      payoutsSent: payoutsSent.length,
+      payoutsFailed: payoutsFailed.length,
       rolledOverLamports: result.rolledOverLamports.toString(),
+      payouts: result.payouts.map((p) => ({
+        wallet: p.wallet,
+        amountLamports: p.amountLamports.toString(),
+        amountSol: (p.amountLamports / 1_000_000_000).toFixed(6),
+        tier: p.tier,
+        status: p.status,
+        ...(p.txSignature && { txSignature: p.txSignature }),
+      })),
       ...(result.error && { error: result.error }),
     });
   } catch (error) {

@@ -33,6 +33,11 @@ import {
 } from "./events";
 import { getEligibleHolders } from "./holders";
 
+/** Convert lamports (number) to a human-readable SOL string */
+function lamportsToSolStr(lamports: number): string {
+  return (lamports / 1_000_000_000).toFixed(6);
+}
+
 // ── Main Entry Point ─────────────────────────────────────────────────────────
 
 /**
@@ -73,6 +78,7 @@ export async function distributeRevenue(): Promise<DistributionResult> {
     const pendingPool = await getPendingPool();
 
     if (events.length === 0 && pendingPool <= 0) {
+      console.log("[Revenue] No events and no pending pool — nothing to distribute.");
       result.success = true;
       return result;
     }
@@ -83,6 +89,14 @@ export async function distributeRevenue(): Promise<DistributionResult> {
     // ── Step 3: Calculate distributable amount ──
     const revenueShareFromEvents = Math.floor(totalProfit * REVENUE_SHARE_RATE);
     const distributable = revenueShareFromEvents + pendingPool;
+
+    console.log(
+      `[Revenue] Drained ${events.length} events | ` +
+        `totalProfit=${lamportsToSolStr(totalProfit)} SOL | ` +
+        `revenueShare=${lamportsToSolStr(revenueShareFromEvents)} SOL | ` +
+        `pendingPool=${lamportsToSolStr(pendingPool)} SOL | ` +
+        `distributable=${lamportsToSolStr(distributable)} SOL`,
+    );
 
     if (distributable <= 0) {
       result.success = true;
@@ -112,6 +126,15 @@ export async function distributeRevenue(): Promise<DistributionResult> {
 
     const processableHolders = holders.slice(0, MAX_HOLDERS_PER_CYCLE);
 
+    console.log(
+      `[Revenue] ${processableHolders.length} eligible holders:`,
+    );
+    for (const h of processableHolders) {
+      console.log(
+        `  ${h.wallet} | ${h.tier} (${h.multiplier}x) | balance=${h.balance.toLocaleString()} tokens`,
+      );
+    }
+
     // ── Step 5: Calculate weighted shares ──
     const totalWeight = processableHolders.reduce(
       (sum, h) => sum + h.multiplier,
@@ -128,6 +151,16 @@ export async function distributeRevenue(): Promise<DistributionResult> {
     const viablePayouts = payoutPlan.filter(
       (p) => p.amountLamports >= DUST_THRESHOLD_LAMPORTS,
     );
+
+    const dustFiltered = payoutPlan.length - viablePayouts.length;
+    console.log(
+      `[Revenue] Payout plan: ${viablePayouts.length} viable, ${dustFiltered} below dust threshold (${DUST_THRESHOLD_LAMPORTS} lamports)`,
+    );
+    for (const p of viablePayouts) {
+      console.log(
+        `  → ${p.holder.wallet} | ${p.holder.tier} | ${lamportsToSolStr(p.amountLamports)} SOL (${p.amountLamports} lamports)`,
+      );
+    }
 
     if (viablePayouts.length === 0) {
       await setPendingPool(distributable);
@@ -200,15 +233,25 @@ export async function distributeRevenue(): Promise<DistributionResult> {
 
     // ── Step 8: Execute payouts in batches ──
     let distributedTotal = 0;
+    let sentCount = 0;
+    let failedCount = 0;
+
+    console.log(`[Revenue] Sending ${viablePayouts.length} payouts in batches of ${PAYOUT_BATCH_SIZE}...`);
 
     for (let i = 0; i < viablePayouts.length; i += PAYOUT_BATCH_SIZE) {
       const batch = viablePayouts.slice(i, i + PAYOUT_BATCH_SIZE);
+      const batchNum = Math.floor(i / PAYOUT_BATCH_SIZE) + 1;
+      console.log(`[Revenue] Processing batch ${batchNum} (${batch.length} payouts)...`);
+
       const batchResults = await processBatch(batch, distribution.id);
 
       for (const br of batchResults) {
         result.payouts.push(br);
         if (br.status === "sent") {
           distributedTotal += br.amountLamports;
+          sentCount++;
+        } else {
+          failedCount++;
         }
       }
     }
@@ -242,8 +285,11 @@ export async function distributeRevenue(): Promise<DistributionResult> {
 
     result.success = true;
     console.log(
-      `[Revenue] Distribution ${finalStatus}: ${distributedTotal} lamports to ${viablePayouts.length} holders, ` +
-        `${rollover} lamports rolled over.`,
+      `[Revenue] ═══ Distribution ${finalStatus.toUpperCase()} ═══\n` +
+        `  Total distributed: ${lamportsToSolStr(distributedTotal)} SOL (${distributedTotal} lamports)\n` +
+        `  Payouts sent: ${sentCount} | failed: ${failedCount}\n` +
+        `  Rolled over: ${lamportsToSolStr(rollover)} SOL\n` +
+        `  Distribution ID: ${distribution.id}`,
     );
 
     return result;
@@ -335,6 +381,10 @@ async function processBatch(
           txSignature: sendResult.signature,
           status: "sent",
         });
+
+        console.log(
+          `[Revenue] ✓ PAID ${item.holder.wallet} | ${lamportsToSolStr(item.amountLamports)} SOL | ${item.holder.tier} | tx=${sendResult.signature}`,
+        );
       } else {
         await prisma.revenueSharePayout.update({
           where: { id: payoutRecord.id },
@@ -349,7 +399,7 @@ async function processBatch(
         });
 
         console.error(
-          `[Revenue] Payout failed for ${item.holder.wallet}: ${sendResult.error}`,
+          `[Revenue] ✗ FAILED ${item.holder.wallet} | ${lamportsToSolStr(item.amountLamports)} SOL | ${item.holder.tier} | error=${sendResult.error}`,
         );
       }
     } catch (error) {
@@ -365,7 +415,10 @@ async function processBatch(
         status: "failed",
       });
 
-      console.error(`[Revenue] Payout error for ${item.holder.wallet}:`, error);
+      console.error(
+        `[Revenue] ✗ ERROR ${item.holder.wallet} | ${lamportsToSolStr(item.amountLamports)} SOL | ${item.holder.tier}:`,
+        error,
+      );
     }
   }
 
