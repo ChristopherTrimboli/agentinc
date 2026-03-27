@@ -1,4 +1,5 @@
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { Prisma } from "@/app/generated/prisma/client";
 
 import prisma from "@/lib/prisma";
 import { getEligibleHolders } from "@/lib/revenue/holders";
@@ -16,23 +17,35 @@ interface PayoutAggRow {
   _count: { id: number };
 }
 
+async function getTotalDistributedLamports(): Promise<bigint> {
+  try {
+    const rows = await prisma.$queryRaw<{ total: bigint | null }[]>(
+      Prisma.sql`SELECT SUM("distributedLamports") AS total FROM "RevenueDistribution" WHERE status IN ('completed', 'partial')`,
+    );
+    return rows[0]?.total ?? BigInt(0);
+  } catch (error) {
+    console.error("[Holders] Failed to fetch total distributed:", error);
+    return BigInt(0);
+  }
+}
+
 export default async function HoldersPage() {
-  const [holders, payoutAggRaw, poolLamports, distAgg] = await Promise.all([
+  // Non-Prisma fetches can run in parallel safely
+  const [holders, poolLamports] = await Promise.all([
     getEligibleHolders(),
-    prisma.revenueSharePayout.groupBy({
-      by: ["walletAddress"],
-      where: { status: "sent" },
-      _sum: { amountLamports: true },
-      _count: { id: true },
-      cacheStrategy: { ttl: 60, swr: 120 },
-    }) as unknown as Promise<PayoutAggRow[]>,
     getPendingPool(),
-    prisma.revenueDistribution.aggregate({
-      where: { status: { in: ["completed", "partial"] } },
-      _sum: { distributedLamports: true },
-      cacheStrategy: { ttl: 60, swr: 120 },
-    }) as unknown as Promise<{ _sum: { distributedLamports: bigint | null } }>,
   ]);
+
+  // Run Prisma Accelerate queries sequentially to avoid compounding worker resource usage
+  const payoutAggRaw = (await prisma.revenueSharePayout.groupBy({
+    by: ["walletAddress"],
+    where: { status: "sent" },
+    _sum: { amountLamports: true },
+    _count: { id: true },
+    cacheStrategy: { ttl: 120, swr: 300 },
+  })) as unknown as PayoutAggRow[];
+
+  const totalDistributedLamports = await getTotalDistributedLamports();
 
   // Map wallet -> earnings from DB
   const earningsByWallet = new Map<string, { sol: number; count: number }>();
@@ -69,7 +82,7 @@ export default async function HoldersPage() {
   });
 
   const totalDistributedSol =
-    Number(distAgg._sum?.distributedLamports ?? BigInt(0)) / LAMPORTS_PER_SOL;
+    Number(totalDistributedLamports) / LAMPORTS_PER_SOL;
   const pendingPoolSol = poolLamports / LAMPORTS_PER_SOL;
 
   return (
