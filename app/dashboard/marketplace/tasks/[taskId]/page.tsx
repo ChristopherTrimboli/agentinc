@@ -168,6 +168,11 @@ export default function TaskDetailPage() {
       currentUserId === task.workerAgent.createdById);
   const hasReviewed =
     task?.reviews?.some((r) => r.reviewer.id === currentUserId) ?? false;
+  const isExpired =
+    !!task &&
+    task.status === "open" &&
+    !!task.deadline &&
+    new Date(task.deadline) < new Date();
   const canCancel =
     isPoster &&
     !!task &&
@@ -531,7 +536,19 @@ export default function TaskDetailPage() {
           transition={{ delay: 0.15 }}
           className="mb-6 rounded-2xl border border-white/10 bg-surface/80 p-4 px-4 sm:p-6 sm:px-8 pb-2"
         >
-          <StatusTimeline currentStatus={task.status} />
+          <StatusTimeline
+            currentStatus={isExpired ? "cancelled" : task.status}
+          />
+          {isExpired && (
+            <div className="mt-3 flex items-center justify-center gap-2">
+              <div className="flex items-center gap-1.5 rounded-lg border border-orange-500/20 bg-orange-500/10 px-3 py-1.5">
+                <AlertTriangle className="size-3.5 text-orange-400" />
+                <span className="text-xs font-semibold text-orange-400">
+                  Deadline Passed
+                </span>
+              </div>
+            </div>
+          )}
           <div className="mt-4 flex items-center gap-3">
             <EscrowBadge
               status={task.escrowStatus}
@@ -922,78 +939,91 @@ export default function TaskDetailPage() {
                 )}
 
                 {/* Place Bid Form */}
-                {task.status === "open" && !isPoster && authenticated && (
-                  <form
-                    onSubmit={handlePlaceBid}
-                    className="mt-6 space-y-4 border-t border-white/10 pt-6"
-                  >
-                    <h3 className="flex items-center gap-2 text-sm font-semibold text-white">
-                      <Zap className="size-4 text-coral" />
-                      Place a Bid
-                    </h3>
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <div>
-                        <label className="mb-1.5 block text-xs font-medium text-white/40">
-                          Amount (SOL)
-                        </label>
-                        <div className="relative">
+                {task.status === "open" && isExpired && (
+                  <div className="mt-6 border-t border-white/10 pt-6">
+                    <div className="flex items-center gap-2 rounded-lg border border-orange-500/20 bg-orange-500/10 px-4 py-3">
+                      <AlertTriangle className="size-4 shrink-0 text-orange-400" />
+                      <p className="text-sm text-orange-300">
+                        This task&apos;s deadline has passed. Bidding is closed.
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {task.status === "open" &&
+                  !isExpired &&
+                  !isPoster &&
+                  authenticated && (
+                    <form
+                      onSubmit={handlePlaceBid}
+                      className="mt-6 space-y-4 border-t border-white/10 pt-6"
+                    >
+                      <h3 className="flex items-center gap-2 text-sm font-semibold text-white">
+                        <Zap className="size-4 text-coral" />
+                        Place a Bid
+                      </h3>
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div>
+                          <label className="mb-1.5 block text-xs font-medium text-white/40">
+                            Amount (SOL)
+                          </label>
+                          <div className="relative">
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0.01"
+                              value={bidAmount}
+                              onChange={(e) => setBidAmount(e.target.value)}
+                              placeholder="0.00"
+                              required
+                              className="h-11 pr-12 bg-surface-light border-white/10 text-white placeholder:text-white/20 focus-visible:border-coral/30 focus-visible:ring-coral/20"
+                            />
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-coral/60">
+                              SOL
+                            </span>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="mb-1.5 block text-xs font-medium text-white/40">
+                            Estimated Time
+                          </label>
                           <Input
-                            type="number"
-                            step="0.01"
-                            min="0.01"
-                            value={bidAmount}
-                            onChange={(e) => setBidAmount(e.target.value)}
-                            placeholder="0.00"
-                            required
-                            className="h-11 pr-12 bg-surface-light border-white/10 text-white placeholder:text-white/20 focus-visible:border-coral/30 focus-visible:ring-coral/20"
+                            type="text"
+                            value={bidTime}
+                            onChange={(e) => setBidTime(e.target.value)}
+                            placeholder="e.g. 3 days"
+                            className="h-11 bg-surface-light border-white/10 text-white placeholder:text-white/20 focus-visible:border-coral/30 focus-visible:ring-coral/20"
                           />
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-coral/60">
-                            SOL
-                          </span>
                         </div>
                       </div>
                       <div>
                         <label className="mb-1.5 block text-xs font-medium text-white/40">
-                          Estimated Time
+                          Message
                         </label>
-                        <Input
-                          type="text"
-                          value={bidTime}
-                          onChange={(e) => setBidTime(e.target.value)}
-                          placeholder="e.g. 3 days"
-                          className="h-11 bg-surface-light border-white/10 text-white placeholder:text-white/20 focus-visible:border-coral/30 focus-visible:ring-coral/20"
+                        <Textarea
+                          value={bidMessage}
+                          onChange={(e) => setBidMessage(e.target.value)}
+                          placeholder="Why are you the best fit for this task?"
+                          rows={3}
+                          maxLength={5000}
+                          className="bg-surface-light border-white/10 text-white placeholder:text-white/20 focus-visible:border-coral/30 focus-visible:ring-coral/20"
                         />
                       </div>
-                    </div>
-                    <div>
-                      <label className="mb-1.5 block text-xs font-medium text-white/40">
-                        Message
-                      </label>
-                      <Textarea
-                        value={bidMessage}
-                        onChange={(e) => setBidMessage(e.target.value)}
-                        placeholder="Why are you the best fit for this task?"
-                        rows={3}
-                        maxLength={5000}
-                        className="bg-surface-light border-white/10 text-white placeholder:text-white/20 focus-visible:border-coral/30 focus-visible:ring-coral/20"
-                      />
-                    </div>
-                    <Button
-                      type="submit"
-                      disabled={submittingBid || !bidAmount}
-                      className="bg-coral text-black hover:bg-coral/90 font-semibold shadow-lg shadow-coral/10"
-                    >
-                      {submittingBid ? (
-                        <Loader2 className="mr-2 size-4 animate-spin" />
-                      ) : (
-                        <Send className="mr-2 size-4" />
-                      )}
-                      Place Bid
-                    </Button>
-                  </form>
-                )}
+                      <Button
+                        type="submit"
+                        disabled={submittingBid || !bidAmount}
+                        className="bg-coral text-black hover:bg-coral/90 font-semibold shadow-lg shadow-coral/10"
+                      >
+                        {submittingBid ? (
+                          <Loader2 className="mr-2 size-4 animate-spin" />
+                        ) : (
+                          <Send className="mr-2 size-4" />
+                        )}
+                        Place Bid
+                      </Button>
+                    </form>
+                  )}
 
-                {task.status === "open" && !authenticated && (
+                {task.status === "open" && !isExpired && !authenticated && (
                   <div className="mt-6 border-t border-white/10 pt-6 text-center">
                     <Button
                       onClick={login}
@@ -1313,9 +1343,16 @@ export default function TaskDetailPage() {
                 </DetailRow>
                 {task.deadline && (
                   <DetailRow label="Deadline">
-                    <span className="flex items-center gap-1 text-white/60">
+                    <span
+                      className={`flex items-center gap-1 ${isExpired ? "text-orange-400" : "text-white/60"}`}
+                    >
                       <Calendar className="size-3" />
                       {new Date(task.deadline).toLocaleDateString()}
+                      {isExpired && (
+                        <span className="text-[10px] font-semibold uppercase tracking-wide">
+                          · Expired
+                        </span>
+                      )}
                     </span>
                   </DetailRow>
                 )}

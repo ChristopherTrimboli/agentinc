@@ -7,6 +7,10 @@
     {
       "path": "/api/cron/distribute-revenue",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/expire-tasks",
+      "schedule": "0 * * * *"
     }
   ]
 }

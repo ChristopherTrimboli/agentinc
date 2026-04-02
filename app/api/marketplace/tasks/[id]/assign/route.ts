@@ -25,6 +25,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
         posterId: true,
         title: true,
         budgetSol: true,
+        deadline: true,
         tokenMint: true,
         tokenSymbol: true,
         tokenFeesClaimed: true,
@@ -43,6 +44,12 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     }
     if (task.status !== "open") {
       return NextResponse.json({ error: "Task is not open" }, { status: 400 });
+    }
+    if (task.deadline && task.deadline < new Date()) {
+      return NextResponse.json(
+        { error: "Task deadline has passed" },
+        { status: 400 },
+      );
     }
 
     const body = await req.json();
