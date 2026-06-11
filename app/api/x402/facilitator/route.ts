@@ -112,7 +112,7 @@ const apiRes = await fetch(protectedEndpoint, {
 
     // Links
     links: {
-      documentation: "https://github.com/anthropics/x402",
+      documentation: "https://github.com/coinbase/x402",
       agentInc: baseUrl,
     },
   });

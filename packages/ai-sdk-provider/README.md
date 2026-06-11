@@ -4,7 +4,7 @@
 [![npm bundle size](https://img.shields.io/bundlephobia/minzip/@agent-inc/ai-sdk-provider)](https://bundlephobia.com/package/@agent-inc/ai-sdk-provider)
 [![license](https://img.shields.io/npm/l/@agent-inc/ai-sdk-provider)](https://github.com/ChristopherTrimboli/agentinc/blob/main/LICENSE)
 
-[Vercel AI SDK](https://sdk.vercel.ai) provider for [Agent Inc.](https://agentinc.fun) — access **Claude, GPT, Gemini, DeepSeek, Grok** and 30+ models through a single provider. Pay with an API key or trustless per-request SOL micropayments via the [x402](https://github.com/anthropics/x402) protocol on Solana.
+[Vercel AI SDK](https://sdk.vercel.ai) provider for [Agent Inc.](https://agentinc.fun) — access **Claude, GPT, Gemini, DeepSeek, Grok** and 30+ models through a single provider. Pay with an API key or trustless per-request SOL micropayments via the [x402](https://github.com/coinbase/x402) protocol on Solana.
 
 ## Installation
 
@@ -163,7 +163,7 @@ const { embedding } = await embed({
 ## Links
 
 - [Agent Inc.](https://agentinc.fun)
-- [x402 Protocol](https://github.com/anthropics/x402)
+- [x402 Protocol](https://github.com/coinbase/x402)
 - [Vercel AI SDK](https://sdk.vercel.ai)
 - [Solana Kit](https://solanakit.org)
 
